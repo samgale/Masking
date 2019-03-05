@@ -16,8 +16,8 @@ class MaskingTask(TaskControl):
     
     def __init__(self):
         TaskControl.__init__(self)
-        self.interTrialFrames = 240
-        self.maxTrialFrames = 720
+        self.preStimFrames = 120 # time between end of previous trial and stimulus onset
+        self.maxResponseWaitFrames = 240 # max time between stimulus onset and end of trial 
         self.rewardDistance = 5 # degrees to move stim for reward
         
         # mouse can move target stimulus with wheel for early training
@@ -34,7 +34,7 @@ class MaskingTask(TaskControl):
         # mask params
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
-        self.maskOnset = [np.nan,0,1,2,3,4,8,16] # frames >=0 relative to target stimulus onset, or NaN for no mask
+        self.maskOnset = [np.nan,0,2,4,8,16] # frames >=0 relative to target stimulus onset, or NaN for no mask
         self.maskFrames = 5 # duration of mask
 
     def checkParameterValues(self):
@@ -93,12 +93,12 @@ class MaskingTask(TaskControl):
             sessionFrame = 0
             trialFrame = 0
             self.trialStartFrame = []
+            self.trialEndFrame = []
             self.trialOri = []
             self.trialStimFrames = []
             self.trialMaskOnset = []
             self.trialRewardSide = []
-            self.trialRewarded = []
-            self.trialRewardFrame = []
+            self.trialResponse = []
             rewardDistPix = self.rewardDistance * self.pixelsPerDeg
             
             while True: # each loop is a frame flip
@@ -122,36 +122,38 @@ class MaskingTask(TaskControl):
                     self.trialMaskOnset.append(maskOnset)
                     self.trialRewardSide.append(rewardSide)
                 
-                # update stimulus/mask after intertrial gray screen period is complete
-                if trialFrame > self.interTrialFrames:
-                    if trialFrame > self.interTrialFrames + self.preMoveFrames:
+                # update stimulus/mask after pre-stimulus gray screen period is complete
+                if trialFrame > self.preStimFrames:
+                    if trialFrame > self.preStimFrames + self.preMoveFrames:
                         wheelPos += self.translateEndoderChange()
                     if self.moveStim:
                         stim.pos = (wheelPos,0)
                         stim.draw()
                     else:
                         if (self.maskType is not None and not np.isnan(maskOnset) and 
-                           (self.interTrialFrames+maskOnset < trialFrame <= 
-                            self.interTrialFrames + maskOnset + self.maskFrames)):
+                           (self.preStimFrames + maskOnset < trialFrame <= 
+                            self.preStimFrames + maskOnset + self.maskFrames)):
                             for m in mask:
                                 m.draw()
-                        elif trialFrame <= self.interTrialFrames + stimFrames:
+                        elif trialFrame <= self.preStimFrames + stimFrames:
                             stim.draw()
                      
                 self.visStimFlip()
                 trialFrame += 1
                 sessionFrame += 1
                 
-                # end trial if reward earned or max trial duration reached
-                if ((rewardSide < 0 and wheelPos < -rewardDistPix) or
-                    (rewardSide > 0 and wheelPos > rewardDistPix)):
-                       self.deliverReward()
-                       self.trialRewarded.append(True)
-                       self.trialRewardFrame.append(trialFrame)
-                       trialFrame = 0
-                elif trialFrame==self.maxTrialFrames:
-                    self.trialRewarded.append(False)
-                    self.trialRewardFrame.append(np.nan)
+                # end trial if wheel moved past threshold (either side) or max trial duration reached
+                if abs(wheelPos) > rewardDistPix:
+                    if (rewardSide < 0 and wheelPos < 0) or (rewardSide > 0 and wheelPos > 0):
+                        self.deliverReward()
+                        self.trialResponse.append(1) # correct
+                    else:
+                        self.trialResponse.append(-1) # incorrect
+                    self.trialEndFrame.append(trialFrame)
+                    trialFrame = 0
+                elif trialFrame == self.preStimFrames + self.maxResponseWaitFrames:
+                    self.trialResponse.append(0) # no response
+                    self.trialEndFrame.append(trialFrame)
                     trialFrame = 0
                 
                 # check for keyboard events to end session
