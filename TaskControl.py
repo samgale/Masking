@@ -20,13 +20,13 @@ class TaskControl():
         self.rig = 'pilot' # 'pilot' or 'np3'
         self._save = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
-        self.frameRate = 60.0
+        self.frameRate = 120
         self._screen = 1 # monitor to present stimuli on
         self.drawDiodeBox = True
         self.nidaqDevice = 'USB-6009'
         self.wheelRotDir = 1 # 1 or -1
-        self.wheelSpeedGain = 20 # arbitrary scale factor
-        self.rewardDur = 0.01 # duration in seconds of analog output pulse controlling reward size
+        self.wheelSpeedGain = 50 # arbitrary scale factor
+        self.rewardDur = 0.1 # duration in seconds of analog output pulse controlling reward size
         if self.rig=='pilot':
             self._saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.monWidth = 38.1 # cm
@@ -37,8 +37,10 @@ class TaskControl():
             self.warp = 'Disabled' # one of ('Disabled','Spherical','Cylindrical','Curvilinear','Warpfile')
             self.warpFile = None
             self.diodeBoxSize = 30
-            self.diodeBoxPosition = (-600,-500)
+            self.diodeBoxPosition = (600,-500)
             self.pixelsPerDeg = 1050/25
+        elif self.rig=='np3':
+            pass
             
     def visStimFlip(self):
         if self.drawDiodeBox:
@@ -120,30 +122,29 @@ class TaskControl():
         return self._rotEncoderInput.data[:]
         
     def saveEncoderAngle(self):
-        encoderAngle = self.readRotaryEncoder()*2*math.pi/5
+        encoderAngle = self.readRotaryEncoder() * 2 * math.pi / 5
         self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
         
     def translateEndoderChange(self):
         # translate encoder angle change to number of pixels to move visual stimulus
-        if len(self.rotaryEncoderRadians)<2:
+        if len(self.rotaryEncoderRadians) < 2:
             pixelsToMove = 0
         else:
-            angleChange = self.rotaryEncoderRadians[-1]-self.rotaryEncoderRadians[-2]
-            if angleChange<-np.pi:
-                angleChange += 2*math.pi
-            elif angleChange>np.pi:
-                angleChange -= 2*math.pi
-            pixelsToMove = angleChange*self.wheelRotDir*self.wheelSpeedGain
+            angleChange = self.rotaryEncoderRadians[-1] - self.rotaryEncoderRadians[-2]
+            if angleChange < -np.pi:
+                angleChange += 2 * math.pi
+            elif angleChange > np.pi:
+                angleChange -= 2 * math.pi
+            pixelsToMove = angleChange * self.wheelRotDir * self.wheelSpeedGain
         return pixelsToMove
 
     def deliverReward(self):
-        rewardTime = 0.1
-        self._digOutputs.WriteBit(1,1)
-        t = Timer(rewardTime,self.endReward)
+        self._digOutputs.WriteBit(2,1)
+        t = Timer(self.rewardDur,self.endReward)
         t.start()
 
     def endReward(self):
-        self._digOutputs.WriteBit(1,0)
+        self._digOutputs.WriteBit(2,0)
         
     def getLickInput(self):
         return self._digInputs.Read()[0]
