@@ -11,6 +11,8 @@ import numpy as np
 from psychopy import monitors, visual
 import ProjectorWindow
 import nidaq
+from threading import Timer
+
 
 class TaskControl():
     
@@ -30,22 +32,22 @@ class TaskControl():
             self.monWidth = 38.1 # cm
             self.monDistance = 15.24 # cm
             self.monGamma = None # float or None
-            self.monSizePix = (1280,1024)
+            self.monSizePix = (1680,1050)
             self._flipScreenHorz = False
             self.warp = 'Disabled' # one of ('Disabled','Spherical','Cylindrical','Curvilinear','Warpfile')
             self.warpFile = None
             self.diodeBoxSize = 30
             self.diodeBoxPosition = (-600,-500)
-            self.pixelsPerDeg = 1280/25
+            self.pixelsPerDeg = 1050/25
             
     def visStimFlip(self):
         if self.drawDiodeBox:
             self._diodeBox.fillColor = -self._diodeBox.fillColor
             self._diodeBox.lineColor = self._diodeBox.fillColor
             self._diodeBox.draw()
-        self.setAcquisitionSignal(0)
-        self._win.flip()
         self.setAcquisitionSignal(1)
+        self._win.flip()
+        self.setAcquisitionSignal(0)
         
     def prepareRun(self):
         self.startTime = time.strftime('%Y%m%d_%H%M%S')
@@ -97,10 +99,6 @@ class TaskControl():
         self._rotEncoderInput = nidaq.AnalogInput(device='Dev1',channel=0,voltageRange=(0,5),sampRate=1000.0,bufferSize=8)
         self._rotEncoderInput.StartTask()
         
-        # reward delivery solenoid: AO0
-        self._rewardOut = nidaq.AnalogOutput(device='Dev1',channel=0,voltageRange=(0,5))
-        self._rewardOut.StartTask()
-        
         # digital inputs (port 0)
         # line 0: lick detector
         self._digInputs = nidaq.DigitalInputs(device='Dev1',port=0)
@@ -108,12 +106,13 @@ class TaskControl():
         
         # digital outputs (port 1)
         # line 0: acquisition signal
-        self._digOutputs = nidaq.DigitalOutputs(device='Dev1',port=1,initialState='high')
+        # line 1: reward solenoid
+        self._digOutputs = nidaq.DigitalOutputs(device='Dev1',port=1,initialState='low')
         self._digOutputs.StartTask()
         self._digOutputs.Write(self._digOutputs.lastOut)
     
     def stopNidaqDevice(self):
-        for task in ['_rotEncoderInput','_rewardOut','_digInputs','_digOutputs']:
+        for task in ['_rotEncoderInput','_digInputs','_digOutputs']:
             getattr(self,task).StopTask()
             getattr(self,task).ClearTask()
         
@@ -138,7 +137,13 @@ class TaskControl():
         return pixelsToMove
 
     def deliverReward(self):
-        self._rewardOut.Write(np.concatenate((self._rewardOut.voltageRange[1]*np.ones(round(self._rewardOut.sampRate*self.rewardDur)),[0])))
+        rewardTime = 0.1
+        self._digOutputs.WriteBit(1,1)
+        t = Timer(rewardTime,self.endReward)
+        t.start()
+
+    def endReward(self):
+        self._digOutputs.WriteBit(1,0)
         
     def getLickInput(self):
         return self._digInputs.Read()[0]

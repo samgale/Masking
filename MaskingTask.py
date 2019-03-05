@@ -128,7 +128,7 @@ class MaskingTask(TaskControl):
                             stim.pos = stim.pos
                             stim.draw()
                     else:
-                        if (self.maskType is not None and maskOnset is not None and 
+                        if (self.maskType is not None and not np.isnan(maskOnset) and 
                            (self.interTrialFrames+maskOnset < trialFrame <= self.interTrialFrames+maskOnset+self.maskFrames)):
                             for m in mask:
                                 m.draw()
