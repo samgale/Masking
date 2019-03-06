@@ -27,7 +27,7 @@ class MaskingTask(TaskControl):
         
         # stim params
         self.stimSize = 10 # degrees
-        self.stimFrames = [5] # duration of target stimulus; ignored if moveStim is True
+        self.stimFrames = [2] # duration of target stimulus; ignored if moveStim is True
         self.gratingsSF = 1 # cycles/deg
         self.gratingsOri = [-45,45] # clockwise degrees from vertical
         
@@ -35,7 +35,7 @@ class MaskingTask(TaskControl):
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
         self.maskOnset = [np.nan,0,2,4,8,16] # frames >=0 relative to target stimulus onset, or NaN for no mask
-        self.maskFrames = 5 # duration of mask
+        self.maskFrames = 2 # duration of mask
 
     def checkParameterValues(self):
         pass
@@ -48,13 +48,14 @@ class MaskingTask(TaskControl):
         try:
             # create stim
             stimSizePix = int(self.stimSize*self.pixelsPerDeg)
+            sf = self.gratingsSF/self.pixelsPerDeg
             stim = visual.GratingStim(win=self._win,
                                       units='pix',
                                       mask='gauss',
                                       tex='sin',
                                       size=stimSizePix, 
                                       pos=(0,0),
-                                      sf=self.gratingsSF/self.pixelsPerDeg)  
+                                      sf=sf)  
             
             # create mask
             maskSize = stimSizePix if self.maskShape=='target' else self.monSizePix
@@ -66,7 +67,7 @@ class MaskingTask(TaskControl):
                                            tex='sin',
                                            size=maskSize, 
                                            pos=(0,0),
-                                           sf=self.gratingsSF/self.pixelsPerDeg,
+                                           sf=sf,
                                            ori=ori,
                                            opacity=op) for ori,op in zip((0,90),(1.0,0.5))]
             elif self.maskType=='noise':
@@ -74,8 +75,9 @@ class MaskingTask(TaskControl):
                                           units='pix',
                                           mask=maskEdges,
                                           noiseType='Filtered',
-                                          noiseFilterLower = 0.5*self.gratingsSF/self.pixelsPerDeg,
-                                          noiseFilterUpper = 2*self.gratingsSF/self.pixelsPerDeg,
+                                          noiseBaseSf = sf,
+                                          noiseFilterLower = 0.5*sf,
+                                          noiseFilterUpper = 2*sf,
                                           size=maskSize, 
                                           pos=(0,0))]
             if self.maskShape=='surround':
@@ -144,7 +146,8 @@ class MaskingTask(TaskControl):
                 
                 # end trial if wheel moved past threshold (either side) or max trial duration reached
                 if abs(wheelPos) > rewardDistPix:
-                    if (rewardSide < 0 and wheelPos < 0) or (rewardSide > 0 and wheelPos > 0):
+                    if wheelPos * rewardSide > 0:
+                        self.playSound(freq=1000,dur=0.05)
                         self.deliverReward()
                         self.trialResponse.append(1) # correct
                     else:

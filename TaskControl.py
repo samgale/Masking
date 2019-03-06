@@ -47,9 +47,9 @@ class TaskControl():
             self._diodeBox.fillColor = -self._diodeBox.fillColor
             self._diodeBox.lineColor = self._diodeBox.fillColor
             self._diodeBox.draw()
-        self.setAcquisitionSignal(1)
+        self.setFrameSignal(1)
         self._win.flip()
-        self.setAcquisitionSignal(0)
+        self.setFrameSignal(0)
         
     def prepareRun(self):
         self.startTime = time.strftime('%Y%m%d_%H%M%S')
@@ -90,7 +90,7 @@ class TaskControl():
         self._win.close()
         self.stopNidaqDevice()
         if self._save:
-            fileOut = h5py.File(os.path.join(self._saveDir,'VisStim_'+self.__class__.__name__+'_'+self.startTime+'.hdf5'),'w')
+            fileOut = h5py.File(os.path.join(self._saveDir,self.__class__.__name__+'_'+self.startTime+'.hdf5'),'w')
             saveParameters(fileOut,self.__dict__)
             if self.saveFrameIntervals:
                 fileOut.create_dataset('frameIntervals',data=self._win.frameIntervals)
@@ -107,8 +107,9 @@ class TaskControl():
         self._digInputs.StartTask()
         
         # digital outputs (port 1)
-        # line 0: acquisition signal
+        # line 0: frame signal
         # line 1: reward solenoid
+        # line 2: sound trigger
         self._digOutputs = nidaq.DigitalOutputs(device='Dev1',port=1,initialState='low')
         self._digOutputs.StartTask()
         self._digOutputs.Write(self._digOutputs.lastOut)
@@ -137,20 +138,26 @@ class TaskControl():
                 angleChange -= 2 * math.pi
             pixelsToMove = angleChange * self.wheelRotDir * self.wheelSpeedGain
         return pixelsToMove
+        
+    def setFrameSignal(self,level):
+        self._digOutputs.WriteBit(0,level)
 
     def deliverReward(self):
-        self._digOutputs.WriteBit(2,1)
-        t = Timer(self.rewardDur,self.endReward)
+        self.digitalTrigger(1,self.rewardDur)
+        
+    def playSound(self):
+        self.digitalTrigger(2,self.rewardDur)
+    
+    def digitalTrigger(self,ch,dur):
+        self._digOutputs.WriteBit(ch,1)
+        t = Timer(dur,self.digitalTriggerOff(ch))
         t.start()
 
-    def endReward(self):
-        self._digOutputs.WriteBit(2,0)
+    def digitalTriggerOff(self,ch):
+        self._digOutputs.WriteBit(ch,0)
         
     def getLickInput(self):
         return self._digInputs.Read()[0]
-        
-    def setAcquisitionSignal(self,level):
-        self._digOutputs.WriteBit(0,level)
         
 
 def saveParameters(fileOut,paramDict,dictName=None):
