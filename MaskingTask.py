@@ -6,7 +6,7 @@ Created on Wed Feb 20 15:41:48 2019
 """
 
 from __future__ import division
-import itertools, random, traceback
+import itertools, math, random, traceback
 from psychopy import visual, event
 from TaskControl import TaskControl
 import numpy as np
@@ -58,12 +58,20 @@ class MaskingTask(TaskControl):
                                       sf=sf)  
             
             # create mask
-            maskSize = stimSizePix if self.maskShape=='target' else self.monSizePix
-            maskEdges = 'gauss' if self.maskShape=='target' else 'none'
+            if self.maskShape=='target':
+                maskSize = stimSizePix
+                maskEdgeBlur = 'gauss'
+            else:
+                maskSize = self.monSizePix[1]
+                maskEdgeBlur = 'none'
+            
+            if self.maskType=='noise':
+                maskSize = 2**math.ceil(math.log(maskSize,2))
+            
             if self.maskType=='plaid':
                 mask = [visual.GratingStim(win=self._win,
                                            units='pix',
-                                           mask=maskEdges,
+                                           mask=maskEdgeBlur,
                                            tex='sin',
                                            size=maskSize, 
                                            pos=(0,0),
@@ -73,13 +81,15 @@ class MaskingTask(TaskControl):
             elif self.maskType=='noise':
                 mask = [visual.NoiseStim(win=self._win,
                                           units='pix',
-                                          mask=maskEdges,
+                                          mask=maskEdgeBlur,
                                           noiseType='Filtered',
-                                          noiseBaseSf = sf,
+                                          noiseFractalPower = 0,
+                                          noiseFilterOrder = 1,
                                           noiseFilterLower = 0.5*sf,
                                           noiseFilterUpper = 2*sf,
                                           size=maskSize, 
                                           pos=(0,0))]
+            
             if self.maskShape=='surround':
                 mask.append(visual.Circle(win=self._win,
                                           units='pix',
