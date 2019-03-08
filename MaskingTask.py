@@ -28,7 +28,7 @@ class MaskingTask(TaskControl):
         # stim params
         self.stimSize = 10 # degrees
         self.stimFrames = [2] # duration of target stimulus; ignored if moveStim is True
-        self.gratingsSF = 1 # cycles/deg
+        self.gratingsSF = 0.5 # cycles/deg
         self.gratingsOri = [-45,45] # clockwise degrees from vertical
         
         # mask params
@@ -157,7 +157,7 @@ class MaskingTask(TaskControl):
                 # end trial if wheel moved past threshold (either side) or max trial duration reached
                 if abs(wheelPos) > rewardDistPix:
                     if wheelPos * rewardSide > 0:
-                        self.playSound(freq=1000,dur=0.05)
+                        self.triggerSound()
                         self.deliverReward()
                         self.trialResponse.append(1) # correct
                     else:

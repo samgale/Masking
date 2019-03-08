@@ -20,7 +20,6 @@ class TaskControl():
         self.rig = 'pilot' # 'pilot' or 'np3'
         self._save = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
-        self.frameRate = 120
         self._screen = 1 # monitor to present stimuli on
         self.drawDiodeBox = True
         self.nidaqDevice = 'USB-6009'
@@ -29,23 +28,22 @@ class TaskControl():
         self.rewardDur = 0.1 # duration in seconds of analog output pulse controlling reward size
         if self.rig=='pilot':
             self._saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
-            self.monWidth = 38.1 # cm
-            self.monDistance = 15.24 # cm
+            self.monWidth = 47.0 # cm
+            self.monDistance = 61.09 # cm
             self.monGamma = None # float or None
             self.monSizePix = (1680,1050)
             self._flipScreenHorz = False
             self.warp = 'Disabled' # one of ('Disabled','Spherical','Cylindrical','Curvilinear','Warpfile')
             self.warpFile = None
-            self.diodeBoxSize = 30
-            self.diodeBoxPosition = (600,-500)
-            self.pixelsPerDeg = 1050/25
+            self.diodeBoxSize = 50
+            self.diodeBoxPosition = (815,-500)
         elif self.rig=='np3':
             pass
+        self.pixelsPerDeg = self.monSizePix[0]/(2*math.tan(self.monWidth/2/self.monDistance)*180/math.pi)
             
     def visStimFlip(self):
         if self.drawDiodeBox:
             self._diodeBox.fillColor = -self._diodeBox.fillColor
-            self._diodeBox.lineColor = self._diodeBox.fillColor
             self._diodeBox.draw()
         self.setFrameSignal(1)
         self._win.flip()
@@ -83,7 +81,8 @@ class TaskControl():
                                                      flipHorizontal=self._flipScreenHorz,
                                                      warp=getattr(ProjectorWindow.Warp,self.warp),
                                                      warpfile=self.warpFile,
-                                                     units='pix')      
+                                                     units='pix')
+        self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
                                                
     def completeRun(self):
@@ -145,12 +144,12 @@ class TaskControl():
     def deliverReward(self):
         self.digitalTrigger(1,self.rewardDur)
         
-    def playSound(self):
+    def triggerSound(self):
         self.digitalTrigger(2,self.rewardDur)
     
     def digitalTrigger(self,ch,dur):
         self._digOutputs.WriteBit(ch,1)
-        t = Timer(dur,self.digitalTriggerOff(ch))
+        t = Timer(dur,self.digitalTriggerOff,args=[ch])
         t.start()
 
     def digitalTriggerOff(self,ch):
