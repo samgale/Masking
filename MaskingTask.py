@@ -17,7 +17,7 @@ class MaskingTask(TaskControl):
     def __init__(self):
         TaskControl.__init__(self)
         self.preStimFrames = 120 # time between end of previous trial and stimulus onset
-        self.maxResponseWaitFrames = 240 # max time between stimulus onset and end of trial 
+        self.maxResponseWaitFrames = 360 # max time between stimulus onset and end of trial 
         self.rewardDistance = 5 # degrees to move stim for reward
         
         # mouse can move target stimulus with wheel for early training

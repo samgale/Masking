@@ -18,21 +18,22 @@ class TaskControl():
     
     def __init__(self):
         self.rig = 'pilot' # 'pilot' or 'np3'
-        self._save = True # if True, saves all attributes not starting with underscore
+        self.saveParams = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
-        self._screen = 1 # monitor to present stimuli on
+        self.saveMovie = False
+        self.screen = 1 # monitor to present stimuli on
         self.drawDiodeBox = True
         self.nidaqDevice = 'USB-6009'
         self.wheelRotDir = 1 # 1 or -1
         self.wheelSpeedGain = 50 # arbitrary scale factor
         self.rewardDur = 0.1 # duration in seconds of analog output pulse controlling reward size
         if self.rig=='pilot':
-            self._saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
+            self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.monWidth = 47.0 # cm
             self.monDistance = 61.09 # cm
             self.monGamma = None # float or None
             self.monSizePix = (1680,1050)
-            self._flipScreenHorz = False
+            self.flipScreenHorz = False
             self.warp = 'Disabled' # one of ('Disabled','Spherical','Cylindrical','Curvilinear','Warpfile')
             self.warpFile = None
             self.diodeBoxSize = 50
@@ -47,6 +48,8 @@ class TaskControl():
             self._diodeBox.draw()
         self.setFrameSignal(1)
         self._win.flip()
+        if self.saveMovie:
+            self._win.getMovieFrame()
         self.setFrameSignal(0)
         
     def prepareRun(self):
@@ -76,9 +79,9 @@ class TaskControl():
         self._mon.setSizePix(self.monSizePix)
         self._mon.saveMon()
         self._win =  ProjectorWindow.ProjectorWindow(monitor=self._mon,
-                                                     screen=self._screen,
+                                                     screen=self.screen,
                                                      fullscr=True,
-                                                     flipHorizontal=self._flipScreenHorz,
+                                                     flipHorizontal=self.flipScreenHorz,
                                                      warp=getattr(ProjectorWindow.Warp,self.warp),
                                                      warpfile=self.warpFile,
                                                      units='pix')
@@ -86,10 +89,13 @@ class TaskControl():
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
                                                
     def completeRun(self):
+        fileBaseName = os.path.join(self.saveDir,self.__class__.__name__+'_'+self.startTime)
+        if self.saveMovie:
+            self._win.saveMovieFrames(os.path.join(fileBaseName+'.mp4'))
         self._win.close()
         self.stopNidaqDevice()
-        if self._save:
-            fileOut = h5py.File(os.path.join(self._saveDir,self.__class__.__name__+'_'+self.startTime+'.hdf5'),'w')
+        if self.saveParams:
+            fileOut = h5py.File(fileBaseName+'.hdf5','w')
             saveParameters(fileOut,self.__dict__)
             if self.saveFrameIntervals:
                 fileOut.create_dataset('frameIntervals',data=self._win.frameIntervals)
