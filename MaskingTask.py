@@ -26,21 +26,25 @@ class MaskingTask(TaskControl):
         self.preMoveFrames = 30 # number of frames after stimulus onset before stimulus moves
         
         # stim params
-        self.stimSize = 10 # degrees
         self.stimFrames = [2] # duration of target stimulus; ignored if moveStim is True
+        self.stimContrast = [0.1]
+        self.stimSize = 10 # degrees
         self.gratingsSF = 0.5 # cycles/deg
         self.gratingsOri = [-45,45] # clockwise degrees from vertical
         
         # mask params
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
-        self.maskOnset = [np.nan,0,2,4,8,16] # frames >=0 relative to target stimulus onset, or NaN for no mask
-        self.maskFrames = 2 # duration of mask
+        self.maskOnset = [np.nan,0,2,4,6,8,16] # frames >=0 relative to target stimulus onset, or NaN for no mask
+        self.maskFrames = 9 # duration of mask      
 
     def checkParameterValues(self):
         pass
     
-    def run(self):
+    def run(self,subjectName=None):
+        if subjectName is not None:
+            self.subjectName = subjectName
+        
         self.checkParameterValues()
         
         self.prepareRun()
@@ -73,11 +77,11 @@ class MaskingTask(TaskControl):
                                            units='pix',
                                            mask=maskEdgeBlur,
                                            tex='sin',
-                                           size=maskSize, 
+                                           size=maskSize,
                                            pos=(0,0),
                                            sf=sf,
                                            ori=ori,
-                                           opacity=op) for ori,op in zip((0,90),(1.0,0.5))]
+                                           opacity=op) for ori,op in zip((-45,45),(1.0,0.5))]
             elif self.maskType=='noise':
                 mask = [visual.NoiseStim(win=self._win,
                                           units='pix',
@@ -99,19 +103,19 @@ class MaskingTask(TaskControl):
                                           pos=(0,0)))
             
             # create list of trial parameter combinations
-            trialParams = list(itertools.product(self.gratingsOri,self.stimFrames,self.maskOnset))
+            trialParams = list(itertools.product(self.stimContrast,self.gratingsOri,self.stimFrames,self.maskOnset))
             
             # run session
             sessionFrame = 0
             trialFrame = 0
             self.trialStartFrame = []
             self.trialEndFrame = []
+            self.trailStimContrast = []
             self.trialOri = []
             self.trialStimFrames = []
             self.trialMaskOnset = []
             self.trialRewardSide = []
             self.trialResponse = []
-            rewardDistPix = self.rewardDistance * self.pixelsPerDeg
             
             while True: # each loop is a frame flip
                 self.saveEncoderAngle()
@@ -122,13 +126,15 @@ class MaskingTask(TaskControl):
                     trialIndex = len(self.trialStartFrame) % len(trialParams)
                     if trialIndex == 0:
                         random.shuffle(trialParams)
-                    ori,stimFrames,maskOnset = trialParams[trialIndex]
+                    stimContrast,ori,stimFrames,maskOnset = trialParams[trialIndex]
                     rewardSide = -1 if ori < 0 else 1
+                    stim.contrast = stimContrast
                     stim.ori = ori
                     stim.pos = (0,0)
                     if self.maskType == 'noise':
                         mask[0].updateNoise()
                     self.trialStartFrame.append(sessionFrame)
+                    self.trialStimContrast.append(stimContrast)
                     self.trialOri.append(ori)
                     self.trialStimFrames.append(stimFrames)
                     self.trialMaskOnset.append(maskOnset)
@@ -155,7 +161,7 @@ class MaskingTask(TaskControl):
                 sessionFrame += 1
                 
                 # end trial if wheel moved past threshold (either side) or max trial duration reached
-                if abs(wheelPos) > rewardDistPix:
+                if abs(wheelPos) > self.rewardDistance * self.pixelsPerDeg:
                     if wheelPos * rewardSide > 0:
                         self.triggerSound()
                         self.deliverReward()

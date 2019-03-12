@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-f = fileIO.getFile()
+f = fileIO.getFile(rootDir=r'C:/Users/SVC_CCG/Desktop/Data/')
 
 d = h5py.File(f)
 
@@ -28,12 +28,14 @@ maskOnset = d['trialMaskOnset'][:response.size]
 
 maskOnset[np.isnan(maskOnset)] = 2*np.nanmax(maskOnset)
 maskOnsets = np.unique(maskOnset)
-incorrect = np.zeros(maskOnsets.size)
+nTrials = np.zeros(maskOnsets.size)
+incorrect = nTrials.copy()
 noResp = incorrect.copy()
 correct = incorrect.copy()
 fracCorrect = incorrect.copy()
 reactionTime = incorrect.copy()
 for i,mo in enumerate(maskOnsets):
+    nTrials[i] = np.sum(maskOnset==mo)
     incorrect[i],noResp[i],correct[i] = [np.sum(response[maskOnset==mo]==j) for j in (-1,0,1)]
     fracCorrect[i] = (correct[i]/(correct[i]+incorrect[i]))
     reactionTime[i] = endFrame[maskOnset==mo].mean()/frameRate
@@ -48,7 +50,7 @@ for side in ('top','right'):
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim(np.array([-0.02,1.02])*maskOnsets[-1]/frameRate)
 ax.set_ylim([0,1.02])
-ax.set_xlabel('Stimulus onset asynchrony (ms)',fontsize=16)
+ax.set_xlabel('Stimulus onset asynchrony (s)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
 plt.tight_layout()
 
@@ -60,10 +62,11 @@ for side in ('top','right'):
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim(np.array([-0.02,1.02])*maskOnsets[-1]/frameRate)
 #ax.set_ylim([0,1.02])
-ax.set_xlabel('Stimulus onset asynchrony (ms)',fontsize=16)
-ax.set_ylabel('Response time (ms)',fontsize=16)
+ax.set_xlabel('Stimulus onset asynchrony (s)',fontsize=16)
+ax.set_ylabel('Response time (s)',fontsize=16)
 plt.tight_layout()
 
 
 
 
+  

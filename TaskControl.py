@@ -18,6 +18,7 @@ class TaskControl():
     
     def __init__(self):
         self.rig = 'pilot' # 'pilot' or 'np3'
+        self.subjectName = None
         self.saveParams = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
         self.saveMovie = False
@@ -89,7 +90,8 @@ class TaskControl():
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
                                                
     def completeRun(self):
-        fileBaseName = os.path.join(self.saveDir,self.__class__.__name__+'_'+self.startTime)
+        subjName = '' if self.subjectName is None else self.subjectName
+        fileBaseName = os.path.join(self.saveDir,self.__class__.__name__+'_'+subjName+'_'+self.startTime)
         if self.saveMovie:
             self._win.saveMovieFrames(os.path.join(fileBaseName+'.mp4'))
         self._win.close()
