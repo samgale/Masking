@@ -125,9 +125,9 @@ class TaskControl():
         self._digOutputs.Write(self._digOutputs.lastOut)
     
     def stopNidaqDevice(self):
-        for task in ['_rotEncoderInput','_digInputs','_digOutputs']:
-            getattr(self,task).StopTask()
-            getattr(self,task).ClearTask()
+        for task in (self._rotEncoderInput,self._digInputs,self._digOutputs):
+            task.StopTask()
+            task.ClearTask()
         
     def readRotaryEncoder(self):
         return self._rotEncoderInput.data[:]
