@@ -105,7 +105,10 @@ class TaskControl():
         
     def startNidaqDevice(self):
         # rotary encoder: AI0
-        self._rotEncoderInput = nidaq.AnalogInput(device='Dev1',channel=0,voltageRange=(0,5),sampRate=1000.0,bufferSize=8)
+        sampRate = 1000.0
+        bufferSize = int((1 / self.frameRate * sampRate))
+        self._rotEncoderInput = nidaq.AnalogInput(device='Dev1',channel=0,voltageRange=(0,5),
+                                                  sampRate=sampRate,bufferSize=bufferSize)
         self._rotEncoderInput.StartTask()
         
         # digital inputs (port 0)
