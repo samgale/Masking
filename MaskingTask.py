@@ -16,7 +16,7 @@ class MaskingTask(TaskControl):
     
     def __init__(self):
         TaskControl.__init__(self)
-        self.preStimFrames = 120 # time between end of previous trial and stimulus onset
+        self.preStimFrames = 360 # time between end of previous trial and stimulus onset
         self.maxResponseWaitFrames = 360 # max time between stimulus onset and end of trial 
         self.rewardDistance = 5 # degrees to move stim for reward
         
@@ -27,7 +27,7 @@ class MaskingTask(TaskControl):
         
         # stim params
         self.stimFrames = [2] # duration of target stimulus; ignored if moveStim is True
-        self.stimContrast = [0.1]
+        self.stimContrast = [0.2]
         self.stimSize = 10 # degrees
         self.gratingsSF = 0.5 # cycles/deg
         self.gratingsOri = [-45,45] # clockwise degrees from vertical
@@ -110,7 +110,7 @@ class MaskingTask(TaskControl):
             trialFrame = 0
             self.trialStartFrame = []
             self.trialEndFrame = []
-            self.trailStimContrast = []
+            self.trialStimContrast = []
             self.trialOri = []
             self.trialStimFrames = []
             self.trialMaskOnset = []

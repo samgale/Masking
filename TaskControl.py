@@ -139,9 +139,9 @@ class TaskControl():
             pixelsToMove = 0
         else:
             angleChange = self.rotaryEncoderRadians[-1] - self.rotaryEncoderRadians[-2]
-            if angleChange < -np.pi:
+            if angleChange < -math.pi:
                 angleChange += 2 * math.pi
-            elif angleChange > np.pi:
+            elif angleChange > math.pi:
                 angleChange -= 2 * math.pi
             pixelsToMove = angleChange * self.wheelRotDir * self.wheelSpeedGain
         return pixelsToMove
