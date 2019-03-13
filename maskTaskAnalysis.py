@@ -9,6 +9,7 @@ from __future__ import division
 import fileIO
 import h5py
 import numpy as np
+import scipy.signal
 import matplotlib.pyplot as plt
 
 
@@ -36,6 +37,7 @@ encoderAngle = d['rotaryEncoderRadians'][:]
 angleChange = np.concatenate(([0],np.diff(encoderAngle)))
 angleChange[angleChange<-np.pi] += 2*np.pi
 angleChange[angleChange>np.pi] -= 2*np.pi
+angleChange = scipy.signal.medfilt(angleChange,5)
 reactionThresh = 0.1
 reactionTime = np.full(trialResponse.size,np.nan)
 for trial,(start,end) in enumerate(zip(trialStartFrame,trialEndFrame)):
