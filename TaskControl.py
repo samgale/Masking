@@ -71,6 +71,11 @@ class TaskControl():
         
         self.startNidaqDevice()
         self.rotaryEncoderRadians = []
+        self.lickInput = []
+        self.cam1Saving = []
+        self.cam2Saving = []
+        self.cam1Exposure = []
+        self.cam2Exposure = []
         
     def prepareWindow(self):
         self._mon = monitors.Monitor('monitor1',
@@ -112,7 +117,11 @@ class TaskControl():
         self._rotEncoderInput.StartTask()
         
         # digital inputs (port 0)
-        # line 0: lick detector
+        # line 0.0: lick detector
+        # line 0.1: cam1 saving
+        # line 0.2: cam2 saving
+        # line 0.3: cam1 exposure
+        # line 0.4: cam2 exposure
         self._digInputs = nidaq.DigitalInputs(device='Dev1',port=0)
         self._digInputs.StartTask()
         
@@ -128,13 +137,19 @@ class TaskControl():
         for task in (self._rotEncoderInput,self._digInputs,self._digOutputs):
             task.StopTask()
             task.ClearTask()
-        
-    def readRotaryEncoder(self):
-        return self._rotEncoderInput.data[:]
-        
-    def saveEncoderAngle(self):
-        encoderAngle = self.readRotaryEncoder() * 2 * math.pi / 5
+            
+    def getNidaqData(self):
+        # analog
+        encoderAngle = self._rotEncoderInput.data[:] * 2 * math.pi / 5
         self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
+        
+        # digital
+        di = self._digInputs.Read()
+        self.lickInput.append(di[0])
+        self.cam1Saving.append(di[1])
+        self.cam2Saving.append(di[2])
+        self.cam1Exposure.append(di[3])
+        self.cam2Exposure.append(di[4])        
         
     def translateEndoderChange(self):
         # translate encoder angle change to number of pixels to move visual stimulus
@@ -165,9 +180,6 @@ class TaskControl():
 
     def digitalTriggerOff(self,ch):
         self._digOutputs.WriteBit(ch,0)
-        
-    def getLickInput(self):
-        return self._digInputs.Read()[0]
         
 
 def saveParameters(fileOut,paramDict,dictName=None):

@@ -118,7 +118,8 @@ class MaskingTask(TaskControl):
             self.trialResponse = []
             
             while True: # each loop is a frame flip
-                self.saveEncoderAngle()
+                # get rotary encoder and digital input states
+                self.getNidaqData()
                 
                 # start new trial
                 if trialFrame == 0:
