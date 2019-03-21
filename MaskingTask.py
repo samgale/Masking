@@ -6,7 +6,7 @@ Created on Wed Feb 20 15:41:48 2019
 """
 
 from __future__ import division
-import itertools, math, random, traceback
+import itertools, math, random
 from psychopy import visual, event
 from TaskControl import TaskControl
 import numpy as np
@@ -47,9 +47,9 @@ class MaskingTask(TaskControl):
         
         self.checkParameterValues()
         
-        self.prepareRun()
-        
         try:
+            self.prepareRun()
+            
             # create stim
             stimSizePix = int(self.stimSize*self.pixelsPerDeg)
             sf = self.gratingsSF/self.pixelsPerDeg
@@ -182,7 +182,7 @@ class MaskingTask(TaskControl):
                     break
                 
         except:
-            raise #traceback.print_exc()
+            raise
             
         finally:
             self.completeRun()
