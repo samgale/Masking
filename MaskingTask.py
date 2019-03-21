@@ -182,7 +182,7 @@ class MaskingTask(TaskControl):
                     break
                 
         except:
-            traceback.print_exc()
+            raise #traceback.print_exc()
             
         finally:
             self.completeRun()

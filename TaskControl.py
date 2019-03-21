@@ -65,17 +65,17 @@ class TaskControl():
                                     lineColor=0,
                                     fillColor=1, 
                                     pos=self.diodeBoxPosition)
-        
+                                    
         self.numpyRandomSeed = random.randint(0,2**32)
         self._numpyRandom = np.random.RandomState(self.numpyRandomSeed)
         
-        self.startNidaqDevice()
-        self.rotaryEncoderRadians = []
-        self.lickInput = []
-        self.cam1Saving = []
-        self.cam2Saving = []
-        self.cam1Exposure = []
-        self.cam2Exposure = []
+        try:
+            # do this after window is created so that frameRate is defined
+            self.startNidaqDevice()
+        except:
+            self._win.close()
+            self.stopNidaqDevice()
+            raise
         
     def prepareWindow(self):
         self._mon = monitors.Monitor('monitor1',
@@ -109,47 +109,56 @@ class TaskControl():
             fileOut.close()
         
     def startNidaqDevice(self):
-        # rotary encoder: AI0
-        sampRate = 1000.0
-        bufferSize = int((1 / self.frameRate * sampRate))
-        self._rotEncoderInput = nidaq.AnalogInput(device='Dev1',channel=0,voltageRange=(0,5),
-                                                  sampRate=sampRate,bufferSize=bufferSize)
-        self._rotEncoderInput.StartTask()
+        self._nidaqTasks = []
         
-        # digital inputs (port 0)
-        # line 0.0: lick detector
-        # line 0.1: cam1 saving
-        # line 0.2: cam2 saving
-        # line 0.3: cam1 exposure
-        # line 0.4: cam2 exposure
-        self._digInputs = nidaq.DigitalInputs(device='Dev1',port=0)
-        self._digInputs.StartTask()
+        # analog inputs
+        # AI0: rotary encoder
+        # AI1: lick detector
+        # AI2: cam1 saving
+        # AI3: cam2 saving
+        # AI4: cam1 exposure
+        # AI5: cam2 exposure
+        sampRate = 5000.0
+        bufferSize = 40 #int((1 / self.frameRate * sampRate))
+        self._analogInputs = nidaq.AnalogInput(device='Dev1',channels=[0,1,2,3,4,5],voltage_range=(0,5),
+                                               clock_speed=sampRate,buffer_size=bufferSize)
+        self._nidaqTasks.append(self._analogInputs)
+        
+        # make lists to save input data
+        self.rotaryEncoderRadians = []
+        for di in ('lickInput','cam1Saving','cam2Saving','cam1Exposure','cam2Exposure'):
+            setattr(self,di,{event:[] for event in ('rising','falling')})
+            
+        # digital signals collected as analog inputs because no digital input buffer on usb-6009
+        self._digitalInputs = (self.lickInput,self.cam1Saving,self.cam2Saving,self.cam1Exposure,self.cam2Exposure)
         
         # digital outputs (port 1)
         # line 0: frame signal
         # line 1: reward solenoid
         # line 2: sound trigger
-        self._digOutputs = nidaq.DigitalOutputs(device='Dev1',port=1,initialState='low')
-        self._digOutputs.StartTask()
-        self._digOutputs.Write(self._digOutputs.lastOut)
+        self._digitalOutputs = nidaq.DigitalOutput(device='Dev1',port=1,initial_state='low')
+        self._nidaqTasks.append(self._digitalOutputs)
+        
+        for task in self._nidaqTasks:
+            task.start()
+        # maks sure outputs are initialized to correct state
+        self._digitalOutputs.write(self._digitalOutputs.lastOut)
     
     def stopNidaqDevice(self):
-        for task in (self._rotEncoderInput,self._digInputs,self._digOutputs):
-            task.StopTask()
-            task.ClearTask()
+        for task in self._nidaqTasks:
+            task.clear()
             
     def getNidaqData(self):
-        # analog
-        encoderAngle = self._rotEncoderInput.data[:] * 2 * math.pi / 5
+        encoderAngle = self._analogInputs.data[:,0] * 2 * math.pi / 5
         self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
         
-        # digital
-        di = self._digInputs.Read()
-        self.lickInput.append(di[0])
-        self.cam1Saving.append(di[1])
-        self.cam2Saving.append(di[2])
-        self.cam1Exposure.append(di[3])
-        self.cam2Exposure.append(di[4])        
+        # check for rising and falling edges of digital inputs
+        signalDiff = np.diff(self._analogInputs.data[:,1:6],axis=0)
+        rising = np.any(signalDiff>1,axis=0)
+        falling = np.any(signalDiff<-1,axis=0)
+        for signal,rise,fall in zip(self._digitalInputs,rising,falling):
+            signal['rising'].append(rise)
+            signal['falling'].append(fall)
         
     def translateEndoderChange(self):
         # translate encoder angle change to number of pixels to move visual stimulus
@@ -165,7 +174,7 @@ class TaskControl():
         return pixelsToMove
         
     def setFrameSignal(self,level):
-        self._digOutputs.WriteBit(0,level)
+        self._digitalOutputs.writeBit(0,level)
 
     def deliverReward(self):
         self.digitalTrigger(1,self.rewardDur)
@@ -174,12 +183,12 @@ class TaskControl():
         self.digitalTrigger(2,self.rewardDur)
     
     def digitalTrigger(self,ch,dur):
-        self._digOutputs.WriteBit(ch,1)
+        self._digitalOutputs.writeBit(ch,1)
         t = Timer(dur,self.digitalTriggerOff,args=[ch])
         t.start()
 
     def digitalTriggerOff(self,ch):
-        self._digOutputs.WriteBit(ch,0)
+        self._digitalOutputs.writeBit(ch,0)
         
 
 def saveParameters(fileOut,paramDict,dictName=None):
