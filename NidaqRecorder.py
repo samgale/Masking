@@ -51,10 +51,11 @@ class NidaqRecorder():
         
     def start(self):
         dataFilePath = fileIO.saveFile(fileType='*.hdf5')
+        startTime = time.strftime('%Y%m%d_%H%M%S')
         if self.appendStartTime:
-            startTime = time.strftime('%Y%m%d_%H%M%S')
             dataFilePath = dataFilePath[:-5]+'_'+startTime+'.hdf5'
         self.dataFile = h5py.File(dataFilePath,'w',libver='latest')
+        self.dataFile.attrs.create('startTime',startTime)
         
         numChannels = len(self.analogInputChannels)
         analogDataset = self.dataFile.create_dataset('AnalogInput',
