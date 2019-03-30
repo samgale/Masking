@@ -16,72 +16,97 @@ class MaskingTask(TaskControl):
     
     def __init__(self):
         TaskControl.__init__(self)
+        
+        # parameters that can vary across trials are lists
+        # only one of targetPos and targetOri can be len() > 1        
+        
         self.preStimFrames = 240 # time between end of previous trial and stimulus onset
+        self.openLoopFrames = 30 # number of frames after stimulus onset before wheel movement has effects
         self.maxResponseWaitFrames = 360 # max time between stimulus onset and end of trial 
-        self.rewardDistance = 5 # degrees to move stim for reward
+        self.rewardDistance = 5 # degrees to move stim for reward in variable ori version of task
         
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
         self.moveStim = False
-        self.preMoveFrames = 30 # number of frames after stimulus onset before stimulus moves
         
-        # stim params
-        self.stimFrames = [2] # duration of target stimulus; ignored if moveStim is True
-        self.stimContrast = [0.2]
-        self.stimSize = 10 # degrees
-        self.gratingsSF = 0.5 # cycles/deg
-        self.gratingsOri = [-45,45] # clockwise degrees from vertical
+        # target stimulus params
+        self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-1,-1), top-right (1,1)
+        self.targetFrames = [2] # duration of target stimulus; ignored if moveStim is True
+        self.targetContrast = [1]
+        self.targetSize = 10 # degrees
+        self.targetSF = 0.5 # cycles/deg
+        self.targetOri = [-45,45] # clockwise degrees from vertical
         
         # mask params
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
-        self.maskOnset = [np.nan,0,2,4,6,8,16] # frames >=0 relative to target stimulus onset, or NaN for no mask
+        self.maskOnset = [np.nan,0,4,8,16,32] # frames >=0 relative to target stimulus onset
+                                               # or NaN for no mask
         self.maskFrames = 9 # duration of mask      
 
-    def checkParameterValues(self):
-        pass
+    def setDefaultParams(self,taskVersion):
+        if taskVersion in ('pos','position'):
+            self.normTargetPos = [(-0.5,0),(0.5,0)]
+            self.targetOri = [0]
+        elif taskVersion in ('ori','orientatation'):
+            self.normTargetPos = [(0,0)]
+            self.targetOri = [-45,45]
+        else:
+            print(str(taskVersion)+' is not a recognized version of this task')
     
-    def run(self,subjectName=None):
+    def checkParameterValues(self):
+        assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
+               (len(self.normTargetPos)==1 and len(self.targetOri)>1))
+            
+    def start(self,subjectName=None):
         if subjectName is not None:
             self.subjectName = subjectName
         
         self.checkParameterValues()
         
         try:
-            self.prepareRun()
+            self.prepareSession()
             
-            # create stim
-            stimSizePix = int(self.stimSize*self.pixelsPerDeg)
-            sf = self.gratingsSF/self.pixelsPerDeg
-            stim = visual.GratingStim(win=self._win,
-                                      units='pix',
-                                      mask='gauss',
-                                      tex='sin',
-                                      size=stimSizePix, 
-                                      pos=(0,0),
-                                      sf=sf)  
+            # create target stimulus
+            targetPosPix = [tuple(p[i] * 0.5 * self.monSizePix[i] for i in (0,1)) for p in self.normTargetPos]
+            targetSizePix = int(self.targetSize * self.pixelsPerDeg)
+            sf = self.targetSF / self.pixelsPerDeg
+            target = visual.GratingStim(win=self._win,
+                                        units='pix',
+                                        mask='gauss',
+                                        tex='sin',
+                                        size=targetSizePix, 
+                                        sf=sf)  
             
             # create mask
+            # 'target' mask overlaps target
+            # 'surround' mask surrounds but does not overlap target
+            # 'full' mask surrounds and overlaps target
             if self.maskShape=='target':
-                maskSize = stimSizePix
+                maskPos = targetPosPix
+                maskSize = targetSizePix
                 maskEdgeBlur = 'gauss'
             else:
-                maskSize = self.monSizePix[1]
+                maskPos = [(0,0)]
+                maskSize = max(self.monSizePix)
                 maskEdgeBlur = 'none'
             
             if self.maskType=='noise':
                 maskSize = 2**math.ceil(math.log(maskSize,2))
             
             if self.maskType=='plaid':
+                maskOri = (0,90) if len(self.normTargetPos)>1 else (-45,45)
                 mask = [visual.GratingStim(win=self._win,
                                            units='pix',
                                            mask=maskEdgeBlur,
                                            tex='sin',
                                            size=maskSize,
-                                           pos=(0,0),
                                            sf=sf,
                                            ori=ori,
-                                           opacity=op) for ori,op in zip((-45,45),(1.0,0.5))]
+                                           opacity=opa,
+                                           pos=pos) 
+                                           for pos in maskPos
+                                           for ori,opa in zip(maskOri,(1.0,0.5))]
             elif self.maskType=='noise':
                 mask = [visual.NoiseStim(win=self._win,
                                           units='pix',
@@ -91,89 +116,111 @@ class MaskingTask(TaskControl):
                                           noiseFilterOrder = 1,
                                           noiseFilterLower = 0.5*sf,
                                           noiseFilterUpper = 2*sf,
-                                          size=maskSize, 
-                                          pos=(0,0))]
+                                          size=maskSize)
+                                          for pos in maskPos]
             
             if self.maskShape=='surround':
-                mask.append(visual.Circle(win=self._win,
-                                          units='pix',
-                                          radius=stimSizePix/2,
-                                          lineColor=0.5,
-                                          fillColor=0.5,
-                                          pos=(0,0)))
+                mask += [visual.Circle(win=self._win,
+                                       units='pix',
+                                       radius=0.5*targetSizePix,
+                                       lineColor=0.5,
+                                       fillColor=0.5)
+                                       for pos in targetPosPix]
             
             # create list of trial parameter combinations
-            trialParams = list(itertools.product(self.stimContrast,self.gratingsOri,self.stimFrames,self.maskOnset))
+            trialParams = list(itertools.product(targetPosPix,
+                                                 self.targetContrast,
+                                                 self.targetOri,
+                                                 self.targetFrames,
+                                                 self.maskOnset))
             
-            # run session
-            sessionFrame = 0
-            trialFrame = 0
+            # things to keep track of each frame
+            sessionFrame = 0 # index of frame since start of session
+            trialFrame = 0 # index of frame since start of trial
+            self.deltaWheelPos = [] # change in wheel position (angle translated to screen pixels)
+            closedLoopWheelPos = [] # cumulative change in wheel position during closed loop condition
+                                    # determines if decision boundary crossed
+            
+            # things to keep track of each trial
             self.trialStartFrame = []
             self.trialEndFrame = []
-            self.trialStimContrast = []
-            self.trialOri = []
-            self.trialStimFrames = []
+            self.trialTargetPos = []
+            self.trialTargetContrast = []
+            self.trialTargetOri = []
+            self.trialTargetFrames = []
             self.trialMaskOnset = []
-            self.trialRewardSide = []
+            self.trialRewardDir = []
+            self.trialRewardDist = []
             self.trialResponse = []
             
             while True: # each loop is a frame flip
                 # get rotary encoder and digital input states
                 self.getNidaqData()
                 
+                self.deltaWheelPos.append(self.translateEndoderChange())
+                
                 # start new trial
                 if trialFrame == 0:
-                    wheelPos = 0
                     trialIndex = len(self.trialStartFrame) % len(trialParams)
                     if trialIndex == 0:
                         random.shuffle(trialParams)
-                    stimContrast,ori,stimFrames,maskOnset = trialParams[trialIndex]
-                    rewardSide = -1 if ori < 0 else 1
-                    stim.contrast = stimContrast
-                    stim.ori = ori
-                    stim.pos = (0,0)
+                    targetPos,targetContrast,targetOri,targetFrames,maskOnset = trialParams[trialIndex]
+                    closedLoopWheelPos = 0                  
+                    if len(self.normTargetPos) > 1:
+                        rewardDir = -1 if targetPos[0] > 0 else 1
+                        rewardDist = abs(targetPos[0])
+                    else:
+                        rewardDir = -1 if targetOri < 0 else 1
+                        rewardDist = self.rewardDistance * self.pixelsPerDeg
+                    target.pos = targetPos
+                    target.contrast = targetContrast
+                    target.ori = targetOri
                     if self.maskType == 'noise':
-                        mask[0].updateNoise()
+                        for m in mask[:-1]:
+                            m.updateNoise()
                     self.trialStartFrame.append(sessionFrame)
-                    self.trialStimContrast.append(stimContrast)
-                    self.trialOri.append(ori)
-                    self.trialStimFrames.append(stimFrames)
+                    self.trialTargetPos.append(targetPos)
+                    self.trialTargetContrast.append(targetContrast)
+                    self.trialTargetOri.append(targetOri)
+                    self.trialTargetFrames.append(targetFrames)
                     self.trialMaskOnset.append(maskOnset)
-                    self.trialRewardSide.append(rewardSide)
+                    self.trialRewardDir.append(rewardDir)
+                    self.trialRewardDist.append(rewardDist)
                 
                 # update stimulus/mask after pre-stimulus gray screen period is complete
                 if trialFrame > self.preStimFrames:
-                    if trialFrame > self.preStimFrames + self.preMoveFrames:
-                        wheelPos += self.translateEndoderChange()
+                    if trialFrame > self.preStimFrames + self.openLoopFrames:
+                        closedLoopWheelPos += self.deltaWheelPos[-1]
                     if self.moveStim:
-                        stim.pos = (wheelPos,0)
-                        stim.draw()
+                        target.pos[0] += self.deltaWheelPos[-1]
+                        target.pos = target.pos # sets target position
+                        target.draw()
                     else:
                         if (self.maskType is not None and not np.isnan(maskOnset) and 
                            (self.preStimFrames + maskOnset < trialFrame <= 
                             self.preStimFrames + maskOnset + self.maskFrames)):
                             for m in mask:
                                 m.draw()
-                        elif trialFrame <= self.preStimFrames + stimFrames:
-                            stim.draw()
+                        elif trialFrame <= self.preStimFrames + targetFrames:
+                            target.draw()
                      
                 self.visStimFlip()
-                trialFrame += 1
                 sessionFrame += 1
+                trialFrame += 1
                 
                 # end trial if wheel moved past threshold (either side) or max trial duration reached
-                if abs(wheelPos) > self.rewardDistance * self.pixelsPerDeg:
-                    if wheelPos * rewardSide > 0:
+                if abs(closedLoopWheelPos) > rewardDist:
+                    if closedLoopWheelPos * rewardDir > 0:
                         self.triggerSound()
                         self.deliverReward()
                         self.trialResponse.append(1) # correct
                     else:
                         self.trialResponse.append(-1) # incorrect
-                    self.trialEndFrame.append(trialFrame)
+                    self.trialEndFrame.append(sessionFrame)
                     trialFrame = 0
                 elif trialFrame == self.preStimFrames + self.maxResponseWaitFrames:
                     self.trialResponse.append(0) # no response
-                    self.trialEndFrame.append(trialFrame)
+                    self.trialEndFrame.append(sessionFrame)
                     trialFrame = 0
                 
                 # check for keyboard events to end session
@@ -185,7 +232,7 @@ class MaskingTask(TaskControl):
             raise
             
         finally:
-            self.completeRun()
+            self.completeSession()
 
 
 if __name__ == "__main__":

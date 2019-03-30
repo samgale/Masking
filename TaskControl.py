@@ -52,7 +52,7 @@ class TaskControl():
             self._win.getMovieFrame()
         self.setFrameSignal(0)
         
-    def prepareRun(self):
+    def prepareSession(self):
         self.startTime = time.strftime('%Y%m%d_%H%M%S')
         self._win = None
         self._nidaqTasks = []
@@ -93,7 +93,7 @@ class TaskControl():
         self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
                                                
-    def completeRun(self):
+    def completeSession(self):
         subjName = '' if self.subjectName is None else self.subjectName
         fileBaseName = os.path.join(self.saveDir,self.__class__.__name__+'_'+subjName+'_'+self.startTime)
         if self._win is not None:
