@@ -32,7 +32,7 @@ class MaskingTask(TaskControl):
         # target stimulus params
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-1,-1), top-right (1,1)
         self.targetFrames = [2] # duration of target stimulus; ignored if moveStim is True
-        self.targetContrast = [1]
+        self.targetContrast = [0.25]
         self.targetSize = 10 # degrees
         self.targetSF = 0.5 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
@@ -40,7 +40,7 @@ class MaskingTask(TaskControl):
         # mask params
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
-        self.maskOnset = [np.nan,0,4,8,16,32] # frames >=0 relative to target stimulus onset
+        self.maskOnset = [np.nan,0,2,4,8,16] # frames >=0 relative to target stimulus onset
                                                # or NaN for no mask
         self.maskFrames = 9 # duration of mask      
 
