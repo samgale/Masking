@@ -41,7 +41,7 @@ angleChange = scipy.signal.medfilt(angleChange,5)
 reactionThresh = 0.1
 reactionTime = np.full(trialResponse.size,np.nan)
 for trial,(start,end) in enumerate(zip(trialStartFrame,trialEndFrame)):
-    r = np.where(np.absolute(angleChange[start+preStimFrames:start+preStimFrames+end])>reactionThresh)[0]
+    r = np.where(np.absolute(angleChange[start+preStimFrames:end])>reactionThresh)[0]
     if any(r):
         reactionTime[trial] = r[0]/frameRate
 
@@ -70,7 +70,7 @@ fractionCorrect = (numCorrect/(numCorrect+numIncorrect))
 fig = plt.figure(facecolor='w')
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,maskOnsets[-1]],[0.5,0.5],'--',color='0.5')
-ax.plot(maskOnsets/frameRate,fractionCorrect,'ko',ms=10)
+ax.plot(maskOnsets/frameRate,fractionCorrect,'ko-',ms=10)
 for side in ('top','right'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
