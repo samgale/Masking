@@ -11,7 +11,7 @@ import numpy as np
 from psychopy import monitors, visual
 import ProjectorWindow
 import nidaq
-from threading import Timer
+
 
 
 class TaskControl():
@@ -25,7 +25,7 @@ class TaskControl():
         self.screen = 1 # monitor to present stimuli on
         self.drawDiodeBox = True
         self.nidaqDevice = 'USB-6009'
-        self.wheelRotDir = 1 # 1 or -1
+        self.wheelRotDir = -1 # 1 or -1
         self.wheelSpeedGain = 50 # arbitrary scale factor
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
@@ -40,17 +40,26 @@ class TaskControl():
             self.diodeBoxPosition = (815,-500)
         elif self.rig=='np3':
             pass
-            
+    
+     
     def visStimFlip(self):
         if self.drawDiodeBox:
             self._diodeBox.fillColor = -self._diodeBox.fillColor
             self._diodeBox.draw()
-        self.setFrameSignal(1)
+        self._digitalOutputs.writeBit(0,1)
+        if self._reward:
+            self._digitalOutputs.writeBit(1,1)
         self._win.flip()
+        self._digitalOutputs.writeBit(0,1)
+        if self._reward:
+            self._digitalOutputs.writeBit(1,0)
+            self._reward = False
+        self._sessionFrame += 1
+        self._trialFrame += 1
         if self.saveMovie:
             self._win.getMovieFrame()
-        self.setFrameSignal(0)
         
+    
     def prepareSession(self):
         self.startTime = time.strftime('%Y%m%d_%H%M%S')
         self._win = None
@@ -75,6 +84,11 @@ class TaskControl():
         self.rotaryEncoderRadians = []
         self.lickInput = []
         
+        self._sessionFrame = 0 # index of frame since start of session
+        self._trialFrame = 0 # index of frame since start of trial
+        self._reward = False # reward delivered at next frame flip if True
+        
+    
     def prepareWindow(self):
         self._mon = monitors.Monitor('monitor1',
                                      width=self.monWidth,
@@ -92,6 +106,7 @@ class TaskControl():
         self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
                                                
+    
     def completeSession(self):
         subjName = '' if self.subjectName is None else self.subjectName
         fileBaseName = os.path.join(self.saveDir,self.__class__.__name__+'_'+subjName+'_'+self.startTime)
@@ -107,6 +122,7 @@ class TaskControl():
                 fileOut.create_dataset('frameIntervals',data=self._win.frameIntervals)
             fileOut.close()
         
+    
     def startNidaqDevice(self):
         # analog inputs
         # AI0: rotary encoder
@@ -124,7 +140,6 @@ class TaskControl():
         # digital outputs (port 1)
         # line 1.0: frame signal
         # line 1.1: water reward solenoid
-        # line 1.2: sound trigger
         self._digitalOutputs = nidaq.DigitalOutput(device='Dev1',port=1,initial_state='low')
         self._nidaqTasks.append(self._digitalOutputs)
         
@@ -134,10 +149,13 @@ class TaskControl():
         # maks sure outputs are initialized to correct state
         self._digitalOutputs.write(self._digitalOutputs.lastOut)
     
+    
     def stopNidaqDevice(self):
+        self._digitalOutputs.write(np.zeros(self._digitalOutputs.no_lines,dtype=np.uint8))
         for task in self._nidaqTasks:
             task.clear()
             
+    
     def getNidaqData(self):
         # analog
         encoderAngle = self._analogInputs.data * 2 * math.pi / 5
@@ -146,6 +164,7 @@ class TaskControl():
         # digital
         self.lickInput.append(self._digitalInputs.read()[0])
         
+    
     def translateEndoderChange(self):
         # translate encoder angle change to number of pixels to move visual stimulus
         if len(self.rotaryEncoderRadians) < 2:
@@ -159,23 +178,7 @@ class TaskControl():
             pixelsToMove = angleChange * self.wheelRotDir * self.wheelSpeedGain
         return pixelsToMove
         
-    def setFrameSignal(self,level):
-        self._digitalOutputs.writeBit(0,level)
 
-    def deliverReward(self):
-        self.digitalTrigger(1,0.004)
-        
-    def triggerSound(self):
-        self.digitalTrigger(2,0.004)
-    
-    def digitalTrigger(self,ch,dur):
-        self._digitalOutputs.writeBit(ch,1)
-        t = Timer(dur,self.digitalTriggerOff,args=[ch])
-        t.start()
-
-    def digitalTriggerOff(self,ch):
-        self._digitalOutputs.writeBit(ch,0)
-        
 
 def saveParameters(fileOut,paramDict,dictName=None):
     for key,val in paramDict.items():
@@ -194,6 +197,7 @@ def saveParameters(fileOut,paramDict,dictName=None):
                 except:
                     print 'could not save ' + key
                     
+
 
 if __name__ == "__main__":
     pass

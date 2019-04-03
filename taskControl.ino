@@ -1,6 +1,7 @@
 int rewardInputPin = 7;
 int solenoidOutputPin = 8;
-unsigned long rewardDuration = 100; 
+unsigned long rewardDuration = 100;
+unsigned long rewardRefractoryPeriod = 1000;
 
 void setup() {
   pinMode(rewardInputPin, INPUT);
@@ -13,5 +14,6 @@ void loop() {
     digitalWrite(solenoidOutputPin, LOW);
     delay(rewardDuration);
     digitalWrite(solenoidOutputPin, HIGH);
+    delay(rewardRefractoryPeriod);
   }
 }

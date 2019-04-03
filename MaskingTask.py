@@ -135,8 +135,6 @@ class MaskingTask(TaskControl):
                                                  self.maskOnset))
             
             # things to keep track of each frame
-            sessionFrame = 0 # index of frame since start of session
-            trialFrame = 0 # index of frame since start of trial
             self.deltaWheelPos = [] # change in wheel position (angle translated to screen pixels)
             closedLoopWheelPos = [] # cumulative change in wheel position during closed loop condition
                                     # determines if decision boundary crossed
@@ -160,7 +158,7 @@ class MaskingTask(TaskControl):
                 self.deltaWheelPos.append(self.translateEndoderChange())
                 
                 # start new trial
-                if trialFrame == 0:
+                if self._trialFrame == 0:
                     trialIndex = len(self.trialStartFrame) % len(trialParams)
                     if trialIndex == 0:
                         random.shuffle(trialParams)
@@ -178,7 +176,7 @@ class MaskingTask(TaskControl):
                     if self.maskType == 'noise':
                         for m in mask[:-1]:
                             m.updateNoise()
-                    self.trialStartFrame.append(sessionFrame)
+                    self.trialStartFrame.append(self._sessionFrame)
                     self.trialTargetPos.append(targetPos)
                     self.trialTargetContrast.append(targetContrast)
                     self.trialTargetOri.append(targetOri)
@@ -188,8 +186,8 @@ class MaskingTask(TaskControl):
                     self.trialRewardDist.append(rewardDist)
                 
                 # update stimulus/mask after pre-stimulus gray screen period is complete
-                if trialFrame > self.preStimFrames:
-                    if trialFrame > self.preStimFrames + self.openLoopFrames:
+                if self._trialFrame > self.preStimFrames:
+                    if self._trialFrame > self.preStimFrames + self.openLoopFrames:
                         closedLoopWheelPos += self.deltaWheelPos[-1]
                     if self.moveStim:
                         target.pos[0] += self.deltaWheelPos[-1]
@@ -197,31 +195,28 @@ class MaskingTask(TaskControl):
                         target.draw()
                     else:
                         if (self.maskType is not None and not np.isnan(maskOnset) and 
-                           (self.preStimFrames + maskOnset < trialFrame <= 
+                           (self.preStimFrames + maskOnset < self._trialFrame <= 
                             self.preStimFrames + maskOnset + self.maskFrames)):
                             for m in mask:
                                 m.draw()
-                        elif trialFrame <= self.preStimFrames + targetFrames:
+                        elif self._trialFrame <= self.preStimFrames + targetFrames:
                             target.draw()
-                     
-                self.visStimFlip()
-                sessionFrame += 1
-                trialFrame += 1
                 
                 # end trial if wheel moved past threshold (either side) or max trial duration reached
                 if abs(closedLoopWheelPos) > rewardDist:
                     if closedLoopWheelPos * rewardDir > 0:
-                        self.triggerSound()
-                        self.deliverReward()
+                        self._reward = True
                         self.trialResponse.append(1) # correct
                     else:
                         self.trialResponse.append(-1) # incorrect
-                    self.trialEndFrame.append(sessionFrame)
-                    trialFrame = 0
-                elif trialFrame == self.preStimFrames + self.maxResponseWaitFrames:
+                    self.trialEndFrame.append(self._sessionFrame)
+                    self._trialFrame = -1
+                elif self._trialFrame == self.preStimFrames + self.maxResponseWaitFrames:
                     self.trialResponse.append(0) # no response
-                    self.trialEndFrame.append(sessionFrame)
-                    trialFrame = 0
+                    self.trialEndFrame.append(self._sessionFrame)
+                    self._trialFrame = -1
+                    
+                self.visStimFlip()
                 
                 # check for keyboard events to end session
                 if len(event.getKeys()) > 0:                  
