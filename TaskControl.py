@@ -27,7 +27,6 @@ class TaskControl():
         self.nidaqDevice = 'USB-6009'
         self.wheelRotDir = 1 # 1 or -1
         self.wheelSpeedGain = 50 # arbitrary scale factor
-        self.rewardDur = 0.1 # duration in seconds of analog output pulse controlling reward size
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.monWidth = 47.0 # cm
@@ -164,10 +163,10 @@ class TaskControl():
         self._digitalOutputs.writeBit(0,level)
 
     def deliverReward(self):
-        self.digitalTrigger(1,self.rewardDur)
+        self.digitalTrigger(1,0.004)
         
     def triggerSound(self):
-        self.digitalTrigger(2,self.rewardDur)
+        self.digitalTrigger(2,0.004)
     
     def digitalTrigger(self,ch,dur):
         self._digitalOutputs.writeBit(ch,1)
