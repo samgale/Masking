@@ -7,8 +7,10 @@ r.start()
 r.stop()
 
 # read data
-dataset,sampleRate,channelNames = NidaqRecorder.readData()
-ch0 = dataset[:,0]
+dataFile,analogDataset,sampleRate,channelNames = NidaqRecorder.readData()
+ch0 = analogDataset[:,0]
+# do stuff, then
+dataFile.close()
 """
 
 import fileIO
@@ -24,8 +26,7 @@ def readData():
     analogDataset = dataFile['AnalogInput']
     sampleRate = analogDataset.attrs.get('sampleRate')
     channelNames = analogDataset.attrs.get('channelNames')
-    dataFile.close()
-    return analogDataset,sampleRate,channelNames
+    return dataFile,analogDataset,sampleRate,channelNames
 
 
 def saveData(dataset,data):
@@ -46,8 +47,9 @@ class NidaqRecorder():
                                  'cam2Saving',
                                  'cam1Exposure',
                                  'cam2Exposure')
-        self.sampleRate = 2000.0
-        self.bufferSize = 500
+        self.analogInputSampleRate = 2000.0
+        self.analogInputBufferSize = 500
+        self.analogInputRange = [-10.0,10.0]
         
     def start(self):
         dataFilePath = fileIO.saveFile(fileType='*.hdf5')
@@ -62,16 +64,17 @@ class NidaqRecorder():
                                                      (0,numChannels),
                                                      maxshape=(None,numChannels),
                                                      dtype=np.float64,
-                                                     chunks=(self.bufferSize,numChannels),
+                                                     chunks=(self.analogInputBufferSize,numChannels),
                                                      compression='gzip',
                                                      compression_opts=1)
-        analogDataset.attrs.create('sampleRate',self.sampleRate)
+        analogDataset.attrs.create('sampleRate',self.analogInputSampleRate)
         analogDataset.attrs.create('channelNames',self.analogInputNames)
         
         self.analogInput = nidaq.AnalogInput(device='Dev1',
                                              channels=self.analogInputChannels,
-                                             clock_speed=self.sampleRate,
-                                             buffer_size=self.bufferSize,
+                                             clock_speed=self.analogInputSampleRate,
+                                             buffer_size=self.analogInputBufferSize,
+                                             voltage_range=self.analogInputRange,
                                              custom_callback=partial(saveData,analogDataset))
         self.analogInput.start()
         
