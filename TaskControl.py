@@ -8,10 +8,9 @@ from __future__ import division
 import math, os, random, time
 import h5py
 import numpy as np
-from psychopy import monitors, visual
+from psychopy import monitors, visual, event
 import ProjectorWindow
 import nidaq
-
 
 
 class TaskControl():
@@ -27,10 +26,11 @@ class TaskControl():
         self.nidaqDevice = 'USB-6009'
         self.wheelRotDir = -1 # 1 or -1
         self.wheelSpeedGain = 50 # arbitrary scale factor
+        self.spacebarRewardsEnabled = True
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.monWidth = 47.0 # cm
-            self.monDistance = 61.09 # cm
+            self.monDistance = 20.3 # cm
             self.monGamma = None # float or None
             self.monSizePix = (1680,1050)
             self.flipScreenHorz = False
@@ -43,22 +43,37 @@ class TaskControl():
     
      
     def visStimFlip(self):
-        if self.drawDiodeBox:
-            self._diodeBox.fillColor = -self._diodeBox.fillColor
-            self._diodeBox.draw()
+        # spacebar press delivers reward
+        keys = event.getKeys()
+        if self.spacebarRewardsEnabled and 'space' in keys:
+            self._reward = True
+        
+        # set frame acquisition and reward signals 
         self._digitalOutputs.writeBit(0,1)
         if self._reward:
             self._digitalOutputs.writeBit(1,1)
+        
+        # show new frame
+        if self.drawDiodeBox:
+            self._diodeBox.fillColor = -self._diodeBox.fillColor
+            self._diodeBox.draw()
         self._win.flip()
+        if self.saveMovie:
+            self._win.getMovieFrame()
+        
+        # reset frame acquisition and reward signals
         self._digitalOutputs.writeBit(0,1)
         if self._reward:
             self._digitalOutputs.writeBit(1,0)
             self._reward = False
             self.rewardFrames.append(self._sessionFrame)
+        
         self._sessionFrame += 1
         self._trialFrame += 1
-        if self.saveMovie:
-            self._win.getMovieFrame()
+        
+        # escape key press ends session
+        if 'escape' in keys:   
+            self._continueSession = False
         
     
     def prepareSession(self):
@@ -83,12 +98,15 @@ class TaskControl():
                                     
         self.startNidaqDevice()
         self.rotaryEncoderRadians = []
+        self.deltaWheelPos = [] # change in wheel position (angle translated to screen pixels)
         self.lickInput = []
         
+        self._continueSession = True
         self._sessionFrame = 0 # index of frame since start of session
         self._trialFrame = 0 # index of frame since start of trial
         self._reward = False # reward delivered at next frame flip if True
         self.rewardFrames = [] # index of frames at which reward delivered
+        
         
     
     def prepareWindow(self):
@@ -162,6 +180,7 @@ class TaskControl():
         # analog
         encoderAngle = self._analogInputs.data * 2 * math.pi / 5
         self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
+        self.deltaWheelPos.append(self.translateEndoderChange())
         
         # digital
         self.lickInput.append(self._digitalInputs.read()[0])
@@ -199,7 +218,6 @@ def saveParameters(fileOut,paramDict,dictName=None):
                 except:
                     print 'could not save ' + key
                     
-
 
 if __name__ == "__main__":
     pass

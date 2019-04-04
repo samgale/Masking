@@ -7,7 +7,7 @@ Created on Wed Feb 20 15:41:48 2019
 
 from __future__ import division
 import itertools, math, random
-from psychopy import visual, event
+from psychopy import visual
 from TaskControl import TaskControl
 import numpy as np
 
@@ -32,18 +32,19 @@ class MaskingTask(TaskControl):
         # target stimulus params
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-1,-1), top-right (1,1)
         self.targetFrames = [2] # duration of target stimulus; ignored if moveStim is True
-        self.targetContrast = [0.25]
-        self.targetSize = 10 # degrees
-        self.targetSF = 0.5 # cycles/deg
+        self.targetContrast = [0.5]
+        self.targetSize = 40 # degrees
+        self.targetSF = 0.1 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         
         # mask params
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
-        self.maskOnset = [np.nan,0,2,4,8,16] # frames >=0 relative to target stimulus onset
-                                               # or NaN for no mask
-        self.maskFrames = 9 # duration of mask      
+        self.maskOnset = [np.nan,0,2,4,8,16] # frames >=0 relative to target stimulus onset or NaN for no mask
+        self.maskFrames = 9 # duration of mask  
+        self.maskContrast = 1
 
+    
     def setDefaultParams(self,taskVersion):
         if taskVersion in ('pos','position'):
             self.normTargetPos = [(-0.5,0),(0.5,0)]
@@ -54,10 +55,12 @@ class MaskingTask(TaskControl):
         else:
             print(str(taskVersion)+' is not a recognized version of this task')
     
+    
     def checkParameterValues(self):
         assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
             
+    
     def start(self,subjectName=None):
         if subjectName is not None:
             self.subjectName = subjectName
@@ -101,6 +104,7 @@ class MaskingTask(TaskControl):
                                            mask=maskEdgeBlur,
                                            tex='sin',
                                            size=maskSize,
+                                           contrast=self.maskContrast,
                                            sf=sf,
                                            ori=ori,
                                            opacity=opa,
@@ -109,15 +113,16 @@ class MaskingTask(TaskControl):
                                            for ori,opa in zip(maskOri,(1.0,0.5))]
             elif self.maskType=='noise':
                 mask = [visual.NoiseStim(win=self._win,
-                                          units='pix',
-                                          mask=maskEdgeBlur,
-                                          noiseType='Filtered',
-                                          noiseFractalPower = 0,
-                                          noiseFilterOrder = 1,
-                                          noiseFilterLower = 0.5*sf,
-                                          noiseFilterUpper = 2*sf,
-                                          size=maskSize)
-                                          for pos in maskPos]
+                                         units='pix',
+                                         mask=maskEdgeBlur,
+                                         noiseType='Filtered',
+                                         noiseFractalPower = 0,
+                                         noiseFilterOrder = 1,
+                                         noiseFilterLower = 0.5*sf,
+                                         noiseFilterUpper = 2*sf,
+                                         size=maskSize,
+                                         contrast=self.maskContrast)
+                                         for pos in maskPos]
             
             if self.maskShape=='surround':
                 mask += [visual.Circle(win=self._win,
@@ -134,11 +139,6 @@ class MaskingTask(TaskControl):
                                                  self.targetFrames,
                                                  self.maskOnset))
             
-            # things to keep track of each frame
-            self.deltaWheelPos = [] # change in wheel position (angle translated to screen pixels)
-            closedLoopWheelPos = [] # cumulative change in wheel position during closed loop condition
-                                    # determines if decision boundary crossed
-            
             # things to keep track of each trial
             self.trialStartFrame = []
             self.trialEndFrame = []
@@ -151,11 +151,9 @@ class MaskingTask(TaskControl):
             self.trialRewardDist = []
             self.trialResponse = []
             
-            while True: # each loop is a frame flip
+            while self._continueSession: # each loop is a frame flip
                 # get rotary encoder and digital input states
                 self.getNidaqData()
-                
-                self.deltaWheelPos.append(self.translateEndoderChange())
                 
                 # start new trial
                 if self._trialFrame == 0:
@@ -174,8 +172,9 @@ class MaskingTask(TaskControl):
                     target.contrast = targetContrast
                     target.ori = targetOri
                     if self.maskType == 'noise':
-                        for m in mask[:-1]:
-                            m.updateNoise()
+                        for m in mask:
+                            if isinstance(m,visual.NoiseStim):
+                                m.updateNoise()
                     self.trialStartFrame.append(self._sessionFrame)
                     self.trialTargetPos.append(targetPos)
                     self.trialTargetContrast.append(targetContrast)
@@ -216,18 +215,7 @@ class MaskingTask(TaskControl):
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
                 
-                keys = event.getKeys()
-                
-                # spacebar press delivers reward
-                if 'space' in keys:
-                    self._reward = True
-                
                 self.visStimFlip()
-                
-                # escape key press ends session
-                if 'escape' in keys:   
-                    event.clearEvents()
-                    break
                 
         except:
             raise
