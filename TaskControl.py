@@ -54,6 +54,7 @@ class TaskControl():
         if self._reward:
             self._digitalOutputs.writeBit(1,0)
             self._reward = False
+            self.rewardFrames.append(self._sessionFrame)
         self._sessionFrame += 1
         self._trialFrame += 1
         if self.saveMovie:
@@ -87,6 +88,7 @@ class TaskControl():
         self._sessionFrame = 0 # index of frame since start of session
         self._trialFrame = 0 # index of frame since start of trial
         self._reward = False # reward delivered at next frame flip if True
+        self.rewardFrames = [] # index of frames at which reward delivered
         
     
     def prepareWindow(self):

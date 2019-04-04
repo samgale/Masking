@@ -215,11 +215,17 @@ class MaskingTask(TaskControl):
                     self.trialResponse.append(0) # no response
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
-                    
+                
+                keys = event.getKeys()
+                
+                # spacebar press delivers reward
+                if 'space' in keys:
+                    self._reward = True
+                
                 self.visStimFlip()
                 
-                # check for keyboard events to end session
-                if len(event.getKeys()) > 0:                  
+                # escape key press ends session
+                if 'escape' in keys:   
                     event.clearEvents()
                     break
                 
