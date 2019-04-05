@@ -25,7 +25,7 @@ class TaskControl():
         self.drawDiodeBox = True
         self.nidaqDevice = 'USB-6009'
         self.wheelRotDir = -1 # 1 or -1
-        self.wheelSpeedGain = 50 # arbitrary scale factor
+        self.wheelSpeedGain = 500 # arbitrary scale factor
         self.spacebarRewardsEnabled = True
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved

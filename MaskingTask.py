@@ -27,12 +27,12 @@ class MaskingTask(TaskControl):
         
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
-        self.moveStim = False
+        self.moveStim = True
         
         # target stimulus params
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-1,-1), top-right (1,1)
         self.targetFrames = [2] # duration of target stimulus; ignored if moveStim is True
-        self.targetContrast = [0.5]
+        self.targetContrast = [1]
         self.targetSize = 40 # degrees
         self.targetSF = 0.1 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
