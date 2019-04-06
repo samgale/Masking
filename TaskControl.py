@@ -24,6 +24,7 @@ class TaskControl():
         self.screen = 1 # monitor to present stimuli on
         self.drawDiodeBox = True
         self.nidaqDevice = 'USB-6009'
+        self.nidaqDeviceName = 'Dev1'
         self.wheelRotDir = -1 # 1 or -1
         self.wheelSpeedGain = 500 # arbitrary scale factor
         self.spacebarRewardsEnabled = True
@@ -40,40 +41,6 @@ class TaskControl():
             self.diodeBoxPosition = (815,-500)
         elif self.rig=='np3':
             pass
-    
-     
-    def visStimFlip(self):
-        # spacebar press delivers reward
-        keys = event.getKeys()
-        if self.spacebarRewardsEnabled and 'space' in keys:
-            self._reward = True
-        
-        # set frame acquisition and reward signals 
-        self._digitalOutputs.writeBit(0,1)
-        if self._reward:
-            self._digitalOutputs.writeBit(1,1)
-        
-        # show new frame
-        if self.drawDiodeBox:
-            self._diodeBox.fillColor = -self._diodeBox.fillColor
-            self._diodeBox.draw()
-        self._win.flip()
-        if self.saveMovie:
-            self._win.getMovieFrame()
-        
-        # reset frame acquisition and reward signals
-        self._digitalOutputs.writeBit(0,1)
-        if self._reward:
-            self._digitalOutputs.writeBit(1,0)
-            self._reward = False
-            self.rewardFrames.append(self._sessionFrame)
-        
-        self._sessionFrame += 1
-        self._trialFrame += 1
-        
-        # escape key press ends session
-        if 'escape' in keys:   
-            self._continueSession = False
         
     
     def prepareSession(self):
@@ -125,6 +92,64 @@ class TaskControl():
                                                      units='pix')
         self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
+        
+        
+    def start(self,subjectName=None):
+        try:
+            if subjectName is not None:
+                self.subjectName = subjectName
+            
+            self.prepareSession()
+            
+            self.taskFlow()
+            
+        except nidaq.DAQError:
+            self.resetNidaqDevice()
+            raise
+        
+        except:
+            raise
+            
+        finally:
+            self.completeSession()
+    
+    
+    def taskFlow(self):
+        pass # override this method in subclass
+    
+    
+    def showFrame(self):
+        # check keyboard events; spacebar delivers reward
+        keys = event.getKeys()
+        if self.spacebarRewardsEnabled and 'space' in keys:
+            self._reward = True
+        
+        # set frame acquisition and reward signals 
+        self._digitalOutputs.writeBit(0,1)
+        if self._reward:
+            self._digitalOutputs.writeBit(1,1)
+        
+        # show new frame
+        if self.drawDiodeBox:
+            self._diodeBox.fillColor = -self._diodeBox.fillColor
+            self._diodeBox.draw()
+        self._win.flip()
+        if self.saveMovie:
+            self._win.getMovieFrame()
+        
+        # reset frame acquisition and reward signals
+        self._digitalOutputs.writeBit(0,1)
+        if self._reward:
+            self._digitalOutputs.writeBit(1,0)
+            self._reward = False
+            self.rewardFrames.append(self._sessionFrame)
+        
+        self._sessionFrame += 1
+        self._trialFrame += 1
+        
+        # escape key ends session
+        if 'escape' in keys:   
+            self._continueSession = False
                                                
     
     def completeSession(self):
@@ -148,32 +173,39 @@ class TaskControl():
         # AI0: rotary encoder
         sampRate = 1000.0
         bufferSize = int((1 / self.frameRate * sampRate))
-        self._analogInputs = nidaq.AnalogInput(device='Dev1',channels=[0],voltage_range=(0,5),
-                                               clock_speed=sampRate,buffer_size=bufferSize)
+        self._analogInputs = nidaq.AnalogInput(device=self.nidaqDeviceName,
+                                               channels=[0],
+                                               voltage_range=(0,5),
+                                               clock_speed=sampRate,
+                                               buffer_size=bufferSize)
         self._nidaqTasks.append(self._analogInputs)
             
         # digital inputs (port 0)
         # line 0.0: lick input
-        self._digitalInputs = nidaq.DigitalInput(device='Dev1',port=0)
+        self._digitalInputs = nidaq.DigitalInput(device=self.nidaqDeviceName,port=0)
         self._nidaqTasks.append(self._digitalInputs)
         
         # digital outputs (port 1)
         # line 1.0: frame signal
         # line 1.1: water reward solenoid
-        self._digitalOutputs = nidaq.DigitalOutput(device='Dev1',port=1,initial_state='low')
+        self._digitalOutputs = nidaq.DigitalOutput(device=self.nidaqDeviceName,port=1,initial_state='low')
         self._nidaqTasks.append(self._digitalOutputs)
         
         for task in self._nidaqTasks:
             task.start()
         
         # maks sure outputs are initialized to correct state
-        self._digitalOutputs.write(self._digitalOutputs.lastOut)
+        self._digitalOutputs.write(np.zeros(self._digitalOutputs.no_lines,dtype=np.uint8))
     
     
     def stopNidaqDevice(self):
         self._digitalOutputs.write(np.zeros(self._digitalOutputs.no_lines,dtype=np.uint8))
         for task in self._nidaqTasks:
             task.clear()
+            
+    
+    def resetNidaqDevice(self):
+        nidaq.Device(self.nidaqDeviceName).reset()
             
     
     def getNidaqData(self):
