@@ -33,8 +33,8 @@ class MaskingTask(TaskControl):
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-1,-1), top-right (1,1)
         self.targetFrames = [2] # duration of target stimulus; ignored if moveStim is True
         self.targetContrast = [1]
-        self.targetSize = 40 # degrees
-        self.targetSF = 0.1 # cycles/deg
+        self.targetSize = 100 # degrees
+        self.targetSF = 0.04 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         
         # mask params
@@ -182,9 +182,10 @@ class MaskingTask(TaskControl):
             if self._trialFrame > self.preStimFrames:
                 if self._trialFrame > self.preStimFrames + self.openLoopFrames:
                     closedLoopWheelPos += self.deltaWheelPos[-1]
+                    if self.moveStim:
+                        target.pos[0] += self.deltaWheelPos[-1]
+                        target.pos = target.pos # sets target position
                 if self.moveStim:
-                    target.pos[0] += self.deltaWheelPos[-1]
-                    target.pos = target.pos # sets target position
                     target.draw()
                 else:
                     if (self.maskType is not None and not np.isnan(maskOnset) and 
