@@ -72,7 +72,7 @@ class TaskControl():
         self._sessionFrame = 0 # index of frame since start of session
         self._trialFrame = 0 # index of frame since start of trial
         self._reward = False # reward delivered at next frame flip if True
-        self.rewardFrames = [] # index of frames at which reward delivered
+        self.manualRewardFrames = [] # index of frames at which reward manually delivered
         
         
     
@@ -115,14 +115,30 @@ class TaskControl():
     
     
     def taskFlow(self):
-        pass # override this method in subclass
+        # override this method in subclass
+    
+        while self._continueSession:
+            # get rotary encoder and digital input states
+            self.getNidaqData()
+            
+            # do stuff, for example:
+            # check for licks and/or wheel movement
+            # update/draw stimuli
+            
+            self.showFrame()
     
     
     def showFrame(self):
-        # check keyboard events; spacebar delivers reward
+        # check for keyboard events
+        # set frame acquisition and reward signals
+        # flip frame buffer
+        # update session and trial frame counters
+        
+        # spacebar delivers reward
         keys = event.getKeys()
         if self.spacebarRewardsEnabled and 'space' in keys:
             self._reward = True
+            self.manualRewardFrames.append(self._sessionFrame)
         
         # set frame acquisition and reward signals 
         self._digitalOutputs.writeBit(0,1)
@@ -142,7 +158,6 @@ class TaskControl():
         if self._reward:
             self._digitalOutputs.writeBit(1,0)
             self._reward = False
-            self.rewardFrames.append(self._sessionFrame)
         
         self._sessionFrame += 1
         self._trialFrame += 1
