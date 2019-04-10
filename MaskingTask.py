@@ -22,8 +22,8 @@ class MaskingTask(TaskControl):
         
         self.preStimFrames = 240 # time between end of previous trial and stimulus onset
         self.openLoopFrames = 30 # number of frames after stimulus onset before wheel movement has effects
-        self.maxResponseWaitFrames = 360 # max time between stimulus onset and end of trial 
-        self.rewardDistance = 5 # degrees to move stim for reward in variable ori version of task
+        self.maxResponseWaitFrames = 3600 # max time between stimulus onset and end of trial 
+        self.normRewardDistance = 0.15 # normalized to screen Width
         
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
@@ -155,13 +155,13 @@ class MaskingTask(TaskControl):
                 if trialIndex == 0:
                     random.shuffle(trialParams)
                 targetPos,targetContrast,targetOri,targetFrames,maskOnset = trialParams[trialIndex]
+                targetPos = list(targetPos)
                 closedLoopWheelPos = 0                  
                 if len(self.normTargetPos) > 1:
                     rewardDir = -1 if targetPos[0] > 0 else 1
-                    rewardDist = abs(targetPos[0])
                 else:
                     rewardDir = -1 if targetOri < 0 else 1
-                    rewardDist = self.rewardDistance * self.pixelsPerDeg
+                rewardDist = self.normRewardDistance * self.monSizePix[0]
                 target.pos = targetPos
                 target.contrast = targetContrast
                 target.ori = targetOri
@@ -182,9 +182,15 @@ class MaskingTask(TaskControl):
             if self._trialFrame > self.preStimFrames:
                 if self._trialFrame > self.preStimFrames + self.openLoopFrames:
                     closedLoopWheelPos += self.deltaWheelPos[-1]
+                    targetPos[0] += self.deltaWheelPos[-1]
+                    if targetPos[0]>self.monSizePix[0]/2:
+                        targetPos[0] = self.monSizePix[0]/2
+                        closedLoopWheelPos = self.monSizePix[0]/4
+                    elif targetPos[0]<-self.monSizePix[0]/2:
+                        targetPos[0] = -self.monSizePix[0]/2
+                        closedLoopWheelPos = -self.monSizePix[0]/4
                     if self.moveStim:
-                        target.pos[0] += self.deltaWheelPos[-1]
-                        target.pos = target.pos # sets target position
+                        target.pos = (targetPos[0],0)
                 if self.moveStim:
                     target.draw()
                 else:
@@ -201,10 +207,13 @@ class MaskingTask(TaskControl):
                 if closedLoopWheelPos * rewardDir > 0:
                     self._reward = True
                     self.trialResponse.append(1) # correct
+                    self.trialEndFrame.append(self._sessionFrame)
+                    self._trialFrame = -1
                 else:
-                    self.trialResponse.append(-1) # incorrect
-                self.trialEndFrame.append(self._sessionFrame)
-                self._trialFrame = -1
+                    if False:
+                        self.trialResponse.append(-1) # incorrect
+                        self.trialEndFrame.append(self._sessionFrame)
+                        self._trialFrame = -1
             elif self._trialFrame == self.preStimFrames + self.maxResponseWaitFrames:
                 self.trialResponse.append(0) # no response
                 self.trialEndFrame.append(self._sessionFrame)

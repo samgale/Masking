@@ -153,8 +153,8 @@ class TaskControl():
                                                
     
     def completeSession(self):
-        subjName = '' if self.subjectName is None else self.subjectName
-        fileBaseName = os.path.join(self.saveDir,self.__class__.__name__+'_'+subjName+'_'+self.startTime)
+        subjName = '' if self.subjectName is None else self.subjectName+'_'
+        fileBaseName = os.path.join(self.saveDir,self.__class__.__name__+'_'+subjName+self.startTime)
         if self._win is not None:
             if self.saveMovie:
                 self._win.saveMovieFrames(os.path.join(fileBaseName+'.mp4'))
