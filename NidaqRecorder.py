@@ -13,15 +13,13 @@ ch0 = analogDataset[:,0]
 dataFile.close()
 """
 
-import fileIO
-import h5py, time
+import h5py, os, time
 from functools import partial
 import nidaq
 import numpy as np
 
 
-def readData():
-    filePath = fileIO.getFile()
+def readData(filePath):
     dataFile = h5py.File(filePath,'r')
     analogDataset = dataFile['AnalogInput']
     sampleRate = analogDataset.attrs.get('sampleRate')
@@ -37,7 +35,7 @@ def saveData(dataset,data):
 class NidaqRecorder():
     
     def __init__(self):
-        self.appendStartTime = True
+        self.saveDirPath = r'C:\\Users\\SVC_CCG\\Desktop\\Data'
         
         self.analogInputChannels = [0,1,2,3,4,5,6]
         self.analogInputNames = ('vsync',
@@ -51,11 +49,10 @@ class NidaqRecorder():
         self.analogInputBufferSize = 500
         self.analogInputRange = [-10.0,10.0]
         
-    def start(self):
-        dataFilePath = fileIO.saveFile(fileType='*.hdf5')
+    def start(self,fileName=None):
         startTime = time.strftime('%Y%m%d_%H%M%S')
-        if self.appendStartTime:
-            dataFilePath = dataFilePath[:-5]+'_'+startTime+'.hdf5'
+        fileName = startTime if fileName is None else fileName+'_'+startTime
+        dataFilePath = os.path.join(self.saveDirPath,fileName+'.hdf5')
         self.dataFile = h5py.File(dataFilePath,'w',libver='latest')
         self.dataFile.attrs.create('startTime',startTime)
         
