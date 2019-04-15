@@ -30,8 +30,8 @@ class TaskControl():
         self.spacebarRewardsEnabled = True
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
-            self.monWidth = 47.0 # cm
-            self.monDistance = 20.3 # cm
+            self.monWidth = 47.2 # cm
+            self.monDistance = 19.7 # cm
             self.monGamma = None # float or None
             self.monSizePix = (1680,1050)
             self.flipScreenHorz = False
@@ -51,7 +51,7 @@ class TaskControl():
         self.numpyRandomSeed = random.randint(0,2**32)
         self._numpyRandom = np.random.RandomState(self.numpyRandomSeed)
         
-        self.pixelsPerDeg = self.monSizePix[0]/(2*math.tan(self.monWidth/2/self.monDistance)*180/math.pi)
+        self.pixelsPerDeg = 0.5 * self.monSizePix[0] / (math.tan(0.5 * self.monWidth / self.monDistance) * 180 / math.pi)
         
         self.prepareWindow()
 
@@ -186,11 +186,11 @@ class TaskControl():
     def startNidaqDevice(self):
         # analog inputs
         # AI0: rotary encoder
-        sampRate = 1000.0
-        bufferSize = int((1 / self.frameRate * sampRate))
+        sampRate = 2000.0
+        bufferSize = int(1 / self.frameRate * sampRate)
         self._analogInputs = nidaq.AnalogInput(device=self.nidaqDeviceName,
                                                channels=[0],
-                                               voltage_range=(0,5),
+                                               voltage_range=(0,5.0),
                                                clock_speed=sampRate,
                                                buffer_size=bufferSize)
         self._nidaqTasks.append(self._analogInputs)

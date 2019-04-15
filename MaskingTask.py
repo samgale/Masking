@@ -8,7 +8,7 @@ Created on Wed Feb 20 15:41:48 2019
 from __future__ import division
 import itertools, math, random
 import numpy as np
-from psychopy import visual
+from psychopy import visual    
 from TaskControl import TaskControl
 
 
@@ -35,9 +35,10 @@ class MaskingTask(TaskControl):
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [2] # duration of target stimulus; ignored if moveStim is True
         self.targetContrast = [1]
-        self.targetSize = 100 # degrees
+        self.targetSize = 70 # degrees
         self.targetSF = 0.04 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
+        self.gratingType = 'sqr' # 'sqr' or 'sin' 
         
         # mask params
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
@@ -53,6 +54,12 @@ class MaskingTask(TaskControl):
             self.moveStim = True
             self.normRewardDistance = 0.15
             self.postRewardTargetFrames = 60
+            self.maxResponseWaitFrames = 3600
+            self.targetSize = 70
+        elif taskVersion == 'training2':
+            self.setDefaultParams('training1')
+            self.normRewardDistance = 0.25
+            self.maxResponseWaitFrames = 600
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -64,7 +71,7 @@ class MaskingTask(TaskControl):
         else:
             print(str(taskVersion)+' is not a recognized version of this task')
     
-    
+     
     def checkParamValues(self):
         assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
@@ -80,7 +87,7 @@ class MaskingTask(TaskControl):
         target = visual.GratingStim(win=self._win,
                                     units='pix',
                                     mask='gauss',
-                                    tex='sin',
+                                    tex=self.gratingType,
                                     size=targetSizePix, 
                                     sf=sf)  
         
@@ -105,7 +112,7 @@ class MaskingTask(TaskControl):
             mask = [visual.GratingStim(win=self._win,
                                        units='pix',
                                        mask=maskEdgeBlur,
-                                       tex='sin',
+                                       tex=self.gratingType,
                                        size=maskSize,
                                        contrast=self.maskContrast,
                                        sf=sf,
@@ -155,7 +162,7 @@ class MaskingTask(TaskControl):
         self.trialResponse = []
         self.rewardFrames = [] # index of frames at which reward earned
         
-        monHalfWidth = 0.5 * self.monSizePix[0]
+        monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
         
         while self._continueSession: # each loop is a frame presented on the monitor
             # get rotary encoder and digital input states
@@ -197,9 +204,8 @@ class MaskingTask(TaskControl):
                     closedLoopWheelPos += self.deltaWheelPos[-1]
                     if self.moveStim:
                         targetPos[0] += self.deltaWheelPos[-1]
-                        if self.keepTargetOnScreen and abs(targetPos[0]) > monHalfWidth:
-                            edge = monHalfWidth if targetPos[0] > 0 else -monHalfWidth
-                            adjust = targetPos[0] - edge
+                        if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
+                            adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
                             targetPos[0] -= adjust
                             closedLoopWheelPos -= adjust
                         target.pos = targetPos
