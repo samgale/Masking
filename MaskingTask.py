@@ -28,7 +28,7 @@ class MaskingTask(TaskControl):
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
         self.moveStim = False
-        self.keepTargetOnScreen = True
+        self.keepTargetOnScreen = False
         self.postRewardTargetFrames = 1 # frames to freeze target after reward
         
         # target stimulus params
@@ -38,7 +38,8 @@ class MaskingTask(TaskControl):
         self.targetSize = 70 # degrees
         self.targetSF = 0.04 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
-        self.gratingType = 'sqr' # 'sqr' or 'sin' 
+        self.gratingType = 'sqr' # 'sqr' or 'sin'
+        self.gratingEdge= 'gauss' # 'gauss' or 'circle'
         
         # mask params
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
@@ -48,18 +49,27 @@ class MaskingTask(TaskControl):
         self.maskContrast = 1
 
     
-    def setDefaultParams(self,taskVersion):
+    def setDefaultParams(self,taskVersion,bias=None):
         if taskVersion == 'training1':
             self.setDefaultParams('pos')
             self.moveStim = True
-            self.normRewardDistance = 0.15
+            self.keepTargetOnScreen = True
+            self.normRewardDistance = 0.10
             self.postRewardTargetFrames = 60
             self.maxResponseWaitFrames = 3600
-            self.targetSize = 70
+            self.targetSize = 45
+            self.gratingEdge = 'circle'
+            if bias=='right':
+                self.normTargetPos = [(0.25,0)]*2
+            elif bias=='left':
+                self.normTargetPos = [(-0.25,0)]*2
         elif taskVersion == 'training2':
-            self.setDefaultParams('training1')
-            self.normRewardDistance = 0.25
+            self.setDefaultParams('training1', bias)
+            self.normRewardDistance = 0.20
             self.maxResponseWaitFrames = 600
+        elif taskVersion == 'training3':
+            self.setDefaultParams('training2', bias)
+            self.keepTargetOnScreen = False
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -86,7 +96,7 @@ class MaskingTask(TaskControl):
         sf = self.targetSF / self.pixelsPerDeg
         target = visual.GratingStim(win=self._win,
                                     units='pix',
-                                    mask='gauss',
+                                    mask=self.gratingEdge,
                                     tex=self.gratingType,
                                     size=targetSizePix, 
                                     sf=sf)  
@@ -98,7 +108,7 @@ class MaskingTask(TaskControl):
         if self.maskShape=='target':
             maskPos = targetPosPix
             maskSize = targetSizePix
-            maskEdgeBlur = 'gauss'
+            maskEdgeBlur = self.gratingEdge
         else:
             maskPos = [(0,0)]
             maskSize = max(self.monSizePix)

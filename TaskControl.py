@@ -31,7 +31,7 @@ class TaskControl():
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.monWidth = 47.2 # cm
-            self.monDistance = 19.7 # cm
+            self.monDistance = 22.9 # cm
             self.monGamma = None # float or None
             self.monSizePix = (1680,1050)
             self.flipScreenHorz = False
