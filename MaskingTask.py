@@ -24,6 +24,7 @@ class MaskingTask(TaskControl):
         self.maxResponseWaitFrames = 3600 # max time between stimulus onset and end of trial
         self.openLoopFrames = 30 # number of frames after stimulus onset before wheel movement has effects
         self.normRewardDistance = 0.25 # normalized to screen width
+        self.repeatIncorrectTrials = False
         
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
@@ -69,7 +70,9 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 600
         elif taskVersion == 'training3':
             self.setDefaultParams('training2', bias)
+            self.normRewardDistance = 0.25
             self.keepTargetOnScreen = False
+            self.repeatIncorrectTrials = True
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -172,6 +175,7 @@ class MaskingTask(TaskControl):
         self.trialResponse = []
         self.rewardFrames = [] # index of frames at which reward earned
         
+        trialIndex = 0 # index of trialParams        
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
         
         while self._continueSession: # each loop is a frame presented on the monitor
@@ -180,7 +184,6 @@ class MaskingTask(TaskControl):
             
             # if starting a new trial
             if self._trialFrame == 0:
-                trialIndex = len(self.trialStartFrame) % len(trialParams)
                 if trialIndex == 0:
                     random.shuffle(trialParams)
                 initTargetPos,targetContrast,targetOri,targetFrames,maskOnset = trialParams[trialIndex]
@@ -244,7 +247,7 @@ class MaskingTask(TaskControl):
                     self.trialResponse.append(0) # no response
                     hasResponded = True
                 
-            # show any post response stimuli
+            # show any post response stimuli or end trial
             if hasResponded:
                 if (self.trialResponse[-1] > 0 and
                     self._sessionFrame < self.rewardFrames[-1] + self.postRewardTargetFrames):
@@ -254,6 +257,10 @@ class MaskingTask(TaskControl):
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
+                    if self.trialResponse[-1] > 0 or not self.repeatIncorrectTrials:
+                        trialIndex += 1
+                    if trialIndex == len(trialParams):
+                        trialIndex = 0   
             
             self.showFrame()
 
