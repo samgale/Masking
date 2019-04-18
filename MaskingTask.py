@@ -36,7 +36,7 @@ class MaskingTask(TaskControl):
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [2] # duration of target stimulus; ignored if moveStim is True
         self.targetContrast = [1]
-        self.targetSize = 70 # degrees
+        self.targetSize = 45 # degrees
         self.targetSF = 0.04 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         self.gratingType = 'sqr' # 'sqr' or 'sin'
@@ -55,7 +55,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('pos')
             self.moveStim = True
             self.keepTargetOnScreen = True
-            self.normRewardDistance = 0.10
+            self.normRewardDistance = 0.1 
             self.postRewardTargetFrames = 60
             self.maxResponseWaitFrames = 3600
             self.targetSize = 45
@@ -66,13 +66,14 @@ class MaskingTask(TaskControl):
                 self.normTargetPos = [(-0.25,0)]*2
         elif taskVersion == 'training2':
             self.setDefaultParams('training1', bias)
-            self.normRewardDistance = 0.20
+            self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 600
         elif taskVersion == 'training3':
             self.setDefaultParams('training2', bias)
-            self.normRewardDistance = 0.25
             self.keepTargetOnScreen = False
             self.repeatIncorrectTrials = True
+            self.normRewardDistance = 0.25
+            #self.maxResponseWaitFrames = 360
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
