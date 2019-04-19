@@ -24,6 +24,7 @@ class MaskingTask(TaskControl):
         self.maxResponseWaitFrames = 3600 # max time between stimulus onset and end of trial
         self.openLoopFrames = 30 # number of frames after stimulus onset before wheel movement has effects
         self.normRewardDistance = 0.25 # normalized to screen width
+        self.normIncorrectDistance = 0.25
         self.repeatIncorrectTrials = False
         
         # mouse can move target stimulus with wheel for early training
@@ -172,12 +173,13 @@ class MaskingTask(TaskControl):
         self.trialTargetFrames = []
         self.trialMaskOnset = []
         self.trialRewardDir = []
-        self.trialRewardDist = []
         self.trialResponse = []
         self.rewardFrames = [] # index of frames at which reward earned
         
         trialIndex = 0 # index of trialParams        
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
+        rewardDist = self.normRewardDistance * self.monSizePix[0]
+        incorrectDist = self.normIncorrectDistance * self.monSizePix[0]
         
         while self._continueSession: # each loop is a frame presented on the monitor
             # get rotary encoder and digital input states
@@ -194,7 +196,6 @@ class MaskingTask(TaskControl):
                     rewardDir = -1 if targetPos[0] > 0 else 1
                 else:
                     rewardDir = -1 if targetOri < 0 else 1
-                rewardDist = self.normRewardDistance * self.monSizePix[0]
                 target.pos = targetPos
                 target.contrast = targetContrast
                 target.ori = targetOri
@@ -209,7 +210,6 @@ class MaskingTask(TaskControl):
                 self.trialTargetFrames.append(targetFrames)
                 self.trialMaskOnset.append(maskOnset)
                 self.trialRewardDir.append(rewardDir)
-                self.trialRewardDist.append(rewardDist)
                 hasResponded = False
             
             # if gray screen period is complete, update target and mask stimuli
@@ -235,13 +235,15 @@ class MaskingTask(TaskControl):
                         target.draw()
             
                 # define response if wheel moved past threshold (either side) or max trial duration reached          
-                if abs(closedLoopWheelPos) > rewardDist:
-                    if closedLoopWheelPos * rewardDir > 0:
+                if ((rewardDir > 0 and closedLoopWheelPos > rewardDist) or
+                    (rewardDir < 0 and closedLoopWheelPos < -rewardDist)):
                         self.trialResponse.append(1) # correct
                         self.rewardFrames.append(self._sessionFrame)
                         self._reward = True
                         hasResponded = True
-                    elif not self.keepTargetOnScreen:
+                elif (not self.keepTargetOnScreen and
+                      (rewardDir > 0 and closedLoopWheelPos < -incorrectDist) or
+                      (rewardDir < 0 and closedLoopWheelPos > incorrectDist)):
                         self.trialResponse.append(-1) # incorrect
                         hasResponded = True
                 elif self._trialFrame == self.preStimFrames + self.maxResponseWaitFrames:
