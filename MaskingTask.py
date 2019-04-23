@@ -24,7 +24,7 @@ class MaskingTask(TaskControl):
         self.maxResponseWaitFrames = 3600 # max time between stimulus onset and end of trial
         self.openLoopFrames = 30 # number of frames after stimulus onset before wheel movement has effects
         self.normRewardDistance = 0.25 # normalized to screen width
-        self.normIncorrectDistance = 0.25
+        self.normIncorrectDistance = 0.1
         self.repeatIncorrectTrials = False
         
         # mouse can move target stimulus with wheel for early training
@@ -68,13 +68,13 @@ class MaskingTask(TaskControl):
         elif taskVersion == 'training2':
             self.setDefaultParams('training1', bias)
             self.normRewardDistance = 0.2
-            self.maxResponseWaitFrames = 600
+            self.maxResponseWaitFrames = 720
         elif taskVersion == 'training3':
             self.setDefaultParams('training2', bias)
             self.keepTargetOnScreen = False
             self.repeatIncorrectTrials = True
-            self.normRewardDistance = 0.25
-            #self.maxResponseWaitFrames = 360
+            self.normRewardDistance = 0.15
+            self.preStimFrames = 240
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -163,6 +163,7 @@ class MaskingTask(TaskControl):
                                              self.targetOri,
                                              self.targetFrames,
                                              self.maskOnset))
+        random.shuffle(trialParams)
         
         # things to keep track of
         self.trialStartFrame = []
@@ -187,8 +188,6 @@ class MaskingTask(TaskControl):
             
             # if starting a new trial
             if self._trialFrame == 0:
-                if trialIndex == 0:
-                    random.shuffle(trialParams)
                 initTargetPos,targetContrast,targetOri,targetFrames,maskOnset = trialParams[trialIndex]
                 targetPos = list(initTargetPos)
                 closedLoopWheelPos = 0 # movment of wheel (translated to pixels) relative to initial target postion                
@@ -263,7 +262,8 @@ class MaskingTask(TaskControl):
                     if self.trialResponse[-1] > 0 or not self.repeatIncorrectTrials:
                         trialIndex += 1
                     if trialIndex == len(trialParams):
-                        trialIndex = 0   
+                        trialIndex = 0
+                        random.shuffle(trialParams)
             
             self.showFrame()
 

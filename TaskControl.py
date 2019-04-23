@@ -20,13 +20,12 @@ class TaskControl():
         self.subjectName = None
         self.saveParams = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
-        self.saveMovie = False
         self.screen = 1 # monitor to present stimuli on
         self.drawDiodeBox = True
         self.nidaqDevice = 'USB-6009'
         self.nidaqDeviceName = 'Dev1'
         self.wheelRotDir = -1 # 1 or -1
-        self.wheelSpeedGain = 500 # arbitrary scale factor
+        self.wheelSpeedGain = 1200 # arbitrary scale factor
         self.spacebarRewardsEnabled = True
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
@@ -97,7 +96,7 @@ class TaskControl():
     def start(self,subjectName=None):
         try:
             if subjectName is not None:
-                self.subjectName = subjectName
+                self.subjectName = str(subjectName)
             
             self.prepareSession()
             
@@ -150,8 +149,6 @@ class TaskControl():
             self._diodeBox.fillColor = -self._diodeBox.fillColor
             self._diodeBox.draw()
         self._win.flip()
-        if self.saveMovie:
-            self._win.getMovieFrame()
         
         # reset frame acquisition and reward signals
         self._digitalOutputs.writeBit(0,1)
@@ -168,15 +165,13 @@ class TaskControl():
                                                
     
     def completeSession(self):
-        subjName = '' if self.subjectName is None else self.subjectName+'_'
-        fileBaseName = os.path.join(self.saveDir,self.__class__.__name__+'_'+subjName+self.startTime)
         if self._win is not None:
-            if self.saveMovie:
-                self._win.saveMovieFrames(os.path.join(fileBaseName+'.mp4'))
             self._win.close()
         self.stopNidaqDevice()
         if self.saveParams:
-            fileOut = h5py.File(fileBaseName+'.hdf5','w')
+            subjName = '' if self.subjectName is None else self.subjectName + '_'
+            filePath = os.path.join(self.saveDir,self.__class__.__name__ + '_' + subjName + self.startTime)
+            fileOut = h5py.File(filePath+'.hdf5','w')
             saveParameters(fileOut,self.__dict__)
             if self.saveFrameIntervals:
                 fileOut.create_dataset('frameIntervals',data=self._win.frameIntervals)
