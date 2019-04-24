@@ -38,3 +38,5 @@ rightTrials = np.array(rightTrials)
 leftTrials = np.array(leftTrials)
 ax.plot(np.mean(rightTrials,0), 'b')
 ax.plot(np.mean(leftTrials, 0), 'r')
+
+#edirts
