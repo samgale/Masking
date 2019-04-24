@@ -176,6 +176,7 @@ class MaskingTask(TaskControl):
         self.trialRewardDir = []
         self.trialResponse = []
         self.rewardFrames = [] # index of frames at which reward earned
+        self.closedLoopWheelPos = [] # movment of wheel (translated to pixels) relative to initial target postion
         
         trialIndex = 0 # index of trialParams        
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
@@ -190,7 +191,7 @@ class MaskingTask(TaskControl):
             if self._trialFrame == 0:
                 initTargetPos,targetContrast,targetOri,targetFrames,maskOnset = trialParams[trialIndex]
                 targetPos = list(initTargetPos)
-                closedLoopWheelPos = 0 # movment of wheel (translated to pixels) relative to initial target postion                
+                self.closedLoopWheelPos.append(0)                
                 if len(self.normTargetPos) > 1:
                     rewardDir = -1 if targetPos[0] > 0 else 1
                 else:
@@ -203,24 +204,26 @@ class MaskingTask(TaskControl):
                         if isinstance(m,visual.NoiseStim):
                             m.updateNoise()
                 self.trialStartFrame.append(self._sessionFrame)
-                self.trialTargetPos.append(targetPos)
+                self.trialTargetPos.append(targetPos[:])
                 self.trialTargetContrast.append(targetContrast)
                 self.trialTargetOri.append(targetOri)
                 self.trialTargetFrames.append(targetFrames)
                 self.trialMaskOnset.append(maskOnset)
                 self.trialRewardDir.append(rewardDir)
                 hasResponded = False
+            else:
+                self.closedLoopWheelPos.append(self.closedLoopWheelPos[-1])
             
             # if gray screen period is complete, update target and mask stimuli
             if not hasResponded and self._trialFrame >= self.preStimFrames:
                 if self._trialFrame >= self.preStimFrames + self.openLoopFrames:
-                    closedLoopWheelPos += self.deltaWheelPos[-1]
+                    self.closedLoopWheelPos[-1] += self.deltaWheelPos[-1]
                     if self.moveStim:
                         targetPos[0] += self.deltaWheelPos[-1]
                         if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
                             adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
                             targetPos[0] -= adjust
-                            closedLoopWheelPos -= adjust
+                            self.closedLoopWheelPos[-1] -= adjust
                         target.pos = targetPos
                 if self.moveStim:
                     target.draw()
@@ -234,15 +237,15 @@ class MaskingTask(TaskControl):
                         target.draw()
             
                 # define response if wheel moved past threshold (either side) or max trial duration reached          
-                if ((rewardDir > 0 and closedLoopWheelPos > rewardDist) or
-                    (rewardDir < 0 and closedLoopWheelPos < -rewardDist)):
+                if ((rewardDir > 0 and self.closedLoopWheelPos[-1] > rewardDist) or
+                    (rewardDir < 0 and self.closedLoopWheelPos[-1] < -rewardDist)):
                         self.trialResponse.append(1) # correct
                         self.rewardFrames.append(self._sessionFrame)
                         self._reward = True
                         hasResponded = True
                 elif (not self.keepTargetOnScreen and
-                      (rewardDir > 0 and closedLoopWheelPos < -incorrectDist) or
-                      (rewardDir < 0 and closedLoopWheelPos > incorrectDist)):
+                      (rewardDir > 0 and self.closedLoopWheelPos[-1] < -incorrectDist) or
+                      (rewardDir < 0 and self.closedLoopWheelPos[-1] > incorrectDist)):
                         self.trialResponse.append(-1) # incorrect
                         hasResponded = True
                 elif self._trialFrame == self.preStimFrames + self.maxResponseWaitFrames:
