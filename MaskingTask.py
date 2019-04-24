@@ -59,7 +59,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.1 
             self.postRewardTargetFrames = 60
             self.maxResponseWaitFrames = 3600
-            self.targetSize = 45
+            self.targetSize = 50
             self.gratingEdge = 'circle'
             if bias=='right':
                 self.normTargetPos = [(0.25,0)]*2
@@ -204,7 +204,7 @@ class MaskingTask(TaskControl):
                         if isinstance(m,visual.NoiseStim):
                             m.updateNoise()
                 self.trialStartFrame.append(self._sessionFrame)
-                self.trialTargetPos.append(targetPos[:])
+                self.trialTargetPos.append(initTargetPos)
                 self.trialTargetContrast.append(targetContrast)
                 self.trialTargetOri.append(targetOri)
                 self.trialTargetFrames.append(targetFrames)
