@@ -5,41 +5,80 @@ Created on Mon Apr 22 12:57:18 2019
 @author: svc_ccg
 """
 
+from __future__ import division
 import fileIO
+import os
 import h5py
 import cv2
 import numpy as np
 
-syncFilePath = fileIO.getFile('*.hdf5')
-dataFile = h5py.File(openFilePath)
 
-saveFilePath = openFilePath[:-4]
-saveFilePath += 'avi'
+# get sync, behav cam, and screen cam data files
+syncPath = fileIO.getFile('Select sync file',fileType='*.hdf5')
+syncFile = h5py.File(syncPath,'r')
 
-frameRate = dataFile.attrs.get('frameRate')
-numFrames = dataFile.attrs.get('numFrames')
+dirPath = os.path.dirname(syncPath)
 
-h1,w1 = dataFile['1'].shape
-h2,w2 = dataFile['w1'].shape
+behavCamPath = fileIO.getFile('Select behavior cam data',rootDir=dirPath,fileType='*.hdf5')
+behavCamFile = h5py.File(behavCamPath,'r')
 
+screenCamPath = fileIO.getFile('Select screen cam data',rootDir=dirPath,fileType='*.hdf5')
+screenCamFile = h5py.File(screenCamPath,'r')
+
+
+# get analog sync data
+syncData = syncFile['AnalogInput']
+syncSampleRate = syncData.attrs.get('sampleRate')
+channelNames = syncData.attrs.get('channelNames')
+behavCamSync = syncData[:,channelNames=='cam1Saving'][:,0]
+screenCamSync = syncData[:,channelNames=='cam2Saving'][:,0]
+
+
+# get rising times of camera frame signals
+syncSampInt = 1/syncSampleRate
+syncTime = np.arange(syncSampInt,syncSampInt*syncData.shape[0]+syncSampInt,syncSampInt)
+
+behavCamRising,screenCamRising = [np.concatenate(([False],(sync[1:]-sync[:-1])>3)) for sync in (behavCamSync,screenCamSync)]
+
+behavCamFrameTimes,screenCamFrameTimes = [syncTime[rising] for rising in (behavCamRising,screenCamRising)]
+
+
+# align screen cam to behavior cam for chosen screen cam frame range
+screenCamFrameRange = (6307,6950) 
+screenCamFramesToShow = np.arange(screenCamFrameRange[0]-1,screenCamFrameRange[1])
+screenCamTimesToShow = screenCamFrameTimes[screenCamFramesToShow]
+behavCamFramesToShow = np.where((behavCamFrameTimes>=screenCamTimesToShow[0]) & (behavCamFrameTimes<=screenCamTimesToShow[-1]))[0]
+behavCamTimesToShow = behavCamFrameTimes[behavCamFramesToShow]
+alignedScreenCamFrames = screenCamFramesToShow[np.searchsorted(screenCamTimesToShow,behavCamTimesToShow)[:-1]]
+alignedBehavCamFrames = behavCamFramesToShow[:-1]
+
+
+# calculate merged frame shape
+h1,w1 = behavCamFile['1'].shape
+h2,w2 = screenCamFile['1'].shape
 if w1>w2:
     offset1 = 0
     offset2 = int(0.5*(w1-w2))
 else:
     offset1 = int(0.5*(w2-w1))
     offset2 = 0
-    
 gap = 2
+mergedFrameShape = (h1+h2+gap,max(w1,w2))
 
-frameShape = (h1+h2+gap,max(w1,w2))
 
-v = cv2.VideoWriter(saveFilePath,-1,frameRate,frameShape[::-1])
+# create merged video file
+savePath = fileIO.saveFile(rootDir=dirPath)
+mergedVideoFrameRate = behavCamFile.attrs.get('frameRate')
 
-for frame in range(1,numFrames+1):
-    d = np.zeros(frameShape,dtype=np.uint8)
-    d[:h1,offset1:offset1+w1] = dataFile[str(frame)][:,:]
-    d[h1+gap:,offset2:offset2+w2] = dataFile['w'+str(frame)][:,:]
-    v.write(d)
-
+v = cv2.VideoWriter(savePath,-1,mergedVideoFrameRate,mergedFrameShape[::-1])
+mergedFrame = np.zeros(mergedFrameShape,dtype=np.uint8)
+for i in range(alignedScreenCamFrames.size):
+    mergedFrame[:h1,offset1:offset1+w1] = behavCamFile[str(alignedBehavCamFrames[i]+1)][:,:]
+    mergedFrame[h1+gap:,offset2:offset2+w2] = screenCamFile[str(alignedScreenCamFrames[i]+1)][:,:]
+    v.write(mergedFrame)
 v.release()
-dataFile.close()
+
+
+# close hdf5 files
+for f in (syncFile,behavCamFile,screenCamFile):
+    f.close()
