@@ -26,6 +26,7 @@ class TaskControl():
         self.nidaqDeviceName = 'Dev1'
         self.wheelRotDir = -1 # 1 or -1
         self.wheelSpeedGain = 1200 # arbitrary scale factor
+        self.maxWheelAngleChange = 0.5 # radians
         self.spacebarRewardsEnabled = True
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
@@ -238,7 +239,10 @@ class TaskControl():
                 angleChange += 2 * math.pi
             elif angleChange > math.pi:
                 angleChange -= 2 * math.pi
-            pixelsToMove = angleChange * self.wheelRotDir * self.wheelSpeedGain
+            if angleChange > self.maxWheelAngleChange:
+                pixelsToMove = 0
+            else:
+                pixelsToMove = angleChange * self.wheelRotDir * self.wheelSpeedGain
         return pixelsToMove
         
 
