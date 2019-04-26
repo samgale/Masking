@@ -49,11 +49,10 @@ for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStart
                     ax.plot(reward, trialWheel[reward], 'ro')
                 leftTrials.append(trialWheel)
         
-rightTrials = np.array(rightTrials)
-leftTrials = np.array(leftTrials)
-ax.plot(np.mean(rightTrials,0), 'b')
-ax.plot(np.mean(leftTrials, 0), 'r')
+rightTrials = pd.DataFrame(rightTrials).fillna(np.nan).values
+leftTrials = pd.DataFrame(leftTrials).fillna(np.nan).values
+ax.plot(np.nanmean(rightTrials,0), 'b', linewidth=3)
+ax.plot(np.nanmean(leftTrials, 0), 'r', linewidth=3)
 
-#edirts
 
 
