@@ -67,13 +67,13 @@ class MaskingTask(TaskControl):
                 self.normTargetPos = [(-0.25,0)]*2
         elif taskVersion == 'training2':
             self.setDefaultParams('training1', bias)
-            self.normRewardDistance = 0.2
+            self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 720
         elif taskVersion == 'training3':
             self.setDefaultParams('training2', bias)
             self.keepTargetOnScreen = False
             self.repeatIncorrectTrials = True
-            self.normRewardDistance = 0.15
+            self.normRewardDistance = 0.2
             self.preStimFrames = 240
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
