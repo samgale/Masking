@@ -75,6 +75,11 @@ class MaskingTask(TaskControl):
             self.repeatIncorrectTrials = True
             self.normRewardDistance = 0.2
             self.preStimFrames = 240
+        elif taskVersion == 'training4':
+            self.setDefaultParams('training3')
+            self.repeatIncorrectTrials = False
+            self.normIncorrectDistance = 0.2
+            self.maxResponseWaitFrames = 480
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
