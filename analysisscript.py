@@ -22,15 +22,15 @@ preStimFrames = d['preStimFrames'].value
 rewardFrames = d['rewardFrames'].value
 openLoopFrames = d['openLoopFrames'].value
 
-preFrames = preStimFrames + openLoopFrames
+preFrames = preStimFrames
 fig, ax = plt.subplots()
 rightTrials = []
 leftTrials = []
 for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
     if i>0 and i<len(trialStartFrames):
-        if abs(resp)<2:
+        if resp>-10:
             #get wheel position trace for this trial!
-            if not 'closedLoopWheelPos' in d.keys():
+            if True: #not 'closedLoopWheelPos' in d.keys():
                 trialWheel = np.cumsum(deltaWheel[trialStart+preFrames:trialEnd])  
             else:    
                 trialWheel = d['closedLoopWheelPos'][trialStart+preFrames:trialEnd]
