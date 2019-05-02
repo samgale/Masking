@@ -205,10 +205,10 @@ class TaskControl():
         aoSampleRate = 1000.0
         aoBufferSize = int(self.solenoidOpenTime * aoSampleRate) + 1
         self._rewardSignal = np.zeros(aoBufferSize)
-        self._rewardSignal[-1] = 5
+        self._rewardSignal[:-1] = 5
         self._rewardOutput = nidaqmx.Task()
         self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao0',min_val=0,max_val=5)
-        self._rewardOutput.write(5)
+        self._rewardOutput.write(0)
         self._rewardOutput.timing.cfg_samp_clk_timing(1000,samps_per_chan=aoBufferSize)
         self._nidaqTasks.append(self._rewardOutput)
             
