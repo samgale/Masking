@@ -24,7 +24,7 @@ class MaskingTask(TaskControl):
         self.maxResponseWaitFrames = 3600 # max time between stimulus onset and end of trial
         self.openLoopFrames = 30 # number of frames after stimulus onset before wheel movement has effects
         self.normRewardDistance = 0.25 # normalized to screen width
-        self.normIncorrectDistance = 0.1
+        self.normIncorrectDistance = 0.2
         self.repeatIncorrectTrials = False
         
         # mouse can move target stimulus with wheel for early training
@@ -78,7 +78,6 @@ class MaskingTask(TaskControl):
         elif taskVersion == 'training4':
             self.setDefaultParams('training3')
             self.repeatIncorrectTrials = False
-            self.normIncorrectDistance = 0.2
             self.maxResponseWaitFrames = 480
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
