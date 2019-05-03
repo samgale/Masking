@@ -100,6 +100,7 @@ class MaskingTask(TaskControl):
     def checkParamValues(self):
         assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
+        assert(self.quiescentFrames <= self.preStimFrames)
         
 
     def taskFlow(self):
