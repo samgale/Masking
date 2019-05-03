@@ -52,8 +52,8 @@ class MaskingTask(TaskControl):
         self.maskContrast = 1
 
     
-    def setDefaultParams(self,taskVersion,bias=None):
-        if taskVersion == 'training1':
+    def setDefaultParams(self,taskVersion,bias=None):     
+       if taskVersion == 'training1':
             self.setDefaultParams('pos')
             self.moveStim = True
             self.keepTargetOnScreen = True
@@ -77,7 +77,7 @@ class MaskingTask(TaskControl):
             self.repeatIncorrectTrials = True
             self.normRewardDistance = 0.2
             self.preStimFrames = 240
-            self.incorrectTrialRepeats = 3
+            self.incorrectTrialRepeats = 100
         elif taskVersion == 'training4':
             self.setDefaultParams('training3')
             self.repeatIncorrectTrials = False
