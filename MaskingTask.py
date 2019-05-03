@@ -24,8 +24,9 @@ class MaskingTask(TaskControl):
         self.maxResponseWaitFrames = 3600 # max time between stimulus onset and end of trial
         self.openLoopFrames = 30 # number of frames after stimulus onset before wheel movement has effects
         self.normRewardDistance = 0.25 # normalized to screen width
-        self.normIncorrectDistance = 0.1
-        self.repeatIncorrectTrials = False
+        self.normIncorrectDistance = 0.25
+        self.incorrectTrialRepeats = 0
+        self.incorrectTimeoutFrames = 240
         
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
@@ -61,6 +62,7 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 3600
             self.targetSize = 50
             self.gratingEdge = 'circle'
+            self.incorrectTimeoutFrames = 0
             if bias=='right':
                 self.normTargetPos = [(0.25,0)]*2
             elif bias=='left':
@@ -75,11 +77,12 @@ class MaskingTask(TaskControl):
             self.repeatIncorrectTrials = True
             self.normRewardDistance = 0.2
             self.preStimFrames = 240
+            self.incorrectTrialRepeats = 3
         elif taskVersion == 'training4':
             self.setDefaultParams('training3')
             self.repeatIncorrectTrials = False
-            self.normIncorrectDistance = 0.2
             self.maxResponseWaitFrames = 480
+            self.incorrectTimeoutFrames = 240
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -180,13 +183,14 @@ class MaskingTask(TaskControl):
         self.trialMaskOnset = []
         self.trialRewardDir = []
         self.trialResponse = []
-        self.rewardFrames = [] # index of frames at which reward earned
+        self.trialResponseFrame = []
         self.closedLoopWheelPos = [] # movment of wheel (translated to pixels) relative to initial target postion
         
         trialIndex = 0 # index of trialParams        
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
         rewardDist = self.normRewardDistance * self.monSizePix[0]
         incorrectDist = self.normIncorrectDistance * self.monSizePix[0]
+        repeats = 0
         
         while self._continueSession: # each loop is a frame presented on the monitor
             # get rotary encoder and digital input states
@@ -245,29 +249,36 @@ class MaskingTask(TaskControl):
                 if ((rewardDir > 0 and self.closedLoopWheelPos[-1] > rewardDist) or
                     (rewardDir < 0 and self.closedLoopWheelPos[-1] < -rewardDist)):
                         self.trialResponse.append(1) # correct
-                        self.rewardFrames.append(self._sessionFrame)
+                        self.trialResponseFrame.append(self._sessionFrame)
                         self._reward = True
                         hasResponded = True
                 elif (not self.keepTargetOnScreen and
                       (rewardDir > 0 and self.closedLoopWheelPos[-1] < -incorrectDist) or
                       (rewardDir < 0 and self.closedLoopWheelPos[-1] > incorrectDist)):
                         self.trialResponse.append(-1) # incorrect
+                        self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
                 elif self._trialFrame == self.preStimFrames + self.maxResponseWaitFrames:
                     self.trialResponse.append(0) # no response
+                    self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 
             # show any post response stimuli or end trial
             if hasResponded:
                 if (self.trialResponse[-1] > 0 and
-                    self._sessionFrame < self.rewardFrames[-1] + self.postRewardTargetFrames):
+                    self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
                     targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
                     target.pos = targetPos
                     target.draw()
+                elif (self.trialResponse[-1] < 0 and
+                      self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
+                    pass
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
-                    if self.trialResponse[-1] > 0 or not self.repeatIncorrectTrials:
+                    if self.trialResponse[-1] < 1 and repeats < self.incorrectTrialRepeats:
+                        repeats += 1
+                    else:
                         trialIndex += 1
                     if trialIndex == len(trialParams):
                         trialIndex = 0
