@@ -21,7 +21,7 @@ trialEndFrames = d['trialEndFrame'].value
 trialRewardDirection = d['trialRewardDir'].value
 trialResponse = d['trialResponse'].value
 deltaWheel = d['deltaWheelPos'].value
-preStimFrames = d['preStimFrames'].value
+preStimFrames = d['trialPreStimFrames'] if 'trialPreStimFrames' in d else np.array([d['preStimFrames'].value]*trialStartFrames.size)
 openLoopFrames = d['openLoopFrames'].value
 
 if 'rewardFrames' in d.keys():
@@ -44,13 +44,13 @@ for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStart
         if resp>-10:
             #get wheel position trace for this trial!
             if True: #not 'closedLoopWheelPos' in d.keys():
-                trialWheel = np.cumsum(deltaWheel[trialStart+preFrames:trialEnd])  
+                trialWheel = np.cumsum(deltaWheel[trialStart+preFrames[i]:trialEnd])  
             else:    
-                trialWheel = d['closedLoopWheelPos'][trialStart+preFrames:trialEnd]
+                trialWheel = d['closedLoopWheelPos'][trialStart+preFrames[i]:trialEnd]
                 
                 
             trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
-            reward = rewardFrames[trialreward[0]]-trialStart-preFrames if len(trialreward)>0 else None
+            reward = rewardFrames[trialreward[0]]-trialStart-preFrames[i] if len(trialreward)>0 else None
             if rewardDirection>0:
                 ax.plot(trialWheel, 'r', alpha=0.2)
                 if reward is not None:
@@ -69,16 +69,7 @@ ax.plot(np.nanmean(leftTrials, 0), 'b', linewidth=3)
 
 probeData.formatFigure(fig, ax, xLabel='Frame Number', yLabel='Wheel Position (pix)')
 
-trials = np.count_nonzero(trialResponse)
 
-print('\n' + 'repeat incorrect trials: '+str(d['repeatIncorrectTrials'].value))
-
-percentResponse = trials/len(trialResponse)
-print('percent response was: {}'.format(percentResponse))
-
-correct = (trialResponse==1).sum()
-percentCorrect = correct/float(trials)
-print('percent correct was: {}'.format(percentCorrect))
 
 
 
