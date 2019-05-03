@@ -24,7 +24,16 @@ deltaWheel = d['deltaWheelPos'].value
 preStimFrames = d['preStimFrames'].value
 openLoopFrames = d['openLoopFrames'].value
 
-
+if 'rewardFrames' in d.keys():
+    rewardFrames = d['rewardFrames'].value
+else:
+    if 'responseFrames' in d.keys():
+        responseTrials = np.where(trialResponse!= 0)[0]
+        rewardFrames = d['responseFrames'].value[trialResponse[responseTrials]>0]
+    else:
+        rewardFrames = d['trialResponseFrame'].value[trialResponse>0]
+        
+preFrames = preStimFrames + openLoopFrames
 fig, ax = plt.subplots()
 
 # for rightTrials stim presented on L, turn right - viceversa for leftTrials
