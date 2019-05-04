@@ -142,7 +142,7 @@ class TaskControl():
         self._frameSignalOutput.write(True)
         if self._reward:
             self.deliverReward()
-            self.reward = False
+            self._reward = False
         
         # show new frame
         if self.drawDiodeBox:
@@ -225,7 +225,7 @@ class TaskControl():
         self._frameSignalOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line0',
                                                         line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
         self._frameSignalOutput.write(False)
-        self._nidaqTasks.append(self._frameSignal)    
+        self._nidaqTasks.append(self._frameSignalOutput)    
     
     
     def stopNidaqDevice(self):
@@ -242,13 +242,13 @@ class TaskControl():
         # analog
         encoderAngle = self._rotaryEncoderData * 2 * math.pi / 5
         self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
-        self.deltaWheelPos.append(self.translateEndoderChange())
+        self.deltaWheelPos.append(self.translateEncoderChange())
         
         # digital
         self.lickState.append(self._lickInput.read())
         
     
-    def translateEndoderChange(self):
+    def translateEncoderChange(self):
         # translate encoder angle change to number of pixels to move visual stimulus
         if len(self.rotaryEncoderRadians) < 2:
             pixelsToMove = 0
