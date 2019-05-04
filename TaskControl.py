@@ -10,7 +10,8 @@ import h5py
 import numpy as np
 from psychopy import monitors, visual, event
 import ProjectorWindow
-import nidaq
+import nidaqmx
+from nidaqmx.stream_readers import AnalogSingleChannelReader
 
 
 class TaskControl():
@@ -22,12 +23,13 @@ class TaskControl():
         self.saveFrameIntervals = True
         self.screen = 1 # monitor to present stimuli on
         self.drawDiodeBox = True
-        self.nidaqDevice = 'USB-6009'
+        self.nidaqDevice = 'USB-6001'
         self.nidaqDeviceName = 'Dev1'
         self.wheelRotDir = -1 # 1 or -1
         self.wheelSpeedGain = 1200 # arbitrary scale factor
         self.maxWheelAngleChange = 0.5 # radians
         self.spacebarRewardsEnabled = True
+        self.solenoidOpenTime = 0.05 # seconds
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.monWidth = 47.2 # cm
@@ -66,7 +68,7 @@ class TaskControl():
         self.startNidaqDevice()
         self.rotaryEncoderRadians = []
         self.deltaWheelPos = [] # change in wheel position (angle translated to screen pixels)
-        self.lickInput = []
+        self.lickState = []
         
         self._continueSession = True
         self._sessionFrame = 0 # index of frame since start of session
@@ -102,10 +104,6 @@ class TaskControl():
             self.prepareSession()
             
             self.taskFlow()
-            
-        except nidaq.DAQError:
-            self.resetNidaqDevice()
-            raise
         
         except:
             raise
@@ -141,9 +139,10 @@ class TaskControl():
             self.manualRewardFrames.append(self._sessionFrame)
         
         # set frame acquisition and reward signals 
-        self._digitalOutputs.writeBit(0,1)
+        self._frameSignalOutput.write(True)
         if self._reward:
-            self._digitalOutputs.writeBit(1,1)
+            self.deliverReward()
+            self.reward = False
         
         # show new frame
         if self.drawDiodeBox:
@@ -151,11 +150,8 @@ class TaskControl():
             self._diodeBox.draw()
         self._win.flip()
         
-        # reset frame acquisition and reward signals
-        self._digitalOutputs.writeBit(0,1)
-        if self._reward:
-            self._digitalOutputs.writeBit(1,0)
-            self._reward = False
+        # reset frame acquisition signal
+        self._frameSignalOutput.write(False)
         
         self._sessionFrame += 1
         self._trialFrame += 1
@@ -182,51 +178,74 @@ class TaskControl():
     def startNidaqDevice(self):
         # analog inputs
         # AI0: rotary encoder
-        sampRate = 2000.0
-        bufferSize = int(1 / self.frameRate * sampRate)
-        self._analogInputs = nidaq.AnalogInput(device=self.nidaqDeviceName,
-                                               channels=[0],
-                                               voltage_range=(0,5.0),
-                                               clock_speed=sampRate,
-                                               buffer_size=bufferSize)
-        self._nidaqTasks.append(self._analogInputs)
+        aiSampleRate = 1000.0
+        aiBufferSize = int(1 / self.frameRate * aiSampleRate)
+        self._rotaryEncoderInput = nidaqmx.Task()
+        self._rotaryEncoderInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0',
+                                                                 min_val=0,
+                                                                 max_val=5)
+        self._rotaryEncoderInput.timing.cfg_samp_clk_timing(aiSampleRate,
+                                                            sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS,
+                                                            samps_per_chan=aiBufferSize)
+
+        rotaryEncoderReader = AnalogSingleChannelReader(self._rotaryEncoderInput.in_stream)
+        self._rotaryEncoderData = np.zeros(aiBufferSize)
+                                            
+        def readRotaryEncoderBuffer(task_handle,every_n_samples_event_type,number_of_samples,callback_data):
+            rotaryEncoderReader.read_many_sample(self._rotaryEncoderData,number_of_samples_per_channel=number_of_samples)
+            return 0
+        
+        self._rotaryEncoderInput.register_every_n_samples_acquired_into_buffer_event(aiBufferSize,readRotaryEncoderBuffer)
+
+        self._rotaryEncoderInput.start()
+        self._nidaqTasks.append(self._rotaryEncoderInput)
+        
+        # analog outputs
+        # AO0: water reward solenoid trigger
+        aoSampleRate = 1000.0
+        aoBufferSize = int(self.solenoidOpenTime * aoSampleRate) + 1
+        self._rewardSignal = np.zeros(aoBufferSize)
+        self._rewardSignal[:-1] = 5
+        self._rewardOutput = nidaqmx.Task()
+        self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao0',min_val=0,max_val=5)
+        self._rewardOutput.write(0)
+        self._rewardOutput.timing.cfg_samp_clk_timing(1000,samps_per_chan=aoBufferSize)
+        self._nidaqTasks.append(self._rewardOutput)
             
         # digital inputs (port 0)
         # line 0.0: lick input
-        self._digitalInputs = nidaq.DigitalInput(device=self.nidaqDeviceName,port=0)
-        self._nidaqTasks.append(self._digitalInputs)
+        self._lickInput = nidaqmx.Task()
+        self._lickInput.di_channels.add_di_chan(self.nidaqDeviceName+'/port0/line0',
+                                                line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+        self._nidaqTasks.append(self._lickInput)
         
         # digital outputs (port 1)
         # line 1.0: frame signal
-        # line 1.1: water reward solenoid
-        self._digitalOutputs = nidaq.DigitalOutput(device=self.nidaqDeviceName,port=1,initial_state='low')
-        self._nidaqTasks.append(self._digitalOutputs)
-        
-        for task in self._nidaqTasks:
-            task.start()
-        
-        # maks sure outputs are initialized to correct state
-        self._digitalOutputs.write(np.zeros(self._digitalOutputs.no_lines,dtype=np.uint8))
+        self._frameSignalOutput = nidaqmx.Task()
+        self._frameSignalOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line0',
+                                                        line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+        self._frameSignalOutput.write(False)
+        self._nidaqTasks.append(self._frameSignal)    
     
     
     def stopNidaqDevice(self):
-        self._digitalOutputs.write(np.zeros(self._digitalOutputs.no_lines,dtype=np.uint8))
         for task in self._nidaqTasks:
-            task.clear()
-            
+            task.close()
+        
+        
+    def deliverReward(self):
+        self._rewardOutput.stop()
+        self._rewardOutput.write(self._rewardSignal,auto_start=True)
     
-    def resetNidaqDevice(self):
-        nidaq.Device(self.nidaqDeviceName).reset()
-            
-    
+        
     def getNidaqData(self):
         # analog
-        encoderAngle = self._analogInputs.data * 2 * math.pi / 5
+        encoderAngle = self._rotaryEncoderData * 2 * math.pi / 5
         self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
         self.deltaWheelPos.append(self.translateEndoderChange())
         
         # digital
-        self.lickInput.append(self._digitalInputs.read()[0])
+        self.lickState.append(self._lickInput.read())
         
     
     def translateEndoderChange(self):
