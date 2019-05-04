@@ -54,8 +54,8 @@ class MaskingTask(TaskControl):
         self.maskContrast = 1
 
     
-    def setDefaultParams(self,taskVersion,bias=None):     
-       if taskVersion == 'training1':
+    def setDefaultParams(self,taskVersion,bias=None):   
+        if taskVersion == 'training1':
             self.setDefaultParams('pos')
             self.moveStim = True
             self.keepTargetOnScreen = True
