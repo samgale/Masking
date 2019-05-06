@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 import pandas as pd 
 import probeData
 
-f = fileIO.getFile(rootDir=r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking')
+f = fileIO.getFile(rootDir=r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking', fileType='*.h5')
 d = h5py.File(f)
 
 trialStartFrames = d['trialStartFrame'].value
@@ -26,12 +26,11 @@ openLoopFrames = d['openLoopFrames'].value
 
 if 'rewardFrames' in d.keys():
     rewardFrames = d['rewardFrames'].value
+elif 'responseFrames' in d.keys():
+    responseTrials = np.where(trialResponse!= 0)[0]
+    rewardFrames = d['responseFrames'].value[trialResponse[responseTrials]>0]
 else:
-    if 'responseFrames' in d.keys():
-        responseTrials = np.where(trialResponse!= 0)[0]
-        rewardFrames = d['responseFrames'].value[trialResponse[responseTrials]>0]
-    else:
-        rewardFrames = d['trialResponseFrame'].value[trialResponse>0]
+    rewardFrames = d['trialResponseFrame'].value[trialResponse>0]
         
 preFrames = preStimFrames + openLoopFrames
 fig, ax = plt.subplots()
@@ -43,12 +42,7 @@ for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStart
     if i>0 and i<len(trialStartFrames):
         if resp>-10:
             #get wheel position trace for this trial!
-            if True: #not 'closedLoopWheelPos' in d.keys():
-                trialWheel = np.cumsum(deltaWheel[trialStart+preFrames[i]:trialEnd])  
-            else:    
-                trialWheel = d['closedLoopWheelPos'][trialStart+preFrames[i]:trialEnd]
-                
-                
+            trialWheel = np.cumsum(deltaWheel[trialStart+preFrames[i]:trialEnd])   
             trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
             reward = rewardFrames[trialreward[0]]-trialStart-preFrames[i] if len(trialreward)>0 else None
             if rewardDirection>0:
