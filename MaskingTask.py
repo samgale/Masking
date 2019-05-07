@@ -81,7 +81,6 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 100
         elif taskVersion == 'training4':
             self.setDefaultParams('training3')
-            self.repeatIncorrectTrials = False
             self.maxResponseWaitFrames = 480
             self.incorrectTimeoutFrames = 240
         elif taskVersion in ('pos','position'):

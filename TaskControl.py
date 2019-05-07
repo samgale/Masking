@@ -27,6 +27,7 @@ class TaskControl():
         self.nidaqDeviceName = 'Dev1'
         self.wheelRotDir = -1 # 1 or -1
         self.wheelSpeedGain = 1200 # arbitrary scale factor
+        self.minWheelAngleChange = 0 # radians
         self.maxWheelAngleChange = 0.5 # radians
         self.spacebarRewardsEnabled = True
         self.solenoidOpenTime = 0.05 # seconds
@@ -178,8 +179,8 @@ class TaskControl():
     def startNidaqDevice(self):
         # analog inputs
         # AI0: rotary encoder
-        aiSampleRate = 1000.0
-        aiBufferSize = int(2 / self.frameRate * aiSampleRate)
+        aiSampleRate = 2000.0
+        aiBufferSize = int(1 / self.frameRate * aiSampleRate)
         self._rotaryEncoderInput = nidaqmx.Task()
         self._rotaryEncoderInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0',
                                                                  min_val=0,
@@ -189,13 +190,14 @@ class TaskControl():
                                                             samps_per_chan=aiBufferSize)
 
 #        rotaryEncoderReader = AnalogSingleChannelReader(self._rotaryEncoderInput.in_stream)
-#        self._rotaryEncoderData = np.zeros(aiBufferSize)
-#                                            
-#        def readRotaryEncoderBuffer(task_handle,every_n_samples_event_type,number_of_samples,callback_data):
+        self._rotaryEncoderData = np.zeros(aiBufferSize)
+                                            
+        def readRotaryEncoderBuffer(task_handle,every_n_samples_event_type,number_of_samples,callback_data):
 #            rotaryEncoderReader.read_many_sample(self._rotaryEncoderData,number_of_samples_per_channel=number_of_samples)
-#            return 0
-#        
-#        self._rotaryEncoderInput.register_every_n_samples_acquired_into_buffer_event(aiBufferSize,readRotaryEncoderBuffer)
+            self._rotaryEncoderData = self._rotaryEncoderInput.read(number_of_samples_per_channel=number_of_samples)
+            return 0
+        
+        self._rotaryEncoderInput.register_every_n_samples_acquired_into_buffer_event(aiBufferSize,readRotaryEncoderBuffer)
 
         self._rotaryEncoderInput.start()
         self._nidaqTasks.append(self._rotaryEncoderInput)
@@ -209,7 +211,7 @@ class TaskControl():
         self._rewardOutput = nidaqmx.Task()
         self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao0',min_val=0,max_val=5)
         self._rewardOutput.write(0)
-        self._rewardOutput.timing.cfg_samp_clk_timing(1000,samps_per_chan=aoBufferSize)
+        self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=aoBufferSize)
         self._nidaqTasks.append(self._rewardOutput)
             
         # digital inputs (port 0)
@@ -240,8 +242,7 @@ class TaskControl():
         
     def getNidaqData(self):
         # analog
-        self._rotaryEncoderData = self._rotaryEncoderInput.read(nidaqmx.constants.READ_ALL_AVAILABLE)
-        encoderAngle = self._rotaryEncoderData * 2 * math.pi / 5
+        encoderAngle = np.array(self._rotaryEncoderData) * 2 * math.pi / 5
         self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
         self.deltaWheelPos.append(self.translateEncoderChange())
         
@@ -259,10 +260,10 @@ class TaskControl():
                 angleChange += 2 * math.pi
             elif angleChange > math.pi:
                 angleChange -= 2 * math.pi
-            if angleChange > self.maxWheelAngleChange:
-                pixelsToMove = 0
-            else:
+            if self.minWheelAngleChange < abs(angleChange) < self.maxWheelAngleChange:
                 pixelsToMove = angleChange * self.wheelRotDir * self.wheelSpeedGain
+            else:
+                pixelsToMove = 0
         return pixelsToMove
         
 
