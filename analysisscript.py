@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 import pandas as pd 
 import probeData
 
-f = fileIO.getFile(rootDir=r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking', fileType='*.h5')
+f = fileIO.getFile(rootDir=r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking')
 d = h5py.File(f)
 
 trialStartFrames = d['trialStartFrame'].value
