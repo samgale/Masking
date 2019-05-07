@@ -11,7 +11,6 @@ import numpy as np
 from psychopy import monitors, visual, event
 import ProjectorWindow
 import nidaqmx
-from nidaqmx.stream_readers import AnalogSingleChannelReader
 
 
 class TaskControl():
@@ -180,20 +179,14 @@ class TaskControl():
         # analog inputs
         # AI0: rotary encoder
         aiSampleRate = 2000.0
-        aiBufferSize = int(1 / self.frameRate * aiSampleRate)
+        aiBufferSize = int(aiSampleRate / self.frameRate)
         self._rotaryEncoderInput = nidaqmx.Task()
-        self._rotaryEncoderInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0',
-                                                                 min_val=0,
-                                                                 max_val=5)
+        self._rotaryEncoderInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0',min_val=0,max_val=5)
         self._rotaryEncoderInput.timing.cfg_samp_clk_timing(aiSampleRate,
                                                             sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS,
                                                             samps_per_chan=aiBufferSize)
-
-#        rotaryEncoderReader = AnalogSingleChannelReader(self._rotaryEncoderInput.in_stream)
-        self._rotaryEncoderData = np.zeros(aiBufferSize)
                                             
         def readRotaryEncoderBuffer(task_handle,every_n_samples_event_type,number_of_samples,callback_data):
-#            rotaryEncoderReader.read_many_sample(self._rotaryEncoderData,number_of_samples_per_channel=number_of_samples)
             self._rotaryEncoderData = self._rotaryEncoderInput.read(number_of_samples_per_channel=number_of_samples)
             return 0
         
@@ -242,7 +235,7 @@ class TaskControl():
         
     def getNidaqData(self):
         # analog
-        encoderAngle = np.array(self._rotaryEncoderData) * 2 * math.pi / 5
+        encoderAngle = np.array(self._rotaryEncoderData) * (2 * math.pi / 5)
         self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
         self.deltaWheelPos.append(self.translateEncoderChange())
         
