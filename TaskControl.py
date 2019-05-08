@@ -162,17 +162,21 @@ class TaskControl():
                                                
     
     def completeSession(self):
-        if self._win is not None:
-            self._win.close()
-        self.stopNidaqDevice()
-        if self.saveParams:
-            subjName = '' if self.subjectName is None else self.subjectName + '_'
-            filePath = os.path.join(self.saveDir,self.__class__.__name__ + '_' + subjName + self.startTime)
-            fileOut = h5py.File(filePath+'.hdf5','w')
-            saveParameters(fileOut,self.__dict__)
-            if self.saveFrameIntervals:
-                fileOut.create_dataset('frameIntervals',data=self._win.frameIntervals)
-            fileOut.close()
+        try:
+            if self._win is not None:
+                self._win.close()
+            self.stopNidaqDevice()
+        except:
+            raise
+        finally:
+            if self.saveParams:
+                subjName = '' if self.subjectName is None else self.subjectName + '_'
+                filePath = os.path.join(self.saveDir,self.__class__.__name__ + '_' + subjName + self.startTime)
+                fileOut = h5py.File(filePath+'.hdf5','w')
+                saveParameters(fileOut,self.__dict__)
+                if self.saveFrameIntervals:
+                    fileOut.create_dataset('frameIntervals',data=self._win.frameIntervals)
+                fileOut.close()
         
     
     def startNidaqDevice(self):
