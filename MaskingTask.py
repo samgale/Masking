@@ -177,7 +177,7 @@ class MaskingTask(TaskControl):
         # things to keep track of
         self.trialStartFrame = []
         self.trialEndFrame = []
-        self.trialPreStimFrames = []
+        self.trialStimStartFrame = []
         self.trialTargetPos = []
         self.trialTargetContrast = []
         self.trialTargetOri = []
@@ -186,6 +186,7 @@ class MaskingTask(TaskControl):
         self.trialRewardDir = []
         self.trialResponse = []
         self.trialResponseFrame = []
+        self.quiescentMoveFrames = []
         
         trialIndex = 0 # index of trialParams        
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
@@ -216,7 +217,6 @@ class MaskingTask(TaskControl):
                         if isinstance(m,visual.NoiseStim):
                             m.updateNoise()
                 self.trialStartFrame.append(self._sessionFrame)
-                self.trialPreStimFrames.append(self.preStimFrames)
                 self.trialTargetPos.append(initTargetPos)
                 self.trialTargetContrast.append(targetContrast)
                 self.trialTargetOri.append(targetOri)
@@ -229,11 +229,13 @@ class MaskingTask(TaskControl):
             if self.preStimFrames - self.quiescentFrames < self._trialFrame < self.preStimFrames:
                 quiescentWheelPos += self.deltaWheelPos[-1]
                 if abs(quiescentWheelPos) > maxQuiescentDist:
-                    self._trialFrame -= self.quiescentFrames
-                    self.trialPreStimFrames[-1] += self.quiescentFrames
+                    self.quiescentMoveFrames.append(self._sessionFrame)
+                    self._trialFrame = self.preStimFrames - self.quiescentFrames
                     quiescentWheelPos = 0
             
             # if gray screen period is complete, update target and mask stimuli
+            if self._trialFrame == self.preStimFrames:
+                self.trialStimStartFrame.append(self._sessionFrame)
             if not hasResponded and self._trialFrame >= self.preStimFrames:
                 if self._trialFrame >= self.preStimFrames + self.openLoopFrames:
                     closedLoopWheelPos += self.deltaWheelPos[-1]
