@@ -61,6 +61,7 @@ leftTrials = pd.DataFrame(leftTrials).fillna(np.nan).values
 ax.plot(np.nanmean(rightTrials,0), 'r', linewidth=3)
 ax.plot(np.nanmean(leftTrials, 0), 'b', linewidth=3)
 
+
 probeData.formatFigure(fig, ax, xLabel='Frame Number', yLabel='Wheel Position (pix)')
 
 

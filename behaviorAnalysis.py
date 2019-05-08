@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 import pandas as pd 
 import datetime
 
-def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], frameRate=120):
+def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToShowBeforeStart=0):
     '''
     Makes plot of trial by trial wheel trajectory color coded by initial target position  
     INPUTS:
@@ -30,17 +30,18 @@ def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], frameRate
     #if response filter is an int, make it a list
     if type(responseFilter) is int:
         responseFilter = [responseFilter]
-    frameRate = float(frameRate)
     
     
     d = h5py.File(dataFile)
-    trialStartFrames = d['trialStartFrame'].value
-    trialEndFrames = d['trialEndFrame'].value
-    trialRewardDirection = d['trialRewardDir'].value
-    trialResponse = d['trialResponse'].value
+    frameRate = d['frameRate'].value
+    trialEndFrames = d['trialEndFrame'][:]
+    trialStartFrames = d['trialStartFrame'][:trialEndFrames.size]
+    trialRewardDirection = d['trialRewardDir'][:trialEndFrames.size]
+    trialResponse = d['trialResponse'][:trialEndFrames.size]
     deltaWheel = d['deltaWheelPos'].value
-    preStimFrames = d['trialPreStimFrames'] if 'trialPreStimFrames' in d else np.array([d['preStimFrames'].value]*trialStartFrames.size)
-    openLoopFrames = d['openLoopFrames'].value
+    preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else np.array([d['preStimFrames'].value]*trialStartFrames.size)
+    openLoopFrames = d['openLoopFrames'].value    
+    trialStartFrames += preStimFrames
     
     if 'rewardFrames' in d.keys():
         rewardFrames = d['rewardFrames'].value
@@ -49,36 +50,37 @@ def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], frameRate
         rewardFrames = d['responseFrames'].value[trialResponse[responseTrials]>0]
     else:
         rewardFrames = d['trialResponseFrame'].value[trialResponse>0]
-            
-    preFrames = preStimFrames
+
     fig, ax = plt.subplots()
     
     # for rightTrials stim presented on L, turn right - viceversa for leftTrials
     rightTrials = []
     leftTrials = []
+    trialTime = (np.arange(max(trialEndFrames-trialStartFrames+framesToShowBeforeStart))-framesToShowBeforeStart)/frameRate
     for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
         if i>0 and i<len(trialStartFrames):
             if resp in responseFilter:
                 #get wheel position trace for this trial!
-                trialWheel = np.cumsum(deltaWheel[trialStart+preFrames[i]:trialEnd])   
+                trialWheel = np.cumsum(deltaWheel[trialStart-framesToShowBeforeStart:trialEnd])
+                trialWheel -= trialWheel[0]
                 trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
-                reward = rewardFrames[trialreward[0]]-trialStart-preFrames[i] if len(trialreward)>0 else None
+                rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
                 if rewardDirection>0:
-                    ax.plot(np.arange(trialWheel.size)/frameRate, trialWheel, 'r', alpha=0.2)
-                    if reward is not None:
-                        ax.plot(reward/frameRate, trialWheel[reward], 'ro')
+                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)
+                    if rewardFrame is not None:
+                        ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
                     rightTrials.append(trialWheel)
                 else:
-                    ax.plot(np.arange(trialWheel.size)/frameRate, trialWheel, 'b', alpha=0.2)
-                    if reward is not None:
-                        ax.plot(reward/frameRate, trialWheel[reward], 'bo')
+                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)
+                    if rewardFrame is not None:
+                        ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
                     leftTrials.append(trialWheel)
             
     rightTrials = pd.DataFrame(rightTrials).fillna(np.nan).values
     leftTrials = pd.DataFrame(leftTrials).fillna(np.nan).values
-    ax.plot(np.arange(rightTrials.shape[1])/frameRate, np.nanmean(rightTrials,0), 'r', linewidth=3)
-    ax.plot(np.arange(leftTrials.shape[1])/frameRate, np.nanmean(leftTrials, 0), 'b', linewidth=3)
-    ax.plot([openLoopFrames/frameRate, openLoopFrames/frameRate], ax.get_ylim(), 'k--')
+    ax.plot(trialTime[:rightTrials.shape[1]], np.nanmean(rightTrials,0), 'r', linewidth=3)
+    ax.plot(trialTime[:leftTrials.shape[1]], np.nanmean(leftTrials, 0), 'b', linewidth=3)
+    ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
     
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)')
     
