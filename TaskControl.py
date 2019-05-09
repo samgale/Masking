@@ -116,7 +116,7 @@ class TaskControl():
         # override this method in subclass
     
         while self._continueSession:
-            # get rotary encoder and digital input states\
+            # get rotary encoder and digital input states
             self.getNidaqData()
             
             # do stuff, for example:
