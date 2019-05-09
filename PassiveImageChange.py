@@ -23,11 +23,14 @@ class PassiveImageChange(TaskControl):
         
         self.grayFrames = 60 # 0.5 seconds for 120 Hz monitor
         self.imageFrames = 30
+        self.changeProb = 0.05 # probability of image change on each flash
         
-        self.changeProb = 0.05 # probability of image change for each flash
-        self.rewardProb = 0.3 # probability that image change is rewarded
-        self.rewardOffsetFrames = -30 # offset between image change and reward delivery
-        self.solenoidOpenTime = 0.004 # duration in seconds of reward ouptut signal
+        self.ledProb = 0.3 # probability that image change is triggered during image change trial
+        self.ledOffsetFrames = -30 # offset between image change and led onset
+        self.useLED = True
+        self.ledDur = 0.004 # seconds
+        self.ledRamp = 0 # seconds
+        self.ledAmp = 5 # volts
         
         
     def taskFlow(self):
@@ -40,7 +43,7 @@ class PassiveImageChange(TaskControl):
         
         self.stimFrames = []
         self.changeFrames = []
-        self.rewardFrames = []
+        self.ledFrames = []
     
         while self._continueSession:
             # get rotary encoder and digital input states
@@ -60,10 +63,10 @@ class PassiveImageChange(TaskControl):
                         imageStim.setReplaceImage(self.images[imgInd])
                 imageStim.draw()
             
-            # deliver reward on random change trials
-            if (change and self._trialFrame == self.grayFrames + self.rewardOffsetFrames and 
-                random.uniform(0,1) <= self.rewardProb):
-                self._reward = True
+            # trigger led on random change trials
+            if (change and self._trialFrame == self.grayFrames + self.ledOffsetFrames and 
+                random.uniform(0,1) <= self.ledProb):
+                self._led = True
             
             self.showFrame()
 

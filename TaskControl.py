@@ -30,6 +30,10 @@ class TaskControl():
         self.maxWheelAngleChange = 0.5 # radians
         self.spacebarRewardsEnabled = True
         self.solenoidOpenTime = 0.05 # seconds
+        self.useLED = False
+        self.ledDur = 1.0
+        self.ledRamp = 0.1
+        self.ledAmp = 5.0
         if self.rig=='pilot':
             self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.monWidth = 47.2 # cm
@@ -75,6 +79,7 @@ class TaskControl():
         self._trialFrame = 0 # index of frame since start of trial
         self._reward = False # reward delivered at next frame flip if True
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
+        self._led = False # led triggered at next frame flip if True
         
         
     
@@ -127,22 +132,16 @@ class TaskControl():
     
     
     def showFrame(self):
-        # check for keyboard events
-        # set frame acquisition and reward signals
-        # flip frame buffer
-        # update session and trial frame counters
+        self._frameSignalOutput.write(True)
         
         # spacebar delivers reward
+        # escape key ends session
         keys = event.getKeys()
         if self.spacebarRewardsEnabled and 'space' in keys:
             self._reward = True
             self.manualRewardFrames.append(self._sessionFrame)
-        
-        # set frame acquisition and reward signals 
-        self._frameSignalOutput.write(True)
-        if self._reward:
-            self.deliverReward()
-            self._reward = False
+        if 'escape' in keys:   
+            self._continueSession = False
         
         # show new frame
         if self.drawDiodeBox:
@@ -150,15 +149,17 @@ class TaskControl():
             self._diodeBox.draw()
         self._win.flip()
         
-        # reset frame acquisition signal
-        self._frameSignalOutput.write(False)
+        if self._reward:
+            self.deliverReward()
+            self._reward = False
+        if self._led:
+            self.triggerLED()
+            self._led = False
         
         self._sessionFrame += 1
         self._trialFrame += 1
         
-        # escape key ends session
-        if 'escape' in keys:   
-            self._continueSession = False
+        self._frameSignalOutput.write(False)
                                                
     
     def completeSession(self):
@@ -202,14 +203,28 @@ class TaskControl():
         # analog outputs
         # AO0: water reward solenoid trigger
         aoSampleRate = 1000.0
-        aoBufferSize = int(self.solenoidOpenTime * aoSampleRate) + 1
-        self._rewardSignal = np.zeros(aoBufferSize)
+        rewardBufferSize = int(self.solenoidOpenTime * aoSampleRate) + 1
+        self._rewardSignal = np.zeros(rewardBufferSize)
         self._rewardSignal[:-1] = 5
         self._rewardOutput = nidaqmx.Task()
         self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao0',min_val=0,max_val=5)
         self._rewardOutput.write(0)
-        self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=aoBufferSize)
+        self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=rewardBufferSize)
         self._nidaqTasks.append(self._rewardOutput)
+        
+        # AO1: led/laser trigger
+        if self.useLED:
+            ledBufferSize = int(self.ledDur * aoSampleRate) + 1
+            ledRamp = np.linspace(0,self.ledAmp,int(self.ledRamp * aoSampleRate))
+            self._ledSignal = np.zeros(ledBufferSize)
+            self._ledSignal[:ledRamp.size] = ledRamp
+            self._ledSignal[ledRamp.size:-ledRamp.size+1] = self.ledAmp
+            self._ledSignal[-ledRamp.size+1:-1] = ledRamp[::-1]
+            self._ledOutput = nidaqmx.Task()
+            self._ledOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao1',min_val=0,max_val=5)
+            self._ledOutput.write(0)
+            self._ledOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=ledBufferSize)
+            self._nidaqTasks.append(self._ledOutput)
             
         # digital inputs (port 0)
         # line 0.0: lick input
@@ -235,6 +250,11 @@ class TaskControl():
     def deliverReward(self):
         self._rewardOutput.stop()
         self._rewardOutput.write(self._rewardSignal,auto_start=True)
+        
+    
+    def triggerLED(self):
+        self._ledOutput.stop()
+        self._ledOutput.write(self._ledSignal,auto_start=True)
     
         
     def getNidaqData(self):
