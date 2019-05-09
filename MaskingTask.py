@@ -22,7 +22,7 @@ class MaskingTask(TaskControl):
         
         self.preStimFrames = 240 # time between end of previous trial and stimulus onset
         self.maxResponseWaitFrames = 3600 # max time between stimulus onset and end of trial
-        self.openLoopFrames = 30 # number of frames after stimulus onset before wheel movement has effects
+        self.openLoopFrames = 24 # number of frames after stimulus onset before wheel movement has effects
         self.normRewardDistance = 0.25 # normalized to screen width
         self.incorrectTrialRepeats = 0 # maximum number of incorrect trial repeats
         self.incorrectTimeoutFrames = 240 # extended gray screen following incorrect
@@ -32,7 +32,7 @@ class MaskingTask(TaskControl):
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
         self.moveStim = False
-        self.keepTargetOnScreen = False
+        self.keepTargetOnScreen = False  # False allows for incorrect trials 
         self.postRewardTargetFrames = 1 # frames to freeze target after reward
         
         # target stimulus params
@@ -55,6 +55,8 @@ class MaskingTask(TaskControl):
     
     def setDefaultParams(self,taskVersion,bias=None):
         if taskVersion == 'training1':
+            # learning to associate their wheel movement with stimulus mvmt and reward
+            # option to have sessions where stim is only on one side, to help with any biases
             self.setDefaultParams('pos')
             self.moveStim = True
             self.keepTargetOnScreen = True
@@ -69,23 +71,27 @@ class MaskingTask(TaskControl):
             elif bias=='left':
                 self.normTargetPos = [(-0.25,0)]*2
         elif taskVersion == 'training2':
+            # reinforcing move stim to center for reward, stim on screen shorter t
             self.setDefaultParams('training1', bias)
             self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 720
         elif taskVersion == 'training3':
+            # introduce and repeat incorrect trials, must move farther for reward
             self.setDefaultParams('training2', bias)
-            self.keepTargetOnScreen = False
             self.normRewardDistance = 0.2
+            self.keepTargetOnScreen = False
             self.preStimFrames = 240
             self.incorrectTrialRepeats = 100
         elif taskVersion == 'training4':
+            # shorten stim presentation and add timeout for incorrect trials 
             self.setDefaultParams('training3')
             self.maxResponseWaitFrames = 480
             self.incorrectTimeoutFrames = 240
         elif taskVersion == 'training5':
+            # adding the quiescent period to prevent wheel movement prior to stim presentation
             self.setDefaultParams('training4')
             self.maxResponseWaitFrames = 360
-            self.quiescentFrames = 120
+            self.quiescentFrames = 60
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
