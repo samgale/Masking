@@ -32,8 +32,8 @@ class MaskingTask(TaskControl):
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
         self.moveStim = False
-        self.keepTargetOnScreen = False  # False allows for incorrect trials 
-        self.postRewardTargetFrames = 1 # frames to freeze target after reward
+        self.keepTargetOnScreen = False  # False allows for incorrect trials during training
+        self.postRewardTargetFrames = 1  # frames to freeze target after reward
         
         # target stimulus params
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
@@ -66,9 +66,9 @@ class MaskingTask(TaskControl):
             self.targetSize = 50
             self.gratingEdge = 'circle'
             self.incorrectTimeoutFrames = 0
-            if bias=='right':
+            if bias=='right':                       # use with mouse L stim bias
                 self.normTargetPos = [(0.25,0)]*2
-            elif bias=='left':
+            elif bias=='left':                      # use with mouse R stim bias
                 self.normTargetPos = [(-0.25,0)]*2
         elif taskVersion == 'training2':
             # reinforcing move stim to center for reward, stim on screen shorter t
@@ -195,7 +195,7 @@ class MaskingTask(TaskControl):
         self.trialRewardDir = []
         self.trialResponse = []
         self.trialResponseFrame = []
-        self.quiescentMoveFrames = []
+        self.quiescentMoveFrames = []   # frames where quiescent period was violated
         
         trialIndex = 0 # index of trialParams        
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
