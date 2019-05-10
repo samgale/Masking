@@ -92,6 +92,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training4')
             self.maxResponseWaitFrames = 360
             self.quiescentFrames = 60
+            self.solenoidOpenTime = 0.025  #reduce drop size to increase training time
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
