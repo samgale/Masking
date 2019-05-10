@@ -8,7 +8,7 @@ Created on Thu May 09 14:25:47 2019
 from __future__ import division
 import os, random
 import cv2 
-from ImageStimNumpyuByte import ImageStimNumpyuByte  
+from psychopy import visual 
 from TaskControl import TaskControl
 
 
@@ -19,9 +19,10 @@ class PassiveImageChange(TaskControl):
         
         self.imageDir = os.path.join(os.path.dirname(os.path.abspath(__file__)),'ImageSetA')
         self.imageNames = os.listdir(self.imageDir)
-        self.images = [cv2.imread(os.path.join(self.imageDir,img),cv2.IMREAD_UNCHANGED) for img in self.imageNames]
+        self._images = [cv2.imread(os.path.join(self.imageDir,img),cv2.IMREAD_UNCHANGED).astype(float)[::-1]
+                        / 255 * 2 -1 for img in self.imageNames]
         
-        self.grayFrames = 60 # 0.5 seconds for 120 Hz monitor
+        self.grayFrames = 60
         self.imageFrames = 30
         self.changeProb = 0.05 # probability of image change on each flash
         
@@ -35,15 +36,16 @@ class PassiveImageChange(TaskControl):
         
     def taskFlow(self):
         
-        imgInd = random.randint(0,len(self.images)-1)
-        imageStim = ImageStimNumpyuByte(self._win,
-                                        image=self.images[imgInd],
-                                        size=self.images[imgInd].shape[::-1],
-                                        pos=(0,0))
+        imgInd = random.randint(0,len(self.imageNames)-1)
+        imageStim = visual.ImageStim(self._win,
+                                     image=self._images[imgInd],
+                                     size=self._images[imgInd].shape[::-1],
+                                     pos=(0,0))
         
-        self.stimFrames = []
+        self.flashFrames = []
         self.changeFrames = []
         self.ledFrames = []
+        self.trialImage = []
     
         while self._continueSession:
             # get rotary encoder and digital input states
@@ -56,17 +58,22 @@ class PassiveImageChange(TaskControl):
             # draw image
             if self._trialFrame >= self.grayFrames:
                 if self._trialFrame == self.grayFrames:
-                    self.stimFrames.append(self._sessionFrame)
+                    self.flashFrames.append(self._sessionFrame)
                     if change:
                         self.changeFrames.append(self._sessionFrame)
-                        imgInd = random.choice([i for i in range(len(self.images)) if i != imgInd])
-                        imageStim.setReplaceImage(self.images[imgInd])
+                        imgInd = random.choice([i for i in range(len(self.imageNames)) if i != imgInd])
+                        imageStim.setImage(self._images[imgInd])
+                    self.trialImage.append(self.imageNames[imgInd])
                 imageStim.draw()
             
             # trigger led on random change trials
-            if (change and self._trialFrame == self.grayFrames + self.ledOffsetFrames and 
-                random.uniform(0,1) <= self.ledProb):
-                self._led = True
+            if (self._trialFrame == self.grayFrames + self.ledOffsetFrames and 
+                change and random.uniform(0,1) <= self.ledProb):
+                    self.ledFrames.append(self._sessionFrame)
+                    self._led = True
+                
+            if self._trialFrame == self.grayFrames + self.imageFrames:
+                self._trialFrame = -1
             
             self.showFrame()
 

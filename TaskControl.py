@@ -183,8 +183,8 @@ class TaskControl():
     def startNidaqDevice(self):
         # analog inputs
         # AI0: rotary encoder
-        aiSampleRate = 2000.0
-        aiBufferSize = int(aiSampleRate / self.frameRate)
+        aiSampleRate = 2000 if self.frameRate > 100 else 1000
+        aiBufferSize = 16
         self._rotaryEncoderInput = nidaqmx.Task()
         self._rotaryEncoderInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0',min_val=0,max_val=5)
         self._rotaryEncoderInput.timing.cfg_samp_clk_timing(aiSampleRate,
@@ -196,13 +196,13 @@ class TaskControl():
             return 0
         
         self._rotaryEncoderInput.register_every_n_samples_acquired_into_buffer_event(aiBufferSize,readRotaryEncoderBuffer)
-
+        self._rotaryEncoderData = None
         self._rotaryEncoderInput.start()
         self._nidaqTasks.append(self._rotaryEncoderInput)
         
         # analog outputs
         # AO0: water reward solenoid trigger
-        aoSampleRate = 1000.0
+        aoSampleRate = 1000
         rewardBufferSize = int(self.solenoidOpenTime * aoSampleRate) + 1
         self._rewardSignal = np.zeros(rewardBufferSize)
         self._rewardSignal[:-1] = 5
@@ -217,9 +217,10 @@ class TaskControl():
             ledBufferSize = int(self.ledDur * aoSampleRate) + 1
             ledRamp = np.linspace(0,self.ledAmp,int(self.ledRamp * aoSampleRate))
             self._ledSignal = np.zeros(ledBufferSize)
-            self._ledSignal[:ledRamp.size] = ledRamp
-            self._ledSignal[ledRamp.size:-ledRamp.size+1] = self.ledAmp
-            self._ledSignal[-ledRamp.size+1:-1] = ledRamp[::-1]
+            self._ledSignal[:-1] = self.ledAmp
+            if self.ledRamp > 0:
+                self._ledSignal[:ledRamp.size] = ledRamp
+                self._ledSignal[-(ledRamp.size+1):-1] = ledRamp[::-1]
             self._ledOutput = nidaqmx.Task()
             self._ledOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao1',min_val=0,max_val=5)
             self._ledOutput.write(0)
@@ -259,8 +260,13 @@ class TaskControl():
         
     def getNidaqData(self):
         # analog
-        encoderAngle = np.array(self._rotaryEncoderData) * (2 * math.pi / 5)
-        self.rotaryEncoderRadians.append(np.arctan2(np.mean(np.sin(encoderAngle)),np.mean(np.cos(encoderAngle))))
+        if self._rotaryEncoderData is None:
+            encoderAngle = np.nan
+        else:
+            encoderData = np.array(self._rotaryEncoderData)
+            encoderData *= 2 * math.pi / 5
+            encoderAngle = np.arctan2(np.mean(np.sin(encoderData)),np.mean(np.cos(encoderData)))
+        self.rotaryEncoderRadians.append(encoderAngle)
         self.deltaWheelPos.append(self.translateEncoderChange())
         
         # digital
@@ -269,7 +275,7 @@ class TaskControl():
     
     def translateEncoderChange(self):
         # translate encoder angle change to number of pixels to move visual stimulus
-        if len(self.rotaryEncoderRadians) < 2:
+        if len(self.rotaryEncoderRadians) < 2 or np.isnan(self.rotaryEncoderRadians[-1]):
             pixelsToMove = 0
         else:
             angleChange = self.rotaryEncoderRadians[-1] - self.rotaryEncoderRadians[-2]
