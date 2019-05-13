@@ -4,6 +4,11 @@ Created on Wed May 01 10:47:39 2019
 
 @author: svc_ccg
 """
+"""
+This organizes data from the mouse files we want to analyze, orders them by date, and adds them to a dataframe.
+It then plots the columns of the data frame over time, 1 plot for each mouse.  You can add more columns to analyze by
+using multiindexing and adding a column variable.
+"""
 
 from __future__ import division
 import os
@@ -64,7 +69,7 @@ for m in mice:
     dt = df.loc[m].index
     dt -= dt[0]
     days = dt.days
-    ax.plot(days,df.loc[m]['percentCorrect']/100,'ko')
+    ax.plot(days,df.loc[m]['percentCorrect']/100,'-ko')
     ax.plot([0,max(days)],[0.5]*2,'k--')
     ax.set_xlim([-0.5,max(days)+0.5])
     ax.set_ylim([0,1])
