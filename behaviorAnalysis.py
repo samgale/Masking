@@ -56,7 +56,7 @@ def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToS
     # for rightTrials stim presented on L, turn right - viceversa for leftTrials
     rightTrials = []
     leftTrials = []
-    trialTime = (np.arange(max(trialEndFrames-trialStartFrames+framesToShowBeforeStart))-framesToShowBeforeStart)/frameRate
+    trialTime = (np.arange(max(trialEndFrames-trialStartFrames+framesToShowBeforeStart))-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
     for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
         if i>0 and i<len(trialStartFrames):
             if resp in responseFilter:
