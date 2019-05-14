@@ -52,7 +52,7 @@ class TaskControl():
     
     def prepareSession(self):
         self.startTime = time.strftime('%Y%m%d_%H%M%S')
-        print('start time is: ' + datetime.now().strftime('%I:%M'))
+        print('start time was: ' + datetime.now().strftime('%I:%M'))
         self._win = None
         self._nidaqTasks = []
         
