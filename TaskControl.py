@@ -72,7 +72,7 @@ class TaskControl():
         self.startNidaqDevice()
         self.rotaryEncoderRadians = []
         self.deltaWheelPos = [] # change in wheel position (angle translated to screen pixels)
-        self.lickState = []
+        self.lickFrames = []
         
         self._continueSession = True
         self._sessionFrame = 0 # index of frame since start of session
@@ -270,7 +270,8 @@ class TaskControl():
         self.deltaWheelPos.append(self.translateEncoderChange())
         
         # digital
-        self.lickState.append(self._lickInput.read())
+        if self._lickInput.read():
+            self.lickFrames.append(self._sessionFrame)
         
     
     def translateEncoderChange(self):
