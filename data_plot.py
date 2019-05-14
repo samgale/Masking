@@ -5,6 +5,13 @@ Created on Wed May 01 14:50:27 2019
 @author: svc_ccg
 """
 
+"""
+This plots how many choices were correct (excluding the incorrect repeats) compared to chance,
+compared across all mice.  Returns a subplot of all 5 mice percentages over time, chance is shaded region in green.
+Prints mouse IDs to console when data is compiled
+
+"""
+
 from __future__ import division
 import os
 import numpy as np
@@ -35,7 +42,7 @@ mice = ['439508', '439506', '439502', '441357', '441358']
 
 fig, axes = plt.subplots(len(mice),1)
 
-# this plots how many choices were correct (of the trials that were NOT incorrect repeats) compared to chance
+
 
 for im, mouse in enumerate(mice):
     files = get_files(mouse)
