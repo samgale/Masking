@@ -11,6 +11,7 @@ import numpy as np
 from psychopy import monitors, visual, event
 import ProjectorWindow
 import nidaqmx
+from datetime import datetime
 
 
 class TaskControl():
@@ -51,6 +52,7 @@ class TaskControl():
     
     def prepareSession(self):
         self.startTime = time.strftime('%Y%m%d_%H%M%S')
+        print('start time is: ' + datetime.now().strftime('%I:%M'))
         self._win = None
         self._nidaqTasks = []
         
