@@ -50,9 +50,12 @@ class TaskControl():
         
     
     def prepareSession(self):
-        self.startTime = time.strftime('%Y%m%d_%H%M%S')
         self._win = None
         self._nidaqTasks = []
+        
+        startTime = time.localtime()
+        self.startTime = time.strftime('%Y%m%d_%H%M%S',startTime)
+        print('start time was: ' + time.strftime('%I:%M',startTime))
         
         self.numpyRandomSeed = random.randint(0,2**32)
         self._numpyRandom = np.random.RandomState(self.numpyRandomSeed)
@@ -175,7 +178,7 @@ class TaskControl():
                 filePath = os.path.join(self.saveDir,self.__class__.__name__ + '_' + subjName + self.startTime)
                 fileOut = h5py.File(filePath+'.hdf5','w')
                 saveParameters(fileOut,self.__dict__)
-                if self.saveFrameIntervals:
+                if self.saveFrameIntervals and self._win is not None:
                     fileOut.create_dataset('frameIntervals',data=self._win.frameIntervals)
                 fileOut.close()
         
