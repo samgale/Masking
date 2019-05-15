@@ -24,9 +24,10 @@ class PassiveImageChange(TaskControl):
         
         self.grayFrames = 60
         self.imageFrames = 30
-        self.changeProb = 0.05 # probability of image change on each flash
+        self.changeProb = 0.1 # probability of image change on each flash
+        self.minFlashesBetweenChanges = 2
         
-        self.ledProb = 0.3 # probability that image change is triggered during image change trial
+        self.ledProb = 0.5 # probability that image change is triggered during image change trial
         self.ledOffsetFrames = -30 # offset between image change and led onset
         self.useLED = True
         self.ledDur = 0.004 # seconds
@@ -46,14 +47,20 @@ class PassiveImageChange(TaskControl):
         self.changeFrames = []
         self.ledFrames = []
         self.trialImage = []
-    
+        
+        trialsSinceChange = 0
+        
         while self._continueSession:
             # get rotary encoder and digital input states
             self.getNidaqData()
             
             # determine if image flash is change trial or not
             if self._trialFrame == 0:
-                change = False if random.uniform(0,1) > self.changeProb else True
+                change = False if trialsSinceChange < self.minFlashesBetweenChanges or random.uniform(0,1) > self.changeProb else True
+                if change:
+                    trialsSinceChange = 0
+                else:
+                    trialsSinceChange += 1    
             
             # draw image
             if self._trialFrame >= self.grayFrames:
