@@ -38,11 +38,33 @@ def trials(data):
     return percentCorrect
 
 
+def average(session):
+    trialStartFrames = d['trialStartFrame'].value    
+    trialResponse = d['trialResponse'].value
+    
+    if 'rewardFrames' in d.keys():
+        rewardFrames = d['rewardFrames'].value
+    elif 'responseFrames' in d.keys():
+        responseTrials = np.where(trialResponse!= 0)[0]
+        rewardFrames = d['responseFrames'].value[trialResponse[responseTrials]>0]
+    else:
+        rewardFrames = d['trialResponseFrame'].value[trialResponse>0]
+    correctTrials = []
+    trialTimes = (rewardFrames-trialStartFrames[:-1])
+    trialTimes = trialTimes - 240   #preStim frames 
+    for i, (resp, trial_length) in enumerate(zip(trialResponse, trialTimes)):   # creating a dataframe-like object
+        if resp==1:
+            correctTrials.append(trial_length)
+        else:
+            pass
+    return np.mean(correctTrials)
+        
 
 
 mouseID = []
 expDate = []
 percentCorrect = []
+avg_correctRespTime = []
 
 mice = ['439508', '439506', '439502', '441357', '441358']
 
@@ -57,11 +79,14 @@ for mouse in mice:
         mouseID.append(mouse)
         expDate.append(date)
         percentCorrect.append(trials(d))
+        avg_correctRespTime.append(average(d))
+        
         
 
 rows = pd.MultiIndex.from_arrays([mouseID,expDate],names=('mouse','date'))   
 df = pd.DataFrame(index=rows)  
 df['percentCorrect'] = percentCorrect
+df['averageCorrectResp'] = avg_correctRespTime
 
 for m in mice:
     fig = plt.figure()
