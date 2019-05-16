@@ -81,18 +81,20 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.2
             self.keepTargetOnScreen = False
             self.preStimFrames = 240
+            self.maxResponseWaitFrames = 240
             self.incorrectTrialRepeats = 100
         elif taskVersion == 'training4':
             # shorten stim presentation and add timeout for incorrect trials 
             self.setDefaultParams('training3')
-            self.maxResponseWaitFrames = 480
+            self.maxResponseWaitFrames = 180
             self.incorrectTimeoutFrames = 240
+            self.normRewardDistance = 0.25
+            self.solenoidOpenTime = 0.035  #reduce drop size to increase training time
         elif taskVersion == 'training5':
             # adding the quiescent period to prevent wheel movement prior to stim presentation
             self.setDefaultParams('training4')
-            self.maxResponseWaitFrames = 360
-            self.quiescentFrames = 60
-            self.solenoidOpenTime = 0.035  #reduce drop size to increase training time
+            self.maxResponseWaitFrames = 120
+            self.quiescentFrames = 240
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -295,7 +297,7 @@ class MaskingTask(TaskControl):
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
-                    if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
+                    if self.trialResponse[-1] < 0 and incorrectRepeatCount < self.incorrectTrialRepeats:
                         incorrectRepeatCount += 1
                     else:
                         trialIndex += 1
