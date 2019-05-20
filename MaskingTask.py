@@ -91,11 +91,11 @@ class MaskingTask(TaskControl):
         elif taskVersion == 'training5':
             # adding the quiescent period to prevent wheel movement prior to stim presentation
             self.setDefaultParams('training4',probGoRight)
-            self.maxResponseWaitFrames = 84
+            self.maxResponseWaitFrames = 60
             self.quiescentFrames = 240
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
-            self.normTargetPos = [(-0.25,0)] *percentRight + [(0.25,0)] * (100 - percentRight)
+            self.normTargetPos = [(-0.25,0)] * percentRight + [(0.25,0)] * (100 - percentRight)
             self.normRewardDistance = 0.25
         elif taskVersion in ('ori','orientatation'):
             self.targetOri = [45] * percentRight + [-45] * (100 - percentRight)
