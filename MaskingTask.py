@@ -20,10 +20,10 @@ class MaskingTask(TaskControl):
         # parameters that can vary across trials are lists
         # only one of targetPos and targetOri can be len() > 1        
         
-        self.preStimFrames = [240,360] # time between end of previous trial and stimulus onset
-        self.maxResponseWaitFrames = 3600 # max time between stimulus onset and end of trial
-        self.openLoopFrames = 24 # number of frames after stimulus onset before wheel movement has effects
-        self.useGoTone = True # play sound when openLoopFrames is complete
+        self.preStimFrames = [240,360] # min time between end of previous trial and stimulus onset
+        self.maxResponseWaitFrames = 3600 # max time between end of openLoopFrames and end of trial
+        self.openLoopFrames = [48,96] # number of frames after stimulus onset before wheel movement has effects
+        self.useGoTone = False # play sound when openLoopFrames is complete
         self.normRewardDistance = 0.25 # normalized to screen width
         self.incorrectTrialRepeats = 0 # maximum number of incorrect trial repeats
         self.incorrectTimeoutFrames = 240 # extended gray screen following incorrect
@@ -62,6 +62,8 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('pos',probGoRight)
             self.moveStim = True
             self.keepTargetOnScreen = True
+            self.openLoopFrames = [24] * 2
+            self.useGoTone = False
             self.normRewardDistance = 0.1 
             self.postRewardTargetFrames = 60
             self.maxResponseWaitFrames = 3600
@@ -93,6 +95,10 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training4',probGoRight)
             self.maxResponseWaitFrames = 60
             self.quiescentFrames = 240
+        elif taskVersion == 'training6':
+            self.setDefaultParams('training5',probGoRight)
+            self.useGoTone = True
+            self.openLoopFrames = [48,96]
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0)] * percentRight + [(0.25,0)] * (100 - percentRight)
@@ -189,6 +195,7 @@ class MaskingTask(TaskControl):
         self.trialEndFrame = []
         self.trialPreStimFrames = []
         self.trialStimStartFrame = []
+        self.trialOpenLoopFrames = []
         self.trialTargetPos = []
         self.trialTargetContrast = []
         self.trialTargetOri = []
@@ -212,6 +219,7 @@ class MaskingTask(TaskControl):
             # if starting a new trial
             if self._trialFrame == 0:
                 self.trialPreStimFrames.append(random.randint(self.preStimFrames[0],self.preStimFrames[1]))
+                self.trialOpenLoopFrames.append(random.randint(self.openLoopFrames[0],self.openLoopFrames[1]))
                 quiescentWheelPos = 0
                 closedLoopWheelPos = 0
                 initTargetPos,targetContrast,targetOri,targetFrames,maskOnset = trialParams[trialIndex]
@@ -248,8 +256,8 @@ class MaskingTask(TaskControl):
             if not hasResponded and self._trialFrame >= self.trialPreStimFrames[-1]:
                 if self._trialFrame == self.trialPreStimFrames[-1]:
                     self.trialStimStartFrame.append(self._sessionFrame)
-                if self._trialFrame >= self.trialPreStimFrames[-1] + self.openLoopFrames:
-                    if self.useGoTone and self._trialFrame == self.trialPreStimFrames[-1] + self.openLoopFrames:
+                if self._trialFrame >= self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
+                    if self.useGoTone and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
                         self._goTone = True
                     closedLoopWheelPos += self.deltaWheelPos[-1]
                     if self.moveStim:
@@ -281,7 +289,7 @@ class MaskingTask(TaskControl):
                         self.trialResponse.append(-1) # incorrect
                         self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
-                elif self._trialFrame == self.trialPreStimFrames[-1] + self.maxResponseWaitFrames:
+                elif self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                     self.trialResponse.append(0) # no response
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
@@ -293,7 +301,7 @@ class MaskingTask(TaskControl):
                     targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
                     target.pos = targetPos
                     target.draw()
-                elif (self.trialResponse[-1] < 0 and
+                elif (self.trialResponse[-1] < 1 and
                       self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
                     pass
                 else:

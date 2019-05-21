@@ -137,6 +137,8 @@ class TaskControl():
     
     def showFrame(self):
         self._frameSignalOutput.write(True)
+        if self._goTone:
+            self._goToneOutput.write(True)
         
         # spacebar delivers reward
         # escape key ends session
@@ -159,14 +161,14 @@ class TaskControl():
         if self._led:
             self.triggerLED()
             self._led = False
-        if self._goTone:
-            self.triggerGoTone()
-            self._goTone = False
         
         self._sessionFrame += 1
         self._trialFrame += 1
         
         self._frameSignalOutput.write(False)
+        if self._goTone:
+            self._goToneOutput.write(False)
+            self._goTone = False
                                                
     
     def completeSession(self):
@@ -247,7 +249,14 @@ class TaskControl():
         self._frameSignalOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line0',
                                                         line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
         self._frameSignalOutput.write(False)
-        self._nidaqTasks.append(self._frameSignalOutput)    
+        self._nidaqTasks.append(self._frameSignalOutput)
+        
+        # line 1.1: go tone trigger
+        self._goToneOutput = nidaqmx.Task()
+        self._goToneOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line1',
+                                                   line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+        self._goToneOutput.write(False)
+        self._nidaqTasks.append(self._goToneOutput)
     
     
     def stopNidaqDevice(self):
@@ -263,10 +272,6 @@ class TaskControl():
     def triggerLED(self):
         self._ledOutput.stop()
         self._ledOutput.write(self._ledSignal,auto_start=True)
-        
-        
-    def triggerGoTone(self):
-        pass
     
         
     def getNidaqData(self):
