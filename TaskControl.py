@@ -83,6 +83,7 @@ class TaskControl():
         self._reward = False # reward delivered at next frame flip if True
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
         self._led = False # led triggered at next frame flip if True
+        self._goTone = False # go tone triggered at next frame flip if True
         
         
     
@@ -153,11 +154,14 @@ class TaskControl():
         self._win.flip()
         
         if self._reward:
-            self.deliverReward()
+            self.triggerReward()
             self._reward = False
         if self._led:
             self.triggerLED()
             self._led = False
+        if self._goTone:
+            self.triggerGoTone()
+            self._goTone = False
         
         self._sessionFrame += 1
         self._trialFrame += 1
@@ -251,7 +255,7 @@ class TaskControl():
             task.close()
         
         
-    def deliverReward(self):
+    def triggerReward(self):
         self._rewardOutput.stop()
         self._rewardOutput.write(self._rewardSignal,auto_start=True)
         
@@ -259,6 +263,10 @@ class TaskControl():
     def triggerLED(self):
         self._ledOutput.stop()
         self._ledOutput.write(self._ledSignal,auto_start=True)
+        
+        
+    def triggerGoTone(self):
+        pass
     
         
     def getNidaqData(self):
