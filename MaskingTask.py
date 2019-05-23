@@ -98,7 +98,7 @@ class MaskingTask(TaskControl):
         elif taskVersion == 'training6':
             self.setDefaultParams('training5',probGoRight)
             self.useGoTone = True
-            self.openLoopFrames = [48,96]
+            self.openLoopFrames = [60,144]
         elif taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0)] * percentRight + [(0.25,0)] * (100 - percentRight)
