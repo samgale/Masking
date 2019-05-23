@@ -34,6 +34,8 @@ class MaskingTask(TaskControl):
         # varying stimulus duration and/or masking not part of this stage
         self.moveStim = False
         self.keepTargetOnScreen = False  # False allows for incorrect trials during training
+        self.reverseTargetPhase = False
+        self.reversePhasePeriod = 60 # frames
         self.postRewardTargetFrames = 1  # frames to freeze target after reward
         
         # target stimulus params
@@ -268,6 +270,9 @@ class MaskingTask(TaskControl):
                             closedLoopWheelPos -= adjust
                         target.pos = targetPos
                 if self.moveStim:
+                    if self.reverseTargetPhase and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
+                        phase = (0.5,0) if target.phase[0] == 0 else (0,0)
+                        target.phase = phase
                     target.draw()
                 else:
                     if (self.maskType is not None and not np.isnan(maskOnset) and 
