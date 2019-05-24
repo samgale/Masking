@@ -27,7 +27,7 @@ class MaskingTask(TaskControl):
         self.normRewardDistance = 0.25 # normalized to screen width
         self.incorrectTrialRepeats = 0 # maximum number of incorrect trial repeats
         self.incorrectTimeoutFrames = 240 # extended gray screen following incorrect
-        self.quiescentFrames = 0 # frames before stim onset during which wheel movement delays stim onset
+        self.quiescentFrames = [0,0] # frames before stim onset during which wheel movement delays stim onset
         self.maxQuiescentNormMoveDist = 0.025 # movement threshold during quiescent period
         
         # mouse can move target stimulus with wheel for early training
@@ -35,7 +35,7 @@ class MaskingTask(TaskControl):
         self.moveStim = False
         self.keepTargetOnScreen = False  # False allows for incorrect trials during training
         self.reverseTargetPhase = False
-        self.reversePhasePeriod = 60 # frames
+        self.reversePhasePeriod = 15 # frames
         self.postRewardTargetFrames = 1  # frames to freeze target after reward
         
         # target stimulus params
@@ -72,7 +72,7 @@ class MaskingTask(TaskControl):
             self.targetSize = 50
             self.gratingEdge = 'circle'
             self.incorrectTimeoutFrames = 0
-            self.quiescentFrames = 0
+            self.quiescentFrames = [0,0]
         elif taskVersion == 'training2':
             # reinforcing move stim to center for reward, stim on screen shorter t
             self.setDefaultParams('training1',probGoRight)
@@ -96,7 +96,7 @@ class MaskingTask(TaskControl):
             # adding the quiescent period to prevent wheel movement prior to stim presentation
             self.setDefaultParams('training4',probGoRight)
             self.maxResponseWaitFrames = 60
-            self.quiescentFrames = 240
+            self.quiescentFrames = [60,120]
         elif taskVersion == 'training6':
             self.setDefaultParams('training5',probGoRight)
             self.useGoTone = True
@@ -116,7 +116,7 @@ class MaskingTask(TaskControl):
     def checkParamValues(self):
         assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
-        assert(self.quiescentFrames <= min(self.preStimFrames))
+        assert(max(self.quiescentFrames) <= min(self.preStimFrames))
         
 
     def taskFlow(self):
@@ -196,6 +196,7 @@ class MaskingTask(TaskControl):
         self.trialStartFrame = []
         self.trialEndFrame = []
         self.trialPreStimFrames = []
+        self.trialQuiescentFrames = []
         self.trialStimStartFrame = []
         self.trialOpenLoopFrames = []
         self.trialTargetPos = []
@@ -221,6 +222,7 @@ class MaskingTask(TaskControl):
             # if starting a new trial
             if self._trialFrame == 0:
                 self.trialPreStimFrames.append(random.randint(self.preStimFrames[0],self.preStimFrames[1]))
+                self.trialQuiescentFrames.append([random.randint(self.quiescentFrames[0],self.quiescentFrames[1])])
                 self.trialOpenLoopFrames.append(random.randint(self.openLoopFrames[0],self.openLoopFrames[1]))
                 quiescentWheelPos = 0
                 closedLoopWheelPos = 0
@@ -247,11 +249,12 @@ class MaskingTask(TaskControl):
                 hasResponded = False
             
             # extend pre stim gray frames if wheel moving during quiescent period
-            if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
+            if self.trialPreStimFrames[-1] - self.trialQuiescentFrames[-1][-1] < self._trialFrame < self.trialPreStimFrames[-1]:
                 quiescentWheelPos += self.deltaWheelPos[-1]
                 if abs(quiescentWheelPos) > maxQuiescentDist:
                     self.quiescentMoveFrames.append(self._sessionFrame)
-                    self._trialFrame = self.trialPreStimFrames[-1] - self.quiescentFrames
+                    self._trialFrame = self.trialPreStimFrames[-1] - self.trialQuiescentFrames[-1][-1]
+                    self.trialQuiescentFrames[-1].append(random.randint(self.quiescentFrames[0],self.quiescentFrames[1]))
                     quiescentWheelPos = 0
             
             # if gray screen period is complete, update target and mask stimuli
