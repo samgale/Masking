@@ -96,7 +96,7 @@ class MaskingTask(TaskControl):
             # adding the quiescent period to prevent wheel movement prior to stim presentation
             self.setDefaultParams('training4',probGoRight)
             self.maxResponseWaitFrames = 60
-            self.quiescentFrames = [60,120]
+            self.quiescentFrames = [60,180]
         elif taskVersion == 'training6':
             self.setDefaultParams('training5',probGoRight)
             self.useGoTone = True
