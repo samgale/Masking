@@ -300,7 +300,7 @@ class MaskingTask(TaskControl):
                         self._reward = True
                         self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
-                    elif targetFrames == 0 and not self.keepTargetOnScreen:
+                    elif not self.keepTargetOnScreen or targetFrames == 0:
                         self.trialResponse.append(-1) # incorrect
                         self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
