@@ -280,10 +280,11 @@ class MaskingTask(TaskControl):
                             closedLoopWheelPos -= adjust
                         target.pos = targetPos
                 if self.moveStim:
-                    if self.reverseTargetPhase and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
-                        phase = (0.5,0) if target.phase[0] == 0 else (0,0)
-                        target.phase = phase
-                    target.draw()
+                    if targetFrames > 0:
+                        if self.reverseTargetPhase and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
+                            phase = (0.5,0) if target.phase[0] == 0 else (0,0)
+                            target.phase = phase
+                        target.draw()
                 else:
                     if (self.maskType is not None and not np.isnan(maskOnset) and 
                         (self.trialPreStimFrames[-1] + maskOnset <= self._trialFrame < 
