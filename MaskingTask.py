@@ -190,6 +190,13 @@ class MaskingTask(TaskControl):
                                              self.targetOri,
                                              self.targetFrames,
                                              self.maskOnset))
+        
+        # do not repeat no target trials (targetFrames==0) for all target positions, contrasts, and orientations
+        for params in trialParams[:]:
+            if (params[3] == 0 and 
+                (params[0] != targetPosPix[0] or params[1] != self.targetContrast[0] or params[2] != self.targetOri[0])):
+                trialParams.remove(params)
+        
         random.shuffle(trialParams)
         
         # things to keep track of
@@ -288,17 +295,19 @@ class MaskingTask(TaskControl):
             
                 # define response if wheel moved past threshold (either side) or max trial duration reached          
                 if abs(closedLoopWheelPos) > rewardDist:
-                    if closedLoopWheelPos * rewardDir > 0:
+                    if closedLoopWheelPos * rewardDir > 0 and targetFrames > 0:
                         self.trialResponse.append(1) # correct
                         self._reward = True
                         self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
-                    elif not self.keepTargetOnScreen:
+                    elif targetFrames == 0 and not self.keepTargetOnScreen:
                         self.trialResponse.append(-1) # incorrect
                         self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
                 elif self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                     self.trialResponse.append(0) # no response
+                    if targetFrames == 0:
+                        self._reward = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 
@@ -306,16 +315,17 @@ class MaskingTask(TaskControl):
             if hasResponded:
                 if (self.trialResponse[-1] > 0 and
                     self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
-                    targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
-                    target.pos = targetPos
+                    if self._sessionFrame == self.trialResponseFrame[-1]:
+                        targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
+                        target.pos = targetPos
                     target.draw()
-                elif (self.trialResponse[-1] < 1 and
+                elif (self.trialResponse[-1] < 0 and 
                       self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
                     pass
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
-                    if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
+                    if self.trialResponse[-1] < 0 and incorrectRepeatCount < self.incorrectTrialRepeats:
                         incorrectRepeatCount += 1
                     else:
                         trialIndex += 1
