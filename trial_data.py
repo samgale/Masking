@@ -70,7 +70,7 @@ def average(data):
 mouseID = []
 expDate = []
 
-dict1 = {'percentCorrect': [], 'avg_correctRespTime': [], 'avg_incorrectRespTime': [], 'numRewards': []}   # column values
+dict1 = {'percentCorrect': [], 'avg_correctRespTime': [], 'avg_incorrectRespTime': [], 'numRewards': [], 'targetFrames': []}   # column values
 
 mice = ['439508', '439506', '439502', '441357', '441358']
 
@@ -88,6 +88,7 @@ for mouse in mice:
         dict1['avg_correctRespTime'].append(rewardTime)
         dict1['avg_incorrectRespTime'].append(incorrectTime)
         dict1['numRewards'].append(np.sum(d['trialResponse'][:]==1))
+       # dict1['targetFrames'].append(d['trialTargetFrames'].value)
         
         
 
@@ -112,4 +113,8 @@ for m in mice:                                  # creates subplots for each mous
         ax.set_ylabel(key)
         if i==0:
             ax.set_title(m)
+            
+#for m in mice:
+    #fig = plt.figure()
+   # plt.plot(df.('percentCorrect'))           
       
