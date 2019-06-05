@@ -191,11 +191,21 @@ class MaskingTask(TaskControl):
                                              self.targetFrames,
                                              self.maskOnset))
         
-        # do not repeat no target trials (targetFrames==0) for all target positions, contrasts, and orientations
-        for params in trialParams[:]:
+        trialParams = [list(params) for params in trialParams]
+        trialsToRemove = []
+        for params in trialParams:
             if (params[3] == 0 and 
                 (params[0] != targetPosPix[0] or params[1] != self.targetContrast[0] or params[2] != self.targetOri[0])):
-                trialParams.remove(params)
+                # do not repeat no target trials (targetFrames==0) for all target positions, contrasts, and orientations
+                trialsToRemove.append(params)
+            elif params[4] == 0:
+                # make maskOnset=0 trials no target trials (rewarded for no response)
+                if params[3] != self.targetFrames[0]:
+                    trialsToRemove.append(params)
+                else:
+                    params[3] = 0
+        for r in trialsToRemove:
+            trialParams.remove(r)
         
         random.shuffle(trialParams)
         
