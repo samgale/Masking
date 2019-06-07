@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 import pandas as pd 
 import datetime
 import matplotlib as mpl
+
 mpl.rcParams['pdf.fonttype']=42
 
 '''
@@ -85,7 +86,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
     ax.plot(trialTime[:leftTrials.shape[1]], np.nanmean(leftTrials, 0), 'b', linewidth=3)
     ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
     
-    name_date = str(dataFile).split('_')    
+    name_date = str(data).split('_')    
     
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)', title=name_date[-3:-1])
     
