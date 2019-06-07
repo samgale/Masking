@@ -11,9 +11,10 @@ import h5py, os
 from matplotlib import pyplot as plt
 import pandas as pd 
 import datetime
+import matplotlib as mpl
+mpl.rcParams['pdf.fonttype']=42
 
-def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToShowBeforeStart=0):
-    '''
+'''
     Makes plot of trial by trial wheel trajectory color coded by initial target position  
     INPUTS:
     dataFile: path to h5 file created at end of behavioral session
@@ -24,7 +25,9 @@ def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToS
     OUTPUTS:
     rightTrials, leftTrials: numpy arrays of all go right and go left trial wheel trajectories. Trials are padded
                             with nans to correct for variable length. 
-    '''
+'''
+    
+def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToShowBeforeStart=0):
 
     #Clean up inputs if needed    
     #if response filter is an int, make it a list
@@ -56,7 +59,7 @@ def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToS
     # for rightTrials stim presented on L, turn right - viceversa for leftTrials
     rightTrials = []
     leftTrials = []
-    trialTime = (np.arange(max(trialEndFrames-trialStartFrames+framesToShowBeforeStart))-framesToShowBeforeStart)/frameRate
+    trialTime = (np.arange(max(trialEndFrames-trialStartFrames+framesToShowBeforeStart))-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
     for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
         if i>0 and i<len(trialStartFrames):
             if resp in responseFilter:
@@ -82,7 +85,9 @@ def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToS
     ax.plot(trialTime[:leftTrials.shape[1]], np.nanmean(leftTrials, 0), 'b', linewidth=3)
     ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
     
-    formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)')
+    name_date = str(dataFile).split('_')    
+    
+    formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)', title=name_date[-3:-1])
     
     if returnData:
         return rightTrials, leftTrials

@@ -5,6 +5,13 @@ Created on Wed May 01 14:50:27 2019
 @author: svc_ccg
 """
 
+"""
+This plots how many choices were correct (excluding the incorrect repeats) compared to chance,
+compared across all mice.  Returns a subplot of all 5 mice percentages over time, chance is shaded region in green.
+Prints mouse IDs to console when data is compiled
+
+"""
+
 from __future__ import division
 import os
 import numpy as np
@@ -12,6 +19,9 @@ import h5py
 import datetime 
 import scipy.stats
 from matplotlib import pyplot as plt
+import matplotlib as mpl
+mpl.rcParams['pdf.fonttype']=42
+
 #import pandas as pd
 
 # get hdf5 files for each mouse
@@ -32,12 +42,13 @@ def trials(data):
 
 
 mice = ['439508', '439506', '439502', '441357', '441358']
+mice = ['441358']
 
 fig, axes = plt.subplots(len(mice),1)
+if len(mice)==1:
+    axes = [axes]
 
-# this plots how many choices were correct (of the trials that were NOT incorrect repeats) compared to chance
-
-for im, mouse in enumerate(mice):
+for im, (ax,mouse) in enumerate(zip(axes, mice)):
     files = get_files(mouse)
     print(mouse)
     hitRate = []
@@ -64,13 +75,23 @@ for im, mouse in enumerate(mice):
         d.close()
     
     chanceRates = np.array(chanceRates)
-    axes[im].text(0.1, 0.9, mouse)
-    axes[im].set_ylim([0,1])
-    axes[im].fill_between(np.arange(len(files)), chanceRates[:, 0], chanceRates[:, 1], color='g', alpha=0.2)
-    axes[im].plot(hitRate, 'ko-')
+#    axes[im].text(0.1, 0.9, mouse)
+#    axes[im].set_ylim([0,1])
+#    axes[im].fill_between(np.arange(len(files)), chanceRates[:, 0], chanceRates[:, 1], color='g', alpha=0.2)
+#    axes[im].plot(hitRate, 'ko-')
+#    if im<len(mice)-1:
+#        axes[im].tick_params(labelbottom='off')
+#    else:
+#        axes[im].set_xlabel('Session number')
+#        axes[im].set_ylabel('Hit Rate')
+#        
+    ax.text(0.1, 0.9, mouse)
+    ax.set_ylim([0,1])
+    ax.fill_between(np.arange(len(files)), chanceRates[:, 0], chanceRates[:, 1], color='g', alpha=0.2)
+    ax.plot(hitRate, 'ko-')
     if im<len(mice)-1:
-        axes[im].tick_params(labelbottom='off')
+        ax.tick_params(labelbottom='off')
     else:
-        axes[im].set_xlabel('Session number')
-        axes[im].set_ylabel('Hit Rate')
+        ax.set_xlabel('Session number')
+        ax.set_ylabel('Hit Rate')
         

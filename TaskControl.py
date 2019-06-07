@@ -50,9 +50,12 @@ class TaskControl():
         
     
     def prepareSession(self):
-        self.startTime = time.strftime('%Y%m%d_%H%M%S')
         self._win = None
         self._nidaqTasks = []
+        
+        startTime = time.localtime()
+        self.startTime = time.strftime('%Y%m%d_%H%M%S',startTime)
+        print('start time was: ' + time.strftime('%I:%M',startTime))
         
         self.numpyRandomSeed = random.randint(0,2**32)
         self._numpyRandom = np.random.RandomState(self.numpyRandomSeed)
@@ -72,7 +75,7 @@ class TaskControl():
         self.startNidaqDevice()
         self.rotaryEncoderRadians = []
         self.deltaWheelPos = [] # change in wheel position (angle translated to screen pixels)
-        self.lickState = []
+        self.lickFrames = []
         
         self._continueSession = True
         self._sessionFrame = 0 # index of frame since start of session
@@ -80,6 +83,7 @@ class TaskControl():
         self._reward = False # reward delivered at next frame flip if True
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
         self._led = False # led triggered at next frame flip if True
+        self._goTone = False # go tone triggered at next frame flip if True
         
         
     
@@ -133,6 +137,8 @@ class TaskControl():
     
     def showFrame(self):
         self._frameSignalOutput.write(True)
+        if self._goTone:
+            self._goToneOutput.write(True)
         
         # spacebar delivers reward
         # escape key ends session
@@ -150,7 +156,7 @@ class TaskControl():
         self._win.flip()
         
         if self._reward:
-            self.deliverReward()
+            self.triggerReward()
             self._reward = False
         if self._led:
             self.triggerLED()
@@ -160,6 +166,9 @@ class TaskControl():
         self._trialFrame += 1
         
         self._frameSignalOutput.write(False)
+        if self._goTone:
+            self._goToneOutput.write(False)
+            self._goTone = False
                                                
     
     def completeSession(self):
@@ -175,7 +184,7 @@ class TaskControl():
                 filePath = os.path.join(self.saveDir,self.__class__.__name__ + '_' + subjName + self.startTime)
                 fileOut = h5py.File(filePath+'.hdf5','w')
                 saveParameters(fileOut,self.__dict__)
-                if self.saveFrameIntervals:
+                if self.saveFrameIntervals and self._win is not None:
                     fileOut.create_dataset('frameIntervals',data=self._win.frameIntervals)
                 fileOut.close()
         
@@ -240,7 +249,14 @@ class TaskControl():
         self._frameSignalOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line0',
                                                         line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
         self._frameSignalOutput.write(False)
-        self._nidaqTasks.append(self._frameSignalOutput)    
+        self._nidaqTasks.append(self._frameSignalOutput)
+        
+        # line 1.1: go tone trigger
+        self._goToneOutput = nidaqmx.Task()
+        self._goToneOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line1',
+                                                   line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+        self._goToneOutput.write(False)
+        self._nidaqTasks.append(self._goToneOutput)
     
     
     def stopNidaqDevice(self):
@@ -248,7 +264,7 @@ class TaskControl():
             task.close()
         
         
-    def deliverReward(self):
+    def triggerReward(self):
         self._rewardOutput.stop()
         self._rewardOutput.write(self._rewardSignal,auto_start=True)
         
@@ -270,7 +286,8 @@ class TaskControl():
         self.deltaWheelPos.append(self.translateEncoderChange())
         
         # digital
-        self.lickState.append(self._lickInput.read())
+        if self._lickInput.read():
+            self.lickFrames.append(self._sessionFrame)
         
     
     def translateEncoderChange(self):
@@ -304,6 +321,13 @@ def saveParameters(fileOut,paramDict,dictName=None):
                 try:
                     if val is None:
                         val = np.nan
+                    elif (isinstance(val,(list,tuple)) and len(val) > 1 and 
+                          all(isinstance(v,(list,tuple)) for v in val) and [len(v) for v in val].count(len(val[0])) < len(val)):
+                        # convert list of lists of unequal len to nan padded array
+                        valArray = np.full((len(val),max(len(v) for v in val)),np.nan)
+                        for i,v in enumerate(val):
+                            valArray[i,:len(v)] = v
+                        val = valArray
                     fileOut.create_dataset(paramName,data=val)
                 except:
                     print 'could not save ' + key
