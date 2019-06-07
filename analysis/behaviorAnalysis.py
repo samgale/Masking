@@ -27,7 +27,7 @@ mpl.rcParams['pdf.fonttype']=42
                             with nans to correct for variable length. 
 '''
     
-def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToShowBeforeStart=0):
+def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowBeforeStart=0):
 
     #Clean up inputs if needed    
     #if response filter is an int, make it a list
@@ -35,7 +35,7 @@ def makeWheelPlot(dataFile, returnData=False, responseFilter=[-1,0,1], framesToS
         responseFilter = [responseFilter]
     
     
-    d = h5py.File(dataFile)
+    d = data
     frameRate = d['frameRate'].value
     trialEndFrames = d['trialEndFrame'][:]
     trialStartFrames = d['trialStartFrame'][:trialEndFrames.size]
@@ -132,3 +132,57 @@ def formatFigure(fig, ax, title=None, xLabel=None, yLabel=None, xTickLabels=None
         fig.patch.set_facecolor('k')
     if saveName is not None:
         fig.savefig(saveName, facecolor=fig.get_facecolor())
+        
+def performanceByParam(data, paramName, units=''):
+    
+    if not paramName in data.keys():
+        print('No parameter named ' + paramName + ' in hdf5 file')
+        return
+    
+    d =  data
+    
+    trialResponse = d['trialResponse'].value    
+    numTrials = len(trialResponse)
+    
+    trialRewardDirection = d['trialRewardDir'].value[:numTrials]
+    trialParam = d[paramName][:numTrials] 
+    
+    if any(np.isnan(trialParam)):    
+        trialParam[np.isnan(trialParam)] = -1
+
+    paramValues = np.unique(trialParam)
+    
+    hits = [[],[]]
+    misses = [[], []]
+    noResps = [[],[]]
+    for i, direction in enumerate([-1,1]):
+        directionResponses = [trialResponse[(trialRewardDirection==direction) & (trialParam == p)] for p in paramValues]
+        hits[i].append([np.sum(drs==1) for drs in directionResponses])
+        misses[i].append([np.sum(drs==-1) for drs in directionResponses])
+        noResps[i].append([np.sum(drs==0) for drs in directionResponses])
+    
+    hits = np.squeeze(np.array(hits))
+    misses = np.squeeze(np.array(misses))
+    noResps = np.squeeze(np.array(noResps))
+    totalTrials = hits+misses+noResps
+    
+    for num, denom, title in zip([hits, hits, noResps], [totalTrials, hits+misses, totalTrials], ['total hit rate', 'response hit rate', 'no response rate']):
+        fig, ax = plt.subplots()
+        ax.plot(paramValues, num[0]/denom[0], 'ro-')
+        ax.plot(paramValues, num[1]/denom[1], 'bo-')
+        ax.set_ylim([0,1.01])
+        ax.set_xlim([0, paramValues[-1]*1.1])
+        ax.set_xticks(paramValues)
+        formatFigure(fig, ax, xLabel=paramName + '('+units+')', yLabel='percent trials', title=title)
+    
+        
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
