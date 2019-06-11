@@ -306,7 +306,7 @@ class MaskingTask(TaskControl):
                         self.trialResponse.append(-1) # incorrect
                         self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
-                elif self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
+                if not hasResponded and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                     self.trialResponse.append(0) # no response
                     if targetFrames == 0:
                         self._reward = True
