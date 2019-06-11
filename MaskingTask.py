@@ -65,7 +65,7 @@ class MaskingTask(TaskControl):
             self.moveStim = True
             self.keepTargetOnScreen = True
             self.openLoopFrames = [24] * 2
-            self.useGoTone = False
+            self.useGoTone = True
             self.normRewardDistance = 0.1 
             self.postRewardTargetFrames = 60
             self.maxResponseWaitFrames = 3600
@@ -97,6 +97,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training4',probGoRight)
             self.maxResponseWaitFrames = 60
             self.quiescentFrames = [60,180]
+            self.useGoTone = False
         elif taskVersion == 'training6':
             self.setDefaultParams('training5',probGoRight)
             self.useGoTone = True
@@ -191,14 +192,10 @@ class MaskingTask(TaskControl):
                                              self.targetFrames,
                                              self.maskOnset))
         
-        # do not repeat no target trials (targetFrames=0) or mask only trials (maskOnset=0)
-        # for all target positions, contrasts, and orientations
-        # do not repeat mask only trials for all target durations
+        # only repeat mask only trials (maskOnset=0) for first target duration (targetFrames[0])
+        # e.g. mask only trials are no response rewarded if targetFrames[0]=0
         for params in trialParams[:]:
-            if ((params[3] == 0 or params[4] == 0) and 
-                (params[0] != targetPosPix[0] or params[1] != self.targetContrast[0] or params[2] != self.targetOri[0])):
-                trialParams.remove(params)
-            elif params[4] == 0 and params[3] != self.targetFrames[0]:
+            if params[4] == 0 and params[3] != self.targetFrames[0]:
                 trialParams.remove(params)
         
         random.shuffle(trialParams)
