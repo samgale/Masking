@@ -35,7 +35,6 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
     if type(responseFilter) is int:
         responseFilter = [responseFilter]
     
-    
     d = data
     frameRate = d['frameRate'].value
     trialEndFrames = d['trialEndFrame'][:]
@@ -57,7 +56,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
 
     fig, ax = plt.subplots()
     
-    # for rightTrials stim presented on L, turn right - viceversa for leftTrials
+    # for rightTrials stim presented on R, turn left - viceversa for leftTrials
     rightTrials = []
     leftTrials = []
     trialTime = (np.arange(max(trialEndFrames-trialStartFrames+framesToShowBeforeStart))-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
@@ -69,7 +68,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
                 trialWheel -= trialWheel[0]
                 trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                 rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
-                if rewardDirection>0:
+                if rewardDirection<0:
                     ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)
                     if rewardFrame is not None:
                         ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
@@ -95,7 +94,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
 
 def get_files(mouse_id):
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
-    dataDir = os.path.join(os.path.join(directory, mouse_id), 'files_to_analyze')
+    dataDir = os.path.join(os.path.join(directory, mouse_id), 'training_to_analyze')   #training_ for pre-mask, masking_ for mask
     files = os.listdir(dataDir)
     files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))
     return [os.path.join(dataDir,f) for f in files]  
