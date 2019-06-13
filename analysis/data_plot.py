@@ -27,7 +27,7 @@ mpl.rcParams['pdf.fonttype']=42
 # get hdf5 files for each mouse
 def get_files(mouse_id):
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
-    dataDir = os.path.join(os.path.join(directory, mouse_id), 'training_to_analyze')
+    dataDir = os.path.join(os.path.join(directory, mouse_id), '_to_analyze')
     files = os.listdir(dataDir)
     files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))
     return [os.path.join(dataDir,f) for f in files]     

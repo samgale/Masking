@@ -43,15 +43,13 @@ misses = np.squeeze(np.array(misses))
 noResps = np.squeeze(np.array(noResps))
 totalTrials = hits+misses+noResps
 
-chanceRates = [[[i/n for i in scipy.stats.binom.interval(0.95,n,0.5)] for n in h] for h in hits+misses]  # this only gives chance CI for responses
-chanceRates = np.array(chanceRates)
-
-#  need to still calculate the chance rates for total trials (correct) and no response
 
 for num, denom, title in zip([hits, hits, hits+misses], [totalTrials, hits+misses, totalTrials], ['Total hit rate', 'Response hit rate', 'Total response rate']):
     fig, ax = plt.subplots()
     ax.plot(np.unique(targetLengths), num[0]/denom[0], 'ro-', label='Right Stim')
     ax.plot(np.unique(targetLengths), num[1]/denom[1], 'bo-')
+    chanceRates = [[[i/n for i in scipy.stats.binom.interval(0.95,n,0.5)] for n in h] for h in denom]
+    chanceRates = np.array(chanceRates)
     for val, chanceR, chanceL in zip(np.unique(targetLengths), chanceRates[0], chanceRates[1]):
        plt.plot([val, val], chanceR, color='red', alpha=.5)     # 0 and 1 = R and L, respectively
        plt.plot([val+.2, val+.2], chanceL, color='blue', alpha=.5)
