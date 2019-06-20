@@ -23,7 +23,8 @@ class MaskingTask(TaskControl):
         self.preStimFrames = [240,360] # min time between end of previous trial and stimulus onset
         self.maxResponseWaitFrames = 3600 # max time between end of openLoopFrames and end of trial
         self.openLoopFrames = [48,96] # number of frames after stimulus onset before wheel movement has effects
-        self.useGoTone = False # play sound when openLoopFrames is complete
+        self.useGoTone = False # play tone when openLoopFrames is complete
+        self.useIncorrectNoise = False # play noise when trial is incorrect
         self.normRewardDistance = 0.25 # normalized to screen width
         self.incorrectTrialRepeats = 0 # maximum number of incorrect trial repeats
         self.incorrectTimeoutFrames = 240 # extended gray screen following incorrect
@@ -51,9 +52,9 @@ class MaskingTask(TaskControl):
         # mask params
         self.maskType = 'plaid' # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
-        self.maskOnset = [np.nan,0,2,4,8,16] # frames >=0 relative to target stimulus onset or NaN for no mask
-        self.maskFrames = 9 # duration of mask  
-        self.maskContrast = 1
+        self.maskFrames = 9 # duration of mask
+        self.maskOnset = [0,2,4,8,16] # frames >=0 relative to target stimulus onset
+        self.maskContrast = [0,1]
 
     
     def setDefaultParams(self,taskVersion,probGoRight=0.5):  # prob=how often the L stim appears
@@ -157,7 +158,6 @@ class MaskingTask(TaskControl):
                                        mask=maskEdgeBlur,
                                        tex=self.gratingType,
                                        size=maskSize,
-                                       contrast=self.maskContrast,
                                        sf=sf,
                                        ori=ori,
                                        opacity=opa,
@@ -173,8 +173,7 @@ class MaskingTask(TaskControl):
                                      noiseFilterOrder = 1,
                                      noiseFilterLower = 0.5*sf,
                                      noiseFilterUpper = 2*sf,
-                                     size=maskSize,
-                                     contrast=self.maskContrast)
+                                     size=maskSize)
                                      for pos in maskPos]
         
         if self.maskShape=='surround':
@@ -190,12 +189,15 @@ class MaskingTask(TaskControl):
                                              self.targetContrast,
                                              self.targetOri,
                                              self.targetFrames,
-                                             self.maskOnset))
+                                             self.maskOnset,
+                                             self.maskContrast))
         
+        # do not repeat all mask onsets for maskContrast=0
         # only repeat mask only trials (maskOnset=0) for first target duration (targetFrames[0])
         # e.g. mask only trials are no response rewarded if targetFrames[0]=0
         for params in trialParams[:]:
-            if params[4] == 0 and params[3] != self.targetFrames[0]:
+            if ((params[5] == 0 and params[4] != self.maskOnset[0]) or
+                (params[4] == 0 and params[3] != self.targetFrames[0])):
                 trialParams.remove(params)
         
         random.shuffle(trialParams)
@@ -212,6 +214,7 @@ class MaskingTask(TaskControl):
         self.trialTargetOri = []
         self.trialTargetFrames = []
         self.trialMaskOnset = []
+        self.trialMaskContrast = []
         self.trialRewardDir = []
         self.trialResponse = []
         self.trialResponseFrame = []
@@ -234,7 +237,7 @@ class MaskingTask(TaskControl):
                 self.trialOpenLoopFrames.append(random.randint(self.openLoopFrames[0],self.openLoopFrames[1]))
                 quiescentWheelPos = 0
                 closedLoopWheelPos = 0
-                initTargetPos,targetContrast,targetOri,targetFrames,maskOnset = trialParams[trialIndex]
+                initTargetPos,targetContrast,targetOri,targetFrames,maskOnset,maskContrast = trialParams[trialIndex]
                 targetPos = list(initTargetPos)
                 if len(self.normTargetPos) > 1:
                     rewardDir = -1 if targetPos[0] > 0 else 1
@@ -243,9 +246,10 @@ class MaskingTask(TaskControl):
                 target.pos = targetPos
                 target.contrast = targetContrast
                 target.ori = targetOri
-                if self.maskType == 'noise':
+                if self.maskType is not None:
                     for m in mask:
-                        if isinstance(m,visual.NoiseStim):
+                        m.contrast = maskContrast
+                        if self.maskType == 'noise' and isinstance(m,visual.NoiseStim):
                             m.updateNoise()
                 self.trialStartFrame.append(self._sessionFrame)
                 self.trialTargetPos.append(initTargetPos)
@@ -253,6 +257,7 @@ class MaskingTask(TaskControl):
                 self.trialTargetOri.append(targetOri)
                 self.trialTargetFrames.append(targetFrames)
                 self.trialMaskOnset.append(maskOnset)
+                self.trialMaskContrast.append(maskContrast)
                 self.trialRewardDir.append(rewardDir)
                 hasResponded = False
             
@@ -271,7 +276,7 @@ class MaskingTask(TaskControl):
                     self.trialStimStartFrame.append(self._sessionFrame)
                 if self._trialFrame >= self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
                     if self.useGoTone and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
-                        self._goTone = True
+                        self._tone = True
                     closedLoopWheelPos += self.deltaWheelPos[-1]
                     if self.moveStim:
                         targetPos[0] += self.deltaWheelPos[-1]
@@ -287,7 +292,7 @@ class MaskingTask(TaskControl):
                             target.phase = phase
                         target.draw()
                 else:
-                    if (self.maskType is not None and not np.isnan(maskOnset) and 
+                    if (self.maskType is not None and maskContrast > 0 and
                         (self.trialPreStimFrames[-1] + maskOnset <= self._trialFrame < 
                          self.trialPreStimFrames[-1] + maskOnset + self.maskFrames)):
                         for m in mask:
@@ -304,6 +309,8 @@ class MaskingTask(TaskControl):
                         hasResponded = True
                     elif not self.keepTargetOnScreen or targetFrames == 0:
                         self.trialResponse.append(-1) # incorrect
+                        if self.useIncorrectNoise:
+                            self._noise = True
                         self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
                 if not hasResponded and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:

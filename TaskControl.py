@@ -83,8 +83,8 @@ class TaskControl():
         self._reward = False # reward delivered at next frame flip if True
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
         self._led = False # led triggered at next frame flip if True
-        self._goTone = False # go tone triggered at next frame flip if True
-        
+        self._tone = False # tone triggered at next frame flip if True
+        self._noise = False # noise triggered at next frame flip if True
         
     
     def prepareWindow(self):
@@ -137,8 +137,10 @@ class TaskControl():
     
     def showFrame(self):
         self._frameSignalOutput.write(True)
-        if self._goTone:
-            self._goToneOutput.write(True)
+        if self._tone:
+            self._toneOutput.write(True)
+        elif self._noise:
+            self._noiseOutput.write(True)
         
         # spacebar delivers reward
         # escape key ends session
@@ -166,9 +168,12 @@ class TaskControl():
         self._trialFrame += 1
         
         self._frameSignalOutput.write(False)
-        if self._goTone:
-            self._goToneOutput.write(False)
-            self._goTone = False
+        if self._tone:
+            self._toneOutput.write(False)
+            self._tone = False
+        elif self._noise:
+            self._noiseOutput.write(False)
+            self._noise = False
                                                
     
     def completeSession(self):
@@ -251,12 +256,19 @@ class TaskControl():
         self._frameSignalOutput.write(False)
         self._nidaqTasks.append(self._frameSignalOutput)
         
-        # line 1.1: go tone trigger
-        self._goToneOutput = nidaqmx.Task()
-        self._goToneOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line1',
+        # line 1.1: tone trigger
+        self._toneOutput = nidaqmx.Task()
+        self._toneOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line1',
                                                    line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
-        self._goToneOutput.write(False)
-        self._nidaqTasks.append(self._goToneOutput)
+        self._toneOutput.write(False)
+        self._nidaqTasks.append(self._toneOutput)
+        
+        # line 1.2: noise trigger
+        self._noiseOutput = nidaqmx.Task()
+        self._noiseOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line2',
+                                                   line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
+        self._noiseOutput.write(False)
+        self._nidaqTasks.append(self._noiseOutput)
     
     
     def stopNidaqDevice(self):
