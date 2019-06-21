@@ -44,7 +44,7 @@ class MaskingTask(TaskControl):
         
         # target stimulus params
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
-        self.targetFrames = [2] # duration of target stimulus; ignored if moveStim is True
+        self.targetFrames = [2] # duration of target stimulus; targetFrames=0 for no response rewarded trials
         self.targetContrast = [1]
         self.targetSize = 45 # degrees
         self.targetSF = 0.04 # cycles/deg
@@ -204,11 +204,13 @@ class MaskingTask(TaskControl):
                                              self.maskOnset,
                                              self.maskContrast))
         
+        # do not repeat all target postions, contrasts, and orientations for targetFrames=0
         # do not repeat all mask onsets for maskContrast=0
         # only repeat mask only trials (maskOnset=0) for first target duration (targetFrames[0])
         # e.g. mask only trials are no response rewarded if targetFrames[0]=0
         for params in trialParams[:]:
-            if ((params[5] == 0 and params[4] != self.maskOnset[0]) or
+            if ((params[3] == 0 and (params[0] != targetPosPix[0] or params[1] != self.targetContrast[0] or params[2] != self.targetOri[0])) or
+                (params[5] == 0 and params[4] != self.maskOnset[0]) or
                 (params[4] == 0 and params[3] != self.targetFrames[0])):
                 trialParams.remove(params)
         
