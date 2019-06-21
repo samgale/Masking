@@ -7,7 +7,6 @@ Created on Wed Feb 20 15:41:48 2019
 
 from __future__ import division
 import itertools, math, random
-import numpy as np
 from psychopy import visual    
 from TaskControl import TaskControl
 
@@ -20,24 +19,28 @@ class MaskingTask(TaskControl):
         # parameters that can vary across trials are lists
         # only one of targetPos and targetOri can be len() > 1        
         
-        self.preStimFrames = [240,360] # min time between end of previous trial and stimulus onset
-        self.maxResponseWaitFrames = 3600 # max time between end of openLoopFrames and end of trial
-        self.openLoopFrames = [48,96] # number of frames after stimulus onset before wheel movement has effects
+        self.preStimFramesFixed = 240 # min frames between end of previous trial and stimulus onset
+        self.preStimFramesVariableMean = 0 # mean of additional preStim frames drawn from exponential distribution
+        self.quiescentFrames = 60 # frames before stim onset during which wheel movement delays stim onset
+        self.openLoopFramesFixed = 24 # min frames after stimulus onset before wheel movement has effects
+        self.openLoopFramesVariableMean = 0 # mean of additional open loop frames drawn from exponential distribution
+        self.maxResponseWaitFrames = 360 # max frames between end of openLoopFrames and end of trial
+        
+        self.normRewardDistance = 0.25 # normalized to screen width
+        self.maxQuiescentNormMoveDist = 0.025 # movement threshold during quiescent period
         self.useGoTone = False # play tone when openLoopFrames is complete
         self.useIncorrectNoise = False # play noise when trial is incorrect
-        self.normRewardDistance = 0.25 # normalized to screen width
         self.incorrectTrialRepeats = 0 # maximum number of incorrect trial repeats
-        self.incorrectTimeoutFrames = 240 # extended gray screen following incorrect
-        self.quiescentFrames = [0,0] # frames before stim onset during which wheel movement delays stim onset
-        self.maxQuiescentNormMoveDist = 0.025 # movement threshold during quiescent period
+        self.incorrectTimeoutFrames = 0 # extended gray screen following incorrect trial
         
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
         self.moveStim = False
-        self.keepTargetOnScreen = False  # False allows for incorrect trials during training
+        self.normAutoDriftRate = 0 # fraction of screen width per second that target automatically moves
+        self.keepTargetOnScreen = False # false allows for incorrect trials during training
         self.reverseTargetPhase = False
         self.reversePhasePeriod = 15 # frames
-        self.postRewardTargetFrames = 1  # frames to freeze target after reward
+        self.postRewardTargetFrames = 1 # frames to freeze target after reward
         
         # target stimulus params
         self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
@@ -55,70 +58,79 @@ class MaskingTask(TaskControl):
         self.maskFrames = 9 # duration of mask
         self.maskOnset = [0,2,4,8,16] # frames >=0 relative to target stimulus onset
         self.maskContrast = [0,1]
+        
+        
+    def setTaskVersion(self,taskVersion,probGoRight=0.5):
+        # probGoRight is the fraction of trials in which rightward wheel motion is rewarded
+        assert(0 <= probGoRight <= 1)
+        percentRight = int(probGoRight * 100)
+        if taskVersion in ('pos','position'):
+            self.targetOri = [0]
+            self.normTargetPos = [(-0.25,0)] * percentRight + [(0.25,0)] * (100 - percentRight)
+        elif taskVersion in ('ori','orientatation'):
+            self.targetOri = [45] * percentRight + [-45] * (100 - percentRight)
+            self.normTargetPos = [(0,0)]
+        else:
+            print(str(taskVersion)+' is not a recognized version of this task')
 
     
-    def setDefaultParams(self,taskVersion,probGoRight=0.5):  # prob=how often the L stim appears
-        assert(0 <= probGoRight <= 1)
-        percentRight = int(probGoRight*100)
-        if taskVersion == 'training1':
-            # learning to associate their wheel movement with stimulus mvmt and reward
-            self.setDefaultParams('pos',probGoRight)
+    def setDefaultParams(self,name):
+        if name == 'training1':
+            # stim moves to reward automatically; wheel movement ignored
             self.moveStim = True
-            self.keepTargetOnScreen = True
-            self.openLoopFrames = [24] * 2
-            self.useGoTone = True
-            self.normRewardDistance = 0.1 
+            self.normAutoDriftRate = 0.25
+            self.normRewardDistance = 0.25
             self.postRewardTargetFrames = 60
-            self.maxResponseWaitFrames = 3600
+            self.useGoTone = True
+            self.quiescentFrames = 0
+            self.openLoopFramesFixed = 24
+            self.openLoopFramesVariableMean = 0
             self.targetSize = 50
             self.gratingEdge = 'circle'
+        elif name == 'training2':
+            # learning to associate their wheel movement with stimulus mvmt and reward
+            self.setDefaultParams('training1')
+            self.normAutoDriftRate = 0
+            self.keepTargetOnScreen = True
+            self.normRewardDistance = 0.1 
+            self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 0
-            self.quiescentFrames = [0,0]
-        elif taskVersion == 'training2':
+            self.incorrectTrialRepeats = 0
+        elif name == 'training3':
             # reinforcing move stim to center for reward, stim on screen shorter t
-            self.setDefaultParams('training1',probGoRight)
+            self.setDefaultParams('training2')
             self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 720
-        elif taskVersion == 'training3':
+        elif name == 'training4':
             # introduce and repeat incorrect trials, must move farther for reward
-            self.setDefaultParams('training2',probGoRight)
+            self.setDefaultParams('training3')
             self.normRewardDistance = 0.2
             self.keepTargetOnScreen = False
             self.maxResponseWaitFrames = 240
             self.incorrectTrialRepeats = 100
-        elif taskVersion == 'training4':
+        elif name == 'training5':
             # shorten stim presentation and add timeout for incorrect trials 
-            self.setDefaultParams('training3',probGoRight)
+            self.setDefaultParams('training4')
             self.maxResponseWaitFrames = 120
             self.incorrectTimeoutFrames = 240
             self.normRewardDistance = 0.25
-            self.solenoidOpenTime = 0.035  #reduce drop size to increase training time
-        elif taskVersion == 'training5':
+        elif name == 'training6':
             # adding the quiescent period to prevent wheel movement prior to stim presentation
-            self.setDefaultParams('training4',probGoRight)
+            self.setDefaultParams('training5')
             self.maxResponseWaitFrames = 60
-            self.quiescentFrames = [60,180]
-            self.useGoTone = False
-        elif taskVersion == 'training6':
-            self.setDefaultParams('training5',probGoRight)
-            self.useGoTone = True
-            self.openLoopFrames = [60,144]
-        elif taskVersion in ('pos','position'):
-            self.targetOri = [0]
-            self.normTargetPos = [(-0.25,0)] * percentRight + [(0.25,0)] * (100 - percentRight)
-            self.normRewardDistance = 0.25
-        elif taskVersion in ('ori','orientatation'):
-            self.targetOri = [45] * percentRight + [-45] * (100 - percentRight)
-            self.normTargetPos = [(0,0)]
-            self.normRewardDistance = 0.25
+            self.quiescentFrames = 60
+        elif name == 'training7':
+            self.setDefaultParams('training6')
+            self.openLoopFramesFixed = 60
+            self.openLoopFramesVariableMean = 144
         else:
-            print(str(taskVersion)+' is not a recognized version of this task')
+            print(str(name)+' is not a recognized set of default parameters')
     
      
     def checkParamValues(self):
         assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
-        assert(max(self.quiescentFrames) <= min(self.preStimFrames))
+        assert(self.quiescentFrames <= self.preStimFramesFixed)
         
 
     def taskFlow(self):
@@ -206,7 +218,6 @@ class MaskingTask(TaskControl):
         self.trialStartFrame = []
         self.trialEndFrame = []
         self.trialPreStimFrames = []
-        self.trialQuiescentFrames = []
         self.trialStimStartFrame = []
         self.trialOpenLoopFrames = []
         self.trialTargetPos = []
@@ -232,9 +243,9 @@ class MaskingTask(TaskControl):
             
             # if starting a new trial
             if self._trialFrame == 0:
-                self.trialPreStimFrames.append(random.randint(self.preStimFrames[0],self.preStimFrames[1]))
-                self.trialQuiescentFrames.append([random.randint(self.quiescentFrames[0],self.quiescentFrames[1])])
-                self.trialOpenLoopFrames.append(random.randint(self.openLoopFrames[0],self.openLoopFrames[1]))
+                preStimFrames = randomExponential(self.preStimFramesFixed,self.preStimFramesVariableMean)
+                self.trialPreStimFrames.append(preStimFrames)
+                self.trialOpenLoopFrames.append(randomExponential(self.openLoopFramesFixed,self.openLoopFramesVariableMean))
                 quiescentWheelPos = 0
                 closedLoopWheelPos = 0
                 initTargetPos,targetContrast,targetOri,targetFrames,maskOnset,maskContrast = trialParams[trialIndex]
@@ -262,12 +273,11 @@ class MaskingTask(TaskControl):
                 hasResponded = False
             
             # extend pre stim gray frames if wheel moving during quiescent period
-            if self.trialPreStimFrames[-1] - self.trialQuiescentFrames[-1][-1] < self._trialFrame < self.trialPreStimFrames[-1]:
+            if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
                 quiescentWheelPos += self.deltaWheelPos[-1]
                 if abs(quiescentWheelPos) > maxQuiescentDist:
                     self.quiescentMoveFrames.append(self._sessionFrame)
-                    self._trialFrame = self.trialPreStimFrames[-1] - self.trialQuiescentFrames[-1][-1]
-                    self.trialQuiescentFrames[-1].append(random.randint(self.quiescentFrames[0],self.quiescentFrames[1]))
+                    self.trialPreStimFrames[-1] += preStimFrames
                     quiescentWheelPos = 0
             
             # if gray screen period is complete, update target and mask stimuli
@@ -277,14 +287,21 @@ class MaskingTask(TaskControl):
                 if self._trialFrame >= self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
                     if self.useGoTone and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
                         self._tone = True
-                    closedLoopWheelPos += self.deltaWheelPos[-1]
                     if self.moveStim:
-                        targetPos[0] += self.deltaWheelPos[-1]
+                        if self.normAutoDriftRate > 0:
+                            autoDriftPix = rewardDir * self.normAutoDriftRate * self.monSizePix[0] / self.frameRate
+                            targetPos[0] += autoDriftPix
+                            closedLoopWheelPos += autoDriftPix
+                        else:
+                            targetPos[0] += self.deltaWheelPos[-1]
+                            closedLoopWheelPos += self.deltaWheelPos[-1]
                         if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
                             adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
                             targetPos[0] -= adjust
                             closedLoopWheelPos -= adjust
                         target.pos = targetPos
+                    else:
+                        closedLoopWheelPos += self.deltaWheelPos[-1]
                 if self.moveStim:
                     if targetFrames > 0:
                         if self.reverseTargetPhase and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
@@ -344,6 +361,11 @@ class MaskingTask(TaskControl):
                         random.shuffle(trialParams)
             
             self.showFrame()
+
+
+def randomExponential(fixed,variableMean):
+    val = fixed + random.expovariate(1/variableMean) if variableMean > 1 else fixed + variableMean
+    return int(val)
 
 
 if __name__ == "__main__":
