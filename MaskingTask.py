@@ -21,9 +21,11 @@ class MaskingTask(TaskControl):
         
         self.preStimFramesFixed = 240 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 0 # mean of additional preStim frames drawn from exponential distribution
+        self.preStimFramesMax = 600 # max total preStim frames
         self.quiescentFrames = 60 # frames before stim onset during which wheel movement delays stim onset
         self.openLoopFramesFixed = 24 # min frames after stimulus onset before wheel movement has effects
         self.openLoopFramesVariableMean = 0 # mean of additional open loop frames drawn from exponential distribution
+        self.openLoopFramesMax = 120 # max total openLoopFrames
         self.maxResponseWaitFrames = 360 # max frames between end of openLoopFrames and end of trial
         
         self.normRewardDistance = 0.25 # normalized to screen width
@@ -82,6 +84,8 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.25
             self.postRewardTargetFrames = 60
             self.useGoTone = True
+            self.preStimFramesFixed = 240
+            self.preStimFramesVariableMean = 120
             self.quiescentFrames = 0
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
@@ -92,7 +96,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training1')
             self.normAutoDriftRate = 0
             self.keepTargetOnScreen = True
-            self.normRewardDistance = 0.1 
+            self.normRewardDistance = 0.12 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 0
             self.incorrectTrialRepeats = 0
@@ -106,7 +110,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training3')
             self.normRewardDistance = 0.2
             self.keepTargetOnScreen = False
-            self.maxResponseWaitFrames = 240
+            self.maxResponseWaitFrames = 480
             self.incorrectTrialRepeats = 100
         elif name == 'training5':
             # shorten stim presentation and add timeout for incorrect trials 
@@ -245,9 +249,9 @@ class MaskingTask(TaskControl):
             
             # if starting a new trial
             if self._trialFrame == 0:
-                preStimFrames = randomExponential(self.preStimFramesFixed,self.preStimFramesVariableMean)
+                preStimFrames = randomExponential(self.preStimFramesFixed,self.preStimFramesVariableMean,self.preStimFramesMax)
                 self.trialPreStimFrames.append(preStimFrames)
-                self.trialOpenLoopFrames.append(randomExponential(self.openLoopFramesFixed,self.openLoopFramesVariableMean))
+                self.trialOpenLoopFrames.append(randomExponential(self.openLoopFramesFixed,self.openLoopFramesVariableMean,self.openLoopFramesMax))
                 quiescentWheelPos = 0
                 closedLoopWheelPos = 0
                 initTargetPos,targetContrast,targetOri,targetFrames,maskOnset,maskContrast = trialParams[trialIndex]
@@ -365,9 +369,9 @@ class MaskingTask(TaskControl):
             self.showFrame()
 
 
-def randomExponential(fixed,variableMean):
+def randomExponential(fixed,variableMean,maxTotal):
     val = fixed + random.expovariate(1/variableMean) if variableMean > 1 else fixed + variableMean
-    return int(val)
+    return int(min(val,maxTotal))
 
 
 if __name__ == "__main__":
