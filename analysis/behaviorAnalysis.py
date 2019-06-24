@@ -42,9 +42,21 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
     trialRewardDirection = d['trialRewardDir'][:trialEndFrames.size]
     trialResponse = d['trialResponse'][:trialEndFrames.size]
     deltaWheel = d['deltaWheelPos'].value
-    preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else np.array([d['preStimFrames'].value]*trialStartFrames.size)
-    openLoopFrames = d['openLoopFrames'].value    
-    trialStartFrames += preStimFrames
+    
+    if 'trialPreStimFrames' in d.keys():
+        preStimFrames = d['trialPreStimFrames'].value[:trialEndFrames.size]
+    else:
+        preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else np.array([d['preStimFrames'].value]*trialStartFrames.size)
+    
+    trialStartFrames += preStimFrames    
+    
+    if 'trialOpenLoopFrames' in d.keys():
+        openLoopFrames = d['trialOpenLoopFrames'].value
+    elif 'openLoopFrames' in d.keys():
+        openLoopFrames = d['openLoopFrames'].value
+    else:
+        return ValueError 
+    
     
     if 'rewardFrames' in d.keys():
         rewardFrames = d['rewardFrames'].value
