@@ -19,9 +19,9 @@ class MaskingTask(TaskControl):
         # parameters that can vary across trials are lists
         # only one of targetPos and targetOri can be len() > 1        
         
-        self.preStimFramesFixed = 240 # min frames between end of previous trial and stimulus onset
-        self.preStimFramesVariableMean = 0 # mean of additional preStim frames drawn from exponential distribution
-        self.preStimFramesMax = 600 # max total preStim frames
+        self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
+        self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
+        self.preStimFramesMax = 720 # max total preStim frames
         self.quiescentFrames = 60 # frames before stim onset during which wheel movement delays stim onset
         self.openLoopFramesFixed = 24 # min frames after stimulus onset before wheel movement has effects
         self.openLoopFramesVariableMean = 0 # mean of additional open loop frames drawn from exponential distribution
@@ -84,15 +84,16 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.25
             self.postRewardTargetFrames = 60
             self.useGoTone = True
-            self.preStimFramesFixed = 240
+            self.preStimFramesFixed = 360
             self.preStimFramesVariableMean = 120
+            self.preStimFramesMax = 720
             self.quiescentFrames = 0
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
             self.targetSize = 50
             self.gratingEdge = 'circle'
         elif name == 'training2':
-            # learning to associate their wheel movement with stimulus mvmt and reward
+            # learning to associate wheel movement with stimulus movement and reward
             self.setDefaultParams('training1')
             self.normAutoDriftRate = 0
             self.keepTargetOnScreen = True
@@ -101,32 +102,33 @@ class MaskingTask(TaskControl):
             self.incorrectTimeoutFrames = 0
             self.incorrectTrialRepeats = 0
         elif name == 'training3':
-            # reinforcing move stim to center for reward, stim on screen shorter t
+            # introduce incorrect trials and shorter wait time
             self.setDefaultParams('training2')
             self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 720
+            self.keepTargetOnScreen = False
+            self.incorrectTrialRepeats = 4
         elif name == 'training4':
-            # introduce and repeat incorrect trials, must move farther for reward
+            # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3')
             self.normRewardDistance = 0.2
-            self.keepTargetOnScreen = False
             self.maxResponseWaitFrames = 480
-            self.incorrectTrialRepeats = 100
+            self.incorrectTrialRepeats = 10
         elif name == 'training5':
-            # shorten stim presentation and add timeout for incorrect trials 
+            # introduce quiencent period, incorrect timeouts, and no-go trials
             self.setDefaultParams('training4')
-            self.maxResponseWaitFrames = 120
-            self.incorrectTimeoutFrames = 240
             self.normRewardDistance = 0.25
-        elif name == 'training6':
-            # adding the quiescent period to prevent wheel movement prior to stim presentation
-            self.setDefaultParams('training5')
-            self.maxResponseWaitFrames = 60
+            self.maxResponseWaitFrames = 240
+            self.incorrectTimeoutFrames = 240
+            self.targetFrames = [0,4] # second number doesn't matter
             self.quiescentFrames = 60
-        elif name == 'training7':
-            self.setDefaultParams('training6')
-            self.openLoopFramesFixed = 60
-            self.openLoopFramesVariableMean = 144
+        elif name == 'training6':
+            # introduce variable open loop frames
+            self.setDefaultParams('training5')
+            self.maxResponseWaitFrames = 120
+            self.openLoopFramesFixed = 24
+            self.openLoopFramesVariableMean = 36
+            self.openLoopFramesMax = 180
         else:
             print(str(name)+' is not a recognized set of default parameters')
     
