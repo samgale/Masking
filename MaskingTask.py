@@ -52,14 +52,14 @@ class MaskingTask(TaskControl):
         self.targetSF = 0.04 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         self.gratingType = 'sqr' # 'sqr' or 'sin'
-        self.gratingEdge= 'gauss' # 'gauss' or 'circle'
+        self.gratingEdge= 'circle' # 'gauss' or 'circle'
         
         # mask params
-        self.maskType = 'plaid' # None, 'plaid', or 'noise'
+        self.maskType = None # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
         self.maskFrames = 9 # duration of mask
-        self.maskOnset = [0,2,4,8,16] # frames >=0 relative to target stimulus onset
-        self.maskContrast = [0,1]
+        self.maskOnset = [30] # frames >=0 relative to target stimulus onset; include 0 for mask only trials
+        self.maskContrast = [1] # include 0 for target only trials
         
         
     def setTaskVersion(self,taskVersion,probGoRight=0.5):
@@ -114,12 +114,12 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 480
             self.incorrectTrialRepeats = 10
+            # self.incorrectTimeoutFrames = 240
         elif name == 'training5':
-            # introduce quiencent period, incorrect timeouts, and no-go trials
+            # introduce quiencent period and no-go trials
             self.setDefaultParams('training4')
             self.normRewardDistance = 0.25
             self.maxResponseWaitFrames = 240
-            self.incorrectTimeoutFrames = 240
             self.targetFrames = [0,4] # second number doesn't matter
             self.quiescentFrames = 60
         elif name == 'training6':
@@ -325,20 +325,20 @@ class MaskingTask(TaskControl):
                     elif self._trialFrame < self.trialPreStimFrames[-1] + targetFrames:
                         target.draw()
             
-                # define response if wheel moved past threshold (either side) or max trial duration reached          
-                if abs(closedLoopWheelPos) > rewardDist:
-                    if closedLoopWheelPos * rewardDir > 0 and targetFrames > 0:
-                        self.trialResponse.append(1) # correct
-                        self._reward = True
-                        self.trialResponseFrame.append(self._sessionFrame)
-                        hasResponded = True
-                    elif not self.keepTargetOnScreen or targetFrames == 0:
-                        self.trialResponse.append(-1) # incorrect
-                        if self.useIncorrectNoise:
-                            self._noise = True
-                        self.trialResponseFrame.append(self._sessionFrame)
-                        hasResponded = True
-                if not hasResponded and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
+                # define response if wheel moved past threshold (either side) or max trial duration reached
+                if closedLoopWheelPos * rewardDir > rewardDist and targetFrames > 0:
+                    self.trialResponse.append(1) # correct
+                    self._reward = True
+                    self.trialResponseFrame.append(self._sessionFrame)
+                    hasResponded = True
+                elif ((closedLoopWheelPos * -rewardDir > rewardDist and not self.keepTargetOnScreen) or 
+                      (targetFrames == 0 and abs(closedLoopWheelPos) > maxQuiescentDist)):
+                    self.trialResponse.append(-1) # incorrect
+                    if self.useIncorrectNoise:
+                        self._noise = True
+                    self.trialResponseFrame.append(self._sessionFrame)
+                    hasResponded = True
+                elif not hasResponded and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                     self.trialResponse.append(0) # no response
                     if targetFrames == 0:
                         self._reward = True
