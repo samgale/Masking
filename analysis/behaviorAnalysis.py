@@ -16,19 +16,20 @@ import matplotlib as mpl
 mpl.rcParams['pdf.fonttype']=42
 
 '''
-    Makes plot of trial by trial wheel trajectory color coded by initial target position  
+    Makes plot of trial by trial wheel trajectory color coded by reward direction (turning direction)  
     INPUTS:
-    dataFile: path to h5 file created at end of behavioral session
+    data: path to h5 file created at end of behavioral session
     returnData: whether to return the trial wheel data for go right and go left trials. Default is to not return data.
     responseFilter: list of trial responses to include. For example [-1, 1] to analyze only active response trials.
                     [1] to analyze only hits etc. Defaults to include all trials
+    ignoreRepeats:  choose to omit the repeated trials after an incorrect trials, if repeatIncorrectTrials is set
     
     OUTPUTS:
     rightTrials, leftTrials: numpy arrays of all go right and go left trial wheel trajectories. Trials are padded
                             with nans to correct for variable length. 
 '''
     
-def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowBeforeStart=0):
+def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=False, framesToShowBeforeStart=0):
 
     #Clean up inputs if needed    
     #if response filter is an int, make it a list
@@ -52,8 +53,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
     elif 'openLoopFrames' in d.keys():
         openLoopFrames = d['openLoopFrames'].value
     else:
-        return ValueError 
-    
+        raise ValueError 
     
     if 'rewardFrames' in d.keys():
         rewardFrames = d['rewardFrames'].value
@@ -61,11 +61,20 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
         responseTrials = np.where(trialResponse!= 0)[0]
         rewardFrames = d['responseFrames'].value[trialResponse[responseTrials]>0]
     else:
-        rewardFrames = d['trialResponseFrame'].value[trialResponse>0]
+        rewardFrames = d['trialResponseFrame'].value[trialResponse>0]    
+        
+    # to ignore those repeated trials following an incorrect trial set to True    
+    if ignoreRepeats == True:
+        prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]==-1))
+        trialResponse = trialResponse[prevTrialIncorrect==False] if 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'].value else trialResponse
+    else:
+        pass
+    
+
 
     fig, ax = plt.subplots()
     
-    # for rightTrials stim presented on R, turn left - viceversa for leftTrials
+    # for rightTrials==left turning: stim presented on R, turn left - viceversa for leftTrials
     rightTrials = []
     leftTrials = []
     trialTime = (np.arange(max(trialEndFrames-trialStartFrames+framesToShowBeforeStart))-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
@@ -78,12 +87,12 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], framesToShowB
                 trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                 rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
                 if rewardDirection<0:
-                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)
+                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)
                     if rewardFrame is not None:
                         ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
                     rightTrials.append(trialWheel)
                 else:
-                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)
+                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)
                     if rewardFrame is not None:
                         ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
                     leftTrials.append(trialWheel)
