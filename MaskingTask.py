@@ -92,8 +92,10 @@ class MaskingTask(TaskControl):
             self.openLoopFramesVariableMean = 0
             self.targetSize = 50
             self.gratingEdge = 'circle'
+            
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
+            # only use 1-2 sessions
             self.setDefaultParams('training1')
             self.normAutoDriftRate = 0
             self.keepTargetOnScreen = True
@@ -101,31 +103,36 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 0
             self.incorrectTrialRepeats = 0
+            
         elif name == 'training3':
-            # introduce incorrect trials and shorter wait time
+            # start training, introduce incorrect trials and shorter wait time
             self.setDefaultParams('training2')
             self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 720
             self.keepTargetOnScreen = False
-            self.incorrectTrialRepeats = 4
+            self.incorrectTrialRepeats = 10
+            
         elif name == 'training4':
-            # similar to training3 but more stringent parameter settings
+            # similar to training3 but more stringent parameter settings, add q period
             self.setDefaultParams('training3')
             self.normRewardDistance = 0.2
-            self.maxResponseWaitFrames = 480
-            self.incorrectTrialRepeats = 10
+            self.maxResponseWaitFrames = 240
+            self.incorrectTrialRepeats = 6
             # self.incorrectTimeoutFrames = 240
+            self.quiescentFrames = 60
+            
         elif name == 'training5':
-            # introduce quiencent period and no-go trials
+            # introduce no-go trials
             self.setDefaultParams('training4')
             self.normRewardDistance = 0.25
-            self.maxResponseWaitFrames = 240
-            self.targetFrames = [0,4] # second number doesn't matter
-            self.quiescentFrames = 60
+            self.maxResponseWaitFrames = 120
+            self.targetFrames = [0,4] # second number doesn't matter here
+            self.incorrectTrialRepeats = 4
+            
         elif name == 'training6':
             # introduce variable open loop frames
             self.setDefaultParams('training5')
-            self.maxResponseWaitFrames = 120
+            self.maxResponseWaitFrames = 60
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 36
             self.openLoopFramesMax = 180
