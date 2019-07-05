@@ -25,7 +25,7 @@ mpl.rcParams['pdf.fonttype']=42
     ignoreRepeats:  choose to omit the repeated trials after an incorrect trials, if repeatIncorrectTrials is set
     
     OUTPUTS:
-    rightTrials, leftTrials: numpy arrays of all go right and go left trial wheel trajectories. Trials are padded
+    rightTrials, turnLeftTrials: numpy arrays of all go right and go left trial wheel trajectories. Trials are padded
                             with nans to correct for variable length. 
 '''
     
@@ -74,9 +74,9 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
 
     fig, ax = plt.subplots()
     
-    # for rightTrials==left turning: stim presented on R, turn left - viceversa for leftTrials
-    rightTrials = []
-    leftTrials = []
+    # turnRightTrials == stim presented on L, turn right - viceversa for turnLeftTrials - or for orientation, turn right
+    turnRightTrials = []
+    turnLeftTrials = []
     trialTime = (np.arange(max(trialEndFrames-trialStartFrames+framesToShowBeforeStart))-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
     for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
         if i>0 and i<len(trialStartFrames):
@@ -86,21 +86,21 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                 trialWheel -= trialWheel[0]
                 trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                 rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
-                if rewardDirection<0:
-                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)
+                if rewardDirection>0:
+                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)  #plotting right turning 
                     if rewardFrame is not None:
                         ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
-                    rightTrials.append(trialWheel)
+                    turnRightTrials.append(trialWheel)
                 else:
-                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)
+                    ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
                     if rewardFrame is not None:
                         ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
-                    leftTrials.append(trialWheel)
+                    turnLeftTrials.append(trialWheel)
             
-    rightTrials = pd.DataFrame(rightTrials).fillna(np.nan).values
-    leftTrials = pd.DataFrame(leftTrials).fillna(np.nan).values
-    ax.plot(trialTime[:rightTrials.shape[1]], np.nanmean(rightTrials,0), 'r', linewidth=3)
-    ax.plot(trialTime[:leftTrials.shape[1]], np.nanmean(leftTrials, 0), 'b', linewidth=3)
+    turnRightTrials = pd.DataFrame(turnRightTrials).fillna(np.nan).values
+    turnLeftTrials = pd.DataFrame(turnLeftTrials).fillna(np.nan).values
+    ax.plot(trialTime[:turnRightTrials.shape[1]], np.nanmean(turnRightTrials,0), 'r', linewidth=3)
+    ax.plot(trialTime[:turnLeftTrials.shape[1]], np.nanmean(turnLeftTrials, 0), 'b', linewidth=3)
     ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
     
     name_date = str(data).split('_')    
@@ -108,7 +108,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)', title=name_date[-3:-1])
     
     if returnData:
-        return rightTrials, leftTrials
+        return turnRightTrials, turnLeftTrials
 
 def get_files(mouse_id):
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
