@@ -150,7 +150,9 @@ def formatFigure(fig, ax, title=None, xLabel=None, yLabel=None, xTickLabels=None
         fig.patch.set_facecolor('k')
     if saveName is not None:
         fig.savefig(saveName, facecolor=fig.get_facecolor())
-        
+ 
+
+       
 def performanceByParam(data, paramName, units=''):
     
     if not paramName in data.keys():

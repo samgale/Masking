@@ -27,7 +27,7 @@ mpl.rcParams['pdf.fonttype']=42
 # get hdf5 files for each mouse
 def get_files(mouse_id):
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
-    dataDir = os.path.join(os.path.join(directory, mouse_id), '_to_analyze')
+    dataDir = os.path.join(os.path.join(directory, mouse_id), 'training_to_analyze')
     files = os.listdir(dataDir)
     files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))
     return [os.path.join(dataDir,f) for f in files]     
@@ -41,8 +41,9 @@ def trials(data):
     return percentCorrect
 
 
-mice = ['439508', '439502', '441357', '441358']
-mice = ['441358']
+#mice = ['439508', '439502', '441357', '441358']
+#mice = ['441358']
+mice = ['460313']
 
 fig, axes = plt.subplots(len(mice),1)
 if len(mice)==1:
@@ -84,10 +85,14 @@ for im, (ax,mouse) in enumerate(zip(axes, mice)):
 #    else:
 #        axes[im].set_xlabel('Session number')
 #        axes[im].set_ylabel('Hit Rate')
-#        
+#   
+
+    ax.plot(hitRate, 'ko-')
     ax.text(0.1, 0.9, mouse)
     ax.set_ylim([0,1])
-    ax.fill_between(np.arange(len(files)), chanceRates[:, 0], chanceRates[:, 1], color='g', alpha=0.2)
+    ax.fill_between(np.arange(len(hitRate)), chanceRates[:, 0], chanceRates[:, 1], color='g', alpha=0.2)
+
+            
     ax.plot(hitRate, 'ko-')
     if im<len(mice)-1:
         ax.tick_params(labelbottom='off')
