@@ -338,23 +338,23 @@ class MaskingTask(TaskControl):
                         target.draw()
             
                 # define response if wheel moved past threshold (either side) or max trial duration reached
-                # trialResponse on go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
-                # trialResponse on no go trials is 1 for no response or -1 for movement in either direction
+                # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
+                # trialResponse for no go trials is 1 for no response or -1 for movement in either direction
                 if closedLoopWheelPos * rewardDir > rewardDist and targetFrames > 0:
-                    self.trialResponse.append(1) # correct
+                    self.trialResponse.append(1) # correct movement
                     self._reward = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 elif ((closedLoopWheelPos * -rewardDir > rewardDist and not self.keepTargetOnScreen) or 
                       (targetFrames == 0 and abs(closedLoopWheelPos) > maxQuiescentDist)):
-                    self.trialResponse.append(-1) # incorrect
+                    self.trialResponse.append(-1) # incorrect movement
                     if self.useIncorrectNoise:
                         self._noise = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 elif not hasResponded and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                     if targetFrames == 0:
-                        self.trialResponse.append(1) # correct no go
+                        self.trialResponse.append(1) # correct no response
                         self._reward = True
                     else:
                         self.trialResponse.append(0) # no response on go trial
@@ -363,13 +363,13 @@ class MaskingTask(TaskControl):
                 
             # show any post response stimuli or end trial
             if hasResponded:
-                if (self.trialResponse[-1] > 0 and
+                if (self.trialResponse[-1] > 0 and targetFrames > 0 and
                     self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
                     if self._sessionFrame == self.trialResponseFrame[-1]:
                         targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
                         target.pos = targetPos
                     target.draw()
-                elif (self.trialResponse[-1] < 0 and 
+                elif (self.trialResponse[-1] < 1 and 
                       self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
                     pass
                 else:
