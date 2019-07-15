@@ -118,8 +118,8 @@ class MaskingTask(TaskControl):
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings, add q period
             self.setDefaultParams('training3')
-            self.normRewardDistance = 0.2
-            self.maxResponseWaitFrames = 240
+            self.normRewardDistance = 0.18
+            self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 6
             # self.incorrectTimeoutFrames = 240
             self.quiescentFrames = 60
@@ -128,7 +128,7 @@ class MaskingTask(TaskControl):
             # introduce no-go trials
             self.setDefaultParams('training4')
             self.normRewardDistance = 0.25
-            self.maxResponseWaitFrames = 120
+            self.maxResponseWaitFrames = 60
             self.targetFrames = [0,4] # second number doesn't matter here
             self.incorrectTrialRepeats = 4
             
