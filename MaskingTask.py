@@ -17,7 +17,10 @@ class MaskingTask(TaskControl):
         TaskControl.__init__(self)
         
         # parameters that can vary across trials are lists
-        # only one of targetPos and targetOri can be len() > 1        
+        # only one of targetPos and targetOri can be len() > 1
+        # targetFrames=0 trials are no response rewarded
+        # maskOnset=0 trials are mask only
+        # maskContrast=0 trials are target only
         
         self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
@@ -136,6 +139,8 @@ class MaskingTask(TaskControl):
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 36
             self.openLoopFramesMax = 180
+            self.incorrectTrialRepeats = 0
+            
         else:
             print(str(name)+' is not a recognized set of default parameters')
     
@@ -333,40 +338,44 @@ class MaskingTask(TaskControl):
                         target.draw()
             
                 # define response if wheel moved past threshold (either side) or max trial duration reached
+                # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
+                # trialResponse for no go trials is 1 for no response or -1 for movement in either direction
                 if closedLoopWheelPos * rewardDir > rewardDist and targetFrames > 0:
-                    self.trialResponse.append(1) # correct
+                    self.trialResponse.append(1) # correct movement
                     self._reward = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 elif ((closedLoopWheelPos * -rewardDir > rewardDist and not self.keepTargetOnScreen) or 
                       (targetFrames == 0 and abs(closedLoopWheelPos) > maxQuiescentDist)):
-                    self.trialResponse.append(-1) # incorrect
+                    self.trialResponse.append(-1) # incorrect movement
                     if self.useIncorrectNoise:
                         self._noise = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 elif not hasResponded and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
-                    self.trialResponse.append(0) # no response
                     if targetFrames == 0:
+                        self.trialResponse.append(1) # correct no response
                         self._reward = True
+                    else:
+                        self.trialResponse.append(0) # no response on go trial
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 
             # show any post response stimuli or end trial
             if hasResponded:
-                if (self.trialResponse[-1] > 0 and
+                if (self.trialResponse[-1] > 0 and targetFrames > 0 and
                     self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
                     if self._sessionFrame == self.trialResponseFrame[-1]:
                         targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
                         target.pos = targetPos
                     target.draw()
-                elif (self.trialResponse[-1] < 0 and 
+                elif (self.trialResponse[-1] < 1 and 
                       self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
                     pass
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
-                    if self.trialResponse[-1] < 0 and incorrectRepeatCount < self.incorrectTrialRepeats:
+                    if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
                         incorrectRepeatCount += 1
                     else:
                         trialIndex += 1
