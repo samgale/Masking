@@ -63,15 +63,20 @@ class MaskingTask(TaskControl):
         self.maskContrast = [1] # include 0 for target only trials
         
         
-    def setTaskVersion(self,taskVersion,probGoRight=0.5):
-        # probGoRight is the fraction of trials in which rightward wheel motion is rewarded
-        assert(0 <= probGoRight <= 1)
-        percentRight = int(probGoRight * 10)
+    def setTaskVersion(self,taskVersion,percentRightLeftNogo=None):
+        if percentRightLeftNogo is None:
+            percentGoRight = 50
+        else:
+            assert(sum(percentRightLeftNogo)==100)
+            R,L,nogo = percentRightLeftNogo
+            percentGoRight = int(100 * R/(R+L))
+            self.fractionNoResponseRewarded = nogo/100
+        percentGoLeft = 100 - percentGoRight
         if taskVersion in ('pos','position'):
             self.targetOri = [0]
-            self.normTargetPos = [(-0.25,0)] * percentRight + [(0.25,0)] * (10 - percentRight)
+            self.normTargetPos = [(-0.25,0)]*percentGoRight + [(0.25,0)]*percentGoLeft
         elif taskVersion in ('ori','orientatation'):
-            self.targetOri = [45] * percentRight + [-45] * (10 - percentRight)
+            self.targetOri = [45]*percentGoRight + [-45]*percentGoLeft
             self.normTargetPos = [(0,0)]
         else:
             print(str(taskVersion)+' is not a recognized version of this task')
@@ -148,11 +153,11 @@ class MaskingTask(TaskControl):
         assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
         assert(self.quiescentFrames <= self.preStimFramesFixed)
-        assert(0 not in self.trgetFrames+self.maskOnset+self.maskContrast)
+        assert(0 not in self.targetFrames+self.maskOnset+self.maskContrast)
         
 
     def taskFlow(self):
-        self.checkParamValues()        
+        self.checkParamValues()       
         
         # create target stimulus
         targetPosPix = [tuple(p[i] * self.monSizePix[i] for i in (0,1)) for p in self.normTargetPos]
@@ -216,13 +221,12 @@ class MaskingTask(TaskControl):
         
         # create list of trial parameter combinations
         # no mask trials (maskContrast=0)
-        if self.maskType is not None:
-            trialParams = list(itertools.product([targetPosPix[0]],
-                                                 [self.targetContrast[0]],
-                                                 [self.targetOri[0]],
-                                                 self.targetFrames,
-                                                 [0],
-                                                 [0]))
+        trialParams = list(itertools.product(targetPosPix,
+                                             self.targetContrast,
+                                             self.targetOri,
+                                             self.targetFrames,
+                                             [0],
+                                             [0]))
         
         # add masking trials
         if self.maskType is not None:
@@ -235,8 +239,8 @@ class MaskingTask(TaskControl):
         
         # add no response rewarded trials
         # includes trials with no target or mask (targetFrames=0) and trials with mask only (maskOnset=0)
-        n = int(self.fractionNoResponseRewarded * len(trialParams))
-        trialParams += n * list(itertools.product([targetPosPix[0]],
+        n = int(self.fractionNoResponseRewarded * len(trialParams) / (1 - self.fractionNoResponseRewarded))
+        trialParams += n * list(itertools.product([(0,0)],
                                                   [self.targetContrast[0]],
                                                   [self.targetOri[0]],
                                                   [0],
@@ -244,6 +248,10 @@ class MaskingTask(TaskControl):
                                                   self.maskContrast))
         
         random.shuffle(trialParams)
+        
+        print('N right: '+str(sum([1 for p in trialParams if p[0][0]>0])))
+        print('N left: '+str(sum([1 for p in trialParams if p[0][0]<0])))
+        print('N nogo: '+str(sum([1 for p in trialParams if p[3]==0])))
         
         # things to keep track of
         self.trialStartFrame = []
