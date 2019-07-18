@@ -130,7 +130,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.25
             self.maxResponseWaitFrames = 60
             self.targetFrames = [0,4] # second number doesn't matter here
-            self.incorrectTrialRepeats = 4
+            self.incorrectTrialRepeats = 100
             
         elif name == 'training6':
             # introduce variable open loop frames
