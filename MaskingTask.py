@@ -76,7 +76,7 @@ class MaskingTask(TaskControl):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0)]*percentGoRight + [(0.25,0)]*percentGoLeft
         elif taskVersion in ('ori','orientatation'):
-            self.targetOri = [45]*percentGoRight + [-45]*percentGoLeft
+            self.targetOri = [-45]*percentGoRight + [45]*percentGoLeft
             self.normTargetPos = [(0,0)]
         else:
             print(str(taskVersion)+' is not a recognized version of this task')
@@ -292,7 +292,7 @@ class MaskingTask(TaskControl):
                 if len(self.normTargetPos) > 1:
                     rewardDir = -1 if targetPos[0] > 0 else 1
                 else:
-                    rewardDir = -1 if targetOri < 0 else 1
+                    rewardDir = -1 if targetOri > 0 else 1
                 target.pos = targetPos
                 target.contrast = targetContrast
                 target.ori = targetOri
