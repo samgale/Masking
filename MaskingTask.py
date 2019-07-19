@@ -19,6 +19,10 @@ class MaskingTask(TaskControl):
         # parameters that can vary across trials are lists
         # only one of targetPos and targetOri can be len() > 1
         
+        self.taskVersion = None
+        self.fracTrialsGoRight = 0.5 # if taskVersion defined, fraction of trials with go-right target, rewarded for rightward movement of wheel
+        self.fracTrialsNoGo = 0 # fraction of trials with no target, rewarded for no movement of wheel
+        
         self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
         self.preStimFramesMax = 720 # max total preStim frames
@@ -30,7 +34,6 @@ class MaskingTask(TaskControl):
         
         self.normRewardDistance = 0.25 # normalized to screen width
         self.maxQuiescentNormMoveDist = 0.025 # movement threshold during quiescent period
-        self.fractionNoResponseRewarded = 0 # fraction of trials with no target that are rewarded for no movement of wheel
         self.useGoTone = False # play tone when openLoopFrames is complete
         self.useIncorrectNoise = False # play noise when trial is incorrect
         self.incorrectTrialRepeats = 0 # maximum number of incorrect trial repeats
@@ -60,31 +63,14 @@ class MaskingTask(TaskControl):
         self.maskShape = 'target' # 'target', 'surround', 'full'
         self.maskFrames = 9 # duration of mask
         self.maskOnset = [30] # frames >=0 relative to target stimulus onset; include 0 for mask only trials
-        self.maskContrast = [1] # include 0 for target only trials
-        
-        
-    def setTaskVersion(self,taskVersion,percentRightLeftNogo=None):
-        if percentRightLeftNogo is None:
-            percentGoRight = 50
-        else:
-            assert(sum(percentRightLeftNogo)==100)
-            R,L,nogo = percentRightLeftNogo
-            percentGoRight = int(100 * R/(R+L))
-            self.fractionNoResponseRewarded = nogo/100
-        percentGoLeft = 100 - percentGoRight
-        if taskVersion in ('pos','position'):
-            self.targetOri = [0]
-            self.normTargetPos = [(-0.25,0)]*percentGoRight + [(0.25,0)]*percentGoLeft
-        elif taskVersion in ('ori','orientatation'):
-            self.targetOri = [-45]*percentGoRight + [45]*percentGoLeft
-            self.normTargetPos = [(0,0)]
-        else:
-            print(str(taskVersion)+' is not a recognized version of this task')
+        self.maskContrast = [1] # include 0 for target only trials      
 
     
     def setDefaultParams(self,name):
         if name == 'training1':
             # stim moves to reward automatically; wheel movement ignored
+            self.fracTrialsGoRight = 0.5
+            self.fracTrialsNoGo = 0
             self.moveStim = True
             self.normAutoMoveRate = 0.25
             self.normRewardDistance = 0.25
@@ -133,7 +119,8 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training4')
             self.normRewardDistance = 0.25
             self.maxResponseWaitFrames = 60
-            self.fractionNoResponseRewarded = 0.33
+            self.fracTrialsGoRight = 0.33
+            self.fracTrialsNoGo = 0.34
             self.incorrectTrialRepeats = 100
             
         elif name == 'training6':
@@ -157,7 +144,19 @@ class MaskingTask(TaskControl):
         
 
     def taskFlow(self):
-        self.checkParamValues()       
+        self.checkParamValues()
+        
+        # set up go right or left trials in correct proportions
+        R = self.fracTrialsGoRight * 100
+        L = 100 - R - (self.fracTrialsNoGo *100)
+        if self.taskVersion in ('pos','position'):
+            self.targetOri = [0]
+            self.normTargetPos = [(-0.25,0)]*R + [(0.25,0)]*L
+        elif self.taskVersion in ('ori','orientatation'):
+            self.targetOri = [-45]*R + [45]*L
+            self.normTargetPos = [(0,0)]
+        else:
+            print(str(self.taskVersion)+' is not a recognized version of this task')
         
         # create target stimulus
         targetPosPix = [tuple(p[i] * self.monSizePix[i] for i in (0,1)) for p in self.normTargetPos]
@@ -238,20 +237,16 @@ class MaskingTask(TaskControl):
                                                   self.maskContrast))
         
         # add no response rewarded trials
-        # includes trials with no target or mask (targetFrames=0) and trials with mask only (maskOnset=0)
-        n = int(self.fractionNoResponseRewarded * len(trialParams) / (1 - self.fractionNoResponseRewarded))
+        # includes trials with no target (targetFrames=0) and either no mask (maskContrast=0) or mask only (maskContrast>0)
+        n = int(self.fracTrialsNogo * len(trialParams) / (1 - self.fracTrialsNoGo))
         trialParams += n * list(itertools.product([(0,0)],
-                                                  [self.targetContrast[0]],
-                                                  [self.targetOri[0]],
                                                   [0],
                                                   [0],
-                                                  self.maskContrast))
+                                                  [0],
+                                                  [0],
+                                                  [0]+self.maskContrast))
         
         random.shuffle(trialParams)
-        
-        print('N right: '+str(sum([1 for p in trialParams if p[0][0]>0])))
-        print('N left: '+str(sum([1 for p in trialParams if p[0][0]<0])))
-        print('N nogo: '+str(sum([1 for p in trialParams if p[3]==0])))
         
         # things to keep track of
         self.trialStartFrame = []
