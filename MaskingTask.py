@@ -49,7 +49,7 @@ class MaskingTask(TaskControl):
         self.postRewardTargetFrames = 1 # frames to freeze target after reward
         
         # target stimulus params
-        self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
+        self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [2] # duration of target stimulus; targetFrames=0 for no response rewarded trials
         self.targetContrast = [1]
         self.targetSize = 45 # degrees
@@ -73,7 +73,8 @@ class MaskingTask(TaskControl):
             self.fracTrialsNoGo = 0
             self.moveStim = True
             self.normAutoMoveRate = 0.25
-            self.normRewardDistance = 0.25
+            self.normRewardDistance =  0.25
+            self.maxResponseWaitFrames = 3600
             self.postRewardTargetFrames = 60
             self.gratingDriftFreq = 1
             self.useGoTone = True
@@ -141,6 +142,7 @@ class MaskingTask(TaskControl):
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
         assert(self.quiescentFrames <= self.preStimFramesFixed)
         assert(0 not in self.targetFrames+self.maskOnset+self.maskContrast)
+        assert((self.fracTrialsGoRight + self.fracTrialsNoGo) <= 1)
         
 
     def taskFlow(self):
