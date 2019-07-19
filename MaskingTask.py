@@ -147,13 +147,13 @@ class MaskingTask(TaskControl):
         self.checkParamValues()
         
         # set up go right or left trials in correct proportions
-        R = self.fracTrialsGoRight * 100
-        L = 100 - R - (self.fracTrialsNoGo *100)
+        R = int(self.fracTrialsGoRight * 100)
+        L = 100 - R - int(self.fracTrialsNoGo *100)
         if self.taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0)]*R + [(0.25,0)]*L
         elif self.taskVersion in ('ori','orientatation'):
-            self.targetOri = [-45]*R + [45]*L
+            self.targetOri = [-45]*L + [45]*R
             self.normTargetPos = [(0,0)]
         else:
             print(str(self.taskVersion)+' is not a recognized version of this task')
@@ -238,13 +238,14 @@ class MaskingTask(TaskControl):
         
         # add no response rewarded trials
         # includes trials with no target (targetFrames=0) and either no mask (maskContrast=0) or mask only (maskContrast>0)
-        n = int(self.fracTrialsNogo * len(trialParams) / (1 - self.fracTrialsNoGo))
+        nogoMaskContrast = [] if self.maskType is None else self.maskContrast
+        n = int(self.fracTrialsNoGo * len(trialParams) / (1 - self.fracTrialsNoGo) / (len(nogoMaskContrast)+1))
         trialParams += n * list(itertools.product([(0,0)],
                                                   [0],
                                                   [0],
                                                   [0],
                                                   [0],
-                                                  [0]+self.maskContrast))
+                                                  [0]+nogoMaskContrast))
         
         random.shuffle(trialParams)
         
@@ -287,7 +288,7 @@ class MaskingTask(TaskControl):
                 if len(self.normTargetPos) > 1:
                     rewardDir = -1 if targetPos[0] > 0 else 1
                 else:
-                    rewardDir = -1 if targetOri > 0 else 1
+                    rewardDir = -1 if targetOri < 0 else 1
                 target.pos = targetPos
                 target.contrast = targetContrast
                 target.ori = targetOri
