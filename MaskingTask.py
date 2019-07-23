@@ -75,11 +75,8 @@ class MaskingTask(TaskControl):
             self.fracTrialsGoRight = 0.5
             self.fracTrialsNoGo = 0
             self.moveStim = True
-            self.normAutoMoveRate = 0.25
-            self.normRewardDistance =  0.25
             self.maxResponseWaitFrames = 3600
             self.postRewardTargetFrames = 60
-            self.gratingDriftFreq = 1
             self.useGoTone = True
             self.preStimFramesFixed = 360
             self.preStimFramesVariableMean = 120
@@ -87,10 +84,15 @@ class MaskingTask(TaskControl):
             self.quiescentFrames = 0
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
-            self.targetSize = 50
             self.gratingEdge = 'circle'
-            if self.taskVersion=='rot':
+            if self.taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 45
+                self.rewardRotation = 45
+                self.targetSize = 120
+            else:
+                self.normAutoMoveRate = 0.25
+                self.normRewardDistance =  0.25
+                self.targetSize = 60
             
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
