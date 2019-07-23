@@ -89,7 +89,7 @@ class MaskingTask(TaskControl):
             self.openLoopFramesVariableMean = 0
             self.targetSize = 50
             self.gratingEdge = 'circle'
-            if self.taskVersion == 'rot':
+            if self.taskVersion=='rot':
                 self.autoRotationRate = 45
             
         elif name == 'training2':
