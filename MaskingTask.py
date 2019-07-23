@@ -355,7 +355,7 @@ class MaskingTask(TaskControl):
                 if self.moveStim:
                     if targetFrames > 0:
                         if self.autoRotationRate > 0:
-                            target.ori = target.ori + rewardDir * self.autoRotationRate
+                            target.ori = target.ori + rewardDir * self.autoRotationRate / self.frameRate
                         elif self.gratingRotationGain > 0:
                             target.ori = target.ori + self.deltaWheelPos[-1] * self.gratingRotationGain
                             if self.keepTargetOnScreen:
