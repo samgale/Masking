@@ -89,6 +89,8 @@ class MaskingTask(TaskControl):
             self.openLoopFramesVariableMean = 0
             self.targetSize = 50
             self.gratingEdge = 'circle'
+            if self.taskVersion == 'rot':
+                self.autoRotationRate = 45
             
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
@@ -338,25 +340,26 @@ class MaskingTask(TaskControl):
                         self._tone = True
                     if self.gratingRotationGain == 0:
                         if self.moveStim:
-                            if self.normAutoMoveRate > 0:
-                                autoDriftPix = rewardDir * self.normAutoMoveRate * self.monSizePix[0] / self.frameRate
-                                targetPos[0] += autoDriftPix
-                                closedLoopWheelPos += autoDriftPix
+                            if self.autoRotationRate > 0:
+                                target.ori = target.ori + rewardDir * self.autoRotationRate / self.frameRate
                             else:
-                                targetPos[0] += self.deltaWheelPos[-1]
-                                closedLoopWheelPos += self.deltaWheelPos[-1]
-                            if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
-                                adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
-                                targetPos[0] -= adjust
-                                closedLoopWheelPos -= adjust
-                            target.pos = targetPos
+                                if self.normAutoMoveRate > 0:
+                                    autoDriftPix = rewardDir * self.normAutoMoveRate * self.monSizePix[0] / self.frameRate
+                                    targetPos[0] += autoDriftPix
+                                    closedLoopWheelPos += autoDriftPix
+                                else:
+                                    targetPos[0] += self.deltaWheelPos[-1]
+                                    closedLoopWheelPos += self.deltaWheelPos[-1]
+                                if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
+                                    adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
+                                    targetPos[0] -= adjust
+                                    closedLoopWheelPos -= adjust
+                                target.pos = targetPos
                         else:
                             closedLoopWheelPos += self.deltaWheelPos[-1]
                 if self.moveStim:
                     if targetFrames > 0:
-                        if self.autoRotationRate > 0:
-                            target.ori = target.ori + rewardDir * self.autoRotationRate / self.frameRate
-                        elif self.gratingRotationGain > 0:
+                        if self.gratingRotationGain > 0:
                             target.ori = target.ori + self.deltaWheelPos[-1] * self.gratingRotationGain
                             if self.keepTargetOnScreen:
                                 if target.ori < -90:
