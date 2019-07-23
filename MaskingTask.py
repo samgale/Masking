@@ -45,6 +45,7 @@ class MaskingTask(TaskControl):
         # varying stimulus duration and/or masking not part of this stage
         self.moveStim = False
         self.normAutoMoveRate = 0 # fraction of screen width per second that target automatically moves
+        self.autoRotationRate = 0 # deg/s
         self.keepTargetOnScreen = False # false allows for incorrect trials during training
         self.reversePhasePeriod = 0 # frames
         self.gratingDriftFreq = 0 # cycles/s
@@ -164,7 +165,7 @@ class MaskingTask(TaskControl):
         elif self.taskVersion in ('rot','rotation'):
             self.targetOri = [-45]*R + [45]*L
             self.normTargetPos = [(0,0)]
-            assert(self.gratingRotationGain > 0)
+            assert((self.gratingRotationGain > 0) or (self.autoRotationRate > 0))
         else:
             print(str(self.taskVersion)+' is not a recognized version of this task')
         
@@ -353,7 +354,9 @@ class MaskingTask(TaskControl):
                             closedLoopWheelPos += self.deltaWheelPos[-1]
                 if self.moveStim:
                     if targetFrames > 0:
-                        if self.gratingRotationGain > 0:
+                        if self.autoRotationRate > 0:
+                            target.ori = target.ori + rewardDir * self.autoRotationRate
+                        elif self.gratingRotationGain > 0:
                             target.ori = target.ori + self.deltaWheelPos[-1] * self.gratingRotationGain
                             if self.keepTargetOnScreen:
                                 if target.ori < -90:
