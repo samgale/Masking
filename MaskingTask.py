@@ -33,6 +33,8 @@ class MaskingTask(TaskControl):
         self.maxResponseWaitFrames = 360 # max frames between end of openLoopFrames and end of trial
         
         self.normRewardDistance = 0.25 # normalized to screen width
+        self.gratingRotationGain = 0 # degrees per pixels of wheel movement
+        self.rewardRotation = 45 # degrees
         self.maxQuiescentNormMoveDist = 0.025 # movement threshold during quiescent period
         self.useGoTone = False # play tone when openLoopFrames is complete
         self.useIncorrectNoise = False # play noise when trial is incorrect
@@ -154,9 +156,15 @@ class MaskingTask(TaskControl):
         if self.taskVersion in ('pos','position'):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0)]*R + [(0.25,0)]*L
+            self.gratingRotationGain = 0
         elif self.taskVersion in ('ori','orientatation'):
             self.targetOri = [-45]*L + [45]*R
             self.normTargetPos = [(0,0)]
+            self.gratingRotationGain = 0
+        elif self.taskVersion in ('rot','rotation'):
+            self.targetOri = [-45]*R + [45]*L
+            self.normTargetPos = [(0,0)]
+            assert(self.gratingRotationGain > 0)
         else:
             print(str(self.taskVersion)+' is not a recognized version of this task')
         
@@ -289,6 +297,8 @@ class MaskingTask(TaskControl):
                 targetPos = list(initTargetPos)
                 if len(self.normTargetPos) > 1:
                     rewardDir = -1 if targetPos[0] > 0 else 1
+                elif self.gratingRotationGain > 0:
+                    rewardDir = 1 if targetOri < 0 else -1
                 else:
                     rewardDir = -1 if targetOri < 0 else 1
                 target.pos = targetPos
@@ -325,27 +335,35 @@ class MaskingTask(TaskControl):
                 if self._trialFrame >= self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
                     if self.useGoTone and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
                         self._tone = True
-                    if self.moveStim:
-                        if self.normAutoMoveRate > 0:
-                            autoDriftPix = rewardDir * self.normAutoMoveRate * self.monSizePix[0] / self.frameRate
-                            targetPos[0] += autoDriftPix
-                            closedLoopWheelPos += autoDriftPix
+                    if self.gratingRotationGain == 0:
+                        if self.moveStim:
+                            if self.normAutoMoveRate > 0:
+                                autoDriftPix = rewardDir * self.normAutoMoveRate * self.monSizePix[0] / self.frameRate
+                                targetPos[0] += autoDriftPix
+                                closedLoopWheelPos += autoDriftPix
+                            else:
+                                targetPos[0] += self.deltaWheelPos[-1]
+                                closedLoopWheelPos += self.deltaWheelPos[-1]
+                            if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
+                                adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
+                                targetPos[0] -= adjust
+                                closedLoopWheelPos -= adjust
+                            target.pos = targetPos
                         else:
-                            targetPos[0] += self.deltaWheelPos[-1]
                             closedLoopWheelPos += self.deltaWheelPos[-1]
-                        if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
-                            adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
-                            targetPos[0] -= adjust
-                            closedLoopWheelPos -= adjust
-                        target.pos = targetPos
-                    else:
-                        closedLoopWheelPos += self.deltaWheelPos[-1]
                 if self.moveStim:
                     if targetFrames > 0:
-                        if self.gratingDriftFreq>0:
+                        if self.gratingRotationGain > 0:
+                            target.ori = target.ori + self.deltaWheelPos[-1] * self.gratingRotationGain
+                            if self.keepTargetOnScreen:
+                                if target.ori < -90:
+                                    target.ori = -90
+                                elif target.ori > 90:
+                                    target.ori = 90
+                        elif self.gratingDriftFreq > 0:
                             target.phase[0] += rewardDir * self.gratingDriftFreq / self.frameRate
                             target.phase = target.phase
-                        elif self.reversePhasePeriod>0 and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
+                        elif self.reversePhasePeriod > 0 and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
                             phase = (0.5,0) if target.phase[0] == 0 else (0,0)
                             target.phase = phase
                         target.draw()
@@ -361,13 +379,15 @@ class MaskingTask(TaskControl):
                 # define response if wheel moved past threshold (either side) or max trial duration reached
                 # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
                 # trialResponse for no go trials is 1 for no response or -1 for movement in either direction
-                if closedLoopWheelPos * rewardDir > rewardDist and targetFrames > 0:
+                if (targetFrames > 0 and ((closedLoopWheelPos * rewardDir > rewardDist) or 
+                                         ((target.ori - targetOri) * rewardDir > self.rewardRotation))):
                     self.trialResponse.append(1) # correct movement
                     self._reward = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
-                elif ((closedLoopWheelPos * -rewardDir > rewardDist and not self.keepTargetOnScreen) or 
-                      (targetFrames == 0 and abs(closedLoopWheelPos) > maxQuiescentDist)):
+                elif ((targetFrames == 0 and abs(closedLoopWheelPos) > maxQuiescentDist) or
+                      not self.keepTargetOnScreen and ((closedLoopWheelPos * -rewardDir > rewardDist) or
+                                                      ((target.ori -targetOri) *-rewardDir > self.rewardRotation))):
                     self.trialResponse.append(-1) # incorrect movement
                     if self.useIncorrectNoise:
                         self._noise = True
@@ -387,8 +407,11 @@ class MaskingTask(TaskControl):
                 if (self.trialResponse[-1] > 0 and targetFrames > 0 and
                     self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
                     if self._sessionFrame == self.trialResponseFrame[-1]:
-                        targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
-                        target.pos = targetPos
+                        if self.gratingRotationGain > 0:
+                            target.ori = targetOri + self.rewardRotation * rewardDir
+                        else:
+                            targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
+                            target.pos = targetPos
                     target.draw()
                 elif (self.trialResponse[-1] < 1 and 
                       self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
