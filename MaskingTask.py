@@ -18,9 +18,10 @@ class MaskingTask(TaskControl):
         
         # parameters that can vary across trials are lists
         # only one of targetPos and targetOri can be len() > 1
-        # targetFrames=0 trials are no response rewarded
-        # maskOnset=0 trials are mask only
-        # maskContrast=0 trials are target only
+        
+        self.taskVersion = None
+        self.fracTrialsGoRight = 0.5 # if taskVersion defined, fraction of trials with go-right target, rewarded for rightward movement of wheel
+        self.fracTrialsNoGo = 0 # fraction of trials with no target, rewarded for no movement of wheel
         
         self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
@@ -32,6 +33,8 @@ class MaskingTask(TaskControl):
         self.maxResponseWaitFrames = 360 # max frames between end of openLoopFrames and end of trial
         
         self.normRewardDistance = 0.25 # normalized to screen width
+        self.gratingRotationGain = 0 # degrees per pixels of wheel movement
+        self.rewardRotation = 45 # degrees
         self.maxQuiescentNormMoveDist = 0.025 # movement threshold during quiescent period
         self.useGoTone = False # play tone when openLoopFrames is complete
         self.useIncorrectNoise = False # play noise when trial is incorrect
@@ -41,14 +44,15 @@ class MaskingTask(TaskControl):
         # mouse can move target stimulus with wheel for early training
         # varying stimulus duration and/or masking not part of this stage
         self.moveStim = False
-        self.normAutoDriftRate = 0 # fraction of screen width per second that target automatically moves
+        self.normAutoMoveRate = 0 # fraction of screen width per second that target automatically moves
+        self.autoRotationRate = 0 # deg/s
         self.keepTargetOnScreen = False # false allows for incorrect trials during training
-        self.reverseTargetPhase = False
-        self.reversePhasePeriod = 15 # frames
+        self.reversePhasePeriod = 0 # frames
+        self.gratingDriftFreq = 0 # cycles/s
         self.postRewardTargetFrames = 1 # frames to freeze target after reward
         
         # target stimulus params
-        self.normTargetPos = [(0,0)] # normalized initial xy position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
+        self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [2] # duration of target stimulus; targetFrames=0 for no response rewarded trials
         self.targetContrast = [1]
         self.targetSize = 45 # degrees
@@ -62,29 +66,16 @@ class MaskingTask(TaskControl):
         self.maskShape = 'target' # 'target', 'surround', 'full'
         self.maskFrames = 9 # duration of mask
         self.maskOnset = [30] # frames >=0 relative to target stimulus onset; include 0 for mask only trials
-        self.maskContrast = [1] # include 0 for target only trials
-        
-        
-    def setTaskVersion(self,taskVersion,probGoRight=0.5):
-        # probGoRight is the fraction of trials in which rightward wheel motion is rewarded
-        assert(0 <= probGoRight <= 1)
-        percentRight = int(probGoRight * 100)
-        if taskVersion in ('pos','position'):
-            self.targetOri = [0]
-            self.normTargetPos = [(-0.25,0)] * percentRight + [(0.25,0)] * (100 - percentRight)
-        elif taskVersion in ('ori','orientatation'):
-            self.targetOri = [45] * percentRight + [-45] * (100 - percentRight)
-            self.normTargetPos = [(0,0)]
-        else:
-            print(str(taskVersion)+' is not a recognized version of this task')
+        self.maskContrast = [1] # include 0 for target only trials      
 
     
     def setDefaultParams(self,name):
         if name == 'training1':
             # stim moves to reward automatically; wheel movement ignored
+            self.fracTrialsGoRight = 0.5
+            self.fracTrialsNoGo = 0
             self.moveStim = True
-            self.normAutoDriftRate = 0.25
-            self.normRewardDistance = 0.25
+            self.maxResponseWaitFrames = 3600
             self.postRewardTargetFrames = 60
             self.useGoTone = True
             self.preStimFramesFixed = 360
@@ -93,14 +84,21 @@ class MaskingTask(TaskControl):
             self.quiescentFrames = 0
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
-            self.targetSize = 50
             self.gratingEdge = 'circle'
+            if self.taskVersion in ('rot','rotation'):
+                self.autoRotationRate = 45
+                self.rewardRotation = 45
+                self.targetSize = 120
+            else:
+                self.normAutoMoveRate = 0.25
+                self.normRewardDistance =  0.25
+                self.targetSize = 60
             
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
             # only use 1-2 sessions
             self.setDefaultParams('training1')
-            self.normAutoDriftRate = 0
+            self.normAutoMoveRate = 0
             self.keepTargetOnScreen = True
             self.normRewardDistance = 0.12 
             self.maxResponseWaitFrames = 3600
@@ -118,8 +116,8 @@ class MaskingTask(TaskControl):
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings, add q period
             self.setDefaultParams('training3')
-            self.normRewardDistance = 0.2
-            self.maxResponseWaitFrames = 240
+            self.normRewardDistance = 0.18
+            self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 6
             # self.incorrectTimeoutFrames = 240
             self.quiescentFrames = 60
@@ -128,9 +126,10 @@ class MaskingTask(TaskControl):
             # introduce no-go trials
             self.setDefaultParams('training4')
             self.normRewardDistance = 0.25
-            self.maxResponseWaitFrames = 120
-            self.targetFrames = [0,4] # second number doesn't matter here
-            self.incorrectTrialRepeats = 4
+            self.maxResponseWaitFrames = 60
+            self.fracTrialsGoRight = 0.33
+            self.fracTrialsNoGo = 0.34
+            self.incorrectTrialRepeats = 100
             
         elif name == 'training6':
             # introduce variable open loop frames
@@ -149,10 +148,30 @@ class MaskingTask(TaskControl):
         assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
         assert(self.quiescentFrames <= self.preStimFramesFixed)
+        assert(0 not in self.targetFrames+self.maskOnset+self.maskContrast)
+        assert((self.fracTrialsGoRight + self.fracTrialsNoGo) <= 1)
         
 
     def taskFlow(self):
-        self.checkParamValues()        
+        self.checkParamValues()
+        
+        # set up go right or left trials in correct proportions
+        R = int(self.fracTrialsGoRight * 100)
+        L = 100 - R - int(self.fracTrialsNoGo *100)
+        if self.taskVersion in ('pos','position'):
+            self.targetOri = [0]
+            self.normTargetPos = [(-0.25,0)]*R + [(0.25,0)]*L
+            self.gratingRotationGain = 0
+        elif self.taskVersion in ('ori','orientatation'):
+            self.targetOri = [-45]*L + [45]*R
+            self.normTargetPos = [(0,0)]
+            self.gratingRotationGain = 0
+        elif self.taskVersion in ('rot','rotation'):
+            self.targetOri = [-45]*R + [45]*L
+            self.normTargetPos = [(0,0)]
+            assert((self.gratingRotationGain > 0) or (self.autoRotationRate > 0))
+        else:
+            print(str(self.taskVersion)+' is not a recognized version of this task')
         
         # create target stimulus
         targetPosPix = [tuple(p[i] * self.monSizePix[i] for i in (0,1)) for p in self.normTargetPos]
@@ -215,22 +234,33 @@ class MaskingTask(TaskControl):
                                    for pos in targetPosPix]
         
         # create list of trial parameter combinations
+        # no mask trials (maskContrast=0)
         trialParams = list(itertools.product(targetPosPix,
                                              self.targetContrast,
                                              self.targetOri,
                                              self.targetFrames,
-                                             self.maskOnset,
-                                             self.maskContrast))
+                                             [0],
+                                             [0]))
         
-        # do not repeat all target postions, contrasts, and orientations for targetFrames=0
-        # do not repeat all mask onsets for maskContrast=0
-        # only repeat mask only trials (maskOnset=0) for first target duration (targetFrames[0])
-        # e.g. mask only trials are no response rewarded if targetFrames[0]=0
-        for params in trialParams[:]:
-            if ((params[3] == 0 and (params[0] != targetPosPix[0] or params[1] != self.targetContrast[0] or params[2] != self.targetOri[0])) or
-                (params[5] == 0 and params[4] != self.maskOnset[0]) or
-                (params[4] == 0 and params[3] != self.targetFrames[0])):
-                trialParams.remove(params)
+        # add masking trials
+        if self.maskType is not None:
+            trialParams += list(itertools.product(targetPosPix,
+                                                  self.targetContrast,
+                                                  self.targetOri,
+                                                  self.targetFrames,
+                                                  self.maskOnset,
+                                                  self.maskContrast))
+        
+        # add no response rewarded trials
+        # includes trials with no target (targetFrames=0) and either no mask (maskContrast=0) or mask only (maskContrast>0)
+        nogoMaskContrast = [] if self.maskType is None else self.maskContrast
+        n = int(self.fracTrialsNoGo * len(trialParams) / (1 - self.fracTrialsNoGo) / (len(nogoMaskContrast)+1))
+        trialParams += n * list(itertools.product([(0,0)],
+                                                  [0],
+                                                  [0],
+                                                  [0],
+                                                  [0],
+                                                  [0]+nogoMaskContrast))
         
         random.shuffle(trialParams)
         
@@ -272,11 +302,14 @@ class MaskingTask(TaskControl):
                 targetPos = list(initTargetPos)
                 if len(self.normTargetPos) > 1:
                     rewardDir = -1 if targetPos[0] > 0 else 1
+                elif self.gratingRotationGain > 0:
+                    rewardDir = 1 if targetOri < 0 else -1
                 else:
                     rewardDir = -1 if targetOri < 0 else 1
                 target.pos = targetPos
                 target.contrast = targetContrast
                 target.ori = targetOri
+                target.phase = (0,0)
                 if self.maskType is not None:
                     for m in mask:
                         m.contrast = maskContrast
@@ -307,24 +340,38 @@ class MaskingTask(TaskControl):
                 if self._trialFrame >= self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
                     if self.useGoTone and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1]:
                         self._tone = True
-                    if self.moveStim:
-                        if self.normAutoDriftRate > 0:
-                            autoDriftPix = rewardDir * self.normAutoDriftRate * self.monSizePix[0] / self.frameRate
-                            targetPos[0] += autoDriftPix
-                            closedLoopWheelPos += autoDriftPix
+                    if self.gratingRotationGain == 0:
+                        if self.moveStim:
+                            if self.autoRotationRate > 0:
+                                target.ori = target.ori + rewardDir * self.autoRotationRate / self.frameRate
+                            else:
+                                if self.normAutoMoveRate > 0:
+                                    autoDriftPix = rewardDir * self.normAutoMoveRate * self.monSizePix[0] / self.frameRate
+                                    targetPos[0] += autoDriftPix
+                                    closedLoopWheelPos += autoDriftPix
+                                else:
+                                    targetPos[0] += self.deltaWheelPos[-1]
+                                    closedLoopWheelPos += self.deltaWheelPos[-1]
+                                if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
+                                    adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
+                                    targetPos[0] -= adjust
+                                    closedLoopWheelPos -= adjust
+                                target.pos = targetPos
                         else:
-                            targetPos[0] += self.deltaWheelPos[-1]
                             closedLoopWheelPos += self.deltaWheelPos[-1]
-                        if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
-                            adjust = targetPos[0] - monitorEdge if targetPos[0] > 0 else targetPos[0] + monitorEdge
-                            targetPos[0] -= adjust
-                            closedLoopWheelPos -= adjust
-                        target.pos = targetPos
-                    else:
-                        closedLoopWheelPos += self.deltaWheelPos[-1]
                 if self.moveStim:
                     if targetFrames > 0:
-                        if self.reverseTargetPhase and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
+                        if self.gratingRotationGain > 0:
+                            target.ori = target.ori + self.deltaWheelPos[-1] * self.gratingRotationGain
+                            if self.keepTargetOnScreen:
+                                if target.ori < -90:
+                                    target.ori = -90
+                                elif target.ori > 90:
+                                    target.ori = 90
+                        elif self.gratingDriftFreq > 0:
+                            target.phase[0] += rewardDir * self.gratingDriftFreq / self.frameRate
+                            target.phase = target.phase
+                        elif self.reversePhasePeriod > 0 and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
                             phase = (0.5,0) if target.phase[0] == 0 else (0,0)
                             target.phase = phase
                         target.draw()
@@ -340,13 +387,15 @@ class MaskingTask(TaskControl):
                 # define response if wheel moved past threshold (either side) or max trial duration reached
                 # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
                 # trialResponse for no go trials is 1 for no response or -1 for movement in either direction
-                if closedLoopWheelPos * rewardDir > rewardDist and targetFrames > 0:
+                if (targetFrames > 0 and ((closedLoopWheelPos * rewardDir > rewardDist) or 
+                                         ((target.ori - targetOri) * rewardDir > self.rewardRotation))):
                     self.trialResponse.append(1) # correct movement
                     self._reward = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
-                elif ((closedLoopWheelPos * -rewardDir > rewardDist and not self.keepTargetOnScreen) or 
-                      (targetFrames == 0 and abs(closedLoopWheelPos) > maxQuiescentDist)):
+                elif ((targetFrames == 0 and abs(closedLoopWheelPos) > maxQuiescentDist) or
+                      not self.keepTargetOnScreen and ((closedLoopWheelPos * -rewardDir > rewardDist) or
+                                                      ((target.ori -targetOri) *-rewardDir > self.rewardRotation))):
                     self.trialResponse.append(-1) # incorrect movement
                     if self.useIncorrectNoise:
                         self._noise = True
@@ -366,8 +415,11 @@ class MaskingTask(TaskControl):
                 if (self.trialResponse[-1] > 0 and targetFrames > 0 and
                     self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
                     if self._sessionFrame == self.trialResponseFrame[-1]:
-                        targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
-                        target.pos = targetPos
+                        if self.gratingRotationGain > 0:
+                            target.ori = targetOri + self.rewardRotation * rewardDir
+                        else:
+                            targetPos[0] = initTargetPos[0] + rewardDist * rewardDir
+                            target.pos = targetPos
                     target.draw()
                 elif (self.trialResponse[-1] < 1 and 
                       self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
