@@ -428,7 +428,11 @@ class MaskingTask(TaskControl):
                     target.draw()
                 elif (self.trialResponse[-1] < 1 and 
                       self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
-                    pass
+                    if self.trialResponse[-1] < 0 and self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames:
+                        if self.gratingRotationGain > 0:
+                            if self._sessionFrame == self.trialResponseFrame[-1]:
+                                target.ori = targetOri + self.rewardRotation * -rewardDir
+                            target.draw()
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
