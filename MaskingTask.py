@@ -55,7 +55,7 @@ class MaskingTask(TaskControl):
         self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [2] # duration of target stimulus; targetFrames=0 for no response rewarded trials
         self.targetContrast = [1]
-        self.targetSize = 45 # degrees
+        self.targetSize = 70 # degrees
         self.targetSF = 0.04 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         self.gratingType = 'sqr' # 'sqr' or 'sin'
@@ -87,12 +87,13 @@ class MaskingTask(TaskControl):
             self.gratingEdge = 'circle'
             if self.taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 45
+                self.gratingRotationGain = 0
                 self.rewardRotation = 45
                 self.targetSize = 120
             else:
                 self.normAutoMoveRate = 0.25
                 self.normRewardDistance =  0.25
-                self.targetSize = 60
+                self.targetSize = 70
             
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
@@ -102,8 +103,10 @@ class MaskingTask(TaskControl):
             self.keepTargetOnScreen = True
             self.normRewardDistance = 0.12 
             self.maxResponseWaitFrames = 3600
-            self.incorrectTimeoutFrames = 0
+            self.incorrectTimeoutFrames = 240
+            self.useIncorrectNoise = True
             self.incorrectTrialRepeats = 0
+            
             
         elif name == 'training3':
             # start training, introduce incorrect trials and shorter wait time
@@ -162,14 +165,16 @@ class MaskingTask(TaskControl):
             self.targetOri = [0]
             self.normTargetPos = [(-0.25,0)]*R + [(0.25,0)]*L
             self.gratingRotationGain = 0
+            self.autoRotationRate = 0
         elif self.taskVersion in ('ori','orientatation'):
             self.targetOri = [-45]*L + [45]*R
             self.normTargetPos = [(0,0)]
             self.gratingRotationGain = 0
+            self.autoRotationRate = 0
         elif self.taskVersion in ('rot','rotation'):
             self.targetOri = [-45]*R + [45]*L
             self.normTargetPos = [(0,0)]
-            assert((self.gratingRotationGain > 0) or (self.autoRotationRate > 0))
+            assert((self.gratingRotationGain>0 and self.autoRotationRate==0) or (self.gratingRotationGain==0 and self.autoRotationRate>0))
         else:
             print(str(self.taskVersion)+' is not a recognized version of this task')
         
@@ -302,7 +307,7 @@ class MaskingTask(TaskControl):
                 targetPos = list(initTargetPos)
                 if len(self.normTargetPos) > 1:
                     rewardDir = -1 if targetPos[0] > 0 else 1
-                elif self.gratingRotationGain > 0:
+                elif (self.gratingRotationGain > 0) or (self.autoRotationRate > 0):
                     rewardDir = 1 if targetOri < 0 else -1
                 else:
                     rewardDir = -1 if targetOri < 0 else 1
@@ -415,7 +420,7 @@ class MaskingTask(TaskControl):
                 if (self.trialResponse[-1] > 0 and targetFrames > 0 and
                     self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
                     if self._sessionFrame == self.trialResponseFrame[-1]:
-                        if self.gratingRotationGain > 0:
+                        if (self.gratingRotationGain > 0) or (self.autoRotationRate > 0):
                             target.ori = targetOri + self.rewardRotation * rewardDir
                         else:
                             targetPos[0] = initTargetPos[0] + rewardDist * rewardDir

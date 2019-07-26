@@ -29,7 +29,7 @@ class TaskControl():
         self.minWheelAngleChange = 0 # radians
         self.maxWheelAngleChange = 0.5 # radians
         self.spacebarRewardsEnabled = True
-        self.solenoidOpenTime = 0.035 # seconds
+        self.solenoidOpenTime = 0.05 # seconds
         self.useLED = False
         self.ledDur = 1.0
         self.ledRamp = 0.1
