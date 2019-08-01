@@ -104,26 +104,30 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.12 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
-            self.useIncorrectNoise = True
-            self.incorrectTrialRepeats = 0
+            self.incorrectTrialRepeats = 3  #will repeat for unanswered trials 
+            if self.taskVersion in ('rot','rotation'):
+                self.autoRotationRate = 0
+                self.gratingRotationGain = .05
             
             
         elif name == 'training3':
             # start training, introduce incorrect trials and shorter wait time
             self.setDefaultParams('training2')
-            self.normRewardDistance = 0.15
+            self.normRewardDistance = 0.18
             self.maxResponseWaitFrames = 720
             self.keepTargetOnScreen = False
             self.incorrectTrialRepeats = 10
+            self.useIncorrectNoise = True
+            self.quiescentFrames = 60
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings, add q period
             self.setDefaultParams('training3')
-            self.normRewardDistance = 0.18
+            self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 6
-            # self.incorrectTimeoutFrames = 240
             self.quiescentFrames = 60
+            self.solenoidOpenTime = .035  #to allow for more trials
             
         elif name == 'training5':
             # introduce no-go trials
