@@ -63,7 +63,9 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         responseTrials = np.where(trialResponse!= 0)[0]
         rewardFrames = d['responseFrames'].value[trialResponse[responseTrials]>0]
     else:
-        rewardFrames = d['trialResponseFrame'].value[trialResponse>0]    
+        rewardFrames = d['trialResponseFrame'].value[trialResponse>0]  
+        
+    nogo = d['trialTargetFrames'][:]==0
         
     # alters the necessary variables to exclude any trials that are an incorrect repeat 
     #(i.e, a repeated trial after an incorrect choice).  If there are no repeats, it passes
@@ -74,10 +76,11 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
             trialStartFrames = trialStartFrames[prevTrialIncorrect==False]
             trialEndFrames = trialEndFrames[prevTrialIncorrect==False]
             trialRewardDirection = trialRewardDirection[prevTrialIncorrect==False]
+            nogo = nogo[prevTrialIncorrect==False]
     else:
         pass
     
-    nogo = d['trialTargetFrames'][:]==0
+    
 
     fig, ax = plt.subplots()
     
