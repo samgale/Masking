@@ -127,7 +127,6 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 6
             self.quiescentFrames = 60
-            self.solenoidOpenTime = .035  #to allow for more trials
             
         elif name == 'training5':
             # introduce no-go trials
