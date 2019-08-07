@@ -80,7 +80,7 @@ class MaskingTask(TaskControl):
             self.useGoTone = True
             self.preStimFramesFixed = 360
             self.preStimFramesVariableMean = 120
-            self.preStimFramesMax = 720
+            self.preStimFramesMax = 600
             self.quiescentFrames = 0
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
@@ -114,7 +114,7 @@ class MaskingTask(TaskControl):
             # start training, introduce incorrect trials and shorter wait time
             self.setDefaultParams('training2')
             self.normRewardDistance = 0.18
-            self.maxResponseWaitFrames = 720
+            self.maxResponseWaitFrames = 720   #manually adjust this 
             self.keepTargetOnScreen = False
             self.incorrectTrialRepeats = 10
             self.useIncorrectNoise = True
@@ -126,7 +126,6 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 6
-            self.quiescentFrames = 60
             
         elif name == 'training5':
             # introduce no-go trials
