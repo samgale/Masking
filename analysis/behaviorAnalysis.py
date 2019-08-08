@@ -77,8 +77,9 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
             trialEndFrames = trialEndFrames[prevTrialIncorrect==False]
             trialRewardDirection = trialRewardDirection[prevTrialIncorrect==False]
             nogo = nogo[prevTrialIncorrect==False]
+            subtitle = ['ignore repeats']
     else:
-        pass
+        subtitle = ['repeats incl']
     
     
 
@@ -124,7 +125,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     name_date = str(data).split('_')    
     
-    formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)', title=name_date[-3:-1])
+    formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)', title=name_date[-3:-1] + subtitle)
     
     if returnData:
         return turnRightTrials, turnLeftTrials
@@ -207,8 +208,8 @@ def performanceByParam(data, paramName, units=''):
     
     for num, denom, title in zip([hits, hits, noResps], [totalTrials, hits+misses, totalTrials], ['total hit rate', 'response hit rate', 'no response rate']):
         fig, ax = plt.subplots()
-        ax.plot(paramValues, num[0]/denom[0], 'ro-')
-        ax.plot(paramValues, num[1]/denom[1], 'bo-')
+        ax.plot(paramValues, num[0]/denom[0], 'bo-')
+        ax.plot(paramValues, num[1]/denom[1], 'ro-')
         ax.set_ylim([0,1.01])
         ax.set_xlim([0, paramValues[-1]*1.1])
         ax.set_xticks(paramValues)
