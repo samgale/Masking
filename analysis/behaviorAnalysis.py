@@ -77,7 +77,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
             trialEndFrames = trialEndFrames[prevTrialIncorrect==False]
             trialRewardDirection = trialRewardDirection[prevTrialIncorrect==False]
             nogo = nogo[prevTrialIncorrect==False]
-            subtitle = ['ignore repeats']
+            subtitle = ['repeats ignored']
     else:
         subtitle = ['repeats incl']
     
