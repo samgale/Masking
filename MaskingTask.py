@@ -286,6 +286,7 @@ class MaskingTask(TaskControl):
         self.trialRewardDir = []
         self.trialResponse = []
         self.trialResponseFrame = []
+        self.trialRepeat = []
         self.quiescentMoveFrames = []   # frames where quiescent period was violated
         
         trialIndex = 0 # index of trialParams        
@@ -440,9 +441,11 @@ class MaskingTask(TaskControl):
                     self._trialFrame = -1
                     if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
                         incorrectRepeatCount += 1
+                        self.trialRepeat.append(True)
                     else:
                         trialIndex += 1
-                        incorrectRepeatCount = 0 
+                        incorrectRepeatCount = 0
+                        self.trialRepeat.append(False)
                     if trialIndex == len(trialParams):
                         trialIndex = 0
                         random.shuffle(trialParams)
