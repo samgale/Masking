@@ -286,7 +286,7 @@ class MaskingTask(TaskControl):
         self.trialRewardDir = []
         self.trialResponse = []
         self.trialResponseFrame = []
-        self.trialRepeat = []
+        self.trialRepeat = [False]
         self.quiescentMoveFrames = []   # frames where quiescent period was violated
         
         trialIndex = 0 # index of trialParams        
