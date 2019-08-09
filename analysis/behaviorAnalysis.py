@@ -65,7 +65,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     else:
         rewardFrames = d['trialResponseFrame'].value[trialResponse>0]  
         
-    nogo = d['trialTargetFrames'][:]==0
+    nogo = d['trialTargetFrames'][:-1]==0
         
     # alters the necessary variables to exclude any trials that are an incorrect repeat 
     #(i.e, a repeated trial after an incorrect choice).  If there are no repeats, it passes
