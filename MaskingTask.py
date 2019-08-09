@@ -130,7 +130,7 @@ class MaskingTask(TaskControl):
         elif name == 'training5':
             # introduce no-go trials
             self.setDefaultParams('training4')
-            self.normRewardDistance = 0.25
+            self.normRewardDistance = 0.22
             self.maxResponseWaitFrames = 60
             self.fracTrialsGoRight = 0.33
             self.fracTrialsNoGo = 0.34
