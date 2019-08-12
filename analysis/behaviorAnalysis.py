@@ -78,10 +78,12 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
             trialRewardDirection = trialRewardDirection[prevTrialIncorrect==False]
             nogo = nogo[prevTrialIncorrect==False]
             subtitle = ['repeats ignored']
+        elif 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'].value == 0:
+            subtitle= ['no repeated trials']
     else:
         subtitle = ['repeats incl']
     
-    
+    postTrialFrames = 0 if d['postRewardTargetFrames'].value>0 else 1 #make sure we have at least one frame after the reward
 
     fig, ax = plt.subplots()
     
@@ -89,7 +91,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     nogoTrials = []
     turnRightTrials = []
     turnLeftTrials = []
-    maxTrialFrames = max(trialEndFrames-trialStartFrames+framesToShowBeforeStart)
+    maxTrialFrames = max(trialEndFrames-trialStartFrames+framesToShowBeforeStart+postTrialFrames)
     trialTime = (np.arange(maxTrialFrames)-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
     for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
         if i>0 and i<len(trialStartFrames):
