@@ -31,7 +31,8 @@ def get_files(mouse_id):
     
               
 def trials(data1):
-    trialResponse = data1['trialResponse'].value
+    d = data1
+    trialResponse = d['trialResponse'].value
     answered_trials = np.count_nonzero(trialResponse)
     correct = (trialResponse==1).sum()
     percentCorrect = (correct/float(answered_trials)) * 100
@@ -39,26 +40,27 @@ def trials(data1):
 
 
 def average(data):
-    frameRate = data['frameRate'].value
-    trialEndFrames = data['trialEndFrame'].value
+    d = data
+    frameRate = d['frameRate'].value
+    trialEndFrames = d['trialEndFrame'].value
     nTrials = trialEndFrames.size
-    trialStartFrames = data['trialStartFrame'][:nTrials]
+    trialStartFrames = d['trialStartFrame'][:nTrials]
     
-    trialResponse = data['trialResponse'][:nTrials]
+    trialResponse = d['trialResponse'][:nTrials]
     correctTrials = trialResponse > 0
     incorrectTrials = trialResponse < 0
     
-    if 'trialResponseFrame' in data.keys():
-        trialResponseFrame = data['trialResponseFrame'][:nTrials]
+    if 'trialResponseFrame' in d.keys():
+        trialResponseFrame = d['trialResponseFrame'][:nTrials]
         rewardFrames = trialResponseFrame[correctTrials]
         incorrectFrames = trialResponseFrame[incorrectTrials]
     else:
-        postRewardTargetFrames = data['postRewardTargetFrames'] if 'postRewardTargetFrames' in data.keys() else 0
-        incorrectTimeoutFrames = data['incorrectTimeoutFrames'] if 'incorrectTimeoutFrames' in data.keys() else 0
+        postRewardTargetFrames = d['postRewardTargetFrames'] if 'postRewardTargetFrames' in d.keys() else 0
+        incorrectTimeoutFrames = d['incorrectTimeoutFrames'] if 'incorrectTimeoutFrames' in d.keys() else 0
         rewardFrames = trialEndFrames[trialResponse>0] - postRewardTargetFrames
         incorrectFrames = trialEndFrames[trialResponse<0] - incorrectTimeoutFrames
         
-    trialStimStartFrames = data['trialStimStartFrame'][:nTrials] if 'trialStimStartFrame' in data.keys() else trialStartFrames + data['preStimFrames']
+    trialStimStartFrames = d['trialStimStartFrame'][:nTrials] if 'trialStimStartFrame' in d.keys() else trialStartFrames + d['preStimFrames']
     
     rewardRespTime = (rewardFrames - trialStimStartFrames[correctTrials])/frameRate
     
