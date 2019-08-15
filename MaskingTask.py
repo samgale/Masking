@@ -135,6 +135,7 @@ class MaskingTask(TaskControl):
             self.fracTrialsGoRight = 0.33
             self.fracTrialsNoGo = 0.34
             self.incorrectTrialRepeats = 100
+            self.incorrectTimeoutFrames = 480
             
         elif name == 'training6':
             # introduce variable open loop frames
