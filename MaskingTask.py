@@ -100,8 +100,7 @@ class MaskingTask(TaskControl):
             # only use 1-2 sessions
             self.setDefaultParams('training1')
             self.normAutoMoveRate = 0
-            self.keepTargetOnScreen = True
-            self.normRewardDistance = 0.12 
+            self.normRewardDistance = 0.15 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
             self.incorrectTrialRepeats = 3  #will repeat for unanswered trials 
@@ -119,6 +118,7 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 10
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
+            self.solenoidOpenTime = .07
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings, add q period
@@ -126,6 +126,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 6
+            self.solenoidOpenTime = .05
             
         elif name == 'training5':
             # introduce no-go trials
@@ -135,7 +136,7 @@ class MaskingTask(TaskControl):
             self.fracTrialsGoRight = 0.33
             self.fracTrialsNoGo = 0.34
             self.incorrectTrialRepeats = 100
-            self.incorrectTimeoutFrames = 480
+            self.incorrectTimeoutFrames = 600
             
         elif name == 'training6':
             # introduce variable open loop frames
