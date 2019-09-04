@@ -63,6 +63,7 @@ class MaskingTask(TaskControl):
         
         # mask params
         self.maskType = None # None, 'plaid', or 'noise'
+        self.fracGoTrialsMasked = None
         self.maskShape = 'target' # 'target', 'surround', 'full'
         self.maskFrames = 9 # duration of mask
         self.maskOnset = [30] # frames >=0 relative to target stimulus onset; include 0 for mask only trials
@@ -253,6 +254,10 @@ class MaskingTask(TaskControl):
         
         # add masking trials
         if self.maskType is not None:
+            if self.fracGoTrialsMasked is not None:
+                m = len(self.maskOnset) + len(self.maskContrast)
+                n = int(round((m - m*self.fracGoTrialsMasked) / self.fracGoTrialsMasked))
+                trialParams *= n if n>0 else 1
             trialParams += list(itertools.product(targetPosPix,
                                                   self.targetContrast,
                                                   self.targetOri,
@@ -263,7 +268,7 @@ class MaskingTask(TaskControl):
         # add no response rewarded trials
         # includes trials with no target (targetFrames=0) and either no mask (maskContrast=0) or mask only (maskContrast>0)
         nogoMaskContrast = [] if self.maskType is None else self.maskContrast
-        n = int(self.fracTrialsNoGo * len(trialParams) / (1 - self.fracTrialsNoGo) / (len(nogoMaskContrast)+1))
+        n = int(self.fracTrialsNoGo * len(trialParams) / (1 - self.fracTrialsNoGo) / (len(nogoMaskContrast) + 1))
         trialParams += n * list(itertools.product([(0,0)],
                                                   [0],
                                                   [0],
