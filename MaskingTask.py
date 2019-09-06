@@ -274,7 +274,7 @@ class MaskingTask(TaskControl):
                         initTargetPos = (0,0)
                         initTargetOri = 0
                         targetContrast = 0
-                        targetFrames = random.choice(self.targetFrames)
+                        targetFrames = 0
                         maskOnset = 0
                         maskContrast = random.choice(self.maskContrast) if random.random() < self.probMask else 0
                     else:
