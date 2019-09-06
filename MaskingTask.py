@@ -69,7 +69,7 @@ class MaskingTask(TaskControl):
         self.maskContrast = [1]     
 
     
-    def setDefaultParams(self,name,taskVersion):
+    def setDefaultParams(self,name,taskVersion=None):
         if name == 'training1':
             # stim moves to reward automatically; wheel movement ignored
             self.probGoRight = 0.5
@@ -86,11 +86,19 @@ class MaskingTask(TaskControl):
             self.openLoopFramesVariableMean = 0
             self.gratingEdge = 'circle'
             if taskVersion in ('rot','rotation'):
+                self.normTargetPos = [(0,0)]
+                self.targetOri = [-45,45]
                 self.autoRotationRate = 45
                 self.gratingRotationGain = 0.05
                 self.rewardRotation = 45
                 self.targetSize = 120
             else:
+                if taskVersion in ('pos','position'):
+                    self.normTargetPos = [(-0.25,0),(0.25,0)]
+                    self.targetOri = [0]
+                else:
+                    self.normTargetPos = [(0,0)]
+                    self.targetOri = [-45,45]
                 self.normAutoMoveRate = 0.25
                 self.normRewardDistance =  0.25
                 self.targetSize = 70
@@ -153,7 +161,7 @@ class MaskingTask(TaskControl):
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
         assert(self.quiescentFrames <= self.preStimFramesFixed)
         assert(0 not in self.targetFrames + self.targetContrast + self.maskOnset + self.maskContrast)
-        for prob in (self.probNogo,self.probGoRight,self.probMask):
+        for prob in (self.probNoGo,self.probGoRight,self.probMask):
             assert(0 <= prob <= 1)
         
 
@@ -272,20 +280,20 @@ class MaskingTask(TaskControl):
                     else:
                         goRight = random.random() < self.probGoRight
                         rewardDir = 1 if goRight else -1
-                        if len(self.targetPos) > 1:
+                        if len(targetPosPix) > 1:
                             if goRight:
-                                initTargetPos = random.choice([pos for pos in self.targetPos if pos[0] > 0])
+                                initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] < 0])
                             else:
-                                initTargetPos = random.choice([pos for pos in self.targetPos if pos[0] < 0])
+                                initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] > 0])
                             initTargetOri = self.targetOri[0]
                         else:
-                            initTargetPos = self.targetPos[0]
-                            if (rotateTarget and goRight) or (not goRight):
+                            initTargetPos = targetPosPix[0]
+                            if (rotateTarget and goRight) or (not rotateTarget and not goRight):
                                 initTargetOri = random.choice([ori for ori in self.targetOri if ori < 0])
                             else:
                                 initTargetOri = random.choice([ori for ori in self.targetOri if ori > 0])
-                            targetContrast = random.choice(self.targetContrast)
-                            targetFrames = random.choice(self.targetFrames)
+                        targetContrast = random.choice(self.targetContrast)
+                        targetFrames = random.choice(self.targetFrames)
                         if random.random() < self.probMask:
                             maskOnset = random.choice(self.maskOnset)
                             maskContrast = random.choice(self.maskContrast)
