@@ -97,11 +97,14 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     turnLeftTrials = []
     maxTrialFrames = max(trialEndFrames-trialStartFrames+framesToShowBeforeStart+postTrialFrames)
     trialTime = (np.arange(maxTrialFrames)-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
-    for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
+    for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(
+            trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
         if i>0 and i<len(trialStartFrames):
             if resp in responseFilter:
                 #get wheel position trace for this trial!
-                trialWheel = np.cumsum(deltaWheel[trialStart-framesToShowBeforeStart:trialStart-framesToShowBeforeStart + maxTrialFrames])
+                trialWheel = np.cumsum(deltaWheel[
+                        trialStart-framesToShowBeforeStart:trialStart-framesToShowBeforeStart + maxTrialFrames
+                        ])
                 trialWheel -= trialWheel[0]
                 trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                 rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
@@ -131,7 +134,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     name_date = str(data).split('_')    
     
-    formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)', title=name_date[-3:-1] + subtitle)
+    formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
+                 yLabel='Wheel Position (pix)', title=name_date[-3:-1] + subtitle)
     
     if mask:
         trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]
@@ -139,11 +143,14 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         nogoMask = []
         rightMask = []
         leftMask = []
-        for i, (trialStart, trialEnd, rewardDirection, maskContrast, resp) in enumerate(zip(trialStartFrames, trialEndFrames, trialRewardDirection, trialMaskContrast, trialResponse)):
+        for i, (trialStart, trialEnd, rewardDirection, maskContrast, resp) in enumerate(zip(
+                trialStartFrames, trialEndFrames, trialRewardDirection, trialMaskContrast, trialResponse)):
             if i>0 and i<len(trialStartFrames):
                 if resp in responseFilter:
                     #get wheel position trace for this trial!
-                    trialWheel = np.cumsum(deltaWheel[trialStart-framesToShowBeforeStart:trialStart-framesToShowBeforeStart + maxTrialFrames])
+                    trialWheel = np.cumsum(
+                            deltaWheel[trialStart-framesToShowBeforeStart:trialStart-framesToShowBeforeStart + maxTrialFrames
+                                       ])
                     trialWheel -= trialWheel[0]
                     trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                     rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
