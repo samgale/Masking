@@ -138,7 +138,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                  yLabel='Wheel Position (pix)', title=name_date[-3:-1] + subtitle)
     
     if mask:
-        trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]
+        trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]   #plot mask only trials 
         fig, ax = plt.subplots()
         nogoMask = []
         rightMask = []
@@ -157,15 +157,15 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                     if nogo[i]:
                         ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.2)   # plotting no-go trials
                         if rewardFrame is not None:
-                            if maskContrast ==0:
+                            if maskContrast>0:
                                 ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'go')
                         nogoMask.append(trialWheel)
-                    elif rewardDirection>0 and maskContrast==0:
+                    elif rewardDirection>0 and maskContrast==1:
                         ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)  #plotting right turning 
                         if rewardFrame is not None:
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
                         rightMask.append(trialWheel)
-                    elif rewardDirection<0 and maskContrast==0:
+                    elif rewardDirection<0 and maskContrast==1:
                         ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
                         if rewardFrame is not None:
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
@@ -177,7 +177,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         ax.plot(trialTime[:leftMask.shape[1]], np.nanmean(leftMask, 0), 'b', linewidth=3)
         ax.plot(trialTime[:nogoMask.shape[1]], np.nanmean(nogoMask,0), 'k', linewidth=3)
         ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
-        formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', yLabel='Wheel Position (pix)', title=name_date[-3:-1] + [ 'Mask Trials'])
+        formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
+                     yLabel='Wheel Position (pix)', title=name_date[-3:-1] + [ 'Mask Trials'])
     else:
         pass
     if returnData:
