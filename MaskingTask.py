@@ -108,6 +108,7 @@ class MaskingTask(TaskControl):
             # only use 1-2 sessions
             self.setDefaultParams('training1',taskVersion)
             self.normAutoMoveRate = 0
+            self.keepTargetOnScreen=False
             self.normRewardDistance = 0.15 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
@@ -120,7 +121,6 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training2',taskVersion)
             self.normRewardDistance = 0.18
             self.maxResponseWaitFrames = 720   # manually adjust this 
-            self.keepTargetOnScreen = False
             self.incorrectTrialRepeats = 10
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
@@ -131,7 +131,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training3',taskVersion)
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 120
-            self.incorrectTrialRepeats = 6
+            self.incorrectTrialRepeats = 20
             self.solenoidOpenTime = 0.05
             
         elif name == 'training5':
@@ -323,9 +323,7 @@ class MaskingTask(TaskControl):
             
             # extend pre stim gray frames if wheel moving during quiescent period
             if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
-                quiescentWheelMove += self.deltaWheelPos[-1]
-                if rotateTarget:
-                    quiescentWheelMove *= self.gratingRotationGain
+                quiescentWheelMove += self.deltaWheelPos[-1] * self.gratingRotationGain if rotateTarget else self.deltaWheelPos[-1]
                 if abs(quiescentWheelMove) > maxQuiescentMove:
                     self.quiescentMoveFrames.append(self._sessionFrame)
                     self.trialPreStimFrames[-1] += preStimFrames
