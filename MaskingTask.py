@@ -55,7 +55,7 @@ class MaskingTask(TaskControl):
         self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [2] # duration of target stimulus
         self.targetContrast = [1]
-        self.targetSize = 50
+        self.targetSize = 20 # degrees
         self.targetSF = 0.04 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         self.gratingType = 'sqr' # 'sqr' or 'sin'
@@ -91,7 +91,7 @@ class MaskingTask(TaskControl):
                 self.autoRotationRate = 45
                 self.gratingRotationGain = 0.05
                 self.rewardRotation = 45
-                self.targetSize = 120
+                self.targetSize = 40
             else:
                 if taskVersion in ('pos','position'):
                     self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -101,7 +101,7 @@ class MaskingTask(TaskControl):
                     self.targetOri = [-45,45]
                 self.normAutoMoveRate = 0.25
                 self.normRewardDistance =  0.25
-                self.targetSize = 70
+                self.targetSize = 20
             
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
