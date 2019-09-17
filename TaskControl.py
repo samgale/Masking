@@ -99,8 +99,7 @@ class TaskControl():
                                                      fullscr=True,
                                                      flipHorizontal=self.flipScreenHorz,
                                                      warp=getattr(ProjectorWindow.Warp,self.warp),
-                                                     warpfile=self.warpFile,
-                                                     units='pix')
+                                                     warpfile=self.warpFile)
         self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
         
