@@ -365,9 +365,7 @@ class MaskingTask(TaskControl):
                                 closedLoopWheelMove -= adjust
                             target.pos = targetPos 
                     else:
-                        closedLoopWheelMove += self.deltaWheelPos[-1]
-                        if rotateTarget:
-                            closedLoopWheelMove *= self.gratingRotationGain
+                        closedLoopWheelMove += self.deltaWheelPos[-1] * self.gratingRotationGain if rotateTarget else self.deltaWheelPos[-1]
                 if self.moveStim:
                     if targetFrames > 0:
                         if self.gratingDriftFreq > 0:
