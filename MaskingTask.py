@@ -55,7 +55,7 @@ class MaskingTask(TaskControl):
         self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [2] # duration of target stimulus
         self.targetContrast = [1]
-        self.targetSize = 70 # degrees
+        self.targetSize = 40 # degrees
         self.targetSF = 0.04 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         self.gratingType = 'sqr' # 'sqr' or 'sin'
@@ -91,7 +91,7 @@ class MaskingTask(TaskControl):
                 self.autoRotationRate = 45
                 self.gratingRotationGain = 0.05
                 self.rewardRotation = 45
-                self.targetSize = 120
+                self.targetSize = 60
             else:
                 if taskVersion in ('pos','position'):
                     self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -101,7 +101,7 @@ class MaskingTask(TaskControl):
                     self.targetOri = [-45,45]
                 self.normAutoMoveRate = 0.25
                 self.normRewardDistance =  0.25
-                self.targetSize = 70
+                self.targetSize = 40
             
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
@@ -173,7 +173,7 @@ class MaskingTask(TaskControl):
         targetSizePix = int(self.targetSize * self.pixelsPerDeg)
         sf = self.targetSF / self.pixelsPerDeg
         target = visual.GratingStim(win=self._win,
-                                    units='pix',
+                                    units='deg',
                                     mask=self.gratingEdge,
                                     tex=self.gratingType,
                                     size=targetSizePix, 
@@ -198,7 +198,7 @@ class MaskingTask(TaskControl):
         if self.maskType=='plaid':
             maskOri = (0,90) if len(self.normTargetPos)>1 else (-45,45)
             mask = [visual.GratingStim(win=self._win,
-                                       units='pix',
+                                       units='deg',
                                        mask=maskEdgeBlur,
                                        tex=self.gratingType,
                                        size=maskSize,
@@ -210,7 +210,7 @@ class MaskingTask(TaskControl):
                                        for ori,opa in zip(maskOri,(1.0,0.5))]
         elif self.maskType=='noise':
             mask = [visual.NoiseStim(win=self._win,
-                                     units='pix',
+                                     units='deg',
                                      mask=maskEdgeBlur,
                                      noiseType='Filtered',
                                      noiseFractalPower = 0,
@@ -222,7 +222,7 @@ class MaskingTask(TaskControl):
         
         if self.maskShape=='surround':
             mask += [visual.Circle(win=self._win,
-                                   units='pix',
+                                   units='deg',
                                    radius=0.5*targetSizePix,
                                    lineColor=0.5,
                                    fillColor=0.5)
