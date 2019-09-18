@@ -91,7 +91,7 @@ class MaskingTask(TaskControl):
                 self.autoRotationRate = 45
                 self.gratingRotationGain = 0.05
                 self.rewardRotation = 45
-                self.targetSize = 50
+                self.targetSize = 48.5
             else:
                 if taskVersion in ('pos','position'):
                     self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -172,7 +172,6 @@ class MaskingTask(TaskControl):
         targetPosPix = [tuple(p[i] * self.monSizePix[i] for i in (0,1)) for p in self.normTargetPos]
         targetSizePix = int(self.targetSize * self.pixelsPerDeg)
         sf = self.targetSF / self.pixelsPerDeg
-        print(targetSizePix,sf)
         target = visual.GratingStim(win=self._win,
                                     units='pix',
                                     mask=self.gratingEdge,
