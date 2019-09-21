@@ -112,7 +112,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.15 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
-            self.incorrectTrialRepeats = 3  # will repeat for unanswered trials 
+            self.incorrectTrialRepeats = 5  # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
             
@@ -121,7 +121,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training2',taskVersion)
             self.normRewardDistance = 0.18
             self.maxResponseWaitFrames = 720   # manually adjust this 
-            self.incorrectTrialRepeats = 10
+            self.incorrectTrialRepeats = 30
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
             self.solenoidOpenTime = 0.07
