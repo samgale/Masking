@@ -60,7 +60,7 @@ class TaskControl():
         self.numpyRandomSeed = random.randint(0,2**32)
         self._numpyRandom = np.random.RandomState(self.numpyRandomSeed)
         
-        self.pixelsPerDeg = 0.5 * self.monSizePix[0] / (math.tan(0.5 * self.monWidth / self.monDistance) * 180 / math.pi)
+        self.pixelsPerDeg = 0.5 * self.monSizePix[0] / math.degrees(math.atan(0.5 * self.monWidth / self.monDistance))
         
         self.prepareWindow()
 

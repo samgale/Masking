@@ -55,8 +55,8 @@ class MaskingTask(TaskControl):
         self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [2] # duration of target stimulus
         self.targetContrast = [1]
-        self.targetSize = 70 # degrees
-        self.targetSF = 0.04 # cycles/deg
+        self.targetSize = 20 # degrees
+        self.targetSF = 0.1 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         self.gratingType = 'sqr' # 'sqr' or 'sin'
         self.gratingEdge= 'circle' # 'gauss' or 'circle'
@@ -91,7 +91,7 @@ class MaskingTask(TaskControl):
                 self.autoRotationRate = 45
                 self.gratingRotationGain = 0.05
                 self.rewardRotation = 45
-                self.targetSize = 120
+                self.targetSize = 48.5
             else:
                 if taskVersion in ('pos','position'):
                     self.normTargetPos = [(-0.25,0),(0.25,0)]
@@ -101,17 +101,18 @@ class MaskingTask(TaskControl):
                     self.targetOri = [-45,45]
                 self.normAutoMoveRate = 0.25
                 self.normRewardDistance =  0.25
-                self.targetSize = 70
+                self.targetSize = 28
             
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
             # only use 1-2 sessions
             self.setDefaultParams('training1',taskVersion)
             self.normAutoMoveRate = 0
+            self.keepTargetOnScreen=False
             self.normRewardDistance = 0.15 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
-            self.incorrectTrialRepeats = 3  # will repeat for unanswered trials 
+            self.incorrectTrialRepeats = 5  # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
             
@@ -120,8 +121,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training2',taskVersion)
             self.normRewardDistance = 0.18
             self.maxResponseWaitFrames = 720   # manually adjust this 
-            self.keepTargetOnScreen = False
-            self.incorrectTrialRepeats = 10
+            self.incorrectTrialRepeats = 30
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
             self.solenoidOpenTime = 0.07
@@ -131,7 +131,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training3',taskVersion)
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 120
-            self.incorrectTrialRepeats = 6
+            self.incorrectTrialRepeats = 20
             self.solenoidOpenTime = 0.05
             
         elif name == 'training5':
@@ -323,9 +323,7 @@ class MaskingTask(TaskControl):
             
             # extend pre stim gray frames if wheel moving during quiescent period
             if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
-                quiescentWheelMove += self.deltaWheelPos[-1]
-                if rotateTarget:
-                    quiescentWheelMove *= self.gratingRotationGain
+                quiescentWheelMove += self.deltaWheelPos[-1] * self.gratingRotationGain if rotateTarget else self.deltaWheelPos[-1]
                 if abs(quiescentWheelMove) > maxQuiescentMove:
                     self.quiescentMoveFrames.append(self._sessionFrame)
                     self.trialPreStimFrames[-1] += preStimFrames
@@ -367,9 +365,7 @@ class MaskingTask(TaskControl):
                                 closedLoopWheelMove -= adjust
                             target.pos = targetPos 
                     else:
-                        closedLoopWheelMove += self.deltaWheelPos[-1]
-                        if rotateTarget:
-                            closedLoopWheelMove *= self.gratingRotationGain
+                        closedLoopWheelMove += self.deltaWheelPos[-1] * self.gratingRotationGain if rotateTarget else self.deltaWheelPos[-1]
                 if self.moveStim:
                     if targetFrames > 0:
                         if self.gratingDriftFreq > 0:
