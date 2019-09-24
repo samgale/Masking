@@ -41,30 +41,30 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         responseFilter = [responseFilter]
     
     d = data
-    frameRate = d['frameRate'].value
+    frameRate = d['frameRate'][()]
     trialEndFrames = d['trialEndFrame'][:]
     trialStartFrames = d['trialStartFrame'][:trialEndFrames.size]
     trialRewardDirection = d['trialRewardDir'][:trialEndFrames.size]
     trialResponse = d['trialResponse'][:trialEndFrames.size]
-    deltaWheel = d['deltaWheelPos'].value
+    deltaWheel = d['deltaWheelPos'][:]
     
-    preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else np.array([d['preStimFrames'].value]*trialStartFrames.size)
+    preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else np.array([d['preStimFrames'][:]]*trialStartFrames.size)
     
     trialStartFrames += preStimFrames    
     
     if 'trialOpenLoopFrames' in d.keys():
-        openLoopFrames = d['trialOpenLoopFrames'].value
+        openLoopFrames = d['trialOpenLoopFrames'][:]
     elif 'openLoopFrames' in d.keys():
-        openLoopFrames = d['openLoopFrames'].value
+        openLoopFrames = d['openLoopFrames'][:]
     else:
         raise ValueError 
     
     
     if 'rewardFrames' in d.keys():
-        rewardFrames = d['rewardFrames'].value
+        rewardFrames = d['rewardFrames'][:]
     elif 'responseFrames' in d.keys():
         responseTrials = np.where(trialResponse!= 0)[0]
-        rewardFrames = d['responseFrames'].value[trialResponse[responseTrials]>0]
+        rewardFrames = d['responseFrames'][:][trialResponse[responseTrials]>0]
     else:
         rewardFrames = d['trialResponseFrame'][:len(trialResponse)]
         rewardFrames = rewardFrames[trialResponse>0]  
@@ -74,7 +74,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     # alters the necessary variables to exclude any trials that are an incorrect repeat 
     #(i.e, a repeated trial after an incorrect choice).  If there are no repeats, it passes
     if ignoreRepeats == True:
-        if 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'].value > 0:
+        if 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'][()] > 0:
             prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))
             trialResponse = trialResponse[prevTrialIncorrect==False]
             trialStartFrames = trialStartFrames[prevTrialIncorrect==False]
@@ -82,12 +82,12 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
             trialRewardDirection = trialRewardDirection[prevTrialIncorrect==False]
             nogo = nogo[prevTrialIncorrect==False]
             subtitle = ['repeats ignored']
-        elif 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'].value == 0:
+        elif 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'][()] == 0:
             subtitle= ['no repeated trials']
     else:
         subtitle = ['repeats incl']
     
-    postTrialFrames = 0 if d['postRewardTargetFrames'].value>0 else 1 #make sure we have at least one frame after the reward
+    postTrialFrames = 0 if d['postRewardTargetFrames'][()]>0 else 1 #make sure we have at least one frame after the reward
 
     fig, ax = plt.subplots()
     
@@ -154,19 +154,18 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                     trialWheel -= trialWheel[0]
                     trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                     rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
-                    if nogo[i]:
-                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.2)   # plotting no-go trials
+                    if nogo[i] and maskContrast>0:
+                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.4)   # plotting no-go trials
                         if rewardFrame is not None:
-                            if maskContrast>0:
-                                ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'go')
+                            ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'go')
                         nogoMask.append(trialWheel)
-                    elif rewardDirection>0 and maskContrast==1:
-                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)  #plotting right turning 
+                    elif rewardDirection>0 and maskContrast>0:
+                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.4)  #plotting right turning 
                         if rewardFrame is not None:
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
                         rightMask.append(trialWheel)
-                    elif rewardDirection<0 and maskContrast==1:
-                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
+                    elif rewardDirection<0 and maskContrast>0:
+                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.4)   # plotting left turning 
                         if rewardFrame is not None:
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
                         leftMask.append(trialWheel)
