@@ -30,7 +30,8 @@ class MaskingTask(TaskControl):
         self.openLoopFramesFixed = 24 # min frames after stimulus onset before wheel movement has effects
         self.openLoopFramesVariableMean = 0 # mean of additional open loop frames drawn from exponential distribution
         self.openLoopFramesMax = 120 # max total openLoopFrames
-        self.maxResponseWaitFrames = 360 # max frames between end of openLoopFrames and end of trial
+        self.maxResponseWaitFrames = 360 # max frames between end of openLoopFrames and end of go trial
+        self.nogoWaitFrames = 120 # frames after openLoopFrames during which mouse must remain still on nogo trials
         
         self.normRewardDistance = 0.25 # normalized to screen width
         self.gratingRotationGain = 0 # degrees per pixels of wheel movement
@@ -399,12 +400,13 @@ class MaskingTask(TaskControl):
                         self._noise = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
-                elif not hasResponded and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
-                    if targetFrames == 0:
-                        self.trialResponse.append(1) # correct no response
-                        self._reward = True
-                    else:
-                        self.trialResponse.append(0) # no response on go trial
+                elif targetFrames > 0 and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
+                    self.trialResponse.append(0) # no response on go trial
+                    self.trialResponseFrame.append(self._sessionFrame)
+                    hasResponded = True
+                elif targetFrames==0 and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.nogoWaitFrames:
+                    self.trialResponse.append(1) # correct no response
+                    self._reward = True  
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 
