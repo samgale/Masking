@@ -402,6 +402,8 @@ class MaskingTask(TaskControl):
                     hasResponded = True
                 elif targetFrames > 0 and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                     self.trialResponse.append(0) # no response on go trial
+                    if self.useIncorrectNoise:
+                        self._noise = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 elif targetFrames==0 and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.nogoWaitFrames:
