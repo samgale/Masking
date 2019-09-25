@@ -12,7 +12,6 @@ Prints mouse IDs to console when data is compiled
 
 """
 
-from __future__ import division
 import os
 import numpy as np
 import h5py
@@ -21,6 +20,7 @@ import scipy.stats
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 from behaviorAnalysis import formatFigure
+
 mpl.rcParams['pdf.fonttype']=42
 
 #import pandas as pd
@@ -35,7 +35,7 @@ def get_files(mouse_id):
 
 # calculate how many trials they responded to, and of those what percent were correct    
 def trials(data):
-    trialResponse = d['trialResponse'].value
+    trialResponse = d['trialResponse'][:]
     trials = np.count_nonzero(trialResponse)
     correct = (trialResponse==1).sum()
     percentCorrect =( correct/float(trials)) * 100
@@ -43,7 +43,7 @@ def trials(data):
 
 
 #mice = ['439508', '439502', '441357', '441358']
-mice = ['460313', '460312', '460314', '457228']
+mice = ['457229', '457230', '468528', '477210']
 
 fig, axes = plt.subplots(len(mice),1, facecolor='white')
 if len(mice)==1:
@@ -59,8 +59,8 @@ for im, (ax,mouse) in enumerate(zip(axes, mice)):
         resp = d['trialResponse'][:]
         postHitTrials = np.concatenate(([False],resp[:-1]==1))   #trials after an incorrect repeat
         if 'normIncorrectDistance' in d:
-            dist = d['normIncorrectDistance'].value*d['monSizePix'].value[0]
-            preFrames = d['preStimFrames'].value+d['openLoopFrames'].value
+            dist = d['normIncorrectDistance'].value*d['monSizePix'][0]
+            preFrames = d['preStimFrames'].value+d['openLoopFrames'][()]
             deltaWheel = d['deltaWheelPos']
             trialRewDir = d['trialRewardDir']
             for trial,(start,end) in enumerate(zip(d['trialStartFrame'][:],d['trialEndFrame'][:])):
