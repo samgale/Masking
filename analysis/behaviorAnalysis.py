@@ -143,6 +143,10 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     leftIncorrect= (len(trialResponse[(trialResponse==-1) & (trialRewardDirection==-1)]))/leftTurnTotal
     leftNoResp= (len(trialResponse[(trialResponse==0) & (trialRewardDirection==-1)]))/leftTurnTotal
     
+#    chartBox = ax.get_position()
+#    ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.6, chartBox.height])
+#    ax.legend(loc='upper center', bbox_to_anchor=(1.45, 0.8), shadow=True, ncol=1)
+#    
     plt.text(0.02, 0.5, ('Total trials: ' +str(allTrials)), fontsize=14, transform=plt.gcf().transFigure)
     
     plt.text(['Left no resp', leftNoResp/leftTurnTotal,
