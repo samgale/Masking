@@ -296,7 +296,7 @@ class MaskingTask(TaskControl):
                         targetContrast = random.choice(self.targetContrast)
                         targetFrames = random.choice(self.targetFrames)
                         if random.random() < self.probMask:
-                            maskOnset = random.choice(self.maskOnset)
+                            maskOnset = random.choice(self.maskOnset+[0]) if rotateTarget else random.choice(self.maskOnset)
                             maskContrast = random.choice(self.maskContrast)
                         else:
                             maskOnset = maskContrast = 0
