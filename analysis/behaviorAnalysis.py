@@ -133,19 +133,19 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
     
     
-#    nogoTotal, rightTurnTotal, leftTurnTotal = len(nogoTrials), len(turnRightTrials), len(turnLeftTrials)
-#    allTrials = len(trialResponse)
-#    totalGoTrials = (rightTurnTotal+leftTurnTotal)
-#    rightCorrect = len(trialResponse[(trialResponse==1) & (trialRewardDirection==1)])
-#    rightIncorrect= len(trialResponse[(trialResponse==-1) & (trialRewardDirection==-1)])
-#    rightNoResp= (len(trialResponse[(trialResponse==0) & (trialRewardDirection==-1)]))/rightTurnTotal
-#    leftCorrect = (len(trialResponse[(trialResponse==1) & (trialRewardDirection==-1)]))/leftTurnTotal
-#    leftIncorrect= (len(trialResponse[(trialResponse==-1) & (trialRewardDirection==-1)]))/leftTurnTotal
-#    leftNoResp= (len(trialResponse[(trialResponse==0) & (trialRewardDirection==-1)]))/leftTurnTotal
-#    
-#    plt.text(0.02, 0.5, ('Total trials: ' +str(allTrials)), fontsize=14, transform=plt.gcf().transFigure)
-#    
-#    plt.text(['Left no resp', leftNoResp/leftTurnTotal,
+    nogoTotal, rightTurnTotal, leftTurnTotal = len(nogoTrials), len(turnRightTrials), len(turnLeftTrials)
+    allTrials = len(trialResponse)
+    totalGoTrials = (rightTurnTotal+leftTurnTotal)
+    rightCorrect = len(trialResponse[(trialResponse==1) & (trialRewardDirection==1)])
+    rightIncorrect= len(trialResponse[(trialResponse==-1) & (trialRewardDirection==-1)])
+    rightNoResp= (len(trialResponse[(trialResponse==0) & (trialRewardDirection==-1)]))/rightTurnTotal
+    leftCorrect = (len(trialResponse[(trialResponse==1) & (trialRewardDirection==-1)]))/leftTurnTotal
+    leftIncorrect= (len(trialResponse[(trialResponse==-1) & (trialRewardDirection==-1)]))/leftTurnTotal
+    leftNoResp= (len(trialResponse[(trialResponse==0) & (trialRewardDirection==-1)]))/leftTurnTotal
+    
+    plt.text(0.02, 0.5, ('Total trials: ' +str(allTrials)), fontsize=14, transform=plt.gcf().transFigure)
+    
+    plt.text(['Left no resp', leftNoResp/leftTurnTotal,
                      'Right no resp', round(rightNoResp/rightTurnTotal)], ha='left', va='bottom', bbox=dict(facecolor='white', alpha=0.5))
     name_date = str(data).split('_')    
     
