@@ -22,6 +22,7 @@ class MaskingTask(TaskControl):
         self.probNoGo = 0 # fraction of trials with no target, rewarded for no movement of wheel
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probMask = 0 # fraction of trials with mask
+        self.maxConsecutiveMaskTrials = 3
         
         self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
@@ -256,6 +257,7 @@ class MaskingTask(TaskControl):
         else:
             rewardMove = self.normRewardDistance * self.monSizePix[0]
         incorrectRepeatCount = 0
+        maskCount = 0
         
         while self._continueSession: # each loop is a frame presented on the monitor
             # get rotary encoder and digital input states
@@ -270,6 +272,8 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
+                    mask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
+                    maskCount = maskCount + 1 if mask else 0
                     if random.random() < self.probNoGo:
                         rewardDir = 0
                         initTargetPos = (0,0)
@@ -277,29 +281,35 @@ class MaskingTask(TaskControl):
                         targetContrast = 0
                         targetFrames = 0
                         maskOnset = 0
-                        maskContrast = random.choice(self.maskContrast) if random.random() < self.probMask else 0
+                        maskContrast = random.choice(self.maskContrast) if mask else 0
                     else:
-                        goRight = random.random() < self.probGoRight
-                        rewardDir = 1 if goRight else -1
-                        if len(targetPosPix) > 1:
-                            if goRight:
-                                initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] < 0])
-                            else:
-                                initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] > 0])
-                            initTargetOri = self.targetOri[0]
-                        else:
-                            initTargetPos = targetPosPix[0]
-                            if (rotateTarget and goRight) or (not rotateTarget and not goRight):
-                                initTargetOri = random.choice([ori for ori in self.targetOri if ori < 0])
-                            else:
-                                initTargetOri = random.choice([ori for ori in self.targetOri if ori > 0])
-                        targetContrast = random.choice(self.targetContrast)
-                        targetFrames = random.choice(self.targetFrames)
-                        if random.random() < self.probMask:
+                        if mask:
                             maskOnset = random.choice(self.maskOnset+[0]) if rotateTarget else random.choice(self.maskOnset)
                             maskContrast = random.choice(self.maskContrast)
                         else:
                             maskOnset = maskContrast = 0
+                        if rotateTarget and maskOnset == 0 and maskContrast > 0:
+                            initTargetPos = (0,0)
+                            initTargetOri = 0
+                            targetContrast = 0
+                            targetFrames = 0
+                        else:
+                            goRight = random.random() < self.probGoRight
+                            rewardDir = 1 if goRight else -1
+                            if len(targetPosPix) > 1:
+                                if goRight:
+                                    initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] < 0])
+                                else:
+                                    initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] > 0])
+                                initTargetOri = self.targetOri[0]
+                            else:
+                                initTargetPos = targetPosPix[0]
+                                if (rotateTarget and goRight) or (not rotateTarget and not goRight):
+                                    initTargetOri = random.choice([ori for ori in self.targetOri if ori < 0])
+                                else:
+                                    initTargetOri = random.choice([ori for ori in self.targetOri if ori > 0])
+                            targetContrast = random.choice(self.targetContrast)
+                            targetFrames = random.choice(self.targetFrames)
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
@@ -396,7 +406,7 @@ class MaskingTask(TaskControl):
                 elif ((targetFrames == 0 and abs(closedLoopWheelMove) > maxQuiescentMove) or
                       (not self.keepTargetOnScreen and closedLoopWheelMove * -rewardDir > rewardMove)):
                     self.trialResponse.append(-1) # incorrect movement
-                    if self.useIncorrectNoise:
+                    if self.useIncorrectNoise and not (rotateTarget and targetFrames == 0):
                         self._noise = True
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
@@ -408,7 +418,8 @@ class MaskingTask(TaskControl):
                     hasResponded = True
                 elif targetFrames==0 and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.nogoWaitFrames:
                     self.trialResponse.append(1) # correct no response
-                    self._reward = True  
+                    if not rotateTarget:
+                        self._reward = True  
                     self.trialResponseFrame.append(self._sessionFrame)
                     hasResponded = True
                 
@@ -429,7 +440,7 @@ class MaskingTask(TaskControl):
                       self._sessionFrame < self.trialResponseFrame[-1] + self.incorrectTimeoutFrames):
                     # wait for incorrectTimeoutFrames after incorrect trial
                     # if rotation task, hold target at incorrect ori for postRewardTargetFrames
-                    if (rotateTarget and self.trialResponse[-1] < 0 and
+                    if (rotateTarget and targetFrames > 0 and self.trialResponse[-1] < 0 and
                         self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
                         if self._sessionFrame == self.trialResponseFrame[-1]:
                             target.ori = initTargetOri + rewardMove * -rewardDir
@@ -437,7 +448,7 @@ class MaskingTask(TaskControl):
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
-                    if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
+                    if self.trialResponse[-1] < 1 and not (rotateTarget and targetFrames ==0) and incorrectRepeatCount < self.incorrectTrialRepeats:
                         incorrectRepeatCount += 1
                         self.trialRepeat.append(True)
                     else:
