@@ -148,6 +148,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     plt.text(['Left no resp', leftNoResp/leftTurnTotal,
                      'Right no resp', round(rightNoResp/rightTurnTotal)], ha='left', va='bottom', bbox=dict(facecolor='white', alpha=0.5))
     name_date = str(data).split('_')    
+
     
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
                  yLabel='Wheel Position (pix)', title=name_date[-3:-1] + subtitle)
