@@ -289,6 +289,7 @@ class MaskingTask(TaskControl):
                         else:
                             maskOnset = maskContrast = 0
                         if rotateTarget and maskOnset == 0 and maskContrast > 0:
+                            rewardDir = 0
                             initTargetPos = (0,0)
                             initTargetOri = 0
                             targetContrast = 0
