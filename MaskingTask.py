@@ -272,8 +272,8 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    mask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
-                    maskCount = maskCount + 1 if mask else 0
+                    showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
+                    maskCount = maskCount + 1 if showMask else 0
                     if random.random() < self.probNoGo:
                         rewardDir = 0
                         initTargetPos = (0,0)
@@ -281,9 +281,9 @@ class MaskingTask(TaskControl):
                         targetContrast = 0
                         targetFrames = 0
                         maskOnset = 0
-                        maskContrast = random.choice(self.maskContrast) if mask else 0
+                        maskContrast = random.choice(self.maskContrast) if showMask else 0
                     else:
-                        if mask:
+                        if showMask:
                             maskOnset = random.choice(self.maskOnset+[0]) if rotateTarget else random.choice(self.maskOnset)
                             maskContrast = random.choice(self.maskContrast)
                         else:
