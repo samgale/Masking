@@ -114,6 +114,8 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.15 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
+            self.useIncorrectNoise=False
+            self.solenoidOpenTime = 0.07
             self.incorrectTrialRepeats = 5  # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
@@ -126,7 +128,6 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 30
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
-            self.solenoidOpenTime = 0.07
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings, add q period
@@ -134,6 +135,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 20
+            self.incorrectTimeoutFrames = 600
             self.solenoidOpenTime = 0.05
             
         elif name == 'training5':
