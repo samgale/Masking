@@ -119,6 +119,7 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 5  # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
+                self.useGoTone = False
             
         elif name == 'training3':
             # start training, introduce incorrect trials and shorter wait time
