@@ -32,7 +32,8 @@ mpl.style.use('classic')
                             with nans to correct for variable length. 
 '''
     
-def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, framesToShowBeforeStart=60, mask=False):
+def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, 
+                  framesToShowBeforeStart=60, mask=False, maskOnly=False):
 
 
     #Clean up inputs if needed    
@@ -70,6 +71,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         rewardFrames = rewardFrames[trialResponse>0]  
         
     nogo = d['trialTargetFrames'][:-1]==0
+    
         
     # alters the necessary variables to exclude any trials that are an incorrect repeat 
     #(i.e, a repeated trial after an incorrect choice).  If there are no repeats, it passes
@@ -86,6 +88,10 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
             subtitle= ['no repeated trials']
     else:
         subtitle = ['repeats incl']
+    
+    #remove early moves here
+    
+    
     
     postTrialFrames = 0 if d['postRewardTargetFrames'][()]>0 else 1 #make sure we have at least one frame after the reward
 
@@ -137,15 +143,16 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
                  yLabel='Wheel Position (pix)', title=name_date[-3:-1] + subtitle)
+    plt.tight_layout()
     
     if mask:
-        trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]   #plot mask only trials 
+        maskContrast = d['trialMaskContrast'][:len(trialResponse)]   #plot mask only trials 
         fig, ax = plt.subplots()
         nogoMask = []
         rightMask = []
         leftMask = []
-        for i, (trialStart, trialEnd, rewardDirection, maskContrast, resp) in enumerate(zip(
-                trialStartFrames, trialEndFrames, trialRewardDirection, trialMaskContrast, trialResponse)):
+        for i, (trialStart, trialEnd, rewardDirection, mask, resp) in enumerate(zip(
+                trialStartFrames, trialEndFrames, trialRewardDirection, maskContrast, trialResponse)):
             if i>0 and i<len(trialStartFrames):
                 if resp in responseFilter:
                     #get wheel position trace for this trial!
@@ -155,21 +162,26 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                     trialWheel -= trialWheel[0]
                     trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                     rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
-                    if nogo[i] and maskContrast>0:
-                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.4)   # plotting no-go trials
+                    if nogo[i] and mask==0:
+                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.3)   # plotting no-go trials
                         if rewardFrame is not None:
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'go')
                         nogoMask.append(trialWheel)
-                    elif rewardDirection>0 and maskContrast>0:
-                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.4)  #plotting right turning 
-                        if rewardFrame is not None:
-                            ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
-                        rightMask.append(trialWheel)
-                    elif rewardDirection<0 and maskContrast>0:
-                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.4)   # plotting left turning 
-                        if rewardFrame is not None:
-                            ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
-                        leftMask.append(trialWheel)
+                    elif nogo[i] and mask>0:
+                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'm', alpha=.3)  #plotting mask only trials 
+                    if maskOnly==True:
+                        pass
+                    else:
+                        if rewardDirection>0 and mask>0:
+                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)  #plotting right turning 
+                            if rewardFrame is not None:
+                                ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
+                            rightMask.append(trialWheel)
+                        elif rewardDirection<0 and mask>0:
+                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
+                            if rewardFrame is not None:
+                                ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
+                            leftMask.append(trialWheel)
         rightMask = pd.DataFrame(rightMask).fillna(np.nan).values
         leftMask = pd.DataFrame(leftMask).fillna(np.nan).values
         nogoMask = pd.DataFrame(nogoMask).fillna(np.nan).values
@@ -177,12 +189,36 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         ax.plot(trialTime[:leftMask.shape[1]], np.nanmean(leftMask, 0), 'b', linewidth=3)
         ax.plot(trialTime[:nogoMask.shape[1]], np.nanmean(nogoMask,0), 'k', linewidth=3)
         ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
+        
+        
+#        if table==True:
+#            cell_texts = session(d,ignoreRepeats=True, printValues=False)
+#            plt.figure()
+#            for i, (key, val) in enumerate(cell_texts.items()):
+#                plt.text(i,i, (key, val))
+#            plt.set_ylim
+#            columns = ('Trials', 'Correct', 'Incorrect', 'No Resp')
+#            rows = ('Total', 'Left', 'Right', 'No Go')
+#            table = ax.table(cellText=cell_texts,
+#                      rowLabels=rows,
+#                      colLabels=columns,
+#                      colWidths=[.2,.2,.2,.2],
+#                      loc='bottom',
+#                      bbox=[0, -0.5, 1, 0.275]
+#                      )
+#            plt.subplots_adjust(left=.2, bottom=0.2)
+#        
+        
         formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
                      yLabel='Wheel Position (pix)', title=name_date[-3:-1] + [ 'Mask Trials'])
+        plt.tight_layout()
+        
     else:
         pass
+    
     if returnData:
         return turnRightTrials, turnLeftTrials
+
 
 def get_files(mouse_id):
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
