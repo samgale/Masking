@@ -146,13 +146,14 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     plt.tight_layout()
     
     if mask:
-        maskContrast = d['trialMaskContrast'][:len(trialResponse)]   #plot mask only trials 
+        maskContrast = d['trialMaskContrast'][:len(trialResponse)]  #plot mask only trials 
+        maskOnset = d['trialMaskOnset'][:len(trialResponse)]
         fig, ax = plt.subplots()
         nogoMask = []
         rightMask = []
         leftMask = []
-        for i, (trialStart, trialEnd, rewardDirection, mask, resp) in enumerate(zip(
-                trialStartFrames, trialEndFrames, trialRewardDirection, maskContrast, trialResponse)):
+        for i, (trialStart, trialEnd, rewardDirection, mask, soa, resp) in enumerate(zip(
+                trialStartFrames, trialEndFrames, trialRewardDirection, maskContrast, maskOnset, trialResponse)):
             if i>0 and i<len(trialStartFrames):
                 if resp in responseFilter:
                     #get wheel position trace for this trial!
@@ -168,20 +169,21 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'go')
                         nogoMask.append(trialWheel)
                     elif nogo[i] and mask>0:
-                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'm', alpha=.3)  #plotting mask only trials 
+                        ax.plot(trialTime[:trialWheel.size], trialWheel, 'c', alpha=.3)  #plotting mask only trials 
                     if maskOnly==True:
                         pass
                     else:
                         if rewardDirection>0 and mask>0:
-                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)  #plotting right turning 
-                            if rewardFrame is not None:
-                                ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
-                            rightMask.append(trialWheel)
-                        elif rewardDirection<0 and mask>0:
-                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
-                            if rewardFrame is not None:
-                                ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
-                            leftMask.append(trialWheel)
+                            if soa==4:
+                                ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)  #plotting right turning 
+                                if rewardFrame is not None:
+                                    ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
+                                rightMask.append(trialWheel)
+#                        elif rewardDirection<0 and mask>0:
+#                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
+#                            if rewardFrame is not None:
+#                                ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
+#                            leftMask.append(trialWheel)
         rightMask = pd.DataFrame(rightMask).fillna(np.nan).values
         leftMask = pd.DataFrame(leftMask).fillna(np.nan).values
         nogoMask = pd.DataFrame(nogoMask).fillna(np.nan).values
