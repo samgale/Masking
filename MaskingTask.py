@@ -114,9 +114,12 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.15 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
+            self.useIncorrectNoise=False
+            self.solenoidOpenTime = 0.07
             self.incorrectTrialRepeats = 5  # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
+                self.useGoTone = False
             
         elif name == 'training3':
             # start training, introduce incorrect trials and shorter wait time
@@ -126,7 +129,6 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 30
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
-            self.solenoidOpenTime = 0.07
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings, add q period
@@ -134,6 +136,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 20
+            self.incorrectTimeoutFrames = 600
             self.solenoidOpenTime = 0.05
             
         elif name == 'training5':
@@ -143,7 +146,7 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 60
             self.probNoGo = 0.33
             self.incorrectTrialRepeats = 100
-            self.incorrectTimeoutFrames = 600
+            self.incorrectTimeoutFrames = 720
             
         elif name == 'training6':
             # introduce variable open loop frames
@@ -272,8 +275,8 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    mask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
-                    maskCount = maskCount + 1 if mask else 0
+                    showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
+                    maskCount = maskCount + 1 if showMask else 0
                     if random.random() < self.probNoGo:
                         rewardDir = 0
                         initTargetPos = (0,0)
@@ -281,14 +284,15 @@ class MaskingTask(TaskControl):
                         targetContrast = 0
                         targetFrames = 0
                         maskOnset = 0
-                        maskContrast = random.choice(self.maskContrast) if mask else 0
+                        maskContrast = random.choice(self.maskContrast) if showMask else 0
                     else:
-                        if mask:
+                        if showMask:
                             maskOnset = random.choice(self.maskOnset+[0]) if rotateTarget else random.choice(self.maskOnset)
                             maskContrast = random.choice(self.maskContrast)
                         else:
                             maskOnset = maskContrast = 0
                         if rotateTarget and maskOnset == 0 and maskContrast > 0:
+                            rewardDir = 0
                             initTargetPos = (0,0)
                             initTargetOri = 0
                             targetContrast = 0
