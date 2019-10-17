@@ -131,7 +131,7 @@ class MaskingTask(TaskControl):
             self.quiescentFrames = 60
             
         elif name == 'training4':
-            # similar to training3 but more stringent parameter settings, add q period
+            # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3',taskVersion)
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 120
