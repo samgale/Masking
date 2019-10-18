@@ -94,6 +94,7 @@ class MaskingTask(TaskControl):
                 self.gratingRotationGain = 0.05
                 self.rewardRotation = 45
                 self.targetSize = 48.5
+                self.useGoTone=False
             else:
                 if taskVersion in ('pos','position'):
                     self.normTargetPos = [(-0.25,0),(0.25,0)]

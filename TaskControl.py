@@ -30,6 +30,7 @@ class TaskControl():
         self.maxWheelAngleChange = 0.5 # radians
         self.spacebarRewardsEnabled = True
         self.solenoidOpenTime = 0.05 # seconds
+        self._solenoid = None
         self.useLED = False
         self.ledDur = 1.0
         self.ledRamp = 0.1
@@ -274,6 +275,19 @@ class TaskControl():
     def stopNidaqDevice(self):
         for task in self._nidaqTasks:
             task.close()
+            
+            
+    def openSolenoid(self):
+        self._solenoid = nidaqmx.Task()
+        self._solenoid.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao0',min_val=0,max_val=5)
+        self._solenoid.write(5)
+        
+    
+    def closeSolenoid(self):
+        if self._solenoid is not None:
+            self._solenoid.write(0)
+            self._solenoid.close()
+            self._solenoid = None
         
         
     def triggerReward(self):
