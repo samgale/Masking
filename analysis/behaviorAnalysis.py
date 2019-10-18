@@ -78,6 +78,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     if ignoreRepeats == True:
         if 'trialRepeat' in d.keys():
             prevTrialIncorrect = d['trialRepeat'][:len(trialResponse)]
+            subtitle = ['repeats ignored']
         elif 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'][()] > 0:
             prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))
             trialResponse = trialResponse[prevTrialIncorrect==False]
