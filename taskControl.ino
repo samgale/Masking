@@ -1,9 +1,10 @@
 int noiseInputPin = 6;
 int toneInputPin = 7;
 int soundOutputPin = 9;
-unsigned long soundStartTime = 0;
-int soundDuration = 200; // ms
+int toneDuration = 200; // ms
 int toneFreq = 8000;
+int noiseDuration = 1000;
+unsigned long noiseStartTime = 0;
 
 void setup() {
   pinMode(noiseInputPin,INPUT);
@@ -13,12 +14,12 @@ void setup() {
 
 void loop() {
   if (digitalRead(toneInputPin) == HIGH) {
-    tone(soundOutputPin,toneFreq,soundDuration);
+    tone(soundOutputPin,toneFreq,toneDuration);
   }
   else if (digitalRead(noiseInputPin) == HIGH) {
     noTone(soundOutputPin);
-    soundStartTime = millis();
-    while (millis()-soundStartTime < soundDuration) {
+    noiseStartTime = millis();
+    while (millis()-noiseStartTime < noiseDuration) {
       digitalWrite(soundOutputPin,random(2));
     }
     digitalWrite(soundOutputPin,LOW);
