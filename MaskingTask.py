@@ -146,7 +146,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.22
             self.maxResponseWaitFrames = 60
             self.probNoGo = 0.33
-            self.incorrectTrialRepeats = 100
+            self.incorrectTrialRepeats = 50
             self.incorrectTimeoutFrames = 720
             
         elif name == 'training6':
