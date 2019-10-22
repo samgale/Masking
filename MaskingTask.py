@@ -66,8 +66,8 @@ class MaskingTask(TaskControl):
         # mask params
         self.maskType = None # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
-        self.maskFrames = 9 # duration of mask
         self.maskOnset = [30] # frames >=0 relative to target stimulus onset
+        self.maskFrames = [24] # duration of mask
         self.maskContrast = [1]     
 
     
@@ -166,7 +166,7 @@ class MaskingTask(TaskControl):
         assert((len(self.normTargetPos)>1 and len(self.targetOri)==1) or
                (len(self.normTargetPos)==1 and len(self.targetOri)>1))
         assert(self.quiescentFrames <= self.preStimFramesFixed)
-        assert(0 not in self.targetFrames + self.targetContrast + self.maskOnset + self.maskContrast)
+        assert(0 not in self.targetFrames + self.targetContrast + self.maskOnset + self.maskFrames + self.maskContrast)
         for prob in (self.probNoGo,self.probGoRight,self.probMask):
             assert(0 <= prob <= 1)
         
@@ -245,6 +245,7 @@ class MaskingTask(TaskControl):
         self.trialTargetContrast = []
         self.trialTargetFrames = []
         self.trialMaskOnset = []
+        self.trialMaskFrames = []
         self.trialMaskContrast = []
         self.trialRewardDir = []
         self.trialResponse = []
@@ -285,14 +286,19 @@ class MaskingTask(TaskControl):
                         targetContrast = 0
                         targetFrames = 0
                         maskOnset = 0
-                        maskContrast = random.choice(self.maskContrast) if showMask else 0
+                        if showMask:
+                            maskFrames = random.choice(self.maskFrames)
+                            maskContrast = random.choice(self.maskContrast)
+                        else:
+                            maskFrames = maskContrast = 0
                     else:
                         if showMask:
                             maskOnset = random.choice(self.maskOnset+[0]) if rotateTarget else random.choice(self.maskOnset)
+                            maskFrames = random.choice(self.maskFrames)
                             maskContrast = random.choice(self.maskContrast)
                         else:
-                            maskOnset = maskContrast = 0
-                        if rotateTarget and maskOnset == 0 and maskContrast > 0:
+                            maskOnset = maskFrames = maskContrast = 0
+                        if rotateTarget and maskOnset == 0 and maskFrames > 0:
                             rewardDir = 0
                             initTargetPos = (0,0)
                             initTargetOri = 0
@@ -333,6 +339,7 @@ class MaskingTask(TaskControl):
                 self.trialTargetContrast.append(targetContrast)
                 self.trialTargetFrames.append(targetFrames)
                 self.trialMaskOnset.append(maskOnset)
+                self.trialMaskFrames.append(maskFrames)
                 self.trialMaskContrast.append(maskContrast)
                 self.trialRewardDir.append(rewardDir)
                 hasResponded = False
@@ -392,9 +399,9 @@ class MaskingTask(TaskControl):
                             target.phase = phase
                         target.draw()
                 else:
-                    if (self.maskType is not None and maskContrast > 0 and
+                    if (self.maskType is not None and maskFrames > 0 and
                         (self.trialPreStimFrames[-1] + maskOnset <= self._trialFrame < 
-                         self.trialPreStimFrames[-1] + maskOnset + self.maskFrames)):
+                         self.trialPreStimFrames[-1] + maskOnset + maskFrames)):
                         for m in mask:
                             m.draw()
                     elif self._trialFrame < self.trialPreStimFrames[-1] + targetFrames:
