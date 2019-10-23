@@ -181,11 +181,11 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                             if rewardFrame is not None:
                                 ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
                             rightMask.append(trialWheel)
-#                        elif rewardDirection<0 and mask>0:
-#                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
-#                            if rewardFrame is not None:
-#                                ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
-#                            leftMask.append(trialWheel)
+                        elif rewardDirection<0 and mask>0:
+                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
+                            if rewardFrame is not None:
+                                ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
+                            leftMask.append(trialWheel)
         rightMask = pd.DataFrame(rightMask).fillna(np.nan).values
         leftMask = pd.DataFrame(leftMask).fillna(np.nan).values
         nogoMask = pd.DataFrame(nogoMask).fillna(np.nan).values
