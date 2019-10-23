@@ -67,9 +67,6 @@ class TaskControl():
         self.startTime = time.strftime('%Y%m%d_%H%M%S',startTime)
         print('start time was: ' + time.strftime('%I:%M',startTime))
         
-        self.numpyRandomSeed = random.randint(0,2**32)
-        self._numpyRandom = np.random.RandomState(self.numpyRandomSeed)
-        
         self.pixelsPerDeg = 0.5 * self.monSizePix[0] / math.degrees(math.atan(0.5 * self.monWidth / self.monDistance))
         
         self.prepareWindow()
