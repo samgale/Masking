@@ -107,8 +107,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     rxnTimes = []
     for i, times in enumerate(cumRespTimes):
-        mask = (abs(times[:])>10)
-        val = np.argmax(mask)
+        bmask = (abs(times[:])>10)
+        val = np.argmax(bmask)
         rxnTimes.append(val)
 
     ignoreTrials = []
