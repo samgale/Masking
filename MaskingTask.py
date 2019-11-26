@@ -87,6 +87,7 @@ class MaskingTask(TaskControl):
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
             self.gratingEdge = 'circle'
+            self.solenoidOpenTime = .1
             if taskVersion in ('rot','rotation'):
                 self.normTargetPos = [(0,0)]
                 self.targetOri = [-45,45]
@@ -116,7 +117,6 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
             self.useIncorrectNoise=False
-            self.solenoidOpenTime = 0.07
             self.incorrectTrialRepeats = 5  # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
