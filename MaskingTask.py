@@ -88,7 +88,7 @@ class MaskingTask(TaskControl):
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
             self.gratingEdge = 'circle'
-            self.solenoidOpenTime = .1
+            self.solenoidOpenTime = .5
             if taskVersion in ('rot','rotation'):
                 self.normTargetPos = [(0,0)]
                 self.targetOri = [-45,45]
@@ -131,6 +131,7 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 30
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
+            self.solenoidOpenTime = .1
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings
