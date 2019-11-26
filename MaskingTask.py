@@ -23,6 +23,7 @@ class MaskingTask(TaskControl):
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probMask = 0 # fraction of trials with mask
         self.maxConsecutiveMaskTrials = 3
+        self.varyMaskedTargetParams = False # target params (duration, contrast) varied during mask trials if True else use first value
         
         self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
@@ -299,6 +300,7 @@ class MaskingTask(TaskControl):
                         else:
                             maskOnset = maskFrames = maskContrast = 0
                         if rotateTarget and maskOnset == 0 and maskFrames > 0:
+                            # mask only trial for rotation task
                             rewardDir = 0
                             initTargetPos = (0,0)
                             initTargetOri = 0
@@ -319,8 +321,12 @@ class MaskingTask(TaskControl):
                                     initTargetOri = random.choice([ori for ori in self.targetOri if ori < 0])
                                 else:
                                     initTargetOri = random.choice([ori for ori in self.targetOri if ori > 0])
-                            targetContrast = random.choice(self.targetContrast)
-                            targetFrames = random.choice(self.targetFrames)
+                            if self.varyMaskedTargetParams or not showMask:
+                                targetContrast = random.choice(self.targetContrast)
+                                targetFrames = random.choice(self.targetFrames)
+                            else:
+                                targetContrast = self.targetContrast[0]
+                                targetFrames = self.targetFrames[0]
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
