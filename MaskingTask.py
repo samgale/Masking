@@ -22,6 +22,7 @@ class MaskingTask(TaskControl):
         self.probNoGo = 0 # fraction of trials with no target, rewarded for no movement of wheel
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probMask = 0 # fraction of trials with mask
+        self.maxConsecutiveSameDir = 3
         self.maxConsecutiveMaskTrials = 3
         self.varyMaskedTargetParams = False # target params (duration, contrast) varied during mask trials if True else use first value
         
@@ -279,9 +280,10 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
+                    consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==d[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
                     showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
                     maskCount = maskCount + 1 if showMask else 0
-                    if random.random() < self.probNoGo:
+                    if random.random() < self.probNoGo and consecutiveDir != 0:
                         rewardDir = 0
                         initTargetPos = (0,0)
                         initTargetOri = 0
@@ -295,7 +297,7 @@ class MaskingTask(TaskControl):
                             maskFrames = maskContrast = 0
                     else:
                         if showMask:
-                            maskOnset = random.choice(self.maskOnset+[0]) if rotateTarget else random.choice(self.maskOnset)
+                            maskOnset = random.choice(self.maskOnset+[0]) if rotateTarget and consecutiveDir != 0 else random.choice(self.maskOnset)
                             maskFrames = random.choice(self.maskFrames)
                             maskContrast = random.choice(self.maskContrast)
                         else:
@@ -308,7 +310,7 @@ class MaskingTask(TaskControl):
                             targetContrast = 0
                             targetFrames = 0
                         else:
-                            goRight = random.random() < self.probGoRight
+                            goRight = False if consecutiveDir == 1 else (True if consecutiveDir == -1 else random.random() < self.probGoRight)
                             rewardDir = 1 if goRight else -1
                             if len(targetPosPix) > 1:
                                 if goRight:
