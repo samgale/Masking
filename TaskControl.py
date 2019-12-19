@@ -5,18 +5,19 @@ Superclass for behavioral task control
 """
 
 from __future__ import division
-import math, os, random, time
+import math, os, time
 import h5py
 import numpy as np
 from psychopy import monitors, visual, event
-import ProjectorWindow
+from psychopy.visual.windowwarp import Warper
 import nidaqmx
 
 
 class TaskControl():
     
-    def __init__(self):
-        self.rig = 'pilot'
+    def __init__(self,rigName):
+        assert(rigName in ('pilot','box5'))
+        self.rigName = rigName
         self.subjectName = None
         self.saveParams = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
@@ -34,29 +35,30 @@ class TaskControl():
         self.ledDur = 1.0
         self.ledRamp = 0.1
         self.ledAmp = 5.0
-        if self.rig=='pilot':
-            self.saveDir = 'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
+        if self.rigName=='pilot':
+            self.saveDir = r'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.screen = 1 # monitor to present stimuli on
             self.monWidth = 47.2 # cm
             self.monDistance = 21.0 # cm
             self.monGamma = None # float or None
             self.monSizePix = (1680,1050)
             self.flipScreenHorz = False
-            self.warp = 'Disabled' # one of ('Disabled','Spherical','Cylindrical','Curvilinear','Warpfile')
+            self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
             self.warpFile = None
             self.diodeBoxSize = 50
             self.diodeBoxPosition = (815,-500)
-        elif self.rig=='box5':
-            self.saveDir = 'C:\Users\svc_ccg\Documents\Data'
+        elif self.rigName=='box5':
+            self.saveDir = r'C:\Users\svc_ccg\Documents\Data'
             self.screen = 1 # monitor to present stimuli on
-            self.monWidth = 47.2 # cm
-            self.monDistance = 21.0 # cm
+            self.monWidth = 50.8 # cm
+            self.monDistance = 21.6 # cm
+            self.monGamma = None # float or None
             self.monSizePix = (1920,1080)
             self.flipScreenHorz = False
-            self.warp = 'Disabled' # one of ('Disabled','Spherical','Cylindrical','Curvilinear','Warpfile')
+            self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
             self.warpFile = None
             self.diodeBoxSize = 50
-            self.diodeBoxPosition = (815,-500)
+            self.diodeBoxPosition = (931,-514)
         
     
     def prepareSession(self):
@@ -101,13 +103,12 @@ class TaskControl():
                                      gamma=self.monGamma)
         self._mon.setSizePix(self.monSizePix)
         self._mon.saveMon()
-        self._win =  ProjectorWindow.ProjectorWindow(monitor=self._mon,
-                                                     screen=self.screen,
-                                                     fullscr=True,
-                                                     flipHorizontal=self.flipScreenHorz,
-                                                     warp=getattr(ProjectorWindow.Warp,self.warp),
-                                                     warpfile=self.warpFile,
-                                                     units='pix')
+        self._win = visual.Window(monitor=self._mon,
+                                  screen=self.screen,
+                                  fullscr=True,
+                                  flipHorizontal=self.flipScreenHorz,
+                                  units='pix')
+        self._warper = Warper(self._win,warp=self.warp,warpfile=self.warpFile)
         self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
         
@@ -362,7 +363,7 @@ def saveParameters(fileOut,paramDict,dictName=None):
                         val = valArray
                     fileOut.create_dataset(paramName,data=val)
                 except:
-                    print 'could not save ' + key
+                    print('could not save ' + key)
                     
 
 if __name__ == "__main__":
