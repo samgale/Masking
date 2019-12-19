@@ -15,8 +15,9 @@ import nidaqmx
 
 class TaskControl():
     
-    def __init__(self):
-        self.rig = 'pilot'
+    def __init__(self,rigName):
+        assert(rigName in ('pilot','box5'))
+        self.rigName = rigName
         self.subjectName = None
         self.saveParams = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
@@ -34,7 +35,7 @@ class TaskControl():
         self.ledDur = 1.0
         self.ledRamp = 0.1
         self.ledAmp = 5.0
-        if self.rig=='pilot':
+        if self.rigName=='pilot':
             self.saveDir = r'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.screen = 1 # monitor to present stimuli on
             self.monWidth = 47.2 # cm
@@ -46,18 +47,18 @@ class TaskControl():
             self.warpFile = None
             self.diodeBoxSize = 50
             self.diodeBoxPosition = (815,-500)
-        elif self.rig=='box5':
+        elif self.rigName=='box5':
             self.saveDir = r'C:\Users\svc_ccg\Documents\Data'
             self.screen = 1 # monitor to present stimuli on
-            self.monWidth = 47.2 # cm
-            self.monDistance = 21.0 # cm
+            self.monWidth = 50.8 # cm
+            self.monDistance = 21.6 # cm
             self.monGamma = None # float or None
             self.monSizePix = (1920,1080)
             self.flipScreenHorz = False
             self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
             self.warpFile = None
             self.diodeBoxSize = 50
-            self.diodeBoxPosition = (815,-500)
+            self.diodeBoxPosition = (931,-514)
         
     
     def prepareSession(self):

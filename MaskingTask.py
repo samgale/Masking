@@ -13,8 +13,8 @@ from TaskControl import TaskControl
 
 class MaskingTask(TaskControl):
     
-    def __init__(self):
-        TaskControl.__init__(self)
+    def __init__(self,rigName):
+        TaskControl.__init__(self,rigName)
         
         # parameters that can vary across trials are lists
         # only one of targetPos and targetOri can be len() > 1
