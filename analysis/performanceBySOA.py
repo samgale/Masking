@@ -93,15 +93,6 @@ maskOnlyTurnDir = np.array(maskOnlyTurnDir)
 maskOnlyR = sum(maskOnlyTurnDir==1)
 maskOnlyL = sum(maskOnlyTurnDir==-1)   
 
-    
-nogoTurnDir = nogo_turn(d, ignoreRepeats=False, returnArray=True)   #set false for masking
-nogoMove = len(nogoTurnDir) 
-nogoTurnDir = np.array(nogoTurnDir)
-
-nogoR = sum(nogoTurnDir==1)
-nogoL = sum(nogoTurnDir==-1)
-
-
 
 for num, denom, title in zip(
         [hits, hits, respOnly],
