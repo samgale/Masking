@@ -113,6 +113,7 @@ class TaskControl():
             self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
             if self.frameRate is not None:
                 break
+        assert(self.frameRate is not None)
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
         
         
