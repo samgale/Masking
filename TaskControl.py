@@ -109,7 +109,11 @@ class TaskControl():
                                   flipHorizontal=self.flipScreenHorz,
                                   units='pix')
         self._warper = Warper(self._win,warp=self.warp,warpfile=self.warpFile)
-        self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
+        for _ in range(10):
+            self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
+            if self.frameRate is not None:
+                break
+        assert(self.frameRate is not None)
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
         
         
@@ -131,7 +135,7 @@ class TaskControl():
     
     def taskFlow(self):
         # override this method in subclass
-    
+        
         while self._continueSession:
             # get rotary encoder and digital input states
             self.getNidaqData()
