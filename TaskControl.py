@@ -135,7 +135,7 @@ class TaskControl():
     
     def taskFlow(self):
         # override this method in subclass
-    
+        
         while self._continueSession:
             # get rotary encoder and digital input states
             self.getNidaqData()
