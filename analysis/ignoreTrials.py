@@ -11,7 +11,6 @@ Creats dataframe of response times per trial, by side, and plots distributions -
 
 """
 
-import fileIO, h5py
 import numpy as np
 import scipy.signal
 
@@ -27,7 +26,7 @@ def ignore_trials(d):
 
     
     
-    for i, trial in enumerate(trialTargetFrames):  # this is needed for older files nogos are randomly assigned a dir
+    for i, trial in enumerate(trialTargetFrames):  # this is needed for older files; nogos were randomly assigned a dir
         if trial==0:
             trialRewardDirection[i] = 0
     
