@@ -8,6 +8,7 @@ Returns a list of trials indices where they moved the wheel before a temporal th
 Use these indices to exclude those trials from analysis
 
 
+
 """
 
 import numpy as np
