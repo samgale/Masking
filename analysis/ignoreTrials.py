@@ -47,17 +47,13 @@ def ignore_trials(d):
     
     rxnTimes = []
     for i, times in enumerate(cumRespTimes):
-       # time2 = time2[::-1]
         booleanMask = (abs(times[:])>10)
         val = np.argmax(booleanMask)
-       # t = len(time2) - val
         rxnTimes.append(val)
-            #this is in pixels, calculated from Monitor norm and quiescent move threshold (.025)
-    
-    
+               
     ignoreTrials = []
     for i, t in enumerate(rxnTimes):     # 15 frames = 125 ms 
-        if 0<t<10:                                 # correct nogos have a rxn time of 0
+        if 1<t<10:                                 # correct nogos have a rxn time of 0
             ignoreTrials.append(i)
     return ignoreTrials
 
