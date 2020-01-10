@@ -4,9 +4,8 @@ Created on Thu Aug 22 12:56:20 2019
 
 @author: chelsea.strawder
 
-Creats dataframe of response times per trial, by side, and plots distributions - 
-
-(how quickly they turn after stim onset and/or goTone)
+Returns a list of trials indices where they moved the wheel before a temporal threshold
+Use these indices to exclude those trials from analysis
 
 
 """
