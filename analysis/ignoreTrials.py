@@ -4,14 +4,13 @@ Created on Thu Aug 22 12:56:20 2019
 
 @author: chelsea.strawder
 
-Creats dataframe of response times per trial, by side, and plots distributions - 
+Returns a list of trials indices where they moved the wheel before a temporal threshold
+Use these indices to exclude those trials from analysis
 
-(how quickly they turn after stim onset and/or goTone)
 
 
 """
 
-import fileIO, h5py
 import numpy as np
 import scipy.signal
 
@@ -27,7 +26,7 @@ def ignore_trials(d):
 
     
     
-    for i, trial in enumerate(trialTargetFrames):  # this is needed for older files nogos are randomly assigned a dir
+    for i, trial in enumerate(trialTargetFrames):  # this is needed for older files; nogos were randomly assigned a dir
         if trial==0:
             trialRewardDirection[i] = 0
     
@@ -48,17 +47,13 @@ def ignore_trials(d):
     
     rxnTimes = []
     for i, times in enumerate(cumRespTimes):
-       # time2 = time2[::-1]
         booleanMask = (abs(times[:])>10)
         val = np.argmax(booleanMask)
-       # t = len(time2) - val
         rxnTimes.append(val)
-            #this is in pixels, calculated from Monitor norm and quiescent move threshold (.025)
-    
-    
+               
     ignoreTrials = []
     for i, t in enumerate(rxnTimes):     # 15 frames = 125 ms 
-        if 0<t<10:                                 # correct nogos have a rxn time of 0
+        if 1<t<10:                                 # correct nogos have a rxn time of 0
             ignoreTrials.append(i)
     return ignoreTrials
 
