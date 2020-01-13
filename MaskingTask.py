@@ -26,15 +26,15 @@ class MaskingTask(TaskControl):
         self.maxConsecutiveMaskTrials = 3
         self.varyMaskedTargetParams = False # target params (duration, contrast) varied during mask trials if True else use first value
         
-        self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
-        self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
-        self.preStimFramesMax = 720 # max total preStim frames
-        self.quiescentFrames = 60 # frames before stim onset during which wheel movement delays stim onset
-        self.openLoopFramesFixed = 24 # min frames after stimulus onset before wheel movement has effects
+        self.preStimFramesFixed = 180 # min frames between end of previous trial and stimulus onset
+        self.preStimFramesVariableMean = 60 # mean of additional preStim frames drawn from exponential distribution
+        self.preStimFramesMax = 360 # max total preStim frames
+        self.quiescentFrames = 30 # frames before stim onset during which wheel movement delays stim onset
+        self.openLoopFramesFixed = 12 # min frames after stimulus onset before wheel movement has effects
         self.openLoopFramesVariableMean = 0 # mean of additional open loop frames drawn from exponential distribution
-        self.openLoopFramesMax = 120 # max total openLoopFrames
-        self.maxResponseWaitFrames = 360 # max frames between end of openLoopFrames and end of go trial
-        self.nogoWaitFrames = 120 # frames after openLoopFrames during which mouse must remain still on nogo trials
+        self.openLoopFramesMax = 60 # max total openLoopFrames
+        self.maxResponseWaitFrames = 180 # max frames between end of openLoopFrames and end of go trial
+        self.nogoWaitFrames = 60 # frames after openLoopFrames during which mouse must remain still on nogo trials
         
         self.normRewardDistance = 0.25 # normalized to screen width
         self.gratingRotationGain = 0 # degrees per pixels of wheel movement
@@ -57,7 +57,7 @@ class MaskingTask(TaskControl):
         
         # target stimulus params
         self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
-        self.targetFrames = [2] # duration of target stimulus
+        self.targetFrames = [1] # duration of target stimulus
         self.targetContrast = [1]
         self.targetSize = 20 # degrees
         self.targetSF = 0.1 # cycles/deg
@@ -68,8 +68,8 @@ class MaskingTask(TaskControl):
         # mask params
         self.maskType = None # None, 'plaid', or 'noise'
         self.maskShape = 'target' # 'target', 'surround', 'full'
-        self.maskOnset = [30] # frames >=0 relative to target stimulus onset
-        self.maskFrames = [24] # duration of mask
+        self.maskOnset = [15] # frames >=0 relative to target stimulus onset
+        self.maskFrames = [12] # duration of mask
         self.maskContrast = [1]     
 
     
@@ -80,13 +80,13 @@ class MaskingTask(TaskControl):
             self.probNoGo = 0
             self.moveStim = True
             self.maxResponseWaitFrames = 3600
-            self.postRewardTargetFrames = 60
+            self.postRewardTargetFrames = 30
             self.useGoTone = True
-            self.preStimFramesFixed = 360
-            self.preStimFramesVariableMean = 120
-            self.preStimFramesMax = 600
+            self.preStimFramesFixed = 180
+            self.preStimFramesVariableMean = 60
+            self.preStimFramesMax = 300
             self.quiescentFrames = 0
-            self.openLoopFramesFixed = 24
+            self.openLoopFramesFixed = 12
             self.openLoopFramesVariableMean = 0
             self.gratingEdge = 'circle'
             self.solenoidOpenTime = .5
@@ -117,7 +117,7 @@ class MaskingTask(TaskControl):
             self.keepTargetOnScreen=False
             self.normRewardDistance = 0.15 
             self.maxResponseWaitFrames = 3600
-            self.incorrectTimeoutFrames = 240
+            self.incorrectTimeoutFrames = 120
             self.useIncorrectNoise=False
             self.incorrectTrialRepeats = 5  # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
@@ -128,37 +128,37 @@ class MaskingTask(TaskControl):
             # start training, introduce incorrect trials and shorter wait time
             self.setDefaultParams('training2',taskVersion)
             self.normRewardDistance = 0.18
-            self.maxResponseWaitFrames = 720   # manually adjust this 
+            self.maxResponseWaitFrames = 1200   # manually adjust this 
             self.incorrectTrialRepeats = 30
             self.useIncorrectNoise = True
-            self.quiescentFrames = 60
+            self.quiescentFrames = 30
             self.solenoidOpenTime = .1
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3',taskVersion)
             self.normRewardDistance = 0.2
-            self.maxResponseWaitFrames = 120
+            self.maxResponseWaitFrames = 60
             self.incorrectTrialRepeats = 20
-            self.incorrectTimeoutFrames = 600
+            self.incorrectTimeoutFrames = 360
             self.solenoidOpenTime = 0.05
             
         elif name == 'training5':
             # introduce no-go trials
             self.setDefaultParams('training4',taskVersion)
             self.normRewardDistance = 0.22
-            self.maxResponseWaitFrames = 60
+            self.maxResponseWaitFrames = 30
             self.probNoGo = 0.33
             self.incorrectTrialRepeats = 50
-            self.incorrectTimeoutFrames = 720
+            self.incorrectTimeoutFrames = 360
             
         elif name == 'training6':
             # introduce variable open loop frames
             self.setDefaultParams('training5',taskVersion)
-            self.maxResponseWaitFrames = 60
-            self.openLoopFramesFixed = 24
-            self.openLoopFramesVariableMean = 36
-            self.openLoopFramesMax = 180
+            self.maxResponseWaitFrames = 30
+            self.openLoopFramesFixed = 12
+            self.openLoopFramesVariableMean = 18
+            self.openLoopFramesMax = 90
             self.incorrectTrialRepeats = 0
             
         else:
