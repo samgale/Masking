@@ -49,7 +49,7 @@ class TaskControl():
             self.diodeBoxPosition = (815,-500)
         elif self.rigName=='box5':
             self.saveDir = r'C:\Users\svc_ccg\Documents\Data'
-            self.screen = 1 # monitor to present stimuli on
+            self.screen = 0 # monitor to present stimuli on
             self.monWidth = 50.8 # cm
             self.monDistance = 21.6 # cm
             self.monGamma = None # float or None
