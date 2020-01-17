@@ -34,7 +34,7 @@ mpl.style.use('classic')
 '''
     
 def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, 
-                  framesToShowBeforeStart=60, mask=False, maskOnly=False):
+                  framesToShowBeforeStart=30, mask=False, maskOnly=False):
 
 
     #Clean up inputs if needed    
