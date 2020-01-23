@@ -16,7 +16,6 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
-from nogoTurn import nogo_turn
 
 
 def plot_soa(d):
@@ -30,7 +29,7 @@ def plot_soa(d):
     trialMaskOnset = d['trialMaskOnset'][:len(trialResponse)]
     trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)]       
     trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]     
-    framerate = d['frameRate'][()]
+    framerate = int(round(d['frameRate'][()]))
     
     noMaskVal = maskOnset[-1] + round(np.mean(np.diff(maskOnset)))  # assigns noMask condition an evenly-spaced value from soas
     maskOnset = np.append(maskOnset, noMaskVal)              # makes final value the no-mask condition
@@ -38,6 +37,9 @@ def plot_soa(d):
     for i, (mask, trial) in enumerate(zip(trialMaskOnset, trialTargetFrames)):   # filters target-Only trials 
         if trial>0 and mask==0:
             trialMaskOnset[i]=noMaskVal
+            
+    trialMaskOnset = np.ceil(trialMaskOnset * (1000/framerate))
+    maskOnset = np.ceil(maskOnset * (1000/framerate))
     
     # [turn R] , [turn L]
     hits = [[],[]]
@@ -136,12 +138,12 @@ def plot_soa(d):
     for num, denom, title in zip(
             [hits, hits, respOnly],
             [totalTrials, respOnly, totalTrials],
-            ['Percent Correct', 'Percent Correct Given Response', 'Total response rate']):
+            ['Percent Correct', 'Percent Correct Given Response', 'Total Response Rate']):
         
         fig, ax = plt.subplots()
     
-        ax.plot(np.unique(maskOnset), num[0]/denom[0], 'ro-')  #here [0] is right turning trials and [1] is left turning
-        ax.plot(np.unique(maskOnset), num[1]/denom[1], 'bo-')
+        ax.plot(np.unique(maskOnset), num[0]/denom[0], 'ro-', lw=3, alpha=.7)  #here [0] is right turning trials and [1] is left turning
+        ax.plot(np.unique(maskOnset), num[1]/denom[1], 'bo-', lw=3, alpha=.7)
         y=(num[0]/denom[0])
         y2=(num[1]/denom[1])
         for i, length in enumerate(np.unique(maskOnset)):
@@ -151,17 +153,18 @@ def plot_soa(d):
         if 0 in trialTargetFrames:
             ax.plot(0, (maskOnlyR/maskOnlyTotal), 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
             ax.plot(0, (maskOnlyL/maskOnlyTotal), 'b<', ms=8)
-            ax.plot(0, (maskOnlyCorr/maskOnlyTotal), 'ko')
+            ax.plot(0, ((maskOnlyTotal-maskOnlyCorr)/maskOnlyTotal), 'ko')
+            ax.annotate(str(maskOnlyTotal), xy=(1, (maskOnlyTotal-maskOnlyCorr)/maskOnlyTotal), xytext=(0,0), textcoords='offset points')
             ax.annotate(str(maskOnlyR), xy=(1,maskOnlyR/maskOnlyTotal), xytext=(0, 0), textcoords='offset points')
             ax.annotate(str(maskOnlyL), xy=(1,maskOnlyL/maskOnlyTotal), xytext=(0, 0), textcoords='offset points')
-            
-            ax.plot(-1, nogoCorrect/nogoTotal, 'go')
-            ax.plot(-1, nogoR/nogoMove, 'g>')   #plot the side that was turned in no-go with an arrow in that direction
-            ax.plot(-1, nogoL/nogoMove, 'g<')
+            if title=='Total Response Rate':    
+                ax.plot(-10, nogoMove/nogoTotal, 'go')
+                ax.plot(-10, nogoR/nogoMove, 'g>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
+                ax.plot(-10, nogoL/nogoMove, 'g<', ms=8)
         
-        formatFigure(fig, ax, xLabel='SOA (frames)', yLabel='percent trials', 
+        formatFigure(fig, ax, xLabel='SOA (ms)', yLabel='percent trials', 
                      title=title + " :  " + '-'.join(str(d).split('_')[-3:-1]))
-        ax.set_xlim([-2, maskOnset[-1]+2])
+        ax.set_xlim([-20, maskOnset[-1]+10])
         ax.set_ylim([0,1.1])
         ax.set_xticks(np.unique(trialMaskOnset))
         ax.spines['right'].set_visible(False)
