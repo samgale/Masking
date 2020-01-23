@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 
 
-def plot_flash(d):
+def plot_flash(data):
     
     matplotlib.rcParams['pdf.fonttype'] = 42
 

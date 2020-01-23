@@ -18,7 +18,7 @@ from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 
 
-def plot_soa(d):
+def plot_soa(data):
     
     matplotlib.rcParams['pdf.fonttype'] = 42
     
@@ -150,35 +150,42 @@ def plot_soa(d):
             plt.annotate(str(denom[0][i]), xy=(length,y[i]), xytext=(0, 10), textcoords='offset points')  #adds total num of trials
             plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(0, -20), textcoords='offset points')
         ax.plot(np.unique(maskOnset), (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5)  #plots the combined average  
-        if 0 in trialTargetFrames:
+        if title!='Percent Correct' and 0 in trialTargetFrames:
             ax.plot(0, (maskOnlyR/maskOnlyTotal), 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
             ax.plot(0, (maskOnlyL/maskOnlyTotal), 'b<', ms=8)
             ax.plot(0, ((maskOnlyTotal-maskOnlyCorr)/maskOnlyTotal), 'ko')
             ax.annotate(str(maskOnlyTotal), xy=(1, (maskOnlyTotal-maskOnlyCorr)/maskOnlyTotal), xytext=(0,0), textcoords='offset points')
             ax.annotate(str(maskOnlyR), xy=(1,maskOnlyR/maskOnlyTotal), xytext=(0, 0), textcoords='offset points')
             ax.annotate(str(maskOnlyL), xy=(1,maskOnlyL/maskOnlyTotal), xytext=(0, 0), textcoords='offset points')
-            if title=='Total Response Rate':    
-                ax.plot(-10, nogoMove/nogoTotal, 'go')
-                ax.plot(-10, nogoR/nogoMove, 'g>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
-                ax.plot(-10, nogoL/nogoMove, 'g<', ms=8)
-        
-        formatFigure(fig, ax, xLabel='SOA (ms)', yLabel='percent trials', 
+              
+            ax.plot(-15, nogoMove/nogoTotal, 'go')
+            ax.plot(-15, nogoR/nogoMove, 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
+            ax.plot(-15, nogoL/nogoMove, 'b<', ms=8)
+            ax.annotate(str(nogoMove), xy=(-14, nogoMove/nogoTotal), xytext=(0,0), textcoords='offset points')
+            ax.annotate(str(nogoR), xy=(-14,nogoR/nogoMove), xytext=(0, 0), textcoords='offset points')
+            ax.annotate(str(nogoL), xy=(-14,nogoL/nogoMove), xytext=(0, 0), textcoords='offset points')
+            
+        formatFigure(fig, ax, xLabel='SOA (ms)', yLabel='Percent Trials', 
                      title=title + " :  " + '-'.join(str(d).split('_')[-3:-1]))
-        ax.set_xlim([-20, maskOnset[-1]+10])
+        ax.set_xlim([-25, maskOnset[-1]+10])
         ax.set_ylim([0,1.1])
-        ax.set_xticks(np.unique(trialMaskOnset))
+        xticks = np.insert(maskOnset, 0, [-15,0])
+        ax.set_xticks(xticks[2:-1])
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
                 
       
-        a = ax.get_xticks().tolist()
-        a = [int(i) for i in a]     
-        a[-1]='no mask' 
-        if maskOnlyTotal:
-            a[0]='mask only'
-        ax.set_xticklabels(a)
-         
+        if title!='Percent Correct':
+            ax.set_xticks(xticks)
+            a = ax.get_xticks().tolist()
+            a = [int(i) for i in a]     
+            a[-1]='no \n mask' 
+            if maskOnlyTotal:
+                a[0]='no \ngo'
+                a[1]='mask \n only'
+            ax.set_xticklabels(a)
+             
         plt.tight_layout() 
         
     plt.show()
