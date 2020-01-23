@@ -4,18 +4,18 @@ Created on Mon Jul 08 18:07:23 2019
 
 @author: svc_ccg
 """
-import fileIO
-import h5py, os
+
 import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 
-matplotlib.rcParams['pdf.fonttype'] = 42
-
 
 def plot_flash(d):
+    
+    matplotlib.rcParams['pdf.fonttype'] = 42
 
+    d = data
     trialResponse = d['trialResponse'][:]
     trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]    # leave off last trial, ended session before answer 
     targetLengths = d['targetFrames'][:]                  # list of ind lengths, does not include no-gos (0)

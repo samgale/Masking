@@ -18,10 +18,12 @@ from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 from nogoTurn import nogo_turn
 
-matplotlib.rcParams['pdf.fonttype'] = 42
 
 def plot_soa(d):
-
+    
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    
+    d=data
     trialResponse = d['trialResponse'][:]
     trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]
     maskOnset = d['maskOnset'][()]                  
@@ -176,4 +178,4 @@ def plot_soa(d):
          
         plt.tight_layout() 
         
-        plt.show()
+    plt.show()

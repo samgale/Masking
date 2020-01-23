@@ -10,9 +10,9 @@ import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 
-matplotlib.rcParams['pdf.fonttype'] = 42
-
 def plot_contrast(data):
+    
+    matplotlib.rcParams['pdf.fonttype'] = 42
     
     d=data
     trialResponse = d['trialResponse'][:]
@@ -114,8 +114,8 @@ def plot_contrast(data):
             plt.annotate(str(denom[0][i]), xy=(length,y1[i]), xytext=(5, -10), textcoords='offset points')  
             plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(-10, 10), textcoords='offset points')
         
-        if 0 in trialTargetFrames:
-            ax.plot(0, nogoCorrect/nogoTotal, 'go') 
+        if title=='Total response rate' and 0 in trialTargetFrames:
+            ax.plot(0, nogoMove/nogoTotal, 'go') 
             if title=='Total response rate':
                 ax.plot(0, nogoR/nogoMove, 'g>')   #plot the side that was turned in no-go with an arrow in that direction
                 ax.plot(0, nogoL/nogoMove, 'g<')  #add counts
@@ -131,7 +131,7 @@ def plot_contrast(data):
     
         #ax.text(np.unique(targetContrast), (num[0]/denom[0]), str(denom))
                 
-        if 0 in trialTargetFrames:   
+        if title=='Total response rate' and 0 in trialTargetFrames:   
             a = ax.get_xticks().tolist()
             #a = [int(i) for i in a]    
             a[0]='no-go' 
