@@ -107,7 +107,7 @@ def plot_contrast(data):
         fig, ax = plt.subplots()
         ax.plot(np.unique(targetContrast), num[0]/denom[0], 'bo-')  #here [0] is right trials and [1] is left
         ax.plot(np.unique(targetContrast), num[1]/denom[1], 'ro-')
-       # ax.plot(np.unique(targetContrast), (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.3)  #plots the combined average 
+       #ax.plot(np.unique(targetContrast), (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.3)  #plots the combined average 
         y1=(num[0]/denom[0])
         y2=(num[1]/denom[1])
         for i, length in enumerate(np.unique(targetContrast)):
@@ -128,8 +128,6 @@ def plot_contrast(data):
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-    
-        #ax.text(np.unique(targetContrast), (num[0]/denom[0]), str(denom))
                 
         if title=='Total response rate' and 0 in trialTargetFrames:   
             a = ax.get_xticks().tolist()
