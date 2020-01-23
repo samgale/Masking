@@ -7,6 +7,8 @@ Created on Thu Sep 26 12:59:31 2019
 
 This is for plotting masking sessions in the rotation mice, where there are no nogos
 and we want to see their performance plotted against 'no mask' trials
+Plots the percent correct (either no mvmt for nogos or not moving on maskOnly).  Rarely do they
+withhold mvmt on the maskOnly trials, so this gives us a window into their bias
 
 """
 
@@ -29,6 +31,7 @@ maskOnset = d['maskOnset'][()]
 trialMaskOnset = d['trialMaskOnset'][:len(trialResponse)]
 trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)]       
 trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]     
+framerate = d['frameRate'][()]
 
 noMaskVal = maskOnset[-1] + round(np.mean(np.diff(maskOnset)))  # assigns noMask condition an evenly-spaced value from soas
 maskOnset = np.append(maskOnset, noMaskVal)              # makes final value the no-mask condition
