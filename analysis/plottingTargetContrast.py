@@ -105,8 +105,8 @@ def plot_contrast(data):
                                  [totalTrials, hits+misses, totalTrials],
                                  ['Percent Correct', 'Percent Correct Given Response', 'Total response rate']):
         fig, ax = plt.subplots()
-        ax.plot(np.unique(targetContrast), num[0]/denom[0], 'bo-'. lw=6, alpha=8)  #here [0] is right trials and [1] is left
-        ax.plot(np.unique(targetContrast), num[1]/denom[1], 'ro-', lw=6, alpha=8)
+        ax.plot(np.unique(targetContrast), num[0]/denom[0], 'bo-', lw=3, alpha=.7)  #here [0] is right trials and [1] is left
+        ax.plot(np.unique(targetContrast), num[1]/denom[1], 'ro-', lw=3, alpha=.7)
        #ax.plot(np.unique(targetContrast), (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.3)  #plots the combined average 
         y1=(num[0]/denom[0])
         y2=(num[1]/denom[1])
@@ -132,7 +132,7 @@ def plot_contrast(data):
         if title=='Total response rate' and 0 in trialTargetFrames:   
             a = ax.get_xticks().tolist()
             #a = [int(i) for i in a]    
-            a[0]='no-go' 
+            a[0]='no-go\nmiss' 
             ax.set_xticklabels(a)
             
     plt.show()
