@@ -180,10 +180,10 @@ def plot_soa(data):
             ax.set_xticks(xticks)
             a = ax.get_xticks().tolist()
             a = [int(i) for i in a]     
-            a[-1]='no \n mask' 
+            a[-1]='no\nmask' 
             if maskOnlyTotal:
-                a[0]='no \ngo'
-                a[1]='mask \n only'
+                a[0]='no\ngo'
+                a[1]='mask\nonly'
             ax.set_xticklabels(a)
              
         plt.tight_layout() 

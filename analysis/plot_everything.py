@@ -10,7 +10,7 @@ import fileIO
 import behaviorAnalysis
 import performanceBySOA
 from plottingTargetContrast import plot_contrast
-from plotting_target_length import plot_flash
+from plotting_target_lengths import plot_flash
 from SessionPerformance import plot_session
 
 
