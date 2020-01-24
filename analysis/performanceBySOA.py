@@ -135,7 +135,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     for num, denom, title in zip(
             [hits, hits, respOnly],
             [totalTrials, respOnly, totalTrials],
-            ['Percent Correct', 'Percent Correct Given Response', 'Total Response Rate']):
+            ['Fraction Correct', 'Fraction Correct Given Response', 'Response Rate']):
         
         fig, ax = plt.subplots()
     
@@ -149,7 +149,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
                 plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(0, -20), textcoords='offset points')
             ax.plot(maskOnset, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5)  #plots the combined average  
         
-        if title=='Total Response Rate':
+        if title=='Response Rate':
             ax.plot(0, (maskOnlyR/maskOnlyTotal), 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
             ax.plot(0, (maskOnlyL/maskOnlyTotal), 'b<', ms=8)
             ax.plot(0, ((maskOnlyTotal-maskOnlyCorr)/maskOnlyTotal), 'ko')
@@ -167,19 +167,19 @@ def plot_soa(data,showTrialN=True,showNogo=True):
                     ax.annotate(str(nogoR), xy=(-14,nogoR/nogoMove), xytext=(0, 0), textcoords='offset points')
                     ax.annotate(str(nogoL), xy=(-14,nogoL/nogoMove), xytext=(0, 0), textcoords='offset points')
             
-        formatFigure(fig, ax, xLabel='Stimulus Onset Asynchrony (ms)', yLabel='Percent Trials', 
-                     title=title + " :  " + '-'.join(str(d).split('_')[-3:-1]))
+        formatFigure(fig, ax, xLabel='Stimulus Onset Asynchrony (ms)', yLabel=title, 
+                     title=str(d).split('_')[-3:-1])
         
-        xticks = maskOnset.astype(int)
-        xticklabels = list(xticks)
+        xticks = maskOnset
+        xticklabels = list(np.round(xticks))
         xticklabels[-1] = 'no mask'
-        if title=='Total Response Rate':
+        if title=='Response Rate':
             x,lbl = ([-15,0],['no\ngo','mask\nonly']) if showNogo else ([0],['mask\nonly'])
             xticks = np.concatenate((x,xticks))
             xticklabels = lbl+xticklabels 
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
-        ax.set_xlim([xticks[0]-10,xticks[-1]+10])
+        ax.set_xlim([-15,xticks[-1]+10])
         ax.set_ylim([0,1.1])
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
