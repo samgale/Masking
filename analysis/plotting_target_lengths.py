@@ -57,7 +57,7 @@ def plot_flash(data):
         
         nogoTurnDir = []
       
-        stimStart = d['trialStimStartFrame'][:][prevTrialIncorrect==False]
+        stimStart = d['trialStimStartFrame'][:len(trialResponse)][prevTrialIncorrect==False]
         trialOpenLoop = d['trialOpenLoopFrames'][:len(trialResponse)][prevTrialIncorrect==False]
         trialRespFrames = d['trialResponseFrame'][:][prevTrialIncorrect==False]   #gives the frame number of a response
         deltaWheel = d['deltaWheelPos'][:]
