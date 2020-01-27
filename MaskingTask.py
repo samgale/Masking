@@ -119,6 +119,7 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 120
             self.useIncorrectNoise=False
+            self.maxConsecutiveSameDir = self.incorrectTrialRepeats+3
             self.incorrectTrialRepeats = 5  # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
