@@ -10,7 +10,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 
-def plot_contrast(data):
+def plot_contrast(data,showTrialN=True):
     
     matplotlib.rcParams['pdf.fonttype'] = 42
     
@@ -103,28 +103,33 @@ def plot_contrast(data):
     
     for num, denom, title in zip([hits, hits, hits+misses], 
                                  [totalTrials, hits+misses, totalTrials],
-                                 ['Percent Correct', 'Percent Correct Given Response', 'Total response rate']):
+                                 ['Fraction Correct', 'Fraction Correct Given Response', 'Response Rate']):
         fig, ax = plt.subplots()
-        ax.plot(np.unique(targetContrast), num[0]/denom[0], 'bo-')  #here [0] is right trials and [1] is left
-        ax.plot(np.unique(targetContrast), num[1]/denom[1], 'ro-')
+        ax.plot(np.unique(targetContrast), num[0]/denom[0], 'bo-', lw=3, alpha=.7)  #here [0] is right trials and [1] is left
+        ax.plot(np.unique(targetContrast), num[1]/denom[1], 'ro-', lw=3, alpha=.7)
        #ax.plot(np.unique(targetContrast), (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.3)  #plots the combined average 
         y1=(num[0]/denom[0])
         y2=(num[1]/denom[1])
-        for i, length in enumerate(np.unique(targetContrast)):
-            plt.annotate(str(denom[0][i]), xy=(length,y1[i]), xytext=(5, -10), textcoords='offset points')  
-            plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(-10, 10), textcoords='offset points')
+        if showTrialN:
+            for i, length in enumerate(np.unique(targetContrast)):
+                plt.annotate(str(denom[0][i]), xy=(length,y1[i]), xytext=(5, -10), textcoords='offset points')  
+                plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(-10, 10), textcoords='offset points')
         
-        if title=='Total response rate' and 0 in trialTargetFrames:
-            ax.plot(0, nogoMove/nogoTotal, 'go') 
-            if title=='Total response rate':
-                ax.plot(0, nogoR/nogoMove, 'g>')   #plot the side that was turned in no-go with an arrow in that direction
-                ax.plot(0, nogoL/nogoMove, 'g<')  #add counts
+        xticks = targetContrast
+        xticklabels = list(xticks)
+        if title=='Response Rate' and 0 in trialTargetFrames:
+            ax.plot(0, nogoMove/nogoTotal, 'ko', ms=8) 
+            ax.plot(0, nogoR/nogoMove, 'r>', ms=8)  #plot the side that was turned in no-go with an arrow in that direction
+            ax.plot(0, nogoL/nogoMove, 'b<', ms=8)  #add counts
+            xticks = np.concatenate(([0],xticks))
+            xticklabels = ['no go']+xticklabels
            
-        formatFigure(fig, ax, xLabel='Target Contrast', yLabel='percent trials', 
-                     title=title + " :  " + '-'.join(str(d).split('_')[-3:-1]))
+        formatFigure(fig, ax, xLabel='Target Contrast', yLabel=title, 
+                     title=str(d).split('_')[-3:-1])
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
         ax.set_xlim([-.1, targetContrast[-1]+.1])
         ax.set_ylim([0,1.05])
-        ax.set_xticks(np.unique(trialTargetContrast))
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
@@ -132,7 +137,7 @@ def plot_contrast(data):
         if title=='Total response rate' and 0 in trialTargetFrames:   
             a = ax.get_xticks().tolist()
             #a = [int(i) for i in a]    
-            a[0]='no-go' 
+            a[0]='no-go\nmiss' 
             ax.set_xticklabels(a)
             
     plt.show()
