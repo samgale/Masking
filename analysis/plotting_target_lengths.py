@@ -11,15 +11,15 @@ from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 
 
-def plot_flash(data):
+def plot_flash(data,showTrialN=True):
     
     matplotlib.rcParams['pdf.fonttype'] = 42
 
     d = data
     trialResponse = d['trialResponse'][:]
     trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]    # leave off last trial, ended session before answer 
-    targetLengths = d['targetFrames'][:]                  # list of ind lengths, does not include no-gos (0)
-    trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)]
+    framerate = round(d['frameRate'][()])
+    trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)] * 1000/framerate  
     repeats = d['incorrectTrialRepeats'][()]
     
     if 'trialRepeat' in d.keys():
@@ -30,6 +30,8 @@ def plot_flash(data):
     trialRewardDirection = trialRewardDirection[prevTrialIncorrect==False]      # use this to filter out repeated trials 
     trialTargetFrames = trialTargetFrames[prevTrialIncorrect==False]
     
+    targetFrames = np.unique(trialTargetFrames)
+    targetFrames = targetFrames[targetFrames>0]
     
     # [R stim] , [L stim]
     hits = [[],[]]
@@ -37,7 +39,7 @@ def plot_flash(data):
     noResps = [[],[]]
     
     for i, direction in enumerate([-1,1]):
-        directionResponses = [trialResponse2[(trialRewardDirection==direction) & (trialTargetFrames == tf)] for tf in np.unique(targetLengths)]
+        directionResponses = [trialResponse2[(trialRewardDirection==direction) & (trialTargetFrames == tf)] for tf in targetFrames]
         hits[i].append([np.sum(drs==1) for drs in directionResponses])
         misses[i].append([np.sum(drs==-1) for drs in directionResponses])
         noResps[i].append([np.sum(drs==0) for drs in directionResponses])
@@ -99,39 +101,37 @@ def plot_flash(data):
     
     for num, denom, title in zip([hits, hits, hits+misses], 
                                  [totalTrials, hits+misses, totalTrials],
-                                 ['Percent Correct', 'Percent Correct Given Response', 'Total response rate']):
+                                 ['Fraction Correct', 'Fraction Correct Given Response', 'Response Rate']):
         fig, ax = plt.subplots()
-        ax.plot(np.unique(targetLengths), num[0]/denom[0], 'bo-')  #here [0] is right trials and [1] is left
-        ax.plot(np.unique(targetLengths), num[1]/denom[1], 'ro-')
-        ax.plot(np.unique(targetLengths), (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.3)  #plots the combined average 
+        ax.plot(targetFrames, num[0]/denom[0], 'bo-', lw=3, alpha=.7)  #here [0] is right trials and [1] is left
+        ax.plot(targetFrames, num[1]/denom[1], 'ro-', lw=3, alpha=.7)
+        ax.plot(targetFrames, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5)  #plots the combined average 
         y=(num[0]/denom[0])
         y2=(num[1]/denom[1])
-        for i, length in enumerate(np.unique(targetLengths)):
-            plt.annotate(str(denom[0][i]), xy=(length,y[i]), xytext=(5, -10), textcoords='offset points')  #adds total num of trials
-            plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(5, -10), textcoords='offset points')
+        if showTrialN:
+            for i, length in enumerate(targetFrames):
+                plt.annotate(str(denom[0][i]), xy=(length,y[i]), xytext=(5, -10), textcoords='offset points')  #adds total num of trials
+                plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(5, -10), textcoords='offset points')
         
-        if 0 in trialTargetFrames:
-            ax.plot(0, nogoCorrect/nogoTotal, 'go')
-            if title=='Total response rate':
-                ax.plot(0, nogoR/nogoMove, 'g>')   #plot the side that was turned in no-go with an arrow in that direction
-                ax.plot(0, nogoL/nogoMove, 'g<')  #add counts
+        xticks = targetFrames
+        xticklabels = list(np.round(xticks).astype(int))
+        if title=='Response Rate':
+            if 0 in trialTargetFrames:
+                ax.plot(0, nogoCorrect/nogoTotal, 'ko', ms=8)
+                ax.plot(0, nogoR/nogoMove, 'r>', ms=8)  #plot the side that was turned in no-go with an arrow in that direction
+                ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
+            xticks = np.concatenate(([0],xticks))
+            xticklabels = ['no go']+xticklabels
            
-        formatFigure(fig, ax, xLabel='Target Length (frames)', yLabel='percent trials', 
-                     title=title + " :  " + '-'.join(str(d).split('_')[-3:-1]))
-        ax.set_xlim([-.2, targetLengths[-1]+2])
+        formatFigure(fig, ax, xLabel='Target Duration (ms)', yLabel=title, 
+                     title=str(d).split('_')[-3:-1])
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
+        ax.set_xlim([-1, targetFrames[-1]+1])
         ax.set_ylim([0,1.05])
-        ax.set_xticks(np.unique(trialTargetFrames))
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-    
-        #ax.text(np.unique(targetLengths), (num[0]/denom[0]), str(denom))
-                
-        if 0 in trialTargetFrames:   
-            a = ax.get_xticks().tolist()
-            a = [int(i) for i in a]    
-            a[0]='no-go' 
-            ax.set_xticklabels(a)
             
     plt.show()
     
