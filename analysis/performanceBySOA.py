@@ -31,7 +31,6 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     framerate = round(d['frameRate'][()])
     maskOnset = d['maskOnset'][()] * 1000/framerate              
     trialMaskOnset = d['trialMaskOnset'][:len(trialResponse)] * 1000/framerate
-    maskContrast = d['maskContrast'][()]
     
     noMaskVal = maskOnset[-1] + round(np.mean(np.diff(maskOnset)))  # assigns noMask condition an evenly-spaced value from soas
     maskOnset = np.append(maskOnset, noMaskVal)              # makes final value the no-mask condition
@@ -67,9 +66,9 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     nogoR = sum(nogoTurn==1)
     nogoL = sum(nogoTurn==-1)*-1
     
-    #maskTotal = len(trialResponse[(maskContrast>0)])  sanity check
-    maskOnlyTotal = len(trialResponse[(maskContrast>0) & (trialTargetFrames==0)])   # rotation task 'mask only' trials can't be 'correct'
-    maskOnlyCorr = len(trialResponse[(maskContrast>0) & (trialResponse==1) & (trialTargetFrames==0)])
+    #maskTotal = len(trialResponse[(trialMaskContrast>0)])  sanity check
+    maskOnlyTotal = len(trialResponse[(trialMaskContrast>0) & (trialTargetFrames==0)])   # rotation task 'mask only' trials can't be 'correct'
+    maskOnlyCorr = len(trialResponse[(trialMaskContrast>0) & (trialResponse==1) & (trialTargetFrames==0)])
     maskOnlyR = sum(maskOnlyTurn==1)
     maskOnlyL = sum(maskOnlyTurn==-1) 
         
