@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
+from nogoTurn import nogo_turn
 
 
 def plot_soa(data,showTrialN=True,showNogo=True):
@@ -30,6 +31,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     framerate = round(d['frameRate'][()])
     maskOnset = d['maskOnset'][()] * 1000/framerate              
     trialMaskOnset = d['trialMaskOnset'][:len(trialResponse)] * 1000/framerate
+    maskContrast = d['maskContrast'][()]
     
     noMaskVal = maskOnset[-1] + round(np.mean(np.diff(maskOnset)))  # assigns noMask condition an evenly-spaced value from soas
     maskOnset = np.append(maskOnset, noMaskVal)              # makes final value the no-mask condition
@@ -55,83 +57,22 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     totalTrials = hits+misses+noResps
     respOnly = hits+misses
     
-    
-    ## Mask-only responses 
-    maskTotal = len(trialResponse[(trialMaskContrast>0)])
-    maskOnlyTotal = len(trialResponse[(trialMaskContrast>0) & (trialTargetFrames==0)])   # rotation task 'mask only' trials can't be 'correct'
-    maskOnlyCorr = len(trialResponse[(trialMaskContrast>0) & (trialResponse==1) & (trialTargetFrames==0)])
-    
-    stimStart = d['trialStimStartFrame'][:len(trialResponse)]
-    trialOpenLoop = d['trialOpenLoopFrames'][:len(trialResponse)]
-    trialRespFrames = d['trialResponseFrame'][:len(trialResponse)]
-    deltaWheel = d['deltaWheelPos'][:]
-    
-    maskStimStart = stimStart[(trialTargetFrames==0) & (trialMaskContrast>0)]             
-    maskTrialRespFrames = trialRespFrames[(trialTargetFrames==0) & (trialMaskContrast>0)]
-    
-    startWheelPos = []
-    endWheelPos = []
-    
-    # we want to see which direction they moved the wheel on mask-only trials 
-    for i, (start, end) in enumerate(zip(maskStimStart, maskTrialRespFrames)):    #maskOnly
-        endWheelPos.append(deltaWheel[end])
-        startWheelPos.append(deltaWheel[start])
-    
-    maskEnd = np.array(endWheelPos)
-    maskStart = np.array(startWheelPos)
-    maskWheelPos = maskEnd - maskStart
-    
-    maskOnlyTurnDir = []
-    
-    for j in maskWheelPos:
-        if j>0:
-            maskOnlyTurnDir.append(1)
-        else:
-            maskOnlyTurnDir.append(-1)
-     
-    maskOnlyTurnDir = np.array(maskOnlyTurnDir)
-    maskOnlyR = sum(maskOnlyTurnDir==1)
-    maskOnlyL = sum(maskOnlyTurnDir==-1)   
-    
-    ## no go trial responses
-    trialMaskContrast= d['trialMaskContrast'][:len(trialResponse)]
-    nogoResp = trialResponse[(trialTargetFrames==0) & (trialMaskContrast==0)]
-    
-    nogoStimStart = stimStart[(trialTargetFrames==0) & (trialMaskContrast==0)]             
-    nogoTrialRespFrames = trialRespFrames[(trialTargetFrames==0) & (trialMaskContrast==0)]
-    
-    nogoStartWheelPos = []
-    nogoEndWheelPos = []
-    
-    # we want to see which direction they moved the wheel on an incorrect no-go
-    for (start, end, resp) in zip(nogoStimStart, nogoTrialRespFrames, nogoResp):   
-        if resp==-1:
-            nogoEndWheelPos.append(deltaWheel[end])
-            nogoStartWheelPos.append(deltaWheel[start])
-        
-    nogoEndWheelPos = np.array(nogoEndWheelPos)
-    nogoStartWheelPos = np.array(nogoStartWheelPos)   
-    wheelPos = nogoEndWheelPos - nogoStartWheelPos
-    
-    nogoTurnDir = []
-    
-    for i in wheelPos:
-        if i >0:
-            nogoTurnDir.append(1)
-        else:
-            nogoTurnDir.append(-1)
-    
-    nogoTurnDir = np.array(nogoTurnDir)
-    
-    nogoR = sum(nogoTurnDir[nogoTurnDir==1])
-    nogoL = sum(nogoTurnDir[nogoTurnDir==-1])*-1
+    nogoTurn, maskOnlyTurn, ind = nogo_turn(d, returnArray=True)
+    nogoTurnTrial = ind[0]  # list of indices of trials where turning occured
+    maskTurnTrial = ind[1]
      
     nogoTotal = len(nogoResp)
-    nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])
-    nogoMove = len(nogoTurnDir) 
-    nogoTurnDir = np.array(nogoTurnDir)
+    #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
+    nogoMove = len(nogoTurnTrial) 
+    nogoR = sum(nogoTurn==1)
+    nogoL = sum(nogoTurn==-1)*-1
     
-    
+    #maskTotal = len(trialResponse[(maskContrast>0)])  sanity check
+    maskOnlyTotal = len(trialResponse[(maskContrast>0) & (trialTargetFrames==0)])   # rotation task 'mask only' trials can't be 'correct'
+    maskOnlyCorr = len(trialResponse[(maskContrast>0) & (trialResponse==1) & (trialTargetFrames==0)])
+    maskOnlyR = sum(maskOnlyTurn==1)
+    maskOnlyL = sum(maskOnlyTurn==-1) 
+        
     for num, denom, title in zip(
             [hits, hits, respOnly],
             [totalTrials, respOnly, totalTrials],
