@@ -127,7 +127,7 @@ def plot_flash(data,showTrialN=True):
                      title=str(d).split('_')[-3:-1])
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
-        ax.set_xlim([-1, targetFrames[-1]+1])
+        ax.set_xlim([-5, targetFrames[-1]+1])
         ax.set_ylim([0,1.05])
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
