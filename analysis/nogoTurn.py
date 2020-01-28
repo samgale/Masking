@@ -64,11 +64,11 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
                 zip(trialStimStart, trialRespFrames, trialResponse, trialTargetFrames, trialMaskContrast)):
             if mask==0:
                 if target==0 and resp==-1:  # nogos
-                      endWheelPos[0].append(deltaWheel[end+30])
+                      endWheelPos[0].append(deltaWheel[end+5])
                       startWheelPos[0].append(deltaWheel[start])
                       ind[0].append(i)
             elif mask>0 and target==0 and resp==-1:   # maskOnly
-                endWheelPos[1].append(deltaWheel[end+30])
+                endWheelPos[1].append(deltaWheel[end+5])
                 startWheelPos[1].append(deltaWheel[start])
                 ind[1].append(i)
         
