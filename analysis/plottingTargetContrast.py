@@ -133,11 +133,5 @@ def plot_contrast(data,showTrialN=True):
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-                
-        if title=='Total response rate' and 0 in trialTargetFrames:   
-            a = ax.get_xticks().tolist()
-            #a = [int(i) for i in a]    
-            a[0]='no-go\nmiss' 
-            ax.set_xticklabels(a)
             
     plt.show()
