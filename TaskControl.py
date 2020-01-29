@@ -22,6 +22,7 @@ class TaskControl():
         self.saveParams = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
         self.drawDiodeBox = True
+        self.monBackgroundColor = 0
         self.nidaqDevice = 'USB-6001'
         self.nidaqDeviceName = 'Dev1'
         self.wheelRotDir = -1 # 1 or -1
@@ -38,15 +39,15 @@ class TaskControl():
         if self.rigName=='pilot':
             self.saveDir = r'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.screen = 1 # monitor to present stimuli on
-            self.monWidth = 47.2 # cm
-            self.monDistance = 21.0 # cm
-            self.monGamma = None # float or None
-            self.monSizePix = (1680,1050)
+            self.monWidth = 53.34 # cm
+            self.monDistance = 21.59 # cm
+            self.monGamma = 2.4 # float or None
+            self.monSizePix = (1920,1080)
             self.flipScreenHorz = False
             self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
             self.warpFile = None
             self.diodeBoxSize = 50
-            self.diodeBoxPosition = (815,-500)
+            self.diodeBoxPosition = (935,-515)
         elif self.rigName=='box5':
             self.saveDir = r'C:\Users\svc_ccg\Documents\Data'
             self.screen = 0 # monitor to present stimuli on
@@ -107,7 +108,8 @@ class TaskControl():
                                   screen=self.screen,
                                   fullscr=True,
                                   flipHorizontal=self.flipScreenHorz,
-                                  units='pix')
+                                  units='pix',
+                                  color=self.monBackgroundColor)
         self._warper = Warper(self._win,warp=self.warp,warpfile=self.warpFile)
         for _ in range(10):
             self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
