@@ -59,7 +59,7 @@ class TaskControl():
             self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
             self.warpFile = None
             self.diodeBoxSize = 50
-            self.diodeBoxPosition = (931,-514)
+            self.diodeBoxPosition = (935,-515)
         
     
     def prepareSession(self):
