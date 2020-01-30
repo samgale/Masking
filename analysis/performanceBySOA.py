@@ -28,7 +28,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]
     trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)]       
     trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]     
-    framerate = round(d['frameRate'][()])
+    framerate = 120#round(d['frameRate'][()])
     maskOnset = d['maskOnset'][()] * 1000/framerate              
     trialMaskOnset = d['trialMaskOnset'][:len(trialResponse)] * 1000/framerate
     
@@ -60,7 +60,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     nogoTurnTrial = ind[0]  # list of indices of trials where turning occured
     maskTurnTrial = ind[1]
      
-    nogoTotal = len(nogoResp)
+    nogoTotal = len(trialResponse[(trialTargetFrames==0) & (trialMaskContrast==0)])
     #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
     nogoMove = len(nogoTurnTrial) 
     nogoR = sum(nogoTurn==1)
@@ -111,20 +111,20 @@ def plot_soa(data,showTrialN=True,showNogo=True):
                      title=str(d).split('_')[-3:-1])
         
         xticks = maskOnset
-        xticklabels = list(np.round(xticks))
+        xticklabels = list(np.round(xticks).astype(int))
         xticklabels[-1] = 'no mask'
         if title=='Response Rate':
             x,lbl = ([-15,0],['no\ngo','mask\nonly']) if showNogo else ([0],['mask\nonly'])
             xticks = np.concatenate((x,xticks))
-            xticklabels = lbl+xticklabels 
+            xticklabels = lbl+xticklabels
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
-        ax.set_xlim([-15,xticks[-1]+10])
+        ax.set_xlim([-20,xticks[-1]+10])
         ax.set_ylim([0,1.1])
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-             
-        plt.tight_layout() 
         
-    plt.show()
+        if title=='Response Rate':
+            ax.xaxis.set_label_coords(0.5,-0.08)
+             
