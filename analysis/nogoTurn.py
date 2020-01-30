@@ -33,6 +33,7 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
         repeats = d['incorrectTrialRepeats'][()]
         timeout = d['incorrectTimeoutFrames'][()]
         preStim = d['preStimFramesFixed'][()]
+        openLoop = d['openLoopFramesFixed'][()]
    
         if ignoreRepeats == True and repeats>0: 
             trialResponseOG = d['trialResponse'][:]
@@ -65,7 +66,7 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
             if mask==0:
                 if target==0 and resp==-1:  # nogos
                       endWheelPos[0].append(deltaWheel[end+5])
-                      startWheelPos[0].append(deltaWheel[start])
+                      startWheelPos[0].append(deltaWheel[start+openLoop])
                       ind[0].append(i)
             elif mask>0 and target==0 and resp==-1:   # maskOnly
                 endWheelPos[1].append(deltaWheel[end+5])

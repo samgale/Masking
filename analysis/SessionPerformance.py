@@ -8,7 +8,7 @@ Created on Tue Aug 13 11:20:20 2019
 import pandas as pd 
 import matplotlib
 from matplotlib import pyplot as plt
-#from nogoTurn import nogo_turn
+from nogoTurn import nogo_turn
 
 """
 plots the choices (in order) over the length of a session
@@ -63,7 +63,8 @@ def plot_session(data):
     
     if 0 in trialTargetFrames:
     
-        no_gos = nogo_turn(d, ignoreRepeats=False, returnArray=True)  # False bc we want to see all the trials in order 
+        no_gos = nogo_turn(d, ignoreRepeats=False, returnArray=True)[0] # False bc we want to see all the trials in order 
+        
         nogoMiss = pd.DataFrame(nogoMiss['CumPercentCorrect'])
         ax.plot(nogoCorr['CumPercentCorrect'], 'g^', ms=10)
         
