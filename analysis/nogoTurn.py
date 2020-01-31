@@ -44,7 +44,7 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
             
             trialResponse = trialResponseOG[prevTrialIncorrect==False]
             trialTargetFrames = trialTargetFrames[prevTrialIncorrect==False]
-            trialStimStart = stimStart[(prevTrialIncorrect==False)]
+            trialStimStart = trialStimStart[(prevTrialIncorrect==False)]
             trialRespFrames = trialRespFrames[prevTrialIncorrect==False]
             trialOpenLoop = trialOpenLoop[prevTrialIncorrect==False]
             trialMaskContrast = trialMaskContrast[prevTrialIncorrect==False]
@@ -93,6 +93,7 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
         
         nogoTurnDir = np.array(nogoTurnDir) 
         maskOnlyTurnDir = np.array(maskOnlyTurnDir)
-        
+    
+
     if returnArray==True:    
         return [nogoTurnDir, maskOnlyTurnDir, ind]

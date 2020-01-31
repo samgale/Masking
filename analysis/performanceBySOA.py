@@ -56,12 +56,12 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     totalTrials = hits+misses+noResps
     respOnly = hits+misses
     
-    nogoTurn, maskOnlyTurn, ind = nogo_turn(d, returnArray=True)
+    nogoTurn, maskOnlyTurn, ind = nogo_turn(d, returnArray=True)  # returns arrays with turning direction as 1/-1
     nogoTurnTrial = ind[0]  # list of indices of trials where turning occured
     maskTurnTrial = ind[1]
      
     nogoTotal = len(trialResponse[(trialTargetFrames==0) & (trialMaskContrast==0)])
-    #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
+    nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
     nogoMove = len(nogoTurnTrial) 
     nogoR = sum(nogoTurn==1)
     nogoL = sum(nogoTurn==-1)*-1
@@ -99,14 +99,16 @@ def plot_soa(data,showTrialN=True,showNogo=True):
                 ax.annotate(str(maskOnlyL), xy=(1,maskOnlyL/maskOnlyTotal), xytext=(0, 0), textcoords='offset points')
              
             if showNogo:
-                ax.plot(-15, nogoMove/nogoTotal, 'go')
-                ax.plot(-15, nogoR/nogoMove, 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
-                ax.plot(-15, nogoL/nogoMove, 'b<', ms=8)
-                if showTrialN:
-                    ax.annotate(str(nogoMove), xy=(-14, nogoMove/nogoTotal), xytext=(0,0), textcoords='offset points')
-                    ax.annotate(str(nogoR), xy=(-14,nogoR/nogoMove), xytext=(0, 0), textcoords='offset points')
-                    ax.annotate(str(nogoL), xy=(-14,nogoL/nogoMove), xytext=(0, 0), textcoords='offset points')
-            
+                if nogoTurn==True:
+                    ax.plot(-15, nogoMove/nogoTotal, 'go')
+                    ax.plot(-15, nogoR/nogoMove, 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
+                    ax.plot(-15, nogoL/nogoMove, 'b<', ms=8)
+                    if showTrialN:
+                        ax.annotate(str(nogoMove), xy=(-14, nogoMove/nogoTotal), xytext=(0,0), textcoords='offset points')
+                        ax.annotate(str(nogoR), xy=(-14,nogoR/nogoMove), xytext=(0, 0), textcoords='offset points')
+                        ax.annotate(str(nogoL), xy=(-14,nogoL/nogoMove), xytext=(0, 0), textcoords='offset points')
+                else:
+                    ax.plot(-15, 0, 'go')
         formatFigure(fig, ax, xLabel='Stimulus Onset Asynchrony (ms)', yLabel=title, 
                      title=str(d).split('_')[-3:-1])
         
