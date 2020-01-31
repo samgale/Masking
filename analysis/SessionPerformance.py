@@ -82,7 +82,7 @@ def plot_session(data):
             ax.annotate(str(mask), xy=(i,corr), xytext=(0, 20), textcoords='offset points', fontsize=8)
             
         
-    plt.title(f.split('_')[-3:-1])
+    plt.title(str(d).split('_')[-3:-1])
     plt.show()
 
 
