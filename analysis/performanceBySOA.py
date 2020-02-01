@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
-from nogoTurn import nogo_turn
+from nogoData import nogo_turn
 
 
 def plot_soa(data,showTrialN=True,showNogo=True):
@@ -99,7 +99,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
                 ax.annotate(str(maskOnlyL), xy=(1,maskOnlyL/maskOnlyTotal), xytext=(0, 0), textcoords='offset points')
              
             if showNogo:
-                if nogoTurn==True:
+                if len(nogoTurn)>0:
                     ax.plot(-15, nogoMove/nogoTotal, 'go')
                     ax.plot(-15, nogoR/nogoMove, 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
                     ax.plot(-15, nogoL/nogoMove, 'b<', ms=8)
