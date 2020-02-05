@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
+from nogoData import nogo_turn
 
 def plot_contrast(data,showTrialN=True):
     
@@ -20,7 +21,6 @@ def plot_contrast(data,showTrialN=True):
     trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)]
     trialTargetContrast = d['trialTargetContrast'][:len(trialResponse)]
     targetContrast = d['targetContrast'][:]
-    
     repeats = d['incorrectTrialRepeats'][()]
     
     
@@ -55,53 +55,19 @@ def plot_contrast(data,showTrialN=True):
     
     if 0 in trialTargetFrames:        # this already excludes repeats 
     
-        nogoTotal = len(trialTargetFrames[trialTargetFrames==0])
-        nogoCorrect = len(trialResponse2[(trialResponse2==1) & (trialTargetFrames==0)])
-        nogoMove = nogoTotal - nogoCorrect
-        
-        nogoTurnDir = []
-      
-        stimStart = d['trialStimStartFrame'][:len(trialResponse)][prevTrialIncorrect==False]
-        trialOpenLoop = d['trialOpenLoopFrames'][:len(trialResponse)][prevTrialIncorrect==False]
-        trialRespFrames = d['trialResponseFrame'][:][prevTrialIncorrect==False]   #gives the frame number of a response
-        deltaWheel = d['deltaWheelPos'][:]
-        
-        stimStart = stimStart[(trialTargetFrames==0)]
-        trialRespFrames = trialRespFrames[(trialTargetFrames==0)]
-        trialOpenLoop = trialOpenLoop[(trialTargetFrames==0)]
-        nogoResp = trialResponse2[(trialTargetFrames==0)]
-        
-        stimStart += trialOpenLoop
-        
-        startWheelPos = []
-        endWheelPos = []
-        
-        # we want to see which direction they moved the wheel on an incorrect no-go
-        for (start, end, resp) in zip(stimStart, trialRespFrames, nogoResp):   
-            if resp==-1:
-                endWheelPos.append(deltaWheel[end])
-                startWheelPos.append(deltaWheel[start])
-            
-        endWheelPos = np.array(endWheelPos)
-        startWheelPos = np.array(startWheelPos)   
-        wheelPos = endWheelPos - startWheelPos
-        
-        for i in wheelPos:
-            if i >0:
-                nogoTurnDir.append(1)
-            else:
-                nogoTurnDir.append(-1)
-        
-        nogoTurnDir = np.array(nogoTurnDir)
-        
-        nogoR = sum(nogoTurnDir[nogoTurnDir==1])
-        nogoL = sum(nogoTurnDir[nogoTurnDir==-1])*-1
-    else:
-        pass
+        nogoTurn, _, ind = nogo_turn(d, returnArray=True)  # returns arrays with turning direction as 1/-1
+        nogoTurnTrial = ind[0]  # list of indices of trials where turning occured
+         
+        nogoTotal = len(trialResponse[(trialTargetFrames==0) & (trialMaskContrast==0)])
+        #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
+        nogoMove = len(nogoTurnTrial) 
+        nogoR = sum(nogoTurn==1)
+        nogoL = sum(nogoTurn==-1)
+               
     #misses = np.insert(misses, 0, [no_goR, no_goL], axis=1)  #add the no_go move trials to misses array 
     
     
-    for num, denom, title in zip([hits, hits, hits+misses], 
+    for num, denom, title in zip([hits, hits, hits+misses],
                                  [totalTrials, hits+misses, totalTrials],
                                  ['Fraction Correct', 'Fraction Correct Given Response', 'Response Rate']):
         fig, ax = plt.subplots()
