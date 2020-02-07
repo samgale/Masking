@@ -58,7 +58,7 @@ def plot_contrast(data,showTrialN=True):
         nogoTurn, _, ind = nogo_turn(d, returnArray=True)  # returns arrays with turning direction as 1/-1
         nogoTurnTrial = ind[0]  # list of indices of trials where turning occured
          
-        nogoTotal = len(trialResponse[(trialTargetFrames==0) & (trialMaskContrast==0)])
+        nogoTotal = len(trialResponse[(trialTargetFrames==0)])
         #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
         nogoMove = len(nogoTurnTrial) 
         nogoR = sum(nogoTurn==1)
