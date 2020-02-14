@@ -248,9 +248,9 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         return turnRightTrials, turnLeftTrials
 
 
-def get_files(mouse_id):
+def get_files(mouse_id, task):
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
-    dataDir = os.path.join(os.path.join(directory, mouse_id), 'training_to_analyze')   #training_ for no mask, masking_ for mask
+    dataDir = os.path.join(os.path.join(directory, mouse_id), task)   #training_ for no mask, masking_ for mask
     files = os.listdir(dataDir)
     files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))
     return [os.path.join(dataDir,f) for f in files]  
