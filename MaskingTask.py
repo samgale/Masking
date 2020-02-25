@@ -139,7 +139,7 @@ class MaskingTask(TaskControl):
             # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3',taskVersion)
             self.normRewardDistance = 0.2
-            self.maxResponseWaitFrames = 60
+            self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 5
             self.incorrectTimeoutFrames = 600
             self.solenoidOpenTime = 0.05
