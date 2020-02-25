@@ -63,12 +63,13 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
             if mask==0:
                 if target==0 and resp==-1:  # nogos
                       endWheelPos[0].append(deltaWheel[end+5])
-                      startWheelPos[0].append(deltaWheel[start+openLoop])
+                      startWheelPos[0].append(deltaWheel[start+openLoop])  # from start of ClosedLoop (go tone)
                       ind[0].append(i)
-            elif mask>0 and target==0 and resp==-1:   # maskOnly
-                endWheelPos[1].append(deltaWheel[end+5])
-                startWheelPos[1].append(deltaWheel[start])
-                ind[1].append(i)
+            elif mask>0:
+                if target==0 and resp==-1: # maskOnly
+                    endWheelPos[1].append(deltaWheel[end+5])
+                    startWheelPos[1].append(deltaWheel[start])
+                    ind[1].append(i)
         
         nogoWheel = (np.array(endWheelPos[0])) - (np.array(startWheelPos[0]))
         maskOnlyWheel = (np.array(endWheelPos[1])) - (np.array(startWheelPos[1]))

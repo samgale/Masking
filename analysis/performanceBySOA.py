@@ -64,7 +64,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
     nogoMove = len(nogoTurnTrial) 
     nogoR = sum(nogoTurn==1)
-    nogoL = sum(nogoTurn==-1)*-1
+    nogoL = sum(nogoTurn==-1)
     
     #maskTotal = len(trialResponse[(trialMaskContrast>0)])  sanity check
     maskOnlyTotal = len(trialResponse[(trialMaskContrast>0) & (trialTargetFrames==0)])   # rotation task 'mask only' trials can't be 'correct'

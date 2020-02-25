@@ -41,7 +41,7 @@ class TaskControl():
             self.screen = 1 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
             self.monDistance = 21.59 # cm
-            self.monGamma = 2.4 # float or None
+            self.monGamma = 2.3 # float or None
             self.monSizePix = (1920,1080)
             self.flipScreenHorz = False
             self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
