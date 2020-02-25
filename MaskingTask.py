@@ -139,15 +139,15 @@ class MaskingTask(TaskControl):
             # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3',taskVersion)
             self.normRewardDistance = 0.2
-            self.maxResponseWaitFrames = 60
+            self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 5
             self.incorrectTimeoutFrames = 600
-            self.solenoidOpenTime = 0.05
+            self.solenoidOpenTime = 0.08
             
         elif name == 'training5':
             # introduce no-go trials
             self.setDefaultParams('training4',taskVersion)
-            self.normRewardDistance = 0.22
+            self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 60
             self.probNoGo = 0.33
             self.incorrectTrialRepeats = 50  # high while learning nogos
