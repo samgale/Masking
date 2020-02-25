@@ -8,7 +8,7 @@ Created on Tue Aug 13 11:20:20 2019
 import pandas as pd 
 import matplotlib
 from matplotlib import pyplot as plt
-from nogoTurn import nogo_turn
+from nogoData import nogo_turn
 
 """
 plots the choices (in order) over the length of a session
