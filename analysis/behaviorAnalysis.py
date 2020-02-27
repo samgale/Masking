@@ -151,7 +151,6 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                         if rewardFrame is not None:
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
                         turnRightTrials.append(trialWheel)
-                        print(len(trialWheel))
                     elif rewardDirection<0:
                         ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
                         if rewardFrame is not None:
