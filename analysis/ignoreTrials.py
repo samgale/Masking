@@ -30,15 +30,12 @@ def ignore_trials(d):
         if trial==0:
             trialRewardDirection[i] = 0
     
-    
     # length of time from start of stim to response (or no response) for each trial
     trialTimes = []   
     for i, (start, resp) in enumerate(zip(trialStimStartFrame, trialResponseFrame)):
             respTime = (deltaWheel[start:resp])
             trialTimes.append(respTime)
     
-    #since deltawheel provides the difference in wheel mvmt from trial to trial
-    #taking the cumulative sum gives the actual wheel mvmt and plots as a smooth curve
     cumRespTimes = []   
     for i, time in enumerate(trialTimes):
         time = np.cumsum(time)
@@ -47,14 +44,12 @@ def ignore_trials(d):
     
     rxnTimes = []
     for i, times in enumerate(cumRespTimes):
-        booleanMask = (abs(times[:])>10)
-        val = np.argmax(booleanMask)
+        val = np.argmax(abs(times[:])>10)
         rxnTimes.append(val)
                
-    ignoreTrials = []
-    for i, t in enumerate(rxnTimes):     # 15 frames = 125 ms 
-        if 1<t<10:                                 # correct nogos have a rxn time of 0
-            ignoreTrials.append(i)
+    ignoreTrials = [i for (i,t) in enumerate(rxnTimes) if 1<t<10]
+
     return ignoreTrials
+
 
 

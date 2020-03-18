@@ -16,84 +16,43 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
 
     d = data
     trialResponse = d['trialResponse'][:]
-    trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)]
-    trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]
-
-    if 0 not in trialTargetFrames:
-        print('There were no nogo trials')
-    else:
-
-        trialRespFrames = d['trialResponseFrame'][:]
-        trialOpenLoop = d['trialOpenLoopFrames'][:len(trialResponse)] 
-        trialStimStart = d['trialStimStartFrame'][:len(trialResponse)]
-        deltaWheel = d['deltaWheelPos'][:]
-        repeats = d['incorrectTrialRepeats'][()]
-        timeout = d['incorrectTimeoutFrames'][()]
-        preStim = d['preStimFramesFixed'][()]
-        openLoop = d['openLoopFramesFixed'][()]
+    end = len(trialResponse)
+    trialTargetFrames = d['trialTargetFrames'][:end]
+    trialMaskContrast = d['trialMaskContrast'][:end]
+    trialStimStart = d['trialStimStartFrame'][:end]
+    trialRespFrame = d['trialResponseFrame'][:]
+    deltaWheel = d['deltaWheelPos'][:]
+    repeats = d['incorrectTrialRepeats'][()]
    
-        if ignoreRepeats == True and repeats>0: 
-            trialResponseOG = d['trialResponse'][:]
-            if 'trialRepeat' in d.keys():
-                prevTrialIncorrect = d['trialRepeat'][:len(trialResponseOG)]
-            else:
-                prevTrialIncorrect = np.concatenate(([False],trialResponseOG[:-1]<1))
-            
-            trialResponse = trialResponseOG[prevTrialIncorrect==False]
-            trialTargetFrames = trialTargetFrames[prevTrialIncorrect==False]
-            trialStimStart = trialStimStart[(prevTrialIncorrect==False)]
-            trialRespFrames = trialRespFrames[prevTrialIncorrect==False]
-            trialOpenLoop = trialOpenLoop[prevTrialIncorrect==False]
-            trialMaskContrast = trialMaskContrast[prevTrialIncorrect==False]
-            
-        elif ignoreRepeats==False:
-            trialResponse = d['trialResponse'][:]
-
-        deltaWheel = d['deltaWheelPos'][:]    
+    if ignoreRepeats == True and repeats>0: 
+        if 'trialRepeat' in d.keys():
+            prevTrialIncorrect = d['trialRepeat'][:end]
+        else:
+            prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))
         
-        startWheelPos = [[],[]]  # first is nogo, 2nd maskOnly
-        endWheelPos = [[],[]]
-        ind = [[],[]]   # index of trials
-
-        ## take nogo wheel trace from the start of the closed loop
-        ## extend wheel trace into the timeout period - in masked session no timeout, so use next trial prestim period
-
-        for i, (start, end, resp, target, mask) in enumerate(
-                zip(trialStimStart, trialRespFrames, trialResponse, trialTargetFrames, trialMaskContrast)):
-            if mask==0:
-                if target==0 and resp==-1:  # nogos
-                      endWheelPos[0].append(deltaWheel[end+5])
-                      startWheelPos[0].append(deltaWheel[start+openLoop])  # from start of ClosedLoop (go tone)
-                      ind[0].append(i)
-            elif mask>0:
-                if target==0 and resp==-1: # maskOnly
-                    endWheelPos[1].append(deltaWheel[end+5])
-                    startWheelPos[1].append(deltaWheel[start])
-                    ind[1].append(i)
-        
-        nogoWheel = (np.array(endWheelPos[0])) - (np.array(startWheelPos[0]))
-        maskOnlyWheel = (np.array(endWheelPos[1])) - (np.array(startWheelPos[1]))
-        
-        nogoTurnDir = []   #returns an array of values that show the direction turned for ALL no-go trials,
-        maskOnlyTurnDir = []
-        
-        for i in nogoWheel:
-            if i >0:
-                nogoTurnDir.append(1)
-            else:
-                nogoTurnDir.append(-1)
-        
-        for f in maskOnlyWheel:
-            if f>0:
-                maskOnlyTurnDir.append(1)
-            else:
-                maskOnlyTurnDir.append(-1)
-        
-        nogoTurnDir = np.array(nogoTurnDir) 
-        maskOnlyTurnDir = np.array(maskOnlyTurnDir)
+        trialResponse = trialResponse[prevTrialIncorrect==False]
+        trialTargetFrames = trialTargetFrames[prevTrialIncorrect==False]
+        trialStimStart = trialStimStart[(prevTrialIncorrect==False)]
+        trialRespFrame = trialRespFrame[prevTrialIncorrect==False]
+        trialMaskContrast = trialMaskContrast[prevTrialIncorrect==False]  
     
+    wheelMvmt = [[],[]]     # first is nogo, 2nd maskOnly
+    ind = [[],[]]           # indices of above trials
+
+    # determines direction mouse turned during trials with no target
+
+    for i, (start, end, resp, target, mask) in enumerate(
+            zip(trialStimStart, trialRespFrame, trialResponse, trialTargetFrames, trialMaskContrast)):
+        if target==0 and resp==-1:
+            wheel = (np.cumsum(deltaWheel[start:end])[-1])
+            if mask==0:             # nogos
+                ind[0].append(i)
+                wheelMvmt[0].append((wheel/abs(wheel)).astype(int))   
+            elif mask>0:            # maskOnly
+                ind[1].append(i)
+                wheelMvmt[1].append((wheel/abs(wheel)).astype(int))
 
     if returnArray==True:    
-        return [nogoTurnDir, maskOnlyTurnDir, ind]
+        return [wheelMvmt[0], wheelMvmt[1], ind]
 
 
