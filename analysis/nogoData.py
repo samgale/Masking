@@ -4,8 +4,10 @@ Created on Tue Aug 20 15:47:02 2019
 
 @author: chelsea.strawder
 
-
-I want this to also return the index of the nogos/maskOnly
+This returns 3 arrays - 
+1st has turning direction for incorrect nogo trials 
+2nd has turning direction for incorrect maskOnly trials (during masking)
+3rd has 2 arrays - the indices of the above 
 
 """
 
