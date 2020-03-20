@@ -63,14 +63,14 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     nogoTotal = len(trialResponse[(trialTargetFrames==0) & (trialMaskContrast==0)])
     #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
     nogoMove = len(nogoTurnTrial) 
-    nogoR = sum(nogoTurn==1)
-    nogoL = sum(nogoTurn==-1)
+    nogoR = nogoTurn.count(1)
+    nogoL = nogoTurn.count(-1)
     
     #maskTotal = len(trialResponse[(trialMaskContrast>0)])  sanity check
     maskOnlyTotal = len(trialResponse[(trialMaskContrast>0) & (trialTargetFrames==0)])   # rotation task 'mask only' trials can't be 'correct'
     maskOnlyCorr = len(trialResponse[(trialMaskContrast>0) & (trialResponse==1) & (trialTargetFrames==0)])
-    maskOnlyR = sum(maskOnlyTurn==1)
-    maskOnlyL = sum(maskOnlyTurn==-1) 
+    maskOnlyR = maskOnlyTurn.count(1)
+    maskOnlyL = maskOnlyTurn.count(-1) 
         
     for num, denom, title in zip(
             [hits, hits, respOnly],
@@ -100,7 +100,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
              
             if showNogo:
                 if len(nogoTurn)>0:
-                    ax.plot(-15, nogoMove/nogoTotal, 'go')
+                    ax.plot(-15, nogoMove/nogoTotal, 'ko')
                     ax.plot(-15, nogoR/nogoMove, 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
                     ax.plot(-15, nogoL/nogoMove, 'b<', ms=8)
                     if showTrialN:
