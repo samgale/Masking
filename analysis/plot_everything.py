@@ -22,7 +22,7 @@ d = h5py.File(f)
 # plot session wheel trace - 1 plot, unless mask==True - 2 plots
 ##  if session is from 1/13 - 1/28, use framesToShowBeforeStart=30, else 60
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
-                               ignoreRepeats=True, framesToShowBeforeStart=60), mask=True, maskOnly=True)
+                               ignoreRepeats=True, framesToShowBeforeStart=60, mask=True, maskOnly=True)
 
 
 # plot target duration responses - 3 plots
