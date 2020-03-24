@@ -55,6 +55,6 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
                 wheelMvmt[1].append((wheel/abs(wheel)).astype(int))
 
     if returnArray==True:    
-        return [wheelMvmt[0], wheelMvmt[1], ind]
+        return [wheelMvmt, ind]
 
 
