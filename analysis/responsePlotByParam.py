@@ -5,21 +5,21 @@ Created on Fri Mar 20 12:45:29 2020
 @author: chelsea.strawder
 
 I'm still working on this plotting 
+Creates plots of trial length by SOA (or specified parameter)
+
+can easily call using plot_by_param(create_df(import_data()))
 """
 
 
 import numpy as np
-import pandas as pd
+import pandas
 import matplotlib
 import matplotlib.pyplot as plt
-from dataAnalysis import import_data, create_df
 
-matplotlib.rcParams['pdf.fonttype'] = 42
+def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
 
-def plot_by_param(param):    #param = soa, targetContrast, or targetLength
-    df = create_df(import_data())
-    
-    
+    matplotlib.rcParams['pdf.fonttype'] = 42
+
     nonzeroRxns = df[(df['trialLength']!=df['trialLength'].max()) & 
                      (df['ignoreTrial']!=True) & (df['resp']!=0)]
     corrNonzero = nonzeroRxns[(nonzeroRxns['resp']==1) & (nonzeroRxns['nogo']==False)]
@@ -30,8 +30,10 @@ def plot_by_param(param):    #param = soa, targetContrast, or targetLength
     hit = corrNonzero.pivot_table(values='trialLength', index='{}'.format(param), columns='rewDir', 
                             margins=True, dropna=True)
     
-    hit.plot(title='hits')
-    miss.plot(title='misses')
+    #hit.plot(title='hits')
+    #miss.plot(title='misses')
+    print(hit)
+    print(miss)
     
     
     hits = [[],[]]  #R, L
