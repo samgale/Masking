@@ -75,15 +75,14 @@ def create_df(d):   #contrast, target, mask
    
     if np.any(trialMaskOnset>0):
         noMaskVal = maskOnset[-1] + round(np.mean(np.diff(maskOnset)))  # assigns noMask condition an evenly-spaced value from soas
-        maskOnset = np.append(maskOnset, noMaskVal)              # makes final value the no-mask condition
+        maskOnset = np.append(maskOnset, noMaskVal)                     # makes final value the no-mask condition
             
         for i, (mask, trial) in enumerate(zip(trialMaskOnset, trialTargetFrames)):   # filters target-Only trials 
             if trial>0 and mask==0:
                 trialMaskOnset[i]=noMaskVal       
     
 
-    trialLength = [resp-start for (start, resp) in 
-                  zip(trialStimStartFrame, trialResponseFrame)]   
+    trialLength = trialResponseFrame - trialStimStartFrame
 
     totalWheel = [deltaWheel[start:stim+maxResp] for (start,stim) in 
                   zip(d['trialStartFrame'][()], trialStimStartFrame)]
@@ -103,10 +102,8 @@ def create_df(d):   #contrast, target, mask
                 
     data = list(zip(trialRewardDirection, trialResponse, 
                     trialStartFrame, trialStimStartFrame, trialResponseFrame))
-    index = range(len(trialResponse))
 
-    df = pd.DataFrame(data, index=index, columns=[
-            'rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame'])
+    df = pd.DataFrame(data, columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame'])
     
     df['trialLength'] = [convert_to_ms(trialLength)]
     

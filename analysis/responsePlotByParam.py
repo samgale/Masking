@@ -3,15 +3,15 @@
 Created on Fri Mar 20 12:45:29 2020
 
 @author: chelsea.strawder
+
+I'm still working on this plotting 
 """
 
 
-import fileIO, h5py
 import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
-from nogoData import nogo_turn
 from dataAnalysis import import_data, create_df
 
 matplotlib.rcParams['pdf.fonttype'] = 42
