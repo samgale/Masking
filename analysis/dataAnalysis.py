@@ -31,14 +31,19 @@ def create_vars(dn):
 
 def create_df(d):   #contrast, target, mask    
     
+##pull all of the relevant data to create a dataframe object 
+
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
     
-    #pull all of the relevant data to create a dataframe object 
+    def convert_to_ms(value):
+        return np.round(value * 1000/framerate).astype(int)
+    
     trialResponse = d['trialResponse'][:]
     end = len(trialResponse)
     trialRewardDirection = d['trialRewardDir'][:end]
     trialTargetFrames = d['trialTargetFrames'][:end]
+    trialTargetContrast = d['trialTargetContrast'][:end]
     
     trialOpenLoopFrames = d['trialOpenLoopFrames'][:end]
     if len(np.unique(trialOpenLoopFrames)>1):
@@ -49,23 +54,23 @@ def create_df(d):   #contrast, target, mask
     #    openLoopFrames = d['openLoopFramesFixed'][()]
     #    openLoopVar = d['openLoopFramesVariableMean'][()]
     #    openLoopMax = d['openLoopFramesMax'][()]
-    quiescentMoveFrames = d['quiescentMoveFrames'][:]    #these are counted per trial and added to df
+      
     trialStartFrame = d['trialStartFrame'][:end]
     trialStimStartFrame = d['trialStimStartFrame'][:]
     trialResponseFrame = d['trialResponseFrame'][:end] 
+    quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
+    
     maxResp = d['maxResponseWaitFrames'][()]
     deltaWheel = d['deltaWheelPos'][:]                      
-    trialMaskContrast = d['trialMaskContrast'][:end]
-    trialTargetContrast = d['trialTargetContrast'][:end]
-    #nogoWait = d['nogoWaitFrames'][()]
     repeats = d['trialRepeat'][:end]
-    
-    def convert_to_ms(value):
-        return np.round(value * 1000/framerate).astype(int)
-    
+    #nogoWait = d['nogoWaitFrames'][()]
+        
     maskOnset = convert_to_ms(d['maskOnset'][()])
     trialMaskOnset = convert_to_ms(d['trialMaskOnset'][:end])
+    trialMaskContrast = d['trialMaskContrast'][:end]
+
     
+### process & clean data
     for i, target in enumerate(trialTargetFrames):  # this is needed for older files nogos are randomly assigned a dir
         if target==0:
             trialRewardDirection[i] = 0
@@ -80,7 +85,6 @@ def create_df(d):   #contrast, target, mask
             if trial>0 and mask==0:
                 trialMaskOnset[i]=targetOnlyVal      
     
-
     trialLength = trialResponseFrame - trialStimStartFrame
 
     totalWheel = [deltaWheel[start:stim+maxResp] for (start,stim) in 
@@ -91,12 +95,13 @@ def create_df(d):   #contrast, target, mask
     ignoreTrials = ignore_trials(d)
     turns, inds = nogo_turn(d)      #for both of these, [0]=nogos, [1]=maskOnly                    
     
+    
     qDict = defaultdict(list)
     for i, (start,stimStart) in enumerate(zip(trialStartFrame, trialStimStartFrame)):
         for x in quiescentMoveFrames:    
             if start<x<stimStart:
                 qDict[i].append(x)
-                
+          
     assert len(quiescentMoveFrames) == sum([len(qDict[x]) for x in qDict]), "Qframes Error"
                       
 ### Create dataframe
@@ -146,8 +151,3 @@ def create_df(d):   #contrast, target, mask
     df['WheelTrace'] = cumulativeWheel
     
     return df
-
-
-
-
-
