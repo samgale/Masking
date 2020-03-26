@@ -45,15 +45,15 @@ def create_df(d):   #contrast, target, mask
     if len(np.unique(trialOpenLoopFrames)>1):
         pass
         
-#    preStimFrames = d['preStimFramesFixed'][()]
-#    preStimVar = d['preStimFramesVariableMean'][()]              
-#    openLoopFrames = d['openLoopFramesFixed'][()]
-#    openLoopVar = d['openLoopFramesVariableMean'][()]
-#    openLoopMax = d['openLoopFramesMax'][()]
+    #    preStimFrames = d['preStimFramesFixed'][()]
+    #    preStimVar = d['preStimFramesVariableMean'][()]              
+    #    openLoopFrames = d['openLoopFramesFixed'][()]
+    #    openLoopVar = d['openLoopFramesVariableMean'][()]
+    #    openLoopMax = d['openLoopFramesMax'][()]
     quiescentMoveFrames = d['quiescentMoveFrames'][:]    #would be nice to count these per trial
     trialStimStartFrame = d['trialStimStartFrame'][:]
     trialResponseFrame = d['trialResponseFrame'][:end] 
-   # trialEndFrame = d['trialEndFrame'][:end]
+    maxResp = d['maxResponseWaitFrames'][()]
     deltaWheel = d['deltaWheelPos'][:]                      
     trialMaskContrast = d['trialMaskContrast'][:end]
     trialTargetContrast = d['trialTargetContrast'][:end]
@@ -81,10 +81,15 @@ def create_df(d):   #contrast, target, mask
             if trial>0 and mask==0:
                 trialMaskOnset[i]=noMaskVal       
     
-    trialWheel = [deltaWheel[start:resp] for i, (start, resp) in 
-                  enumerate(zip(trialStimStartFrame, trialResponseFrame))]   
-    cumulativeWheel = [np.cumsum(mvmt) for mvmt in trialWheel]
+
+    trialLength = [resp-start for (start, resp) in 
+                  zip(trialStimStartFrame, trialResponseFrame)]   
+
+    totalWheel = [deltaWheel[start:stim+maxResp] for (start,stim) in 
+                  zip(d['trialStartFrame'][()], trialStimStartFrame)]
     
+    cumulativeWheel = [np.cumsum(mvmt) for mvmt in totalWheel]
+
     ignoreTrials = ignore_trials(d)
     turns, inds = nogo_turn(d)  #for both of these, [0]=nogos, [1]=maskOnly                    
     
@@ -103,10 +108,11 @@ def create_df(d):   #contrast, target, mask
     df = pd.DataFrame(data, index=index, columns=[
             'rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame'])
     
-    df['trialLength'] = [convert_to_ms(len(t)) for t in trialWheel]
+    df['trialLength'] = [convert_to_ms(trialLength)]
+    
     df['mask'] = trialMaskContrast
     df['soa'] = trialMaskOnset
-   # df['maskLength'] = convert_to_ms(d['trialMaskFrames'][:end])
+   #df['maskLength'] = convert_to_ms(d['trialMaskFrames'][:end])
     df['maskContrast'] = trialMaskContrast
 
     df['targetLength'] = convert_to_ms(d['trialTargetFrames'][:end])
@@ -116,8 +122,11 @@ def create_df(d):   #contrast, target, mask
     for i in nogos:
         df.loc[i, 'nogo'] = True
    
-    df['nogoMove'] = np.zeros(len(trialResponse)).astype(int)
-    df['maskOnlyMove'] = np.zeros(len(trialResponse)).astype(int)
+    def fill():
+        return np.zeros(len(trialResponse)).astype(int)
+    
+    df['nogoMove'] = fill()
+    df['maskOnlyMove'] = fill()
           
     for e, col in enumerate(('nogoMove', 'maskOnlyMove')):
         for (i,turn) in zip(inds[e], turns[e]):
@@ -129,7 +138,7 @@ def create_df(d):   #contrast, target, mask
         
     df['repeat'] = repeats    
     
-    df['Qviolations'] = np.zeros(len(trialResponse)).astype(int)
+    df['Qviolations'] = fill()
     for key,val in qDict.items():
         df.at[key, 'Qviolations'] = len(val)
         
