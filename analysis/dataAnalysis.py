@@ -50,7 +50,7 @@ def create_df(d):   #contrast, target, mask
     #    openLoopFrames = d['openLoopFramesFixed'][()]
     #    openLoopVar = d['openLoopFramesVariableMean'][()]
     #    openLoopMax = d['openLoopFramesMax'][()]
-    quiescentMoveFrames = d['quiescentMoveFrames'][:]    #would be nice to count these per trial
+    quiescentMoveFrames = d['quiescentMoveFrames'][:]    #these are counted per trial and added to df
     trialStimStartFrame = d['trialStimStartFrame'][:]
     trialResponseFrame = d['trialResponseFrame'][:end] 
     maxResp = d['maxResponseWaitFrames'][()]
@@ -58,12 +58,11 @@ def create_df(d):   #contrast, target, mask
     trialMaskContrast = d['trialMaskContrast'][:end]
     trialTargetContrast = d['trialTargetContrast'][:end]
     #nogoWait = d['nogoWaitFrames'][()]
-    repeats = d['trialRepeat'][()]
+    repeats = d['trialRepeat'][:end]
     
     def convert_to_ms(value):
         return np.round(value * 1000/framerate).astype(int)
     
-    # converted to ms
     maskOnset = convert_to_ms(d['maskOnset'][()])
     trialMaskOnset = convert_to_ms(d['trialMaskOnset'][:end])
     
@@ -74,12 +73,12 @@ def create_df(d):   #contrast, target, mask
     nogos = [i for i, (rew, con) in enumerate(zip(trialRewardDirection, trialMaskContrast)) if rew==0 and con==0]
    
     if np.any(trialMaskOnset>0):
-        noMaskVal = maskOnset[-1] + round(np.mean(np.diff(maskOnset)))  # assigns noMask condition an evenly-spaced value from soas
-        maskOnset = np.append(maskOnset, noMaskVal)                     # makes final value the no-mask condition
+        targetOnlyVal = maskOnset[-1] + round(np.mean(np.diff(maskOnset)))  # assigns targetOnly condition an evenly-spaced value from soas
+        maskOnset = np.append(maskOnset, targetOnlyVal)                     # makes final value the targetOnly condition
             
         for i, (mask, trial) in enumerate(zip(trialMaskOnset, trialTargetFrames)):   # filters target-Only trials 
             if trial>0 and mask==0:
-                trialMaskOnset[i]=noMaskVal       
+                trialMaskOnset[i]=targetOnlyVal      
     
 
     trialLength = trialResponseFrame - trialStimStartFrame
@@ -90,29 +89,34 @@ def create_df(d):   #contrast, target, mask
     cumulativeWheel = [np.cumsum(mvmt) for mvmt in totalWheel]
 
     ignoreTrials = ignore_trials(d)
-    turns, inds = nogo_turn(d)  #for both of these, [0]=nogos, [1]=maskOnly                    
+    turns, inds = nogo_turn(d)      #for both of these, [0]=nogos, [1]=maskOnly                    
     
     qDict = defaultdict(list)
-    for i, (start,end) in enumerate(zip(trialStartFrame, trialStimStartFrame)):
+    for i, (start,stimStart) in enumerate(zip(trialStartFrame, trialStimStartFrame)):
         for x in quiescentMoveFrames:    
-            if start<x<end:
+            if start<x<stimStart:
                 qDict[i].append(x)
-        
+                
+    assert len(quiescentMoveFrames) == sum([len(qDict[x]) for x in qDict]), "Qframes Error"
+                      
 ### Create dataframe
                 
     data = list(zip(trialRewardDirection, trialResponse, 
                     trialStartFrame, trialStimStartFrame, trialResponseFrame))
 
-    df = pd.DataFrame(data, columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame'])
+    index = range(len(trialResponse))
+    df = pd.DataFrame(data, 
+                      index=index, 
+                      columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame'])
     
-    df['trialLength'] = [convert_to_ms(trialLength)]
+    df['trialLength'] = convert_to_ms(trialLength)
     
     df['mask'] = trialMaskContrast
     df['soa'] = trialMaskOnset
-   #df['maskLength'] = convert_to_ms(d['trialMaskFrames'][:end])
+    #df['maskLength'] = convert_to_ms(d['trialMaskFrames'][:end])
     df['maskContrast'] = trialMaskContrast
 
-    df['targetLength'] = convert_to_ms(d['trialTargetFrames'][:end])
+    df['targetLength'] = convert_to_ms(trialTargetFrames)
     df['targetContrast'] = trialTargetContrast
     
     df['nogo'] = False
