@@ -25,10 +25,9 @@ def extract_vars(data):
     return {key: data[str(key)][()] for key in data.keys()}
     
 def create_vars(dn):
-    for key,val in dn.items():
+    for key,val in dn.items():   #work in progress, if even possible
         exec (key + '=val')
         
-
 
 def create_df(d):   #contrast, target, mask    
     
@@ -40,7 +39,7 @@ def create_df(d):   #contrast, target, mask
     end = len(trialResponse)
     trialRewardDirection = d['trialRewardDir'][:end]
     trialTargetFrames = d['trialTargetFrames'][:end]
-    trialStartFrame = d['trialStartFrame'][:]    
+    
     trialOpenLoopFrames = d['trialOpenLoopFrames'][:end]
     if len(np.unique(trialOpenLoopFrames)>1):
         pass
@@ -51,6 +50,7 @@ def create_df(d):   #contrast, target, mask
     #    openLoopVar = d['openLoopFramesVariableMean'][()]
     #    openLoopMax = d['openLoopFramesMax'][()]
     quiescentMoveFrames = d['quiescentMoveFrames'][:]    #these are counted per trial and added to df
+    trialStartFrame = d['trialStartFrame'][:end]
     trialStimStartFrame = d['trialStimStartFrame'][:]
     trialResponseFrame = d['trialResponseFrame'][:end] 
     maxResp = d['maxResponseWaitFrames'][()]

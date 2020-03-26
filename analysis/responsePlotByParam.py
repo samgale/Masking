@@ -12,13 +12,14 @@ can easily call using plot_by_param(create_df(import_data()))
 
 
 import numpy as np
-import pandas
 import matplotlib
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
 
     matplotlib.rcParams['pdf.fonttype'] = 42
+    sns.set_style('white')
 
     nonzeroRxns = df[(df['trialLength']!=df['trialLength'].max()) & 
                      (df['ignoreTrial']!=True) & (df['resp']!=0)]
@@ -32,9 +33,12 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
     
     #hit.plot(title='hits')
     #miss.plot(title='misses')
-    print(hit)
-    print(miss)
-    
+    print('hits \n', hit)
+    print('\n' * 2)
+    print('misses \n', miss)
+
+
+ ### how to make this less bulky/redundant??     
     
     hits = [[],[]]  #R, L
     misses = [[],[]]
@@ -110,3 +114,6 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
     ax.set_xticklabels(a)
     matplotlib.rcParams["legend.loc"] = 'best'
     ax.legend()
+    
+    
+    #err = [np.std(mean) for mean in Rmean]
