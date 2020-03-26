@@ -23,6 +23,7 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
 
     nonzeroRxns = df[(df['trialLength']!=df['trialLength'].max()) & 
                      (df['ignoreTrial']!=True) & (df['resp']!=0)]
+    
     corrNonzero = nonzeroRxns[(nonzeroRxns['resp']==1) & (nonzeroRxns['nogo']==False)]
     missNonzero = nonzeroRxns[(nonzeroRxns['resp']==-1) & (nonzeroRxns['nogo']==False)]
     
