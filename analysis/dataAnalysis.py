@@ -26,7 +26,8 @@ def extract_vars(data):
     
 def create_vars(dn):
     for key,val in dn.items():   #work in progress, if even possible
-        exec (key + '=val')
+        globals()
+        exec (key + '= val')
         
 
 def create_df(d):   #contrast, target, mask    
