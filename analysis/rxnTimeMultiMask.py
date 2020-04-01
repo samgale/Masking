@@ -21,7 +21,7 @@ mouse='495786'
 files = get_files(mouse,'masking_to_analyze')    #imports all masking files for mouse
 
 dn = {}
-for i, f in enumerate(files[:-3]):
+for i, f in enumerate(files[-3:]):   #change index for desired files
     d = h5py.File(f) 
     dn['df_{}'.format(i)] = create_df(d)        #creates keys in dict dn with format df_#
 

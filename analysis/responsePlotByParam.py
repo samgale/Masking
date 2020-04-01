@@ -104,7 +104,7 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
     a = ax.get_xticks().tolist()
     #a = [int(i) for i in a]     
     if param=='soa':
-        a[0] = ''
+        a[0] = 'Mask Only'
         a[-1] = 'TargetOnly'
     ax.set_xticklabels(a)
     matplotlib.rcParams["legend.loc"] = 'best'
@@ -118,7 +118,7 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
     ax.plot(10, np.median(maskOnly), marker='o', c='k')
     ax.set(title='Mean Response Time From StimStart, by {}'.format(param), 
            xlabel=param.upper(), ylabel='Reaction Time (ms)')
-    ax.set_xticks(np.unique(df.param))
+    ax.set_xticks(np.unique(df[param]))
     a = ax.get_xticks().tolist()
     #a = [int(i) for i in a]     
     if param=='soa':
