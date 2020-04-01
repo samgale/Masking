@@ -88,7 +88,8 @@ def create_df(d):   #contrast, target, mask
     
     trialLength = trialResponseFrame - trialStimStartFrame
 
-    totalWheel = [deltaWheel[start:stim+maxResp] for (start,stim) in 
+#entire wheel trace from trial start to the max Length of trial
+    totalWheel = [deltaWheel[start:stim+trialOpenLoopFrames+maxResp] for (start,stim) in 
                   zip(d['trialStartFrame'][()], trialStimStartFrame)]
     
     cumulativeWheel = [np.cumsum(mvmt) for mvmt in totalWheel]
