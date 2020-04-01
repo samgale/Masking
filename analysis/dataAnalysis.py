@@ -64,7 +64,7 @@ def create_df(d):   #contrast, target, mask
     maxResp = d['maxResponseWaitFrames'][()]
     deltaWheel = d['deltaWheelPos'][:]                      
     repeats = d['trialRepeat'][:end]
-    #nogoWait = d['nogoWaitFrames'][()]
+    nogoWait = d['nogoWaitFrames'][()]
         
     maskOnset = convert_to_ms(d['maskOnset'][()])
     trialMaskOnset = convert_to_ms(d['trialMaskOnset'][:end])
