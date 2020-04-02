@@ -21,16 +21,16 @@ def import_data():
     d = h5py.File(f)
     return d
 
-def extract_vars(data):
-    return {key: data[str(key)][()] for key in data.keys()}
-    
-def create_vars(dn):
-    for key,val in dn.items():   #work in progress, if even possible
-        globals()
-        exec (key + '= val')
+#def extract_vars(data):
+#    return {key: data[str(key)][()] for key in data.keys()}
+#    
+#def create_vars(dn):
+#    for key,val in dn.items():   #work in progress, if even possible
+#        globals()
+#        exec (key + '= val')
         
 
-def create_df(d):   #contrast, target, mask    
+def create_df(d):   
     
 ##pull all of the relevant data to create a dataframe object 
 
