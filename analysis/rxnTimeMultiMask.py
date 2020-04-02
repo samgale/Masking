@@ -20,6 +20,9 @@ from responsePlotByParam import plot_by_param
 mouse='495786'
 files = get_files(mouse,'masking_to_analyze')    #imports all masking files for mouse
 
+## change this to a function, where args are mouseID, list of dates
+# then change below logic to select files by date, rather than manual slicing
+
 dn = {}
 for i, f in enumerate(files[-3:]):   #change index for desired files
     d = h5py.File(f) 
