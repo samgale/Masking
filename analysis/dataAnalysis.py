@@ -88,7 +88,7 @@ def create_df(d):   #contrast, target, mask
     
     trialLength = trialResponseFrame - trialStimStartFrame
 
-#entire wheel trace from trial start to the max Length of trial
+    #gives entire wheel trace from trial start to the max Length of trial
     totalWheel = [deltaWheel[start:stim+openLoop+maxResp] for (start,stim, openLoop) in 
                   zip(d['trialStartFrame'][()], trialStimStartFrame, trialOpenLoopFrames)]
     
@@ -129,6 +129,7 @@ def create_df(d):   #contrast, target, mask
     df['nogo'] = False
     for i in nogos:
         df.loc[i, 'nogo'] = True
+        df.loc[i, 'soa'] = float('nan')  # this helps for summary stats
    
     def fill():
         return np.zeros(len(trialResponse)).astype(int)
