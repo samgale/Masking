@@ -81,6 +81,9 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
             hits[i].append(hitVal[i])
             misses[i].append(missVal[i])
             
+    hitErr = [[np.std(val) for val in lst] for lst in hits]
+    missErr = [[np.std(val) for val in lst] for lst in misses]      
+            
     Rmed = list(map(np.median, hits[0]))  #one way
     Lmed = [np.median(x) for x in hits[1]]
     RmissMed = [np.median(x) for x in misses[0]]
@@ -94,9 +97,11 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
     #max = np.max(np.mean(Rmed+Lmed))
     fig, ax = plt.subplots()
     ax.plot(np.unique(df[param]), Rmed, 'ro-', label='R hit',  alpha=.6, lw=3)
-    ax.plot(np.unique(df[param]), RmissMed, 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
     ax.plot(np.unique(df[param]), Lmed, 'bo-', label='L hit', alpha=.6, lw=3)
-    ax.plot(np.unique(df[param]), LmissMed, 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+   # ax.plot(np.unique(df[param]), RmissMed, 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
+   # ax.plot(np.unique(df[param]), LmissMed, 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+    plt.errorbar(np.unique(df[param]), Rmed, yerr=hitErr[0], c='r', alpha=.5)
+    plt.errorbar(np.unique(df[param]), Lmed, yerr=hitErr[1], c='b', alpha=.5)
     ax.plot(10, np.median(maskOnly), marker='o', c='k')
     ax.set(title='Median Response Time From StimStart, by {}'.format(param), 
            xlabel=param.upper(), ylabel='Reaction Time (ms)')
