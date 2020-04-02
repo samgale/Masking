@@ -44,7 +44,9 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
     # use the df to filter the trial by RewDir 
         # maybe use multiindex?? 
     
-    y = corrNonzero.groupby(['rewDir', param])['trialLength'].mean()
+    y = corrNonzero.groupby(['rewDir', param])['trialLength'].describe()
+    print(y)
+    #y.to_excel("date_describe.xlsx")
     
     #to reduce bulk below; something like this?
     Rhit = corrNonzero[corrNonzero['rewDir']==1]
