@@ -56,21 +56,21 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     totalTrials = hits+misses+noResps
     respOnly = hits+misses
     
-    nogoTurn, maskOnlyTurn, ind = nogo_turn(d, returnArray=True)  # returns arrays with turning direction as 1/-1
+    turns, ind = nogo_turn(d, returnArray=True)  # returns arrays with turning direction as 1/-1
     nogoTurnTrial = ind[0]  # list of indices of trials where turning occured
     maskTurnTrial = ind[1]
      
     nogoTotal = len(trialResponse[(trialTargetFrames==0) & (trialMaskContrast==0)])
     #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
     nogoMove = len(nogoTurnTrial) 
-    nogoR = nogoTurn.count(1)
-    nogoL = nogoTurn.count(-1)
+    nogoR = turns[0].count(1)
+    nogoL = turns[0].count(-1)
     
     #maskTotal = len(trialResponse[(trialMaskContrast>0)])  sanity check
     maskOnlyTotal = len(trialResponse[(trialMaskContrast>0) & (trialTargetFrames==0)])   # rotation task 'mask only' trials can't be 'correct'
     maskOnlyCorr = len(trialResponse[(trialMaskContrast>0) & (trialResponse==1) & (trialTargetFrames==0)])
-    maskOnlyR = maskOnlyTurn.count(1)
-    maskOnlyL = maskOnlyTurn.count(-1) 
+    maskOnlyR = turns[1].count(1)
+    maskOnlyL = turns[1].count(-1) 
         
     for num, denom, title in zip(
             [hits, hits, respOnly],
@@ -99,7 +99,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
                 ax.annotate(str(maskOnlyL), xy=(1,maskOnlyL/maskOnlyTotal), xytext=(0, 0), textcoords='offset points')
              
             if showNogo:
-                if len(nogoTurn)>0:
+                if len(turns[0])>0:
                     ax.plot(-15, nogoMove/nogoTotal, 'ko')
                     ax.plot(-15, nogoR/nogoMove, 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
                     ax.plot(-15, nogoL/nogoMove, 'b<', ms=8)

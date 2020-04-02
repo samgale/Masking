@@ -102,7 +102,6 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
            xlabel=param.upper(), ylabel='Reaction Time (ms)')
     ax.set_xticks(np.unique(df[param]))
     a = ax.get_xticks().tolist()
-    #a = [int(i) for i in a]     
     if param=='soa':
         a[0] = 'Mask Only'
         a[-1] = 'TargetOnly'
