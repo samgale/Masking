@@ -17,16 +17,14 @@ from dataAnalysis import create_df
 from behaviorAnalysis import get_files, formatFigure
 from responsePlotByParam import plot_by_param
 
-mouse='486634'
-files = get_files(mouse,'masking_to_analyze')    #imports all masking files for mouse
+files = get_files('486634','masking_to_analyze')    #imports ALL masking files for mouse
 
 ## change this to a function, where args are mouseID, list of dates
 # then change below logic to select files by date, rather than manual slicing
-
-# files = [file if date is in files] - use regex??
+# use regex??
 
 dn = {}
-for i, f in enumerate(files[-3:]):   #change index for desired files
+for i, f in enumerate(files[-3:]):              #change index for desired files
     d = h5py.File(f) 
     dn['df_{}'.format(i)] = create_df(d)        #creates keys in dict dn with format df_#
 
@@ -37,5 +35,4 @@ dfall = pd.concat([df1,df2,df3], ignore_index=True)
 
 plot_by_param('soa', dfall)
     
-    x = stats.f_oneway(df['trialLength'].groupby(df['soa']))
     
