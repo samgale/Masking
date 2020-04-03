@@ -93,9 +93,9 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
             
 
     if stat=='Median':
-        func=np.median()
+        func=np.median
     else:
-        func=np.mean()
+        func=np.mean
         
     avgHits = [[func(x) for x in side] for side in hits]   # 0=R, 1=L
     avgMisses = [[func(x) for x in side] for side in misses]
@@ -135,8 +135,8 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
     a = ax.get_xticks().tolist()
     if param=='soa':
         a = [int(i) for i in a if i>=0]
-        a[0] = 'Mask \n Only'
-        a[-1] = 'Target \n Only'
+        a[0] = 'Mask\nOnly'
+        a[-1] = 'Target\nOnly'
     ax.set_xticklabels(a)
     matplotlib.rcParams["legend.loc"] = 'best'
     ax.legend()
