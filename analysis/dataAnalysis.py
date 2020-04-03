@@ -21,14 +21,6 @@ def import_data():
     d = h5py.File(f)
     return d
 
-#def extract_vars(data):
-#    return {key: data[str(key)][()] for key in data.keys()}
-#    
-#def create_vars(dn):
-#    for key,val in dn.items():   #work in progress, if even possible
-#        globals()
-#        exec (key + '= val')
-        
 
 def create_df(d):   
     
@@ -64,7 +56,7 @@ def create_df(d):
     maxResp = d['maxResponseWaitFrames'][()]
     deltaWheel = d['deltaWheelPos'][:]                      
     repeats = d['trialRepeat'][:end]
-    nogoWait = d['nogoWaitFrames'][()]
+    #nogoWait = d['nogoWaitFrames'][()]
         
     maskOnset = convert_to_ms(d['maskOnset'][()])
     trialMaskOnset = convert_to_ms(d['trialMaskOnset'][:end])
@@ -72,6 +64,7 @@ def create_df(d):
 
     
 ### process & clean data
+    
     for i, target in enumerate(trialTargetFrames):  # this is needed for older files nogos are randomly assigned a dir
         if target==0:
             trialRewardDirection[i] = 0
