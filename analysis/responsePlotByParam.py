@@ -93,68 +93,42 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
             
 
     if stat=='Median':
-        
-        medHits = [[np.median(x) for x in side] for side in hits]   # 0=R, 1=L
-        medMisses = [[np.median(x) for x in side] for side in misses]
-    
-        fig, ax = plt.subplots()
-        if selection=='all':
-            ax.plot(np.unique(param_list), medHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
-            ax.plot(np.unique(param_list), medHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
-            ax.plot(np.unique(param_list), medMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-            ax.plot(np.unique(param_list), medMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
-        elif selection=='hits':
-            ax.plot(np.unique(param_list), medHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
-            ax.plot(np.unique(param_list), medHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
-        elif selection=='misses':   
-            ax.plot(np.unique(param_list), medMisses[0], 'ro-', label='R miss', ls='--', alpha=.4, lw=2)
-            ax.plot(np.unique(param_list), medMisses[1], 'bo-', label='L miss', ls='--', alpha=.4, lw=2)
-       
-        
-        if errorBars==True:
-            if selection=='hits'.lower():
-                plt.errorbar(np.unique(param_list), medHits[0], yerr=hitErr[0], c='r', alpha=.5)
-                plt.errorbar(np.unique(param_list), medHits[1], yerr=hitErr[1], c='b', alpha=.5)
-            elif selection=='misses'.lower():
-                plt.errorbar(np.unique(param_list), medMisses[0], yerr=missErr[0], c='r', alpha=.3)
-                plt.errorbar(np.unique(param_list), medMisses[1], yerr=missErr[1], c='b', alpha=.3)
-            
-        ax.plot(8, np.median(maskOnly), marker='o', c='k')
-        
-        ax.set(title='Median Response Time From StimStart, by {}'.format(param), 
-               xlabel=param.upper(), ylabel='Reaction Time (ms)')
-        
-        
+        func=np.median()
     else:
+        func=np.mean()
+        
+    avgHits = [[func(x) for x in side] for side in hits]   # 0=R, 1=L
+    avgMisses = [[func(x) for x in side] for side in misses]
+    avgMaskOnly = func(maskOnly)
+
+ 
+    fig, ax = plt.subplots()
+    if selection=='all':
+        ax.plot(param_list, avgHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+        ax.plot(param_list, avgHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
+        ax.plot(param_list, avgMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
+        ax.plot(param_list, avgMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+    elif selection=='hits':
+        ax.plot(param_list, avgHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+        ax.plot(param_list, avgHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
+    elif selection=='misses':   
+        ax.plot(param_list, avgMisses[0], 'ro-', label='R miss', ls='--', alpha=.4, lw=2)
+        ax.plot(param_list, avgMisses[1], 'bo-', label='L miss', ls='--', alpha=.4, lw=2)
+   
     
-        meanHits = [[np.median(x) for x in side] for side in hits]   # 0=R, 1=L
-        meanMisses = [[np.median(x) for x in side] for side in misses]
+    if errorBars==True:
+        if selection=='hits'.lower():
+            plt.errorbar(param_list, avgHits[0], yerr=hitErr[0], c='r', alpha=.5)
+            plt.errorbar(param_list, avgHits[1], yerr=hitErr[1], c='b', alpha=.5)
+        elif selection=='misses'.lower():
+            plt.errorbar(param_list, avgMisses[0], yerr=missErr[0], c='r', alpha=.3)
+            plt.errorbar(param_list, avgMisses[1], yerr=missErr[1], c='b', alpha=.3)
+     
         
-        fig, ax = plt.subplots()
-        if selection=='all':
-            ax.plot(np.unique(param_list), meanHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
-            ax.plot(np.unique(param_list), meanHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
-            ax.plot(np.unique(param_list), meanMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-            ax.plot(np.unique(param_list), meanMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
-        elif selection=='hits':
-            ax.plot(np.unique(param_list), meanHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
-            ax.plot(np.unique(param_list), meanHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
-        elif selection=='misses':
-            ax.plot(np.unique(param_list), meanMisses[0], 'ro-', label='R miss', ls='--', alpha=.4, lw=2)
-            ax.plot(np.unique(param_list), meanMisses[1], 'bo-', label='L miss', ls='--', alpha=.4, lw=2)
-               
-        if errorBars==True:
-            if selection=='hits'.lower():
-                plt.errorbar(np.unique(param_list), medHits[0], yerr=hitErr[0], c='r', alpha=.5)
-                plt.errorbar(np.unique(param_list), medHits[1], yerr=hitErr[1], c='b', alpha=.5)
-            elif selection=='misses'.lower():
-                plt.errorbar(np.unique(param_list), medMisses[0], yerr=missErr[0], c='r', alpha=.3)
-                plt.errorbar(np.unique(param_list), medMisses[1], yerr=missErr[1], c='b', alpha=.3)
-         
-        ax.plot(8, np.mean(maskOnly), marker='o', c='k')
-        
-        ax.set(title='Mean Response Time From StimStart, by {}'.format(param), 
-               xlabel=param.upper(), ylabel='Reaction Time (ms)')
+    ax.plot(8, avgMaskOnly, marker='o', c='k')
+    
+    ax.set(title='{} Response Time From StimStart, by {}'.format(stat, param), 
+           xlabel=param.upper(), ylabel='Reaction Time (ms)')
 
     param_list[0] = 8
     ax.set_xticks(param_list)   #HOW to exclude nogos from plotting? 
