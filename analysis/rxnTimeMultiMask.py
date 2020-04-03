@@ -10,11 +10,9 @@ plots avg performance (reaction time, response time, response latency)
 """
 
 import h5py
-import numpy as np
 import pandas as pd
-from collections import defaultdict
 from dataAnalysis import create_df
-from behaviorAnalysis import get_files, formatFigure
+from behaviorAnalysis import get_files
 from responsePlotByParam import plot_by_param
 
 files = get_files('486634','masking_to_analyze')    #imports ALL masking files for mouse
