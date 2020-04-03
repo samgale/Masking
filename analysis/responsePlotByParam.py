@@ -16,8 +16,12 @@ import matplotlib
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def plot_by_param(df, param='soa', stat='Median', errorBars=False):    
-    #param = soa, targetContrast, or targetLength
+def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=False):    
+    ''' 
+        selection = 'all', 'hits', or 'misses'
+        param = 'soa', 'targetContrast', or 'targetLength'
+        stat = 'Median' or 'Mean'
+    '''
 
     matplotlib.rcParams['pdf.fonttype'] = 42
     sns.set_style('white')
@@ -28,6 +32,9 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
     
     corrNonzero = nonzeroRxns[(nonzeroRxns['resp']==1) & (nonzeroRxns['nogo']==False)]
     missNonzero = nonzeroRxns[(nonzeroRxns['resp']==-1) & (nonzeroRxns['nogo']==False)]
+    
+    param_list = [x for x in np.unique(nonzeroRxns[param]) if x >=0]
+    
     
     miss = missNonzero.pivot_table(values='trialLength', index=param, columns='rewDir', 
                             margins=True, dropna=True)
@@ -57,7 +64,7 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
     misses = [[],[]]
     maskOnly = []
     
-    for val in np.unique(nonzeroRxns[param]):
+    for val in param_list:
         hitVal = [[],[]]
         missVal = [[],[]]
         for j, (time, p, resp, direc, mask) in enumerate(zip(
@@ -91,53 +98,73 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
         medMisses = [[np.median(x) for x in side] for side in misses]
     
         fig, ax = plt.subplots()
-        ax.plot(np.unique(df[param]), medHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
-        ax.plot(np.unique(df[param]), medHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
-        
-        ax.plot(np.unique(df[param]), medMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-        ax.plot(np.unique(df[param]), medMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+        if selection=='all':
+            ax.plot(np.unique(param_list), medHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+            ax.plot(np.unique(param_list), medHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
+            ax.plot(np.unique(param_list), medMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
+            ax.plot(np.unique(param_list), medMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+        elif selection=='hits':
+            ax.plot(np.unique(param_list), medHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+            ax.plot(np.unique(param_list), medHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
+        elif selection=='misses':   
+            ax.plot(np.unique(param_list), medMisses[0], 'ro-', label='R miss', ls='--', alpha=.4, lw=2)
+            ax.plot(np.unique(param_list), medMisses[1], 'bo-', label='L miss', ls='--', alpha=.4, lw=2)
+       
         
         if errorBars==True:
-            plt.errorbar(np.unique(df[param]), medHits[0], yerr=hitErr[0], c='r', alpha=.5)
-            plt.errorbar(np.unique(df[param]), medHits[1], yerr=hitErr[1], c='b', alpha=.5)
+            if selection=='hits'.lower():
+                plt.errorbar(np.unique(param_list), medHits[0], yerr=hitErr[0], c='r', alpha=.5)
+                plt.errorbar(np.unique(param_list), medHits[1], yerr=hitErr[1], c='b', alpha=.5)
+            elif selection=='misses'.lower():
+                plt.errorbar(np.unique(param_list), medMisses[0], yerr=missErr[0], c='r', alpha=.3)
+                plt.errorbar(np.unique(param_list), medMisses[1], yerr=missErr[1], c='b', alpha=.3)
             
-        ax.plot(10, np.median(maskOnly), marker='o', c='k')
+        ax.plot(8, np.median(maskOnly), marker='o', c='k')
         
         ax.set(title='Median Response Time From StimStart, by {}'.format(param), 
                xlabel=param.upper(), ylabel='Reaction Time (ms)')
-        ax.set_xticks(np.unique(df[param]))   #HOW to exclude nogos from plotting? 
-        a = ax.get_xticks().tolist()
-        if param=='soa':
-            a = [int(i) for i in a if i!=float('nan')]
-            a[1] = 'Mask Only'
-            a[-1] = 'TargetOnly'
-        ax.set_xticklabels(a)
-        matplotlib.rcParams["legend.loc"] = 'best'
-        ax.legend()
-    
+        
+        
     else:
     
         meanHits = [[np.median(x) for x in side] for side in hits]   # 0=R, 1=L
         meanMisses = [[np.median(x) for x in side] for side in misses]
         
         fig, ax = plt.subplots()
-        ax.plot(np.unique(df[param]), meanHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
-        ax.plot(np.unique(df[param]), meanHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
-        ax.plot(np.unique(df[param]), meanMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-        ax.plot(np.unique(df[param]), meanMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
-        ax.plot(10, np.median(maskOnly), marker='o', c='k')
+        if selection=='all':
+            ax.plot(np.unique(param_list), meanHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+            ax.plot(np.unique(param_list), meanHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
+            ax.plot(np.unique(param_list), meanMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
+            ax.plot(np.unique(param_list), meanMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+        elif selection=='hits':
+            ax.plot(np.unique(param_list), meanHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+            ax.plot(np.unique(param_list), meanHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
+        elif selection=='misses':
+            ax.plot(np.unique(param_list), meanMisses[0], 'ro-', label='R miss', ls='--', alpha=.4, lw=2)
+            ax.plot(np.unique(param_list), meanMisses[1], 'bo-', label='L miss', ls='--', alpha=.4, lw=2)
+               
+        if errorBars==True:
+            if selection=='hits'.lower():
+                plt.errorbar(np.unique(param_list), medHits[0], yerr=hitErr[0], c='r', alpha=.5)
+                plt.errorbar(np.unique(param_list), medHits[1], yerr=hitErr[1], c='b', alpha=.5)
+            elif selection=='misses'.lower():
+                plt.errorbar(np.unique(param_list), medMisses[0], yerr=missErr[0], c='r', alpha=.3)
+                plt.errorbar(np.unique(param_list), medMisses[1], yerr=missErr[1], c='b', alpha=.3)
+         
+        ax.plot(8, np.mean(maskOnly), marker='o', c='k')
         
         ax.set(title='Mean Response Time From StimStart, by {}'.format(param), 
                xlabel=param.upper(), ylabel='Reaction Time (ms)')
-        ax.set_xticks(np.unique(df[param]))
-        a = ax.get_xticks().tolist()
-        if param=='soa':
-            a = [int(i) for i in a]     
-            a[0] = 'MaskOnly'
-            a[-1] = 'Target Only'
-        ax.set_xticklabels(a)
-        matplotlib.rcParams["legend.loc"] = 'best'
-        ax.legend()
-    
-    
-    #err = [np.std(mean) for mean in Rmean]
+
+    param_list[0] = 8
+    ax.set_xticks(param_list)   #HOW to exclude nogos from plotting? 
+    a = ax.get_xticks().tolist()
+    if param=='soa':
+        a = [int(i) for i in a if i>=0]
+        a[0] = 'Mask \n Only'
+        a[-1] = 'Target \n Only'
+    ax.set_xticklabels(a)
+    matplotlib.rcParams["legend.loc"] = 'best'
+    ax.legend()
+
+ 
