@@ -32,34 +32,16 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
     
     corrNonzero = nonzeroRxns[(nonzeroRxns['resp']==1) & (nonzeroRxns['nogo']==False)]
     missNonzero = nonzeroRxns[(nonzeroRxns['resp']==-1) & (nonzeroRxns['nogo']==False)]
-    
-    param_list = [x for x in np.unique(nonzeroRxns[param]) if x >=0]
-    
-    
-    miss = missNonzero.pivot_table(values='trialLength', index=param, columns='rewDir', 
-                            margins=True, dropna=True)
-    hit = corrNonzero.pivot_table(values='trialLength', index=param, columns='rewDir', 
-                            margins=True, dropna=True)
-    
-    print('hits avg t \n', hit)
-    print('\n' * 2)
-    print('misses avg t \n', miss)
+     
+    v = corrNonzero.groupby(['rewDir', param])['trialLength'].describe()
+    print('correct response times\n', v, '\n\n')
 
-
-    # use the df to filter the trial by RewDir 
-        # maybe use multiindex?? 
-    
-    y = corrNonzero.groupby(['rewDir', param])['trialLength'].describe()
-    print(y)
-    #y.to_excel("date_describe.xlsx")
-    
-    #to reduce bulk below; something like this?
-    Rhit = corrNonzero[corrNonzero['rewDir']==1]
-    avgs = Rhit.groupby('soa')['trialLength'].mean()
-        
+    y = missNonzero.groupby(['rewDir', param])['trialLength'].describe()
+    print('incorrect response times\n', y)
 
  ### how to make this less bulky/redundant??     
-    
+    param_list = [x for x in np.unique(nonzeroRxns[param]) if x >=0]   
+ 
     hits = [[],[]]  #R, L
     misses = [[],[]]
     maskOnly = []
@@ -115,7 +97,6 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
         ax.plot(param_list, avgMisses[0], 'ro-', label='R miss', ls='--', alpha=.4, lw=2)
         ax.plot(param_list, avgMisses[1], 'bo-', label='L miss', ls='--', alpha=.4, lw=2)
    
-    
     if errorBars==True:
         if selection=='hits'.lower():
             plt.errorbar(param_list, avgHits[0], yerr=hitErr[0], c='r', alpha=.5)
@@ -131,7 +112,7 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
            xlabel=param.upper(), ylabel='Reaction Time (ms)')
 
     param_list[0] = 8
-    ax.set_xticks(param_list)   #HOW to exclude nogos from plotting? 
+    ax.set_xticks(param_list)   
     a = ax.get_xticks().tolist()
     if param=='soa':
         a = [int(i) for i in a if i>=0]
