@@ -122,7 +122,7 @@ def create_df(d):
     df['nogo'] = False
     for i in nogos:
         df.loc[i, 'nogo'] = True
-        df.loc[i, 'soa'] = float('nan')  # this helps for summary stats
+        df.loc[i, 'soa'] = -1  # this helps for summary stats
    
     def fill():
         return np.zeros(len(trialResponse)).astype(int)

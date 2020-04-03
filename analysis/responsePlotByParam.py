@@ -16,7 +16,8 @@ import matplotlib
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
+def plot_by_param(df, param='soa', stat='Median', errorBars=False):    
+    #param = soa, targetContrast, or targetLength
 
     matplotlib.rcParams['pdf.fonttype'] = 42
     sns.set_style('white')
@@ -32,15 +33,8 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
     hit = corrNonzero.pivot_table(values='trialLength', index=param, columns='rewDir', 
                             margins=True, dropna=True)
     
-    #hit.plot(title='hits')
-    #miss.plot(title='misses')
-    print('hits \n', hit)
-    print('\n' * 2)
-    print('misses \n', miss)
 
 
-
-    
     # use the df to filter the trial by RewDir 
         # maybe use multiindex?? 
     
@@ -86,53 +80,64 @@ def plot_by_param(param, df):    #param = soa, targetContrast, or targetLength
     hitErr = [[np.std(val) for val in lst] for lst in hits]
     missErr = [[np.std(val) for val in lst] for lst in misses]      
             
-    Rmed = list(map(np.median, hits[0]))  #one way
-    Lmed = [np.median(x) for x in hits[1]]
-    RmissMed = [np.median(x) for x in misses[0]]
-    LmissMed = [np.median(x) for x in misses[1]]
+
+    if stat=='Median':
+        
+        Rmed = list(map(np.median, hits[0]))  #one way
+        Lmed = [np.median(x) for x in hits[1]]
+        RmissMed = [np.median(x) for x in misses[0]]
+        LmissMed = [np.median(x) for x in misses[1]]
     
-    Rmean = [np.mean(x) for x in hits[0]]
-    Lmean = [np.mean(x) for x in hits[1]]
-    RmissMean = [np.mean(x) for x in misses[0]]
-    LmissMean = [np.mean(x) for x in misses[1]]
+        fig, ax = plt.subplots()
+        ax.plot(np.unique(df[param]), Rmed, 'ro-', label='R hit',  alpha=.6, lw=3)
+        ax.plot(np.unique(df[param]), Lmed, 'bo-', label='L hit', alpha=.6, lw=3)
+        
+        ax.plot(np.unique(df[param]), RmissMed, 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
+        ax.plot(np.unique(df[param]), LmissMed, 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+        
+        if errorBars==True:
+            plt.errorbar(np.unique(df[param]), Rmed, yerr=hitErr[0], c='r', alpha=.5)
+            plt.errorbar(np.unique(df[param]), Lmed, yerr=hitErr[1], c='b', alpha=.5)
+            
+        ax.plot(10, np.median(maskOnly), marker='o', c='k')
+        
+        ax.set(title='Median Response Time From StimStart, by {}'.format(param), 
+               xlabel=param.upper(), ylabel='Reaction Time (ms)')
+        ax.set_xticks(np.unique(df[df[param]!=-1]))
+        a = ax.get_xticks().tolist()
+        if param=='soa':
+            a = [int(i) for i in a if i!=float('nan')]
+            a[1] = 'Mask Only'
+            a[-1] = 'TargetOnly'
+        ax.set_xticklabels(a)
+        matplotlib.rcParams["legend.loc"] = 'best'
+        ax.legend()
     
-    #max = np.max(np.mean(Rmed+Lmed))
-    fig, ax = plt.subplots()
-    ax.plot(np.unique(df[param]), Rmed, 'ro-', label='R hit',  alpha=.6, lw=3)
-    ax.plot(np.unique(df[param]), Lmed, 'bo-', label='L hit', alpha=.6, lw=3)
-#    ax.plot(np.unique(df[param]), RmissMed, 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-#    ax.plot(np.unique(df[param]), LmissMed, 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
-#    plt.errorbar(np.unique(df[param]), Rmed, yerr=hitErr[0], c='r', alpha=.5)
-#    plt.errorbar(np.unique(df[param]), Lmed, yerr=hitErr[1], c='b', alpha=.5)
-#    ax.plot(10, np.median(maskOnly), marker='o', c='k')
-    ax.set(title='Median Response Time From StimStart, by {}'.format(param), 
-           xlabel=param.upper(), ylabel='Reaction Time (ms)')
-    ax.set_xticks(np.unique(df[param]))
-    a = ax.get_xticks().tolist()
-    if param=='soa':
-        a[0] = 'Mask Only'
-        a[-1] = 'TargetOnly'
-    ax.set_xticklabels(a)
-    matplotlib.rcParams["legend.loc"] = 'best'
-    ax.legend()
+    else:
     
-    fig, ax = plt.subplots()
-    ax.plot(np.unique(df[param]), Rmean, 'ro-', label='R hit',  alpha=.6, lw=3)
-    ax.plot(np.unique(df[param]), RmissMean, 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-    ax.plot(np.unique(df[param]), Lmean, 'bo-', label='L hit', alpha=.6, lw=3)
-    ax.plot(np.unique(df[param]), LmissMean, 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
-    ax.plot(10, np.median(maskOnly), marker='o', c='k')
-    ax.set(title='Mean Response Time From StimStart, by {}'.format(param), 
-           xlabel=param.upper(), ylabel='Reaction Time (ms)')
-    ax.set_xticks(np.unique(df[param]))
-    a = ax.get_xticks().tolist()
-    #a = [int(i) for i in a]     
-    if param=='soa':
-        a[0] = 'MaskOnly'
-        a[-1] = 'Target Only'
-    ax.set_xticklabels(a)
-    matplotlib.rcParams["legend.loc"] = 'best'
-    ax.legend()
+        Rmean = [np.mean(x) for x in hits[0]]
+        Lmean = [np.mean(x) for x in hits[1]]
+        RmissMean = [np.mean(x) for x in misses[0]]
+        LmissMean = [np.mean(x) for x in misses[1]]
+        
+        fig, ax = plt.subplots()
+        ax.plot(np.unique(df[param]), Rmean, 'ro-', label='R hit',  alpha=.6, lw=3)
+        ax.plot(np.unique(df[param]), RmissMean, 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
+        ax.plot(np.unique(df[param]), Lmean, 'bo-', label='L hit', alpha=.6, lw=3)
+        ax.plot(np.unique(df[param]), LmissMean, 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+        ax.plot(10, np.median(maskOnly), marker='o', c='k')
+        
+        ax.set(title='Mean Response Time From StimStart, by {}'.format(param), 
+               xlabel=param.upper(), ylabel='Reaction Time (ms)')
+        ax.set_xticks(np.unique(df[param]))
+        a = ax.get_xticks().tolist()
+        if param=='soa':
+            a = [int(i) for i in a]     
+            a[0] = 'MaskOnly'
+            a[-1] = 'Target Only'
+        ax.set_xticklabels(a)
+        matplotlib.rcParams["legend.loc"] = 'best'
+        ax.legend()
     
     
     #err = [np.std(mean) for mean in Rmean]
