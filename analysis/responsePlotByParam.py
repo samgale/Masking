@@ -83,17 +83,15 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
 
     if stat=='Median':
         
-        Rmed = list(map(np.median, hits[0]))  #one way
-        Lmed = [np.median(x) for x in hits[1]]
-        RmissMed = [np.median(x) for x in misses[0]]
-        LmissMed = [np.median(x) for x in misses[1]]
+        medHits = [[np.median(x) for x in side] for side in hits]   # 0=R, 1=L
+        medMisses = [[np.median(x) for x in side] for side in misses]
     
         fig, ax = plt.subplots()
-        ax.plot(np.unique(df[param]), Rmed, 'ro-', label='R hit',  alpha=.6, lw=3)
-        ax.plot(np.unique(df[param]), Lmed, 'bo-', label='L hit', alpha=.6, lw=3)
+        ax.plot(np.unique(df[param]), medHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+        ax.plot(np.unique(df[param]), medHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
         
-        ax.plot(np.unique(df[param]), RmissMed, 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-        ax.plot(np.unique(df[param]), LmissMed, 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+        ax.plot(np.unique(df[param]), medMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
+        ax.plot(np.unique(df[param]), medMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
         
         if errorBars==True:
             plt.errorbar(np.unique(df[param]), Rmed, yerr=hitErr[0], c='r', alpha=.5)
@@ -115,16 +113,14 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
     
     else:
     
-        Rmean = [np.mean(x) for x in hits[0]]
-        Lmean = [np.mean(x) for x in hits[1]]
-        RmissMean = [np.mean(x) for x in misses[0]]
-        LmissMean = [np.mean(x) for x in misses[1]]
+        meanHits = [[np.median(x) for x in side] for side in hits]   # 0=R, 1=L
+        meanMisses = [[np.median(x) for x in side] for side in misses]
         
         fig, ax = plt.subplots()
-        ax.plot(np.unique(df[param]), Rmean, 'ro-', label='R hit',  alpha=.6, lw=3)
-        ax.plot(np.unique(df[param]), RmissMean, 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-        ax.plot(np.unique(df[param]), Lmean, 'bo-', label='L hit', alpha=.6, lw=3)
-        ax.plot(np.unique(df[param]), LmissMean, 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
+        ax.plot(np.unique(df[param]), meanHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+        ax.plot(np.unique(df[param]), meanHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
+        ax.plot(np.unique(df[param]), meanMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
+        ax.plot(np.unique(df[param]), meanMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
         ax.plot(10, np.median(maskOnly), marker='o', c='k')
         
         ax.set(title='Mean Response Time From StimStart, by {}'.format(param), 
