@@ -105,7 +105,7 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
         
         ax.set(title='Median Response Time From StimStart, by {}'.format(param), 
                xlabel=param.upper(), ylabel='Reaction Time (ms)')
-        ax.set_xticks(np.unique(df[df[param]!=-1]))
+        ax.set_xticks(np.unique(df[param]))   #HOW to exclude nogos from plotting? 
         a = ax.get_xticks().tolist()
         if param=='soa':
             a = [int(i) for i in a if i!=float('nan')]

@@ -31,6 +31,6 @@ df1, df2, df3 = dictget(dn, 'df_0', 'df_1', 'df_2')    # assigns each dataframe 
 
 dfall = pd.concat([df1,df2,df3], ignore_index=True)
 
-plot_by_param('soa', dfall)
+plot_by_param(dfall, 'soa')
     
     
