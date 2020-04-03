@@ -24,6 +24,7 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
 
     nonzeroRxns = df[(df['trialLength']!=df['trialLength'].max()) & 
                      (df['ignoreTrial']!=True) & (df['resp']!=0)]
+    # ^ this excludes noResp trials and correct NoGos; soa=-1 are nogo trials 
     
     corrNonzero = nonzeroRxns[(nonzeroRxns['resp']==1) & (nonzeroRxns['nogo']==False)]
     missNonzero = nonzeroRxns[(nonzeroRxns['resp']==-1) & (nonzeroRxns['nogo']==False)]
@@ -33,6 +34,9 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
     hit = corrNonzero.pivot_table(values='trialLength', index=param, columns='rewDir', 
                             margins=True, dropna=True)
     
+    print('hits avg t \n', hit)
+    print('\n' * 2)
+    print('misses avg t \n', miss)
 
 
     # use the df to filter the trial by RewDir 
@@ -53,19 +57,19 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
     misses = [[],[]]
     maskOnly = []
     
-    for val in np.unique(df[param]):
+    for val in np.unique(nonzeroRxns[param]):
         hitVal = [[],[]]
         missVal = [[],[]]
         for j, (time, p, resp, direc, mask) in enumerate(zip(
                 nonzeroRxns['trialLength'], nonzeroRxns[param], nonzeroRxns['resp'], 
                 nonzeroRxns['rewDir'], nonzeroRxns['maskContrast'])):
             if p==val:  
-                if direc==1:       # soa=0 is targetOnly, R turning
+                if direc==1:       
                     if resp==1:
                         hitVal[0].append(time)  
                     else:
                         missVal[0].append(time)  
-                elif direc==-1:   # soa=0 is targetOnly, L turning
+                elif direc==-1:   
                     if resp==1:
                         hitVal[1].append(time)  
                     else:
@@ -94,8 +98,8 @@ def plot_by_param(df, param='soa', stat='Median', errorBars=False):
         ax.plot(np.unique(df[param]), medMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
         
         if errorBars==True:
-            plt.errorbar(np.unique(df[param]), Rmed, yerr=hitErr[0], c='r', alpha=.5)
-            plt.errorbar(np.unique(df[param]), Lmed, yerr=hitErr[1], c='b', alpha=.5)
+            plt.errorbar(np.unique(df[param]), medHits[0], yerr=hitErr[0], c='r', alpha=.5)
+            plt.errorbar(np.unique(df[param]), medHits[1], yerr=hitErr[1], c='b', alpha=.5)
             
         ax.plot(10, np.median(maskOnly), marker='o', c='k')
         
