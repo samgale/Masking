@@ -113,7 +113,7 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
     
     ax.set(title='{} Response Time From StimStart, by {}'.format(stat, param), 
            xlabel=param.upper() + ' (ms)', ylabel='Reaction Time (ms)')
-    plt.suptitle((df.mouse + '   ' + df.date))
+   # plt.suptitle((df.mouse + '   ' + df.date))  # need ot figure out loss of df metadata
     
     ax.set_xticks(param_list)   
     a = ax.get_xticks().tolist()

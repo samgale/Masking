@@ -27,20 +27,25 @@ def import_data():
 
 
 def combine_files(files, *dates, output='df'):
-    dn = {}
+    ''' use output = 'd' if you just want the files returned, otherwise df is default
+    write dates as mdd  ex: 212 for Feb 12 - might need to extend with years in future
+    
+    use with behaviorAnalysis.get_files() for files '''
+    
+    dict1 = {}
     filtered_files = [file for file in files for date in dates if date in file]
     for i, f in enumerate(filtered_files):  
         d = h5py.File(f) 
         if output=='df':
-            dn['df_{}'.format(i)] = create_df(d)
+            dict1['df_{}'.format(i)] = create_df(d)
         else:
-            dn['df_{}'.format(i)] = d
-    return dn
+            dict1['df_{}'.format(i)] = d
+    return dict1
 
 
 def combine_dfs(dict1):
-    dictget = lambda x, k: [x[i] for i in k]
-    return pd.concat(dictget(dict1, list(map(str, dict1.keys()))), ignore_index=True)
+    ''' to be used with dict of dataframes'''
+    return pd.concat(dict1.values(), ignore_index=True)
 
 
 def create_df(d):   
