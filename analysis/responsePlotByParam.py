@@ -106,7 +106,7 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
             plt.errorbar(param_list, avgMisses[0], yerr=missErr[0], c='r', alpha=.3)
             plt.errorbar(param_list, avgMisses[1], yerr=missErr[1], c='b', alpha=.3)
      
-    if param=='soa':
+    if param=='soa' and selection=='all':
         avgMaskOnly = func(maskOnly)    
         ax.plot(8, avgMaskOnly, marker='o', c='k')
         param_list[0] = 8

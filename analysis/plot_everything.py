@@ -37,6 +37,7 @@ performanceBySOA.plot_soa(d)
 # plot activity over entire session, trial-by-trial - 1 plot
 plot_session(d)
 
-# plot reaction time by parameter - 2 plots
-plot_by_param('soa', create_df(d))
+# plot reaction time by parameter - 1 plot
+# (df, selection='all', param='soa', stat='Median', errorBars=False)
+plot_by_param(create_df(d))
 
