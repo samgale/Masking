@@ -82,7 +82,7 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
         
     avgHits = [[func(x) for x in side] for side in hits]   # 0=R, 1=L
     avgMisses = [[func(x) for x in side] for side in misses]
-    avgMaskOnly = func(maskOnly)
+    
 
  
     fig, ax = plt.subplots()
@@ -106,14 +106,15 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
             plt.errorbar(param_list, avgMisses[0], yerr=missErr[0], c='r', alpha=.3)
             plt.errorbar(param_list, avgMisses[1], yerr=missErr[1], c='b', alpha=.3)
      
-        
-    ax.plot(8, avgMaskOnly, marker='o', c='k')
+    if param=='soa':
+        avgMaskOnly = func(maskOnly)    
+        ax.plot(8, avgMaskOnly, marker='o', c='k')
+        param_list[0] = 8
     
     ax.set(title='{} Response Time From StimStart, by {}'.format(stat, param), 
-           xlabel=param.upper(), ylabel='Reaction Time (ms)')
+           xlabel=param.upper() + ' (ms)', ylabel='Reaction Time (ms)')
     plt.suptitle((df.mouse + '   ' + df.date))
-
-    param_list[0] = 8
+    
     ax.set_xticks(param_list)   
     a = ax.get_xticks().tolist()
     if param=='soa':
