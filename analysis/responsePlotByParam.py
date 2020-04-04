@@ -32,12 +32,13 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
     
     corrNonzero = nonzeroRxns[(nonzeroRxns['resp']==1) & (nonzeroRxns['nogo']==False)]
     missNonzero = nonzeroRxns[(nonzeroRxns['resp']==-1) & (nonzeroRxns['nogo']==False)]
-     
-    v = corrNonzero.groupby(['rewDir', param])['trialLength'].describe()
-    print('correct response times\n', v, '\n\n')
-
-    y = missNonzero.groupby(['rewDir', param])['trialLength'].describe()
-    print('incorrect response times\n', y)
+    
+    if len(corrNonzero)>0:
+        v = corrNonzero.groupby(['rewDir', param])['trialLength'].describe()
+        print('correct response times\n', v, '\n\n')
+    if len(missNonzero)>0:
+        y = missNonzero.groupby(['rewDir', param])['trialLength'].describe()
+        print('incorrect response times\n', y)
 
  ### how to make this less bulky/redundant??     
     param_list = [x for x in np.unique(nonzeroRxns[param]) if x >=0]   
@@ -110,6 +111,7 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
     
     ax.set(title='{} Response Time From StimStart, by {}'.format(stat, param), 
            xlabel=param.upper(), ylabel='Reaction Time (ms)')
+    plt.suptitle((df.mouse + '   ' + df.date))
 
     param_list[0] = 8
     ax.set_xticks(param_list)   

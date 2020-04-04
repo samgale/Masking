@@ -6,6 +6,10 @@ Created on Wed Mar 11 13:02:06 2020
 
 My hope is to combine and condense all of the data analysis functions into a single file
 that we can then use to analyze the session data in a simpler script 
+use:
+    d = import_data()
+    df = create_df(d)
+OR --> df = create_df(import_data(d))
 """
 
 import fileIO, h5py
@@ -25,7 +29,9 @@ def import_data():
 def create_df(d):   
     
 ##pull all of the relevant data to create a dataframe object 
-
+    
+    mouse, date = str(d).split('_')[-3:-1]
+    
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
     
@@ -145,5 +151,8 @@ def create_df(d):
         df.at[key, 'Qviolations'] = len(val)
         
     df['WheelTrace'] = cumulativeWheel
+    
+    df.mouse = mouse
+    df.date = date
     
     return df
