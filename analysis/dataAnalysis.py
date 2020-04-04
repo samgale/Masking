@@ -26,6 +26,23 @@ def import_data():
     return d
 
 
+def combine_files(files, *dates, output='df'):
+    dn = {}
+    filtered_files = [file for file in files for date in dates if date in file]
+    for i, f in enumerate(filtered_files):  
+        d = h5py.File(f) 
+        if output=='df':
+            dn['df_{}'.format(i)] = create_df(d)
+        else:
+            dn['df_{}'.format(i)] = d
+    return dn
+
+
+def combine_dfs(dict1):
+    dictget = lambda x, k: [x[i] for i in k]
+    return pd.concat(dictget(dict1, list(map(str, dict1.keys()))), ignore_index=True)
+
+
 def create_df(d):   
     
 ##pull all of the relevant data to create a dataframe object 
