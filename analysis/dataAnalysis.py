@@ -111,7 +111,7 @@ def create_df(d):
 
     #gives entire wheel trace from trial start to the max Length of trial
     totalWheel = [deltaWheel[start:stim+openLoop+maxResp] for (start,stim, openLoop) in 
-                  zip(d['trialStartFrame'][()], trialStimStartFrame, trialOpenLoopFrames)]
+                  zip(d['trialStartFrame'][:len(trialStimStartFrame)], trialStimStartFrame, trialOpenLoopFrames)]
     
     cumulativeWheel = [np.cumsum(mvmt) for mvmt in totalWheel]
 
