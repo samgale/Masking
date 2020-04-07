@@ -113,8 +113,6 @@ def create_df(d):
     totalWheel = [deltaWheel[start:stim+openLoop+maxResp] for (start,stim, openLoop) in 
                   zip(d['trialStartFrame'][:len(trialStimStartFrame)], trialStimStartFrame, trialOpenLoopFrames)]
     
-    cumulativeWheel = [np.cumsum(mvmt) for mvmt in totalWheel]
-
     ignoreTrials = ignore_trials(d)
     turns, inds = nogo_turn(d)      #for both of these, [0]=nogos, [1]=maskOnly                    
     
@@ -172,7 +170,7 @@ def create_df(d):
     for key,val in qDict.items():
         df.at[key, 'Qviolations'] = len(val)
         
-    df['WheelTrace'] = cumulativeWheel
+    df['WheelTrace'] = totalWheel
     
     df.mouse = mouse
     df.date = date
