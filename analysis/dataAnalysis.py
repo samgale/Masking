@@ -132,7 +132,7 @@ def create_df(d):
     data = list(zip(trialRewardDirection, trialResponse, 
                     trialStartFrame, trialStimStartFrame, trialResponseFrame))
 
-    index = range(len(trialResponse))
+    index = np.arange(len(trialResponse))
     df = pd.DataFrame(data, 
                       index=index, 
                       columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame'])
