@@ -16,10 +16,11 @@ import matplotlib
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=False):    
+def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat='Median', errorBars=False):    
     ''' 
         selection = 'all', 'hits', or 'misses'
-        param = 'soa', 'targetContrast', or 'targetLength'
+        param1 = 'soa', 'targetContrast', or 'targetLength'
+        param2 = 'trialLength', 'timeToMove', 'timeToOutcome'
         stat = 'Median' or 'Mean'
     '''
 
@@ -34,10 +35,10 @@ def plot_by_param(df, selection='all', param='soa', stat='Median', errorBars=Fal
     missNonzero = nonzeroRxns[(nonzeroRxns['resp']==-1) & (nonzeroRxns['nogo']==False)]
     
     if len(corrNonzero)>0:
-        v = corrNonzero.groupby(['rewDir', param])['trialLength'].describe()
+        v = corrNonzero.groupby(['rewDir', param1])[param2].describe()
         print('correct response times\n', v, '\n\n')
     if len(missNonzero)>0:
-        y = missNonzero.groupby(['rewDir', param])['trialLength'].describe()
+        y = missNonzero.groupby(['rewDir', param1])[param2].describe()
         print('incorrect response times\n', y)
 
  ### how to make this less bulky/redundant??     
