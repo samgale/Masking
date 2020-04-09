@@ -65,7 +65,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
                         hitVal[1].append(time)  
                     else:
                         missVal[1].append(time)
-                elif mask>0:
+                elif direc==0 and mask>0:
                     maskOnly.append(time)
            
         for i in (0,1):         
