@@ -47,6 +47,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
     hits = [[],[]]  #R, L
     misses = [[],[]]
     maskOnly = []
+  # change maskOnly filter to show turning direction
     
     for val in param_list:
         hitVal = [[],[]]
