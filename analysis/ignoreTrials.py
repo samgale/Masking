@@ -33,8 +33,8 @@ def ignore_trials(d):
         xp = np.arange(0, len(fp))*1/framerate
         x = np.arange(0, xp[-1], .001)          #wheel mvmt each ms 
         interp = np.interp(x,xp,fp)
-     #   interpWheel.append(interp)
-        val = np.argmax(abs(interp)>(qThreshold*2))
+      #  interpWheel.append(interp)
+        val = np.argmax(abs(interp)>(qThreshold*.33))
         if 0<val<100:
             ignoreTrials.append(i)
 
