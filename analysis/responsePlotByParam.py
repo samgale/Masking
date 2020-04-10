@@ -26,6 +26,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
 
     matplotlib.rcParams['pdf.fonttype'] = 42
     sns.set_style('white')
+    
 
     nonzeroRxns = df[(df['trialLength']!=df['trialLength'].max()) & 
                      (df['ignoreTrial']!=True) & (df['resp']!=0)]
