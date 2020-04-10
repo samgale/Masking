@@ -85,7 +85,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
     avgHits = [[func(x) for x in side] for side in hits]   # 0=R, 1=L
     avgMisses = [[func(x) for x in side] for side in misses]
     
-
+### plotting 
  
     fig, ax = plt.subplots()
     if selection=='all':
