@@ -9,7 +9,7 @@ that we can then use to analyze the session data in a simpler script
 use:
     d = import_data()
     df = create_df(d)
-OR --> df = create_df(import_data(d))
+OR --> df = create_df(import_data())
 """
 
 import fileIO, h5py

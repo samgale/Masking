@@ -55,14 +55,14 @@ def plot_contrast(data,showTrialN=True):
     
     if 0 in trialTargetFrames:        # this already excludes repeats 
     
-        nogoTurn, _, ind = nogo_turn(d, returnArray=True)  # returns arrays with turning direction as 1/-1
+        nogoTurn, ind = nogo_turn(d, returnArray=True)  # returns arrays with turning direction as 1/-1
         nogoTurnTrial = ind[0]  # list of indices of trials where turning occured
          
         nogoTotal = len(trialResponse[(trialTargetFrames==0)])
         #nogoCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0) & (trialMaskContrast==0)])  sanity check
         nogoMove = len(nogoTurnTrial) 
-        nogoR = sum(nogoTurn==1)
-        nogoL = sum(nogoTurn==-1)
+        nogoR = np.sum(np.array(nogoTurn[0])==1)
+        nogoL = np.sum(np.array(nogoTurn[0])==-1)
                
     #misses = np.insert(misses, 0, [no_goR, no_goL], axis=1)  #add the no_go move trials to misses array 
     
