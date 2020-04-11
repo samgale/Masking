@@ -101,7 +101,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
         ax.plot(param_list, avgMisses[0], 'ro-', label='R miss', ls='--', alpha=.4, lw=2)
         ax.plot(param_list, avgMisses[1], 'bo-', label='L miss', ls='--', alpha=.4, lw=2)
    
-    if errorBars==True:
+    if errorBars:
         if selection=='hits'.lower():
             plt.errorbar(param_list, avgHits[0], yerr=hitErr[0], c='r', alpha=.5)
             plt.errorbar(param_list, avgHits[1], yerr=hitErr[1], c='b', alpha=.5)
@@ -121,7 +121,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
     elif param2 == 'timeToOutcome':
         ylabel = 'Time to outcome'
         
-    ax.set(title='{} Response Time From StimStart, by {}'.format(stat, param1), 
+    ax.set(title='{} {} From StimStart, by {}'.format(stat,param2, param1), 
            xlabel=param1.upper() + ' (ms)', ylabel='{} (ms)'.format(ylabel))
    # plt.suptitle((df.mouse + '   ' + df.date))  # need ot figure out loss of df metadata
     
