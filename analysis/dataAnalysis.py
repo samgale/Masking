@@ -58,7 +58,7 @@ def create_df(d):
     framerate = int(np.round(1/np.median(fi)))
     
     def convert_to_ms(value):
-        return np.round(value * 1000/framerate).astype(int)
+        return value * 1000/framerate
     
     trialResponse = d['trialResponse'][:]
     end = len(trialResponse)
@@ -100,7 +100,7 @@ def create_df(d):
     nogos = [i for i, (rew, con) in enumerate(zip(trialRewardDirection, trialMaskContrast)) if rew==0 and con==0]
    
     if np.any(trialMaskOnset>0):
-        targetOnlyVal = maskOnset[-1] + round(np.mean(np.diff(maskOnset)))  # assigns targetOnly condition an evenly-spaced value from soas
+        targetOnlyVal = maskOnset[-1] + 0.5*maskOnset[-1] #round(np.mean(np.diff(maskOnset)))  # assigns targetOnly condition an evenly-spaced value from soas
         maskOnset = np.append(maskOnset, targetOnlyVal)                     # makes final value the targetOnly condition
             
         for i, (mask, trial) in enumerate(zip(trialMaskOnset, trialTargetFrames)):   # filters target-Only trials 
@@ -128,12 +128,12 @@ def create_df(d):
 ### Create dataframe
                 
     data = list(zip(trialRewardDirection, trialResponse, 
-                    trialStartFrame, trialStimStartFrame, trialResponseFrame))
+                    trialStartFrame, trialStimStartFrame, trialResponseFrame, trialOpenLoopFrames))
 
     index = np.arange(len(trialResponse))
     df = pd.DataFrame(data, 
                       index=index, 
-                      columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame'])
+                      columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame', 'openLoopFrames'])
     
     df['trialLength'] = convert_to_ms(trialLength)
     
@@ -148,7 +148,7 @@ def create_df(d):
     df['nogo'] = False
     for i in nogos:
         df.loc[i, 'nogo'] = True
-        df.loc[i, 'soa'] = -1  # this helps for summary stats
+        df.loc[i, 'soa'] = -maskOnset[0]  # this helps for summary stats
    
     def fill():
         return np.zeros(len(trialResponse)).astype(int)
