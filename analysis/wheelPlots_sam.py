@@ -32,13 +32,17 @@ df = combine_dfs(combine_files(files,'129','130','131')) # '129','130','131'  '2
 
 
 #
-param = 'targetContrast' # targetLength  targetContrast  soa
+param = 'targetDuration' # targetDuration  targetContrast  soa
 
-wheelPos = np.cumsum(np.stack([w[s:] for w,s in zip(df['WheelTrace'],df['stimStart']-df['trialStart']-quiescentFrames)]),axis=1)
-wheelPos -= wheelPos[:,:quiescentFrames].mean(axis=1)[:,None]
+if param=='targetDuration':
+    paramName = 'Target Duration (ms)'
+elif param=='targetContrast':
+    paramName = 'Target Contrast (ms)'
+elif param=='soa':
+    paramName = 'SOA (ms)'
 
 paramList = np.unique(df[param])
-paramLabels = ['no go']+[str(prm) for prm in paramList if prm>0]
+paramLabels = ['no go']+[str(int(round(prm))) for prm in paramList if prm>0]
 paramColors = np.ones((len(paramList),4))
 paramColors[0,:3] = 0
 paramColors[-np.sum(paramList>0):] = plt.cm.jet(np.linspace(0,1,np.sum(paramList>0)))
@@ -52,7 +56,7 @@ pmax = paramList.max()
 prange = pmax-pmin
 plim = [pmin-prange*0.05,pmax+prange*0.05]
     
-    
+# plot perforamnce
 performanceParams = ('responseRate','fractionCorrect')
 performance = {param: {side: [] for side in (-1,1)} for param in performanceParams}
 for prm,lbl in zip(paramList,paramLabels):
@@ -82,13 +86,14 @@ for perf in performanceParams:
     ax.set_xticks(paramList)
     ax.set_xticklabels([p.replace(' ','\n') for p in paramLabels])
     ax.set_xlim(plim)
-    ax.set_ylim([0,1.05])
-    ax.set_xlabel(param,fontsize=16)
+    ax.set_ylim([0,1.01])
+    ax.set_xlabel(paramName,fontsize=16)
     ax.set_ylabel(perf,fontsize=16)
     plt.tight_layout()
         
-
-  
+# plot wheel position and reponse time
+wheelPos = np.cumsum(np.stack([w[s:] for w,s in zip(df['deltaWheel'],df['stimStart']-df['trialStart']-quiescentFrames)]),axis=1)
+wheelPos -= wheelPos[:,:quiescentFrames].mean(axis=1)[:,None]  
 
 t = 1000/frameRate*(np.arange(wheelPos.shape[1])-quiescentFrames)
 tinterp = np.arange(t[0],t[-1])
@@ -180,7 +185,7 @@ xticks,xticklabels = (paramList,paramLabels) if showNogoRespTime else (paramList
 ax.set_xticks(xticks)
 ax.set_xticklabels([x.replace(' ','\n') for x in xticklabels])
 ax.set_xlim(plim)
-ax.set_xlabel(param,fontsize=16)
+ax.set_xlabel(paramName,fontsize=16)
 ax.set_ylabel('Time (ms)',fontsize=16)
 loc = 'upper left' if param=='soa' else 'upper right'
 ax.legend(loc=loc,fontsize=10)  
@@ -188,14 +193,3 @@ plt.tight_layout()
 
 
 
-# comments for Chelsea
-    
-# df['soa'] should be non-rounded floats
-
-# rename ignoreTrials to something more descriptive like earlyMove or openLoopMove?
-    
-# rename targetLength to targetDuration ("length" could be space/size or time/duration)
-    
-# rename Qviolations to quiescentViolations
-    
-# rename wheelTrace to deltaWheel

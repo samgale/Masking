@@ -82,7 +82,7 @@ def create_df(d):
     quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
     
     maxResp = d['maxResponseWaitFrames'][()]
-    deltaWheel = d['deltaWheelPos'][:]                      
+    deltaWheelPos = d['deltaWheelPos'][:]                      
     repeats = d['trialRepeat'][:end]
     #nogoWait = d['nogoWaitFrames'][()]
         
@@ -110,7 +110,7 @@ def create_df(d):
     trialLength = trialResponseFrame - trialStimStartFrame
 
     #gives entire wheel trace from trial start to the max Length of trial
-    totalWheel = [deltaWheel[start:stim+openLoop+maxResp] for (start,stim, openLoop) in 
+    deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp] for (start,stim, openLoop) in 
                   zip(d['trialStartFrame'][:len(trialStimStartFrame)], trialStimStartFrame, trialOpenLoopFrames)]
     
     ignoreTrials = ignore_trials(d)
@@ -142,7 +142,7 @@ def create_df(d):
     #df['maskLength'] = convert_to_ms(d['trialMaskFrames'][:end])
     df['maskContrast'] = trialMaskContrast
 
-    df['targetLength'] = convert_to_ms(trialTargetFrames)
+    df['targetDuration'] = convert_to_ms(trialTargetFrames)
     df['targetContrast'] = trialTargetContrast
     
     df['nogo'] = False
@@ -166,11 +166,11 @@ def create_df(d):
         
     df['repeat'] = repeats    
     
-    df['Qviolations'] = fill()
+    df['quiescentViolations'] = fill()
     for key,val in qDict.items():
-        df.at[key, 'Qviolations'] = len(val)
+        df.at[key, 'quiescentViolations'] = len(val)
         
-    df['WheelTrace'] = totalWheel
+    df['deltaWheel'] = deltaWheel
     
     df.mouse = mouse
     df.date = date
