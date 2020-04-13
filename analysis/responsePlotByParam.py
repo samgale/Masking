@@ -98,8 +98,8 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
  
     fig, ax = plt.subplots()
     if selection=='all':
-        ax.plot(param_list, avgHits[0], 'ro-', label='{} (R correct)'.format(label),  alpha=.6, lw=3)
-        ax.plot(param_list, avgHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
+        ax.plot(param_list, avgHits[0], 'ro-', label= label + ' (R correct)',  alpha=.6, lw=3)
+        ax.plot(param_list, avgHits[1], 'bo-', label='{} (L correct)'.format(label), alpha=.6, lw=3)
         ax.plot(param_list, avgMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
         ax.plot(param_list, avgMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
     elif selection=='hits':
