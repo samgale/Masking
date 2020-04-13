@@ -98,6 +98,8 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
     
 ### plotting 
     
+    ## this will be useful for plotting multiple params at once - trialLength and Time to Initiate
+    ## need to write that code though
 #    if param2=='trialLength':
 #        label = 'Response Time' 
 #    elif param2 == 'timeToMove':
