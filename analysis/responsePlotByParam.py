@@ -87,10 +87,18 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
     avgMisses = [[func(x) for x in side] for side in misses]
     
 ### plotting 
+    
+    if param2=='trialLength':
+        label = 'Response Time' 
+    elif param2 == 'timeToMove':
+        label = 'Time to Initiate Movement'
+    elif param2 == 'timeToOutcome':
+        label = 'Reaction Time'
+
  
     fig, ax = plt.subplots()
     if selection=='all':
-        ax.plot(param_list, avgHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
+        ax.plot(param_list, avgHits[0], 'ro-', label='{} (R correct)'.format(label),  alpha=.6, lw=3)
         ax.plot(param_list, avgHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
         ax.plot(param_list, avgMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
         ax.plot(param_list, avgMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
@@ -114,15 +122,10 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
         ax.plot(8, avgMaskOnly, marker='o', c='k')
         param_list[0] = 8
         
-    if param2=='trialLength':
-        ylabel = 'Trial Length'
-    elif param2 == 'timeToMove':
-        ylabel = 'Time to Move Wheel'
-    elif param2 == 'timeToOutcome':
-        ylabel = 'Time to outcome'
+    
         
     ax.set(title='{} {} From StimStart, by {}'.format(stat,param2, param1), 
-           xlabel=param1.upper() + ' (ms)', ylabel='{} (ms)'.format(ylabel))
+           xlabel=param1.upper() + ' (ms)', ylabel='Time from Stimulus Onset (ms)')
    # plt.suptitle((df.mouse + '   ' + df.date))  # need ot figure out loss of df metadata
     
     ax.set_xticks(param_list)   
