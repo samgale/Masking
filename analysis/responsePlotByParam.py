@@ -16,7 +16,8 @@ import matplotlib
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat='Median', errorBars=False):    
+def plot_by_param(df, selection='all', param1='soa', param2='trialLength', 
+                  stat='Median', errorBars=False):    
     ''' 
         selection = 'all', 'hits', or 'misses'
         param1 = 'soa', 'targetContrast', or 'targetLength'
@@ -74,58 +75,62 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
             hits[i].append(hitVal[i])
             misses[i].append(missVal[i])
             
-    hitErr = [[np.std(val) for val in lst] for lst in hits]
-    missErr = [[np.std(val) for val in lst] for lst in misses]      
-            
-
     if stat=='Median':
         func=np.median
+        hitErr = [[np.std(val)/(len(val)**0.5) for val in lst] for lst in hits]
+        missErr = [[np.std(val)/(len(val)**0.5) for val in lst] for lst in misses]
     else:
         func=np.mean
-        
+        hitErr = [[np.std(val) for val in lst] for lst in hits]
+        missErr = [[np.std(val) for val in lst] for lst in misses]
+    
+    #* func is median or mean as above
     avgHits = [[func(x) for x in side] for side in hits]   # 0=R, 1=L
     avgMisses = [[func(x) for x in side] for side in misses]
     
+
+    #* consider using median absolute deviation or confidence interval when using median
+    #* ci = np.percentile([func(np.random.choice(data,len(data),replace=True)) for _ in range(1000)],(2.5,97.5))
+    
+    #* need shape=(2,len(param_list)) for plt.errorbar()  ** ask sam about this
+            
+
+    
 ### plotting 
     
-    if param2=='trialLength':
-        label = 'Response Time' 
-    elif param2 == 'timeToMove':
-        label = 'Time to Initiate Movement'
-    elif param2 == 'timeToOutcome':
-        label = 'Reaction Time'
+#    if param2=='trialLength':
+#        label = 'Response Time' 
+#    elif param2 == 'timeToMove':
+#        label = 'Time to Initiate Movement'
+#    elif param2 == 'timeToOutcome':
+#        label = 'Reaction Time'
 
- 
     fig, ax = plt.subplots()
-    if selection=='all':
-        ax.plot(param_list, avgHits[0], 'ro-', label= label + ' (R correct)',  alpha=.6, lw=3)
-        ax.plot(param_list, avgHits[1], 'bo-', label='{} (L correct)'.format(label), alpha=.6, lw=3)
-        ax.plot(param_list, avgMisses[0], 'ro-', label='R miss', ls='--', alpha=.3, lw=2)
-        ax.plot(param_list, avgMisses[1], 'bo-', label='L miss', ls='--', alpha=.3, lw=2)
-    elif selection=='hits':
-        ax.plot(param_list, avgHits[0], 'ro-', label='R hit',  alpha=.6, lw=3)
-        ax.plot(param_list, avgHits[1], 'bo-', label='L hit', alpha=.6, lw=3)
-    elif selection=='misses':   
-        ax.plot(param_list, avgMisses[0], 'ro-', label='R miss', ls='--', alpha=.4, lw=2)
-        ax.plot(param_list, avgMisses[1], 'bo-', label='L miss', ls='--', alpha=.4, lw=2)
+    
+    if selection.lower() in ('all','hits'):
+        ax.plot(param_list, avgHits[0], 'ro-', label='R correct',  alpha=.6, lw=3)
+        ax.plot(param_list, avgHits[1], 'bo-', label='L correct', alpha=.6, lw=3)
+    if selection.lower() in ('all','misses'):  
+        ax.plot(param_list, avgMisses[0], 'ro-', mfc='none', label='R incorrect', ls='--', alpha=.3, lw=2)
+        ax.plot(param_list, avgMisses[1], 'bo-', mfc='none', label='L incorrect', ls='--', alpha=.3, lw=2)
    
-    if errorBars:
-        if selection=='hits'.lower():
-            plt.errorbar(param_list, avgHits[0], yerr=hitErr[0], c='r', alpha=.5)
-            plt.errorbar(param_list, avgHits[1], yerr=hitErr[1], c='b', alpha=.5)
-        elif selection=='misses'.lower():
+    if errorBars: #* don't need ==True
+        if selection.lower() in ('all','hits'):
+            plt.errorbar(param_list, avgHits[0], yerr=hitErr[0], c='r', alpha=.6)
+            plt.errorbar(param_list, avgHits[1], yerr=hitErr[1], c='b', alpha=.6)
+        if selection.lower() in ('all','misses'):
             plt.errorbar(param_list, avgMisses[0], yerr=missErr[0], c='r', alpha=.3)
             plt.errorbar(param_list, avgMisses[1], yerr=missErr[1], c='b', alpha=.3)
+
      
-    if param1=='soa' and selection=='all':
-        avgMaskOnly = func(maskOnly)    
-        ax.plot(8, avgMaskOnly, marker='o', c='k')
+    if param1=='soa':
+        m = func(maskOnly)    
+        ax.plot(8, m, marker='o', c='k')
         param_list[0] = 8
+        if errorBars:
+            s = np.std(maskOnly)/(len(maskOnly)**0.5)
+            ax.plot([8,8],[m-s,m+s],'k')
         
-    
-        
-    ax.set(title='{} {} From StimStart, by {}'.format(stat,param2, param1), 
-           xlabel=param1.upper() + ' (ms)', ylabel='Time from Stimulus Onset (ms)')
    # plt.suptitle((df.mouse + '   ' + df.date))  # need ot figure out loss of df metadata
     
     ax.set_xticks(param_list)   
@@ -137,5 +142,32 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength', stat=
     ax.set_xticklabels(a)
     matplotlib.rcParams["legend.loc"] = 'best'
     ax.legend()
+    
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    
+    
+    if param1=='soa':
+        xlbl = 'SOA (ms)'
+    elif param1=='targetContrast':
+        xlbl = 'Target Contrast'
+    elif param1=='targetLength':
+        xlbl = 'Target Duration (ms)'
+        
+    ax.set_xlabel(xlbl)
+    ax.set_ylabel('Time from Target Onset (ms)')
+    
+    if param1!='soa':
+        ax.set_xlim([0,1.02*param_list[-1]])
+    
+    #* maybe make an optional input ylim='auto' which is useful if you want to 
+    # make multiple plots with the same ylim
+    #* if ylim != 'auto': ax.set_ylim(ylim)
+    
+    ax.set_ylim([200,700])
+    
+    #* prevents text from getting cut off at figure edges
+    plt.tight_layout()
 
  
