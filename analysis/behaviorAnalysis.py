@@ -14,6 +14,7 @@ import datetime
 import matplotlib.style
 import matplotlib as mpl
 import scipy.signal 
+from ignoreTrials import ignore_trials
 
 mpl.rcParams['pdf.fonttype']=42
 
@@ -94,28 +95,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         subtitle = ['repeats incl']
 
     
-    trialTimes = []   
-    for i, (start, resp) in enumerate(zip(trialStartFrames, trialEndFrames)):
-            respTime = (deltaWheel[start:resp])
-            trialTimes.append(respTime)
-
-    cumRespTimes = []   
-    for i, time in enumerate(trialTimes):
-        time = np.cumsum(time)
-        smoothed = scipy.signal.medfilt(time, kernel_size=5)
-        cumRespTimes.append(smoothed)
-    
-    rxnTimes = []
-    for i, times in enumerate(cumRespTimes):
-        bmask = (abs(times[:])>10)
-        val = np.argmax(bmask)
-        rxnTimes.append(val)
-
-    ignoreTrials = []
-    for i, t in enumerate(rxnTimes):     # 15 frames = 125 ms 
-        if 0<t<10 or t<0:                                 # correct nogos have a rxn time of 0
-            ignoreTrials.append(i)
-    
+    ignoreTrials = ignore_trials(d)
     
     postTrialFrames = 0 if d['postRewardTargetFrames'][()]>0 else 1 #make sure we have at least one frame after the reward
 
@@ -183,7 +163,6 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                 trialStartFrames, trialEndFrames, trialRewardDirection, maskContrast, maskOnset, trialResponse)):
             if i>0 and i<len(trialStartFrames):
                 if resp in responseFilter:
-                    #get wheel position trace for this trial!
                     trialWheel = np.cumsum(
                             deltaWheel[trialStart-framesToShowBeforeStart:trialStart-framesToShowBeforeStart + maxTrialFrames
                                        ])
