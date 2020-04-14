@@ -44,7 +44,9 @@ def combine_files(files, *dates, output='df'):
 
 
 def combine_dfs(dict1):
-    ''' to be used with dict of dataframes'''
+    ''' to be used with dict of dataframes
+    retains metadata from original dfs'''
+    
     df = pd.concat(dict1.values(), ignore_index=True)
     df.mouse = {val.mouse for val in dict1.values()}
     df.dates = [val.date for val in dict1.values()]
