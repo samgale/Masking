@@ -17,12 +17,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 def plot_by_param(df, selection='all', param1='soa', param2='trialLength', 
-                  stat='Median', errorBars=False):    
+                  stat='Median', ylim='auto', errorBars=False):    
     ''' 
         selection = 'all', 'hits', or 'misses'
         param1 = 'soa', 'targetContrast', or 'targetLength'
         param2 = 'trialLength', 'timeToMove', 'timeToOutcome'
         stat = 'Median' or 'Mean'
+        ylim needs to be list of [min, max]
     '''
 
     matplotlib.rcParams['pdf.fonttype'] = 42
@@ -160,9 +161,10 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
     
     #* maybe make an optional input ylim='auto' which is useful if you want to 
     # make multiple plots with the same ylim
-    #* if ylim != 'auto': ax.set_ylim(ylim)
-    
-    ax.set_ylim([200,700])
+    if ylim != 'auto': 
+        ax.set_ylim(ylim)
+    else:
+        ax.set_ylim([200,700])
     
     #* prevents text from getting cut off at figure edges
     plt.tight_layout()
