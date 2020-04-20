@@ -102,7 +102,8 @@ def create_df(d):
         if target==0:
             trialRewardDirection[i] = 0
     
-    nogos = [i for i, (rew, con) in enumerate(zip(trialRewardDirection, trialMaskContrast)) if rew==0 and con==0]
+    nogos = [i for i, (rew, con) in enumerate(zip
+             (trialRewardDirection, trialMaskContrast)) if rew==0 and con==0]
    
     if np.any(trialMaskOnset>0):
         targetOnlyVal = maskOnset[-1] + 0.5*maskOnset[-1] #round(np.mean(np.diff(maskOnset)))  # assigns targetOnly condition an evenly-spaced value from soas
