@@ -182,3 +182,21 @@ def create_df(d):
     df.date = date
     
     return df
+
+
+def wheel_trace_slice(dataframe):
+    df = dataframe
+
+    wheelDF = df[['trialStart','stimStart', 'respFrame', 'deltaWheel']].copy()
+    wheelDF['wheelLen'] = list(map(len, wheelDF.loc[:,'deltaWheel']))
+    
+    wheelDF['diff1'] = wheelDF['stimStart'] - wheelDF['trialStart']  #prestim
+    wheelDF['diff2'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
+    
+    # unless we do the selecting for nogos and maskOnly HERE - to then look at down there
+    
+    
+    wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
+            wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
+    
+    return wheel
