@@ -20,8 +20,8 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
                   stat='Median', ylim='auto', errorBars=False):    
     ''' 
         selection = 'all', 'hits', or 'misses'
-        param1 = 'soa', 'targetContrast', or 'targetLength'
-        param2 = 'trialLength', 'timeToMove', 'timeToOutcome'
+        param1 = 'soa', 'targetContrast', or 'targetDuration'
+        param2 = 'trialLength', 'initiationTime', 'outcomeTime'
         stat = 'Median' or 'Mean'
         ylim needs to be list of [min, max]
     '''
@@ -150,7 +150,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
         xlbl = 'SOA (ms)'
     elif param1=='targetContrast':
         xlbl = 'Target Contrast'
-    elif param1=='targetLength':
+    elif param1=='targetDuration':
         xlbl = 'Target Duration (ms)'
         
     ax.set_xlabel(xlbl)
