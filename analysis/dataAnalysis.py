@@ -16,7 +16,6 @@ import fileIO, h5py
 import numpy as np
 import pandas as pd
 from nogoData import nogo_turn
-from ignoreTrials import ignore_trials
 from collections import defaultdict
 
 
