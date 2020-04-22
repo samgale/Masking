@@ -119,7 +119,6 @@ def create_df(d):
     deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp] for (start,stim, openLoop) in 
                   zip(d['trialStartFrame'][:len(trialStimStartFrame)], trialStimStartFrame, trialOpenLoopFrames)]
     
-    ignoreTrials = ignore_trials(d)
     turns, inds = nogo_turn(d)      #for both of these, [0]=nogos, [1]=maskOnly                    
     
     
@@ -165,10 +164,6 @@ def create_df(d):
     for e, col in enumerate(('nogoMove', 'maskOnlyMove')):
         for (i,turn) in zip(inds[e], turns[e]):
             df.at[i, col] = turn
-    
-    df['ignoreTrial'] = False   
-    for i in ignoreTrials:
-        df.loc[i, 'ignoreTrial'] = True
         
     df['repeat'] = repeats    
     
@@ -182,10 +177,13 @@ def create_df(d):
     df.mouse = mouse
     df.date = date
     
-    times = rxnTimes(d, df)
+    times = rxnTimes(d, df)  # 0==initiation, 1==outcome, 2==ignore
     
     df['initiationTime'] = times[0]
     df['outcomeTime'] = times[1]
+    df['ignoreTrial'] = False   
+    for i in times[2]:
+        df.loc[i, 'ignoreTrial'] = True
     
     return df
 
