@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 from nogoData import nogo_turn
 from ignoreTrials import ignore_trials
-from finalRxnTime import rxnTimes
 from collections import defaultdict
 
 
@@ -205,3 +204,66 @@ def wheel_trace_slice(dataframe):
     
     return wheel
 
+
+def rxnTimes(data, dataframe):
+    
+    d = data
+    df = dataframe
+    
+    fi = d['frameIntervals'][:]
+    framerate = int(np.round(1/np.median(fi)))
+    
+    monitorSize = d['monSizePix'][0] 
+    
+    normRewardDist = d['normRewardDistance'][()]
+    maxQuiescentMove = d['maxQuiescentNormMoveDist'][()]
+    wheelSpeedGain = d['wheelSpeedGain'][()]
+    
+    initiationThreshDeg = 0.5  #how did he decide this?
+    initiationThreshPix = initiationThreshDeg*np.pi/180*wheelSpeedGain
+    sigThreshold = maxQuiescentMove * monitorSize
+    rewThreshold = normRewardDist * monitorSize
+
+    wheelTrace = wheel_trace_slice(df)
+    cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
+
+    interpWheel = []
+    initiateMovement = []
+    significantMovement = []
+    ignoreTrials = []  # old ignore_trials func actually calls this func, returns this list
+    outcomeTimes = []
+    
+    ## use below code to determine wheel direction changes during trial 
+    # during just trial time (ie in nogos before trial ends) or over entire potential time? 
+    
+    for i, (wheel, resp, rew, soa) in enumerate(zip(
+            cumulativeWheel, df['resp'], df['rewDir'], df['soa'])):
+
+        fp = wheel
+        xp = np.arange(0, len(fp))*1/framerate
+        x = np.arange(0, xp[-1], .001)
+        interp = np.interp(x,xp,fp)
+        interpWheel.append(interp)
+        
+        if (rew==0) and (resp==1):
+            init = 0 
+        elif (rew==0) and (resp==-1):
+            init = np.argmax(abs(interp[100:])>initiationThreshPix) + 100
+# sam wants to allow mvmt before 100 ms for nogos; doesnt matter what they do before 200 ms gotone
+        else:
+            init = np.argmax(abs(interp)>initiationThreshPix)
+        initiateMovement.append(init)
+        
+        sigMove = np.argmax(abs(interp)>=sigThreshold)
+        significantMovement.append(sigMove)
+        
+        if (0<init<100) and (0<sigMove<100):
+            ignoreTrials.append(i)
+            
+        outcome = np.argmax(abs(interp)>= rewThreshold)
+        if outcome>0:
+            outcomeTimes.append(outcome)
+        else:
+            outcomeTimes.append(0)
+
+    return np.array([initiateMovement, outcomeTimes, ignoreTrials])
