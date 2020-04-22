@@ -8,7 +8,7 @@ Created on Wed Apr  1 17:15:15 2020
 combines data from masking sessions into a single plot - use for consecutive masking days 
 need to specify mouse# and slicing of files at start
 Needs some editing
-
+doesnt take care of ignoreTrials 
 """
 
 import numpy as np
