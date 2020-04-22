@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 from nogoData import nogo_turn
 from ignoreTrials import ignore_trials
+from finalRxnTime import rxnTimes
 from collections import defaultdict
 
 
@@ -178,8 +179,14 @@ def create_df(d):
         
     df['deltaWheel'] = deltaWheel
     
+    
     df.mouse = mouse
     df.date = date
+    
+    times = rxnTimes(d, df)
+    
+    df['initiationTime'] = times[0]
+    df['outcomeTime'] = times[1]
     
     return df
 
@@ -193,10 +200,8 @@ def wheel_trace_slice(dataframe):
     wheelDF['diff1'] = wheelDF['stimStart'] - wheelDF['trialStart']  #prestim
     wheelDF['diff2'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
     
-    # unless we do the selecting for nogos and maskOnly HERE - to then look at down there
-    
-    
     wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
             wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
     
     return wheel
+
