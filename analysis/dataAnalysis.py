@@ -244,7 +244,7 @@ def rxnTimes(data, dataframe):
         
         sigMove = np.argmax(abs(interp)>=sigThreshold)
         significantMovement.append(sigMove)
-        if 0<sigMove<100:
+        if 0<sigMove<150:
             ignoreTrials.append(i)
         
         
@@ -258,8 +258,8 @@ def rxnTimes(data, dataframe):
             init = np.argmax(abs(interp)>initiationThreshPix)
 
 
-        if (0<init<100) and sigMove>100:
-            init = np.argmax(abs(interp[100:])>(initiationThreshPix + (abs(interp[100])))) + 100
+#        if (0<init<100) and sigMove>150:
+#            init = np.argmax(abs(interp[100:])>(initiationThreshPix + (abs(interp[100])))) + 100
         
         initiateMovement.append(init)
         outcome = np.argmax(abs(interp)>= rewThreshold)
