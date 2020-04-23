@@ -242,6 +242,12 @@ def rxnTimes(data, dataframe):
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
         
+        sigMove = np.argmax(abs(interp)>=sigThreshold)
+        significantMovement.append(sigMove)
+        if 0<sigMove<100:
+            ignoreTrials.append(i)
+        
+        
         if (rew==0) and (resp==1):
             init = 0 
         elif (rew==0) and (resp==-1):
@@ -250,15 +256,10 @@ def rxnTimes(data, dataframe):
                 # should this be 200ms instead of 100??
         else:
             init = np.argmax(abs(interp)>initiationThreshPix)
-        
-        sigMove = np.argmax(abs(interp)>=sigThreshold)
-        significantMovement.append(sigMove)
-        
-        if (0<init<100):
-            init = np.argmax(abs(interp[100:])>(initiationThreshPix + (abs(interp[100])))) + 100
 
-            if (0<sigMove<100):
-                ignoreTrials.append(i)
+
+        if (0<init<100) and sigMove>100:
+            init = np.argmax(abs(interp[100:])>(initiationThreshPix + (abs(interp[100])))) + 100
         
         initiateMovement.append(init)
         outcome = np.argmax(abs(interp)>= rewThreshold)
