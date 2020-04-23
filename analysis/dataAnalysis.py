@@ -246,18 +246,21 @@ def rxnTimes(data, dataframe):
             init = 0 
         elif (rew==0) and (resp==-1):
             init = np.argmax(abs(interp[100:])>initiationThreshPix) + 100
-# sam wants to allow mvmt before 100 ms for nogos; doesnt matter what they do before 200 ms gotone
-# should this be 200ms instead of 100??
+                # sam wants to allow mvmt before 100 ms for nogos; doesnt matter what they do before 200 ms gotone
+                # should this be 200ms instead of 100??
         else:
             init = np.argmax(abs(interp)>initiationThreshPix)
-        initiateMovement.append(init)
         
         sigMove = np.argmax(abs(interp)>=sigThreshold)
         significantMovement.append(sigMove)
         
-        if (0<init<100) and (0<sigMove<100):
-            ignoreTrials.append(i)
-            
+        if (0<init<100):
+            init = np.argmax(abs(interp[100:])>(initiationThreshPix + (abs(interp[100])))) + 100
+
+            if (0<sigMove<100):
+                ignoreTrials.append(i)
+        
+        initiateMovement.append(init)
         outcome = np.argmax(abs(interp)>= rewThreshold)
         if outcome>0:
             outcomeTimes.append(outcome)
