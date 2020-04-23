@@ -250,18 +250,12 @@ def rxnTimes(data, dataframe):
         
         if (rew==0) and (resp==1):
             init = 0 
-        elif (rew==0) and (resp==-1):
-            init = np.argmax(abs(interp[100:])>(initiationThreshPix + (abs(interp[100])))) + 100
-            # this doesnt take into account turning the other way...
-            
-            
-                # sam wants to allow mvmt before 100 ms for nogos; doesnt matter what they do before 200 ms gotone
-                # should this be 200ms instead of 100??
         else:
             init = np.argmax(abs(interp)>initiationThreshPix)
 
         if (0<init<100) and sigMove>150:
-            init = np.argmax(abs(interp[100:])>(initiationThreshPix + (abs(interp[100])))) + 100
+            init = np.argmax(abs(interp[100:])>(initiationThreshPix + interp[100])) + 100
+        # does this handle turning the opposite direction ?
         
         initiateMovement.append(init)
         outcome = np.argmax(abs(interp)>= rewThreshold)
