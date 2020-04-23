@@ -247,6 +247,7 @@ def rxnTimes(data, dataframe):
         elif (rew==0) and (resp==-1):
             init = np.argmax(abs(interp[100:])>initiationThreshPix) + 100
 # sam wants to allow mvmt before 100 ms for nogos; doesnt matter what they do before 200 ms gotone
+# should this be 200ms instead of 100??
         else:
             init = np.argmax(abs(interp)>initiationThreshPix)
         initiateMovement.append(init)
