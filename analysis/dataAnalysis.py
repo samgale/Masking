@@ -48,7 +48,7 @@ def combine_dfs(dict1):
     
     df = pd.concat(dict1.values(), ignore_index=True)
     df.mouse = {val.mouse for val in dict1.values()}
-    df.dates = [val.date for val in dict1.values()]
+    df.date = [val.date for val in dict1.values()]
     return df
 
 

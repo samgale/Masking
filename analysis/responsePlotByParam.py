@@ -106,20 +106,20 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
     fig, ax = plt.subplots()
     
     if selection.lower() in ('all','hits'):
-        ax.plot(param_list, avgHits[0], 'ro-', label='R correct',  alpha=.6, lw=3)
-        ax.plot(param_list, avgHits[1], 'bo-', label='L correct', alpha=.6, lw=3)
+        ax.plot(param_list, avgHits[0], 'ro-', label='Correct R turn',  alpha=.6, lw=3)
+        ax.plot(param_list, avgHits[1], 'bo-', label='Correct L turn', alpha=.6, lw=3)
     if selection.lower() in ('all','misses'):  
-        ax.plot(param_list, avgMisses[0], 'ro-', mfc='none', label='R incorrect', ls='--', alpha=.3, lw=2)
-        ax.plot(param_list, avgMisses[1], 'bo-', mfc='none', label='L incorrect', ls='--', alpha=.3, lw=2)
-        #currently plotting incorrect by RewDir, not turning dir -- should change??
+        ax.plot(param_list, avgMisses[0], 'bo-', mfc='none', label='Incorrect L turn', ls='--', alpha=.3, lw=2)
+        ax.plot(param_list, avgMisses[1], 'ro-', mfc='none', label='Incorrect R turn', ls='--', alpha=.3, lw=2)
+        #used to plot incorrect based on RewDir, changed to actual direction turned 
    
     if errorBars: #* don't need ==True
         if selection.lower() in ('all','hits'):
             plt.errorbar(param_list, avgHits[0], yerr=hitErr[0], c='r', alpha=.6)
             plt.errorbar(param_list, avgHits[1], yerr=hitErr[1], c='b', alpha=.6)
         if selection.lower() in ('all','misses'):
-            plt.errorbar(param_list, avgMisses[0], yerr=missErr[0], c='r', alpha=.3)
-            plt.errorbar(param_list, avgMisses[1], yerr=missErr[1], c='b', alpha=.3)
+            plt.errorbar(param_list, avgMisses[0], yerr=missErr[0], c='b', alpha=.3)
+            plt.errorbar(param_list, avgMisses[1], yerr=missErr[1], c='r', alpha=.3)
 
      
     if param1=='soa':
@@ -130,7 +130,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
             s = np.std(maskOnly)/(len(maskOnly)**0.5)
             ax.plot([8,8],[m-s,m+s],'k')
         
-   # plt.suptitle((df.mouse + '   ' + df.date))  # need ot figure out loss of df metadata
+    plt.suptitle((str(df.mouse) + '   ' + str(df.dates)))  # need ot figure out loss of df metadata
     
     ax.set_xticks(param_list)   
     a = ax.get_xticks().tolist()
