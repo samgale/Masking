@@ -48,7 +48,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
     param_list = [x for x in np.unique(nonzeroRxns[param1]) if x >=0]   
  
     hits = [[],[]]  #R, L
-    misses = [[],[]]
+    misses = [[],[]]   #R, L by rewDir
     maskOnly = []
   # change maskOnly filter to show turning direction
     
@@ -111,6 +111,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
     if selection.lower() in ('all','misses'):  
         ax.plot(param_list, avgMisses[0], 'ro-', mfc='none', label='R incorrect', ls='--', alpha=.3, lw=2)
         ax.plot(param_list, avgMisses[1], 'bo-', mfc='none', label='L incorrect', ls='--', alpha=.3, lw=2)
+        #currently plotting incorrect by RewDir, not turning dir -- should change??
    
     if errorBars: #* don't need ==True
         if selection.lower() in ('all','hits'):
