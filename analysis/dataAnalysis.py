@@ -258,6 +258,10 @@ def rxnTimes(data, dataframe):
         # does this handle turning the opposite direction ?
         
         initiateMovement.append(init)
+        
+        # this outcome code isn't doing what i want - giving an incorrect time for reward
+        # need to take trial length and subtract initiationTime; OR (using sam's method) go from
+        # when they move toward reward, exluding any pausing or direction changing beforehand
         outcome = np.argmax(abs(interp)>= rewThreshold)
         if outcome>0:
             outcomeTimes.append(outcome)
