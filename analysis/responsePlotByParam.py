@@ -12,6 +12,7 @@ can easily call using plot_by_param(create_df(import_data()))
 
 
 import numpy as np
+from datetime import datetime
 import matplotlib
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -44,12 +45,13 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
         y = missNonzero.groupby(['rewDir', param1])[param2].describe()
         print('incorrect response times\n', y)
 
- ### how to make this less bulky/redundant??     
+
     param_list = [x for x in np.unique(nonzeroRxns[param1]) if x >=0]   
+    # doesn't include nogos
  
     hits = [[],[]]  #R, L
     misses = [[],[]]   #R, L by rewDir
-    maskOnly = []
+    maskOnly = [[],[]]
   # change maskOnly filter to show turning direction
     
     for val in param_list:
@@ -70,7 +72,10 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
                     else:
                         missVal[1].append(time)
                 elif direc==0 and mask>0:
-                    maskOnly.append(time)
+                    if df.loc[j, 'maskOnlyMove']>0:
+                        maskOnly[0].append(time)   #turned right 
+                    else:
+                        maskOnly[1].append(time)  # turned left 
            
         for i in (0,1):         
             hits[i].append(hitVal[i])
@@ -123,14 +128,26 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
 
      
     if param1=='soa':
-        m = func(maskOnly)    
-        ax.plot(8, m, marker='o', c='k')
+        rightMask = func(maskOnly[0])    
+        ax.plot(8, rightMask, marker='>', c='r')
+        leftMask = func(maskOnly[1])
+        ax.plot(8, leftMask, marker='<', c='b')
         param_list[0] = 8
-        if errorBars:
-            s = np.std(maskOnly)/(len(maskOnly)**0.5)
-            ax.plot([8,8],[m-s,m+s],'k')
-        
-    plt.suptitle((str(df.mouse) + '   ' + str(df.date)))  # need ot figure out loss of df metadata
+#        if errorBars:
+#            s = np.std(maskOnly)/(len(maskOnly)**0.5)
+#            ax.plot([8,8],[m-s,m+s],'k')
+## how to plot error bars for right/left maskOnly - m was combined maskOnly
+
+
+## converting metadata date into either single formatted date or range of dates     
+    if len(df.date)>1:
+        dates = [datetime.strptime(date, '%Y%m%d').strftime('%m/%d/%Y') for date in df.date]
+        date = '-'.join([dates[0], dates[-1]])
+    else:
+        date = datetime.strptime(df.date, '%Y%m%d').strftime('%m/%d/%Y')
+    
+    mouse = next(iter(df.mouse))
+    plt.suptitle(('Mouse ID ' + mouse + ',  ' + date))  
     
     ax.set_xticks(param_list)   
     a = ax.get_xticks().tolist()
