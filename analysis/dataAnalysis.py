@@ -187,6 +187,19 @@ def create_df(data):
     return df
 
 
+
+def get_dates(dateframe):
+    from datetime import datetime
+    df=dateframe
+    if type(df.date) is list:
+        dates = [datetime.strptime(date, '%Y%m%d').strftime('%m/%d/%Y') for date in df.date]
+        date = '-'.join([dates[0], dates[-1]])
+    else:
+        date = datetime.strptime(df.date, '%Y%m%d').strftime('%m/%d/%Y')
+        
+    return date
+
+
 def wheel_trace_slice(dataframe):
     df = dataframe
 

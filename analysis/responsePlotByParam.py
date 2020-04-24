@@ -12,10 +12,10 @@ can easily call using plot_by_param(create_df(import_data()))
 
 
 import numpy as np
-from datetime import datetime
 import matplotlib
 import seaborn as sns
 import matplotlib.pyplot as plt
+from dataAnalysis import get_dates
 
 def plot_by_param(df, selection='all', param1='soa', param2='trialLength', 
                   stat='Median', ylim='auto', errorBars=False):    
@@ -140,11 +140,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
 
 
 ## converting metadata date into either single formatted date or range of dates     
-    if len(df.date)>1:
-        dates = [datetime.strptime(date, '%Y%m%d').strftime('%m/%d/%Y') for date in df.date]
-        date = '-'.join([dates[0], dates[-1]])
-    else:
-        date = datetime.strptime(df.date, '%Y%m%d').strftime('%m/%d/%Y')
+    date = get_dates(df)
     
     mouse = next(iter(df.mouse))
     plt.suptitle(('Mouse ID ' + mouse + ',  ' + date))  
