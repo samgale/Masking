@@ -130,7 +130,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
             s = np.std(maskOnly)/(len(maskOnly)**0.5)
             ax.plot([8,8],[m-s,m+s],'k')
         
-    plt.suptitle((str(df.mouse) + '   ' + str(df.dates)))  # need ot figure out loss of df metadata
+    plt.suptitle((str(df.mouse) + '   ' + str(df.date)))  # need ot figure out loss of df metadata
     
     ax.set_xticks(param_list)   
     a = ax.get_xticks().tolist()
