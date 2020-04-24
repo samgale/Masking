@@ -52,10 +52,10 @@ def combine_dfs(dict1):
     return df
 
 
-def create_df(d):   
+def create_df(data):   
     
 ##pull all of the relevant data to create a dataframe object 
-    
+    d = data
     mouse, date = str(d).split('_')[-3:-1]
     
     fi = d['frameIntervals'][:]
