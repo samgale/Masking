@@ -242,7 +242,7 @@ def rxnTimes(data, dataframe):
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
         
-        sigMove = np.argmax(abs(interp)>=sigThreshold)
+        sigMove = np.argmax(abs(interp)>=sigThreshold)   # just > ??
         significantMovement.append(sigMove)
         if 0<sigMove<150:
             ignoreTrials.append(i)
@@ -262,13 +262,15 @@ def rxnTimes(data, dataframe):
         # this outcome code isn't doing what i want - giving an incorrect time for reward
         # need to take trial length and subtract initiationTime; OR (using sam's method) go from
         # when they turn toward reward, exluding any pausing or direction changing beforehand
-        outcome = np.argmax(abs(interp)>= rewThreshold + interp[200])
+        
+        outcome = np.argmax(abs(interp) >= rewThreshold + interp[200])
         if outcome>0:
             outcomeTimes.append(outcome)
         else:
             outcomeTimes.append(0)
 
     return np.array([initiateMovement, outcomeTimes, ignoreTrials])
+
 
 ## code to plot the above wheel traces, to visually inspect for accuracy
 #test = [i for i, e in enumerate(interpWheel) if type(e)!=int]
