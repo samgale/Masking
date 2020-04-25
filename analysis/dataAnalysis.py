@@ -25,6 +25,7 @@ def import_data():
     return d
 
 
+
 def combine_files(files, *dates, output='df'):
     ''' use output = 'd' if you just want the files returned, otherwise df is default
     write dates as mdd  ex: 212 for Feb 12 - might need to extend with years in future
@@ -42,6 +43,7 @@ def combine_files(files, *dates, output='df'):
     return dict1
 
 
+
 def combine_dfs(dict1):
     ''' to be used with dict of dataframes
     retains metadata from original dfs'''
@@ -50,6 +52,7 @@ def combine_dfs(dict1):
     df.mouse = {val.mouse for val in dict1.values()}
     df.date = [val.date for val in dict1.values()]
     return df
+
 
 
 def create_df(data):   
@@ -200,6 +203,7 @@ def get_dates(dateframe):
     return date
 
 
+
 def wheel_trace_slice(dataframe):
     df = dataframe
 
@@ -213,6 +217,7 @@ def wheel_trace_slice(dataframe):
             wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
     
     return wheel
+
 
 
 def rxnTimes(data, dataframe):
@@ -275,6 +280,7 @@ def rxnTimes(data, dataframe):
         # need to take trial length and subtract initiationTime; OR (using sam's method) go from
         # when they turn toward reward, exluding any pausing or direction changing beforehand
         
+        #
         outcome = np.argmax(abs(interp) >= rewThreshold + interp[200])
         if outcome>0:
             outcomeTimes.append(outcome)
