@@ -245,11 +245,11 @@ def rxnTimes(data, dataframe):
     interpWheel = []
     initiateMovement = []
     significantMovement = []
-    ignoreTrials = []  # old ignore_trials func actually calls this func, returns this list
+    ignoreTrials = []  # old ignore_trials func actually calls current func and returns this list
     outcomeTimes = []
     
     ## use below code to determine wheel direction changes during trial 
-    # during just trial time (ie in nogos before trial ends) or over entire potential time? 
+    # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
     
     for i, (wheel, resp, rew, soa) in enumerate(zip(
             cumulativeWheel, df['resp'], df['rewDir'], df['soa'])):
@@ -260,7 +260,7 @@ def rxnTimes(data, dataframe):
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
         
-        sigMove = np.argmax(abs(interp)>=sigThreshold)   # just > ??
+        sigMove = np.argmax(abs(interp)>=sigThreshold)   # or just > ??
         significantMovement.append(sigMove)
         if 0<sigMove<150:
             ignoreTrials.append(i)
