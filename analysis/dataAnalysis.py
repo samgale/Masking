@@ -277,10 +277,9 @@ def rxnTimes(data, dataframe):
         
         initiateMovement.append(init)
         
-        # need to take trial length and subtract initiationTime; OR (using sam's method) go from
-        # when they turn toward reward, exluding any pausing or direction changing beforehand
+        # this outcome time is not quite right - want time from start of choice til choice
+        # (using odified version of sam's method)
         
-        #
         outcome = np.argmax(abs(interp) >= rewThreshold + interp[200])
         if outcome>0:
             outcomeTimes.append(outcome)
