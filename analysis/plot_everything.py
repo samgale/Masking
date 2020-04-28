@@ -12,10 +12,10 @@ from plottingTargetContrast import plot_contrast
 from plotting_target_lengths import plot_flash
 from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param
-import dataAnalysis as da
+import dataAnalysis
 
 # choose mouse file
-d = da.import_data()
+d = dataAnalysis.import_data()
 
 # plot session wheel trace - 1 plot, unless mask==True - 2 plots
 ##  if session is from 1/13 - 1/28, use framesToShowBeforeStart=30, else 60
@@ -41,12 +41,12 @@ plot_session(d)
 
 
 # plot reaction time by parameter - 1 plot
-# (df, selection='all', param='soa', stat='Median', errorBars=False)
-plot_by_param(da.create_df(d))
+# (df, selection='all', param1='soa', param2='trialLength', stat='Median', errorBars=False)
+plot_by_param(dataAnalysis.create_df(d), param2='outcomeTime')
 
 
 # plot multiple masking session response times
 files = behaviorAnalysis.get_files('486634','masking_to_analyze')    #imports ALL masking files for mouse
-dn = da.combine_files(files, '212','213','214')
-dfall = da.combine_dfs(dn)
+dn = dataAnalysis.combine_files(files, '212','213','214')
+dfall = dataAnalysis.combine_dfs(dn)
 plot_by_param(dfall, 'soa')
