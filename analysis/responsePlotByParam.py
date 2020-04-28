@@ -52,7 +52,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
     hits = [[],[]]  #R, L
     misses = [[],[]]   #R, L by rewDir
     maskOnly = [[],[]]
-  # change maskOnly filter to show turning direction
+  # changed maskOnly filter to show turning direction
     
     for val in param_list:
         hitVal = [[],[]]
@@ -97,16 +97,13 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
 
     #* consider using median absolute deviation or confidence interval when using median
     #* ci = np.percentile([func(np.random.choice(data,len(data),replace=True)) for _ in range(1000)],(2.5,97.5))
-    
     #* need shape=(2,len(param_list)) for plt.errorbar()  ** ask sam about this
             
 
     
 ### plotting 
     
-    ## this will be useful for plotting multiple params at once - trialLength and Time to Initiate
-    ## need to write that code though
-
+    ## still need to add code for simultaneously plotting 2 'param2's, e.g. initiation and trialLength
 
     fig, ax = plt.subplots()
     
@@ -118,7 +115,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
         ax.plot(param_list, avgMisses[1], 'ro-', mfc='none', label='Incorrect R turn', ls='--', alpha=.3, lw=2)
         #used to plot incorrect based on RewDir, changed to actual direction turned 
    
-    if errorBars: #* don't need ==True
+    if errorBars: 
         if selection.lower() in ('all','hits'):
             plt.errorbar(param_list, avgHits[0], yerr=hitErr[0], c='r', alpha=.6)
             plt.errorbar(param_list, avgHits[1], yerr=hitErr[1], c='b', alpha=.6)
@@ -136,7 +133,8 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
 #        if errorBars:
 #            s = np.std(maskOnly)/(len(maskOnly)**0.5)
 #            ax.plot([8,8],[m-s,m+s],'k')
-## how to plot error bars for right/left maskOnly - m was combined maskOnly
+## how to plot error bars for right/left maskOnly - m was combined maskOnly, now separated by side
+        ## bars will overlap unless points have diff x vals
 
 
 ## converting metadata date into either single formatted date or range of dates     
@@ -173,14 +171,11 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
     if param1!='soa':
         ax.set_xlim([0,1.02*param_list[-1]])
     
-    #* maybe make an optional input ylim='auto' which is useful if you want to 
-    # make multiple plots with the same ylim
     if ylim != 'auto': 
         ax.set_ylim(ylim)
     else:
         ax.set_ylim([200,700])
     
-    #* prevents text from getting cut off at figure edges
     plt.tight_layout()
 
  
