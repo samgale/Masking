@@ -24,7 +24,7 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
         param1 = 'soa', 'targetContrast', or 'targetDuration'
         param2 = 'trialLength', 'initiationTime', 'outcomeTime'
         stat = 'Median' or 'Mean'
-        ylim needs to be list of [min, max]
+        ylim needs to be 2-element list of [min, max]
     '''
 
     matplotlib.rcParams['pdf.fonttype'] = 42
@@ -130,17 +130,19 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
         leftMask = func(maskOnly[1])
         ax.plot(8, leftMask, marker='<', c='b')
         param_list[0] = 8
-#        if errorBars:
-#            s = np.std(maskOnly)/(len(maskOnly)**0.5)
-#            ax.plot([8,8],[m-s,m+s],'k')
-## how to plot error bars for right/left maskOnly - m was combined maskOnly, now separated by side
-        ## bars will overlap unless points have diff x vals
+        if errorBars:
+           sL = np.std(maskOnly[1])/(len(maskOnly[1])**0.5)
+           ax.plot([8,8],[leftMask-sL,leftMask+sL],'b')
+           sR = np.std(maskOnly[0])/(len(maskOnly[0])**0.5)
+           ax.plot([8,8],[rightMask-sR,rightMask+sR],'r')
 
 
 ## converting metadata date into either single formatted date or range of dates     
     date = get_dates(df)
-    
-    mouse = next(iter(df.mouse))
+    if type(df.mouse)==set:
+        mouse = next(iter(df.mouse))
+    else:
+        mouse = df.mouse
     plt.suptitle(('Mouse ID ' + mouse + ',  ' + date))  
     
     ax.set_xticks(param_list)   
