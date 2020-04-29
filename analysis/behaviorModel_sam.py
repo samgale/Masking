@@ -45,23 +45,24 @@ assert(np.all(moveDir[(rewardDir==-1) & (response==-1)]==1)) # incorrect right
 
 
 
-#### put mask or no mask into all of these
 
 inputData = {}
-inputData['go right'] = rewardDir[1:nTrials]==1
-inputData['go left'] = rewardDir[1:nTrials]==-1
-inputData['no-go'] = rewardDir[1:nTrials]==0
-inputData['mask'] = maskFrames[1:nTrials]>0
-inputData['prev mask'] = maskFrames[:nTrials-1]>0
-inputData['prev go right move right'] = ((rewardDir==1) & (moveDir==1))[:nTrials-1]
-inputData['prev go right move left'] = ((rewardDir==1) & (moveDir==-1))[:nTrials-1]
-inputData['prev go right no move'] = ((rewardDir==1) & (moveDir==0))[:nTrials-1]
-inputData['prev go left move right'] = ((rewardDir==-1) & (moveDir==1))[:nTrials-1]
-inputData['prev go left move left'] = ((rewardDir==-1) & (moveDir==-1))[:nTrials-1]
-inputData['prev go left no move'] = ((rewardDir==-1) & (moveDir==0))[:nTrials-1]
-inputData['prev no-go move right'] = ((rewardDir==0) & (moveDir==1))[:nTrials-1]
-inputData['prev no-go move left'] = ((rewardDir==0) & (moveDir==-1))[:nTrials-1]
-inputData['prev no-go no move'] = ((rewardDir==0) & (moveDir==0))[:nTrials-1]
+inputData['target left, no mask'] = ((rewardDir==1) & (maskFrames>0))[1:nTrials]
+inputData['target right, no mask'] = ((rewardDir==-1) & (maskFrames>0))[1:nTrials]
+inputData['no target, no mask'] = ((rewardDir==0) & (maskFrames>0))[1:nTrials]
+inputData['target left, mask'] = ((rewardDir==1) & (maskFrames==0))[1:nTrials]
+inputData['target right, mask'] = ((rewardDir==-1) & (maskFrames==0))[1:nTrials]
+inputData['no target, mask'] = ((rewardDir==0) & (maskFrames==0))[1:nTrials]
+inputData['prev target left, move right (correct)'] = ((rewardDir==1) & (moveDir==1))[:nTrials-1]
+inputData['prev target left, move left'] = ((rewardDir==1) & (moveDir==-1))[:nTrials-1]
+inputData['prev target left no move'] = ((rewardDir==1) & (moveDir==0))[:nTrials-1]
+inputData['prev target right, move left (correct)'] = ((rewardDir==-1) & (moveDir==-1))[:nTrials-1]
+inputData['prev target right, move right'] = ((rewardDir==-1) & (moveDir==1))[:nTrials-1]
+inputData['prev target right, no move'] = ((rewardDir==-1) & (moveDir==0))[:nTrials-1]
+inputData['prev no target, no move (correct)'] = ((rewardDir==0) & (moveDir==0))[:nTrials-1]
+inputData['prev no target, move right'] = ((rewardDir==0) & (moveDir==1))[:nTrials-1]
+inputData['prev no target, move left'] = ((rewardDir==0) & (moveDir==-1))[:nTrials-1]
+
 
 
 
@@ -69,11 +70,13 @@ X = np.stack([inputData[key] for key in inputData]).T
 y = moveDir[1:nTrials]
 
 
-def plotConfusionMatrix(prediction,actual):
-    confusionMatrix = np.zeros((3,3))
-    for i,pred in enumerate((-1,0,1)):
-        for j,act in enumerate((-1,0,1)):
-            confusionMatrix[i,j] = np.sum(prediction[actual==act]==pred)/np.sum(actual==act)
+def plotConfusionMatrix(xdata,ydata,xlabel,ylabel):
+    xvals = np.unique(xdata)
+    yvals = np.unique(ydata)
+    confusionMatrix = np.zeros((yvals.size,xvals.size))
+    for i,y in enumerate(yvals):
+        for j,x in enumerate(xvals):
+            confusionMatrix[i,j] = np.sum(ydata[xdata==x]==y)/np.sum(xdata==x)
             
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -83,43 +86,47 @@ def plotConfusionMatrix(prediction,actual):
             ax.text(j,i,round(confusionMatrix[i,j],2),color='w',horizontalalignment='center',verticalalignment='center')
     ax.set_xticks(np.arange(3))
     ax.set_xticklabels(['left','no','right'])
-    ax.set_xlabel('Response')
+    ax.set_xlabel(xlabel)
     ax.set_yticks(np.arange(3))
     ax.set_yticklabels(['left','no','right'])
-    ax.set_ylabel('Prediction')
-    ax.set_xlim([-0.5,2.5])
-    ax.set_ylim([2.5,-0.5])
+    ax.set_ylabel(ylabel)
+    ax.set_xlim([-0.5,xvals.size-0.5])
+    ax.set_ylim([yvals.size-0.5,-0.5])
     cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
     cb.set_ticks([0,0.5,1])
-    ax.set_title('Predicted response probability given actual response'+
-                 '\n'+'(overall accuracy = '+str(np.round(np.sum(prediction==actual)/len(actual),2))+')')
+    ax.set_title(ylabel+' probability given '+xlabel+
+                 '\n'+'(overall accuracy = '+str(np.round(np.sum(ydata==xdata)/len(xdata),2))+')')
     plt.tight_layout()
 
 
 
 trials = np.ones(y.size,dtype=bool) # inputData['mask']
 
+plotConfusionMatrix(rewardDir,moveDir,'prescribed response','actual response')
+
 # linear SVM
 model = LinearSVC(C=1.0,max_iter=1e4)
 model.fit(X[trials],y[trials])
 accuracy = model.score(X,y)
 
-plotConfusionMatrix(model.predict(X),y)
+plotConfusionMatrix(y,model.predict(X),'actual response','predicted response')
 
 coef = model.coef_
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 cmax = np.max(np.absolute(coef))
-ax.imshow(coef.T,clim=(-cmax,cmax),cmap='bwr')
+im = ax.imshow(coef.T,clim=(-cmax,cmax),cmap='bwr')
 ax.set_xticks(np.arange(3))
 ax.set_xticklabels(['left','no','right'])
 ax.set_xlabel('Response')
 ax.set_yticks(np.arange(len(inputData)))
 ax.set_yticklabels(inputData.keys())
+ax.set_ylabel('Condition')
 ax.set_xlim([-0.5,2.5])
 ax.set_ylim([len(inputData)-0.5,-0.5])
-ax.set_title('Feature coefficients')
+cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
+ax.set_title('Coefficient')
 plt.tight_layout()
 
 
@@ -129,7 +136,7 @@ model.fit(X[trials],y[trials])
 accuracy = model.score(X,y)
 oobAccuracy = model.oob_score_
 
-plotConfusionMatrix(model.predict(X),y)
+plotConfusionMatrix(y,model.predict(X),'actual response','predicted response')
 
 
 
