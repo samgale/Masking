@@ -19,31 +19,20 @@ import datetime
 import scipy.stats
 from matplotlib import pyplot as plt
 import matplotlib as mpl
-from behaviorAnalysis import formatFigure
+from behaviorAnalysis import formatFigure, get_files
 
 mpl.rcParams['pdf.fonttype']=42
-
-#import pandas as pd
-
-# get hdf5 files for each mouse
-def get_files(mouse_id):
-    directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
-    dataDir = os.path.join(os.path.join(directory, mouse_id), 'training_to_analyze')
-    files = os.listdir(dataDir)
-    files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))
-    return [os.path.join(dataDir,f) for f in files]     
 
 # calculate how many trials they responded to, and of those what percent were correct    
 def trials(data):
     trialResponse = d['trialResponse'][:]
     trials = np.count_nonzero(trialResponse)
     correct = (trialResponse==1).sum()
-    percentCorrect =( correct/float(trials)) * 100
+    percentCorrect =(correct/float(trials)) * 100
     return percentCorrect
 
 
-#mice = ['439508', '439502', '441357', '441358']
-mice = ['457229', '457230', '468528', '477210']
+mice = ['486634', '495786', '495787']
 
 fig, axes = plt.subplots(len(mice),1, facecolor='white')
 if len(mice)==1:
@@ -90,7 +79,3 @@ for im, (ax,mouse) in enumerate(zip(axes, mice)):
     ax.spines['top'].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
  
-
-     
-
-
