@@ -49,7 +49,7 @@ for d in dn.values():
     trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]
     trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)]       
     trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]     
-    framerate = 120#round(d['frameRate'][()])
+    framerate = round(d['frameRate'][()])
     maskOnset = d['maskOnset'][()] * 1000/framerate              
     trialMaskOnset = d['trialMaskOnset'][:len(trialResponse)] * 1000/framerate
     
@@ -60,7 +60,7 @@ for d in dn.values():
         if trial>0 and mask==0:
             trialMaskOnset[i]=noMaskVal
     
-    # [turn R] , [turn L]
+    # [rewDir R] , [rewDir L]
     hits = [[],[]]
     misses = [[], []]
     noResps = [[],[]]
