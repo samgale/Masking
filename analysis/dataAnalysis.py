@@ -49,8 +49,9 @@ def combine_dfs(dict1):
     retains metadata from original dfs'''
     
     df = pd.concat(dict1.values(), ignore_index=True)
-    df.mouse = {val.mouse for val in dict1.values()}
+    df.mouse = {val.mouse for val in dict1.values()}   #preserve metadata
     df.date = [val.date for val in dict1.values()]
+    df.framerate = [val.framerate for val in dict1.values()]
     return df
 
 
@@ -86,10 +87,12 @@ def create_df(data):
     trialStartFrame = d['trialStartFrame'][:end]
     trialStimStartFrame = d['trialStimStartFrame'][:]
     trialResponseFrame = d['trialResponseFrame'][:end] 
+    trialEndFrame = d['trialEndFrame'][:]
     quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
     
     maxResp = d['maxResponseWaitFrames'][()]
-    deltaWheelPos = d['deltaWheelPos'][:]                      
+    deltaWheelPos = d['deltaWheelPos'][:]   
+                   
     repeats = d['trialRepeat'][:end]
     #nogoWait = d['nogoWaitFrames'][()]
         
@@ -123,13 +126,18 @@ def create_df(data):
     
     turns, inds = nogo_turn(d)      #for both of these, [0]=nogos, [1]=maskOnly                    
     
+    #frame intervals for each trial
+    frames = [fi[start:end] for (start, end) in zip(trialStartFrame, trialEndFrame)]
+    
+    trueMaskOnset = [sum(fi[stim:stim+mask]) for (stim, mask) in 
+                     zip(trialStimStartFrame, d['trialMaskOnset'])]
     
     qDict = defaultdict(list)
     for i, (start,stimStart) in enumerate(zip(trialStartFrame, trialStimStartFrame)):
         for x in quiescentMoveFrames:    
             if start<x<stimStart:
                 qDict[i].append(x)
-          
+
     assert len(quiescentMoveFrames) == sum([len(qDict[x]) for x in qDict]), "Qframes Error"
                       
 ### Create dataframe
@@ -175,9 +183,15 @@ def create_df(data):
         
     df['deltaWheel'] = deltaWheel
     
-    
+    df['trialFrameIntervals'] = frames
+ #   df['framerate'] =  saved below as metadata
+ 
+    df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
+    df['actualSOA_ms'] = np.array(trueMaskOnset) * 1000
+ 
     df.mouse = mouse
     df.date = date
+    df.framerate = framerate
     
     times = rxnTimes(d, df)  # 0==initiation, 1==outcome, 2==ignore
     
