@@ -6,13 +6,20 @@ Created on Wed May 20 17:31:42 2020
 
 sanity checking and quality control after trials 
 
+one thing to consider is that the longer SOAs have a greater chance of having 
+dropped frames
+
+from what I can tell, major dropped frames are happening at the start of the mask,
+or right before the mask comes on
+
 """
 
 from dataAnalysis import import_files, create_df
 import numpy as np
 import matplotlib.pyplot as plt
 
-
+d = import_files()
+df = create_df(d)
 
 # checks the frame intervals from stim onset to mask onset
 def check_soa_frames(df):
@@ -22,24 +29,31 @@ def check_soa_frames(df):
     exceed a set threshold 
     '''
     #select the trials that have visible masks
+    
     actualMask = np.array([t for t in df['actualSOA_ms'] if t>0])
     maskTheory = np.array([m*(1000/df.framerate) for m in df['soa_frames'] if m > 0])
         
-    diffs = np.array(maskTheory - actualMask)
-    diffs_opp = np.array(actualMask - maskTheory)/1000
+    diffs = np.array(actualMask - maskTheory)/1000   # in seconds
     
-    # theory - actual
+    # theoretical - actual
     df['onsetDiff_ms'] = (df['actualSOA_ms'] - df['soa_frames']*1000/df.framerate)
     
-    fig, ax = plt.subplots()
+    ### exclude trials where the actual SOA is longer than the specified 
+    # SOA by >0.5/120 seconds (HALF A FRAME)
+    for i, x in enumerate(df['onsetDiff_ms']):
+        if abs(x) > (.5/df.framerate)*1000:
+            print(i)
+            df.loc[i, 'ignoreTrials'] = True
     
-   # plt.scatter(maskTheory, actualMask)
-    plt.hist(diffs_opp, edgecolor='k', linewidth=1, bins = np.arange(0, max(fi)+1/fr, 1/fr) - 0.5/fr)
-    plt.xlabel('Specified SOA, in ms')
-    plt.ylabel('Actual SOA, in ms')
-    #ax.set_yscale('log')
-    #ax.set_xticks(np.round(np.unique(maskTheory)))
-    plt.title('Comparing specified vs actual mask onset')
+      
+    fig, ax = plt.subplots()
+    fr = df.framerate
+    plt.hist(diffs, edgecolor='k', linewidth=1, bins = np.arange(0, max(diffs)+1/fr, 1/fr) - 0.5/fr), 
+             density=True, stacked=True)
+    plt.xlabel('Difference in seconds')
+    plt.ylabel('Count')
+    ax.set_yscale('log')
+    plt.title('Comparing actual vs specified mask onset')
     plt.suptitle(df.mouse + '  ' + df.date)
 
     
@@ -50,6 +64,8 @@ def check_frame_intervals(d):
     with hist bins centered at common frame intervals (.008, .016, etc)
     assuming a framerate of 120 hz
     '''
+    
+    ### FREQUENCY RATHER THAN RAW COUNT - SAM
     
     fi = d['frameIntervals'][:]   # in seconds 
     fr = int(np.round(1/np.median(fi)))   # frames per second
