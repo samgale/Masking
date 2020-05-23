@@ -14,11 +14,11 @@ or right before the mask comes on
 
 """
 
-from dataAnalysis import import_files, create_df
+from dataAnalysis import import_data, create_df
 import numpy as np
 import matplotlib.pyplot as plt
 
-d = import_files()
+d = import_data()
 df = create_df(d)
 
 # checks the frame intervals from stim onset to mask onset
@@ -48,7 +48,7 @@ def check_soa_frames(df):
       
     fig, ax = plt.subplots()
     fr = df.framerate
-    plt.hist(diffs, edgecolor='k', linewidth=1, bins = np.arange(0, max(diffs)+1/fr, 1/fr) - 0.5/fr), 
+    plt.hist(diffs, edgecolor='k', linewidth=1, bins = np.arange(0, max(diffs)+1/fr, .25/fr) - 0.5/fr, 
              density=True, stacked=True)
     plt.xlabel('Difference in seconds')
     plt.ylabel('Count')
@@ -70,6 +70,7 @@ def check_frame_intervals(d):
     fi = d['frameIntervals'][:]   # in seconds 
     fr = int(np.round(1/np.median(fi)))   # frames per second
     
+    
     fig, ax = plt.subplots()
     
     plt.hist(fi, edgecolor='k', linewidth=1, bins = np.arange(0, max(fi)+1/fr, 1/fr) - 0.5/fr)
@@ -90,9 +91,15 @@ def dropped_frames(df):
   
     plt.figure()
     plt.plot(max_fi)
-    for i, f in enumerate(max_fi):
-        if f>.1:
-            print(i, f)
+    plt.ylabel('Max Frame Interval, in sec')
+    plt.xlabel('Trial Number')
+    plt.title('Max Frame Intervals Per Trial')
+    plt.suptitle(df.mouse + '  ' + df.date)
+
+    fi_inds = [i for i, f in enumerate(max_fi) if f>.05]
+    np.diff(fi_inds)   # difference btwn trials with high frame intervals
+    above_t = [max_fi[y] for y in fi_inds]  
+    
 
 
 
