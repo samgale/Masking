@@ -34,7 +34,8 @@ class TaskControl():
         self._solenoid = None
         self.useLED = False
         self.ledDur = 1.0
-        self.ledRamp = 0.1
+        self.ledRampOn = 0
+        self.ledRampOff = 0.1
         self.ledAmp = 5.0
         if self.rigName=='pilot':
             self.saveDir = r'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
@@ -246,8 +247,9 @@ class TaskControl():
             ledRamp = np.linspace(0,self.ledAmp,int(self.ledRamp * aoSampleRate))
             self._ledSignal = np.zeros(ledBufferSize)
             self._ledSignal[:-1] = self.ledAmp
-            if self.ledRamp > 0:
+            if self.ledRampOn > 0:
                 self._ledSignal[:ledRamp.size] = ledRamp
+            if self.ledRampOff > 0:
                 self._ledSignal[-(ledRamp.size+1):-1] = ledRamp[::-1]
             self._ledOutput = nidaqmx.Task()
             self._ledOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao1',min_val=0,max_val=5)

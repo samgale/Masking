@@ -60,10 +60,11 @@ class MaskingTask(TaskControl):
         self.targetFrames = [1] # duration of target stimulus
         self.targetContrast = [1]
         self.targetSize = 20 # degrees
-        self.targetSF = 0.1 # cycles/deg
+        self.targetSF = 0.08 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         self.gratingType = 'sqr' # 'sqr' or 'sin'
-        self.gratingEdge= 'circle' # 'gauss' or 'circle'
+        self.gratingEdge= 'raisedCos' # 'circle' or 'raisedCos'
+        self.gratingEdgeBlurWidth = 0.1 # only applies to raisedCos
         
         # mask params
         self.maskType = None # None, 'plaid', or 'noise'
@@ -88,15 +89,17 @@ class MaskingTask(TaskControl):
             self.quiescentFrames = 0
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
-            self.gratingEdge = 'circle'
             self.solenoidOpenTime = .5
+            self.gratingEdge= 'raisedCos'
+         # only applies to raisedCos
             if taskVersion in ('rot','rotation'):
                 self.normTargetPos = [(0,0)]
                 self.targetOri = [-45,45]
                 self.autoRotationRate = 45
                 self.gratingRotationGain = 0.05
                 self.rewardRotation = 45
-                self.targetSize = 48.5
+                self.targetSize = 50
+                self.gratingEdgeBlurWidth = 0.04
                 self.useGoTone=False
             else:
                 if taskVersion in ('pos','position'):
@@ -107,7 +110,8 @@ class MaskingTask(TaskControl):
                     self.targetOri = [-45,45]
                 self.normAutoMoveRate = 0.25
                 self.normRewardDistance =  0.25
-                self.targetSize = 28
+                self.targetSize = 25
+                self.gratingEdgeBlurWidth = 0.08
             
         elif name == 'training2':
             # learning to associate wheel movement with stimulus movement and reward
@@ -182,9 +186,11 @@ class MaskingTask(TaskControl):
         targetPosPix = [tuple(p[i] * self.monSizePix[i] for i in (0,1)) for p in self.normTargetPos]
         targetSizePix = int(self.targetSize * self.pixelsPerDeg)
         sf = self.targetSF / self.pixelsPerDeg
+        edgeBlurWidth = {'fringeWidth':self.gratingEdgeBlurWidth} if self.gratingEdge=='raisedCos' else None
         target = visual.GratingStim(win=self._win,
                                     units='pix',
                                     mask=self.gratingEdge,
+                                    maskParams=edgeBlurWidth,
                                     tex=self.gratingType,
                                     size=targetSizePix, 
                                     sf=sf)  
@@ -197,10 +203,12 @@ class MaskingTask(TaskControl):
             maskPos = targetPosPix
             maskSize = targetSizePix
             maskEdgeBlur = self.gratingEdge
+            maskEdgeBlurWidth = edgeBlurWidth
         else:
             maskPos = [(0,0)]
             maskSize = max(self.monSizePix)
-            maskEdgeBlur = 'none'
+            maskEdgeBlur = None
+            maskEdgeBlurWidth = None
         
         if self.maskType=='noise':
             maskSize = 2**math.ceil(math.log(maskSize,2))
@@ -210,6 +218,7 @@ class MaskingTask(TaskControl):
             mask = [visual.GratingStim(win=self._win,
                                        units='pix',
                                        mask=maskEdgeBlur,
+                                       maskParams=maskEdgeBlurWidth,
                                        tex=self.gratingType,
                                        size=maskSize,
                                        sf=sf,
@@ -222,6 +231,7 @@ class MaskingTask(TaskControl):
             mask = [visual.NoiseStim(win=self._win,
                                      units='pix',
                                      mask=maskEdgeBlur,
+                                     maskParams=maskEdgeBlurWidth,
                                      noiseType='Filtered',
                                      noiseFractalPower = 0,
                                      noiseFilterOrder = 1,
