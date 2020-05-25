@@ -5,12 +5,16 @@ Created on Sat Apr 11 19:07:06 2020
 @author: svc_ccg
 """
 
+import h5py
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
 from dataAnalysis import import_data, create_df
 from dataAnalysis import combine_files, combine_dfs
 from behaviorAnalysis import get_files
+import fileIO
 
 
 #
@@ -228,6 +232,92 @@ plt.tight_layout()
 #loc = 'upper left' if param=='soa' else 'upper right'
 #ax.legend(loc=loc,fontsize=10)  
 #plt.tight_layout()
+
+
+
+
+
+# plot average perforamnce across mice/sessions
+
+fileList = fileIO.getFiles()
+
+fileList.extend(fileIO.getFiles())
+
+
+df = [create_df(h5py.File(f)) for f in fileList]
+
+param = 'soa' # targetDuration  targetContrast  soa
+
+if param=='targetDuration':
+    paramName = 'Target Duration (ms)'
+elif param=='targetContrast':
+    paramName = 'Target Contrast (ms)'
+elif param=='soa':
+    paramName = 'SOA (ms)'
+
+paramList = np.unique(df[0][param])
+paramLabels = [str(prm) for prm in paramList] if param=='targetContrast' else [str(int(round(prm))) for prm in paramList]
+paramLabels[0] = 'no go'
+if param=='soa':
+    paramLabels[1] = 'mask only'
+    paramLabels[-1] = 'target only'
+
+pmin = paramList.min()
+pmax = paramList.max()
+prange = pmax-pmin
+plim = [pmin-prange*0.05,pmax+prange*0.05]
+    
+
+performanceParams = ('Response Rate','Fraction Correct Given Response')
+performance = {param: {side: [] for side in (-1,1)} for param in performanceParams}
+for d in df:
+    for side in (-1,1):
+        respRate = []
+        fracCorr = []
+        for prm,lbl in zip(paramList,paramLabels):
+            trials = d[param]==prm
+            if lbl=='no go':
+                respRate.append(np.sum(d['nogoMove'][trials]==side)/trials.sum())
+                fracCorr.append(np.nan)
+            elif lbl=='mask only':
+                respRate.append(np.sum(d['maskOnlyMove'][trials]==side)/trials.sum())
+                fracCorr.append(np.nan)
+            else: # go
+                trials = trials & (d['rewDir']==side)
+                resp = d['resp'][trials]
+                respRate.append(np.sum(resp!=0)/trials.sum())
+                fracCorr.append(np.sum(resp==1)/np.sum(resp!=0))
+        performance['Response Rate'][side].append(respRate)
+        performance['Fraction Correct Given Response'][side].append(fracCorr)
+
+for perf in performanceParams:
+    fig = plt.figure(facecolor='w',figsize=(7,6))
+    ax = fig.add_subplot(1,1,1)
+    for side,clr in zip((-1,1),'br'):
+        p = performance[perf][side]
+        mean = np.mean(p,axis=0)
+        sem = np.std(p,axis=0)/(len(p)**0.5)
+        nogoMark = '<' if side<0 else '>'
+        ax.plot(paramList[paramList<=0],mean[paramList<=0],clr+nogoMark,ms=8,mec=clr,mfc=clr)
+        ax.plot(paramList[paramList>0],mean[paramList>0],clr+'-o',mec=clr,mfc=clr)
+        for x,m,s in zip(paramList,mean,sem):
+            ax.plot([x,x],[m-s,m+s],clr)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=16)
+    ax.set_xticks(paramList)
+    ax.set_xticklabels([p.replace(' ','\n') for p in paramLabels])
+#    ax.set_xlim(plim)
+    ax.set_xlim([8,plim[1]])
+    ax.set_ylim([0,1.01])
+    ax.set_xlabel(paramName,fontsize=18)
+    ax.set_ylabel(perf,fontsize=18)
+    plt.tight_layout()
+
+
+
+
+
 
 
 
