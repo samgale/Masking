@@ -89,7 +89,7 @@ class MaskingTask(TaskControl):
             self.quiescentFrames = 0
             self.openLoopFramesFixed = 24
             self.openLoopFramesVariableMean = 0
-            self.solenoidOpenTime = .5
+            self.solenoidOpenTime = 0.2
             self.gratingEdge= 'raisedCos'
          # only applies to raisedCos
             if taskVersion in ('rot','rotation'):
@@ -137,7 +137,7 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 10
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
-            self.solenoidOpenTime = .1
+            self.solenoidOpenTime = 0.1
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings
@@ -156,6 +156,7 @@ class MaskingTask(TaskControl):
             self.probNoGo = 0.33
             self.incorrectTrialRepeats = 50  # high while learning nogos
             self.incorrectTimeoutFrames = 720
+            self.solenoidOpenTime = 0.05
             
         elif name == 'training6':
             # introduce variable open loop frames
