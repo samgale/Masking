@@ -85,7 +85,7 @@ def create_df(data):
     #    openLoopMax = d['openLoopFramesMax'][()]
       
     trialStartFrame = d['trialStartFrame'][:end]
-    trialStimStartFrame = d['trialStimStartFrame'][:]
+    trialStimStartFrame = d['trialStimStartFrame'][:end]
     trialResponseFrame = d['trialResponseFrame'][:end] 
     trialEndFrame = d['trialEndFrame'][:]
     quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
