@@ -88,6 +88,7 @@ def create_df(data):
     trialStimStartFrame = d['trialStimStartFrame'][:end]
     trialResponseFrame = d['trialResponseFrame'][:end] 
     trialEndFrame = d['trialEndFrame'][:end]
+
     quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
     
     maxResp = d['maxResponseWaitFrames'][()]
@@ -127,7 +128,9 @@ def create_df(data):
     turns, inds = nogo_turn(d)      #for both of these, [0]=nogos, [1]=maskOnly                    
     
     #frame intervals for each trial
-    frames = [fi[start:end] for (start, end) in zip(trialStartFrame, trialEndFrame)]
+    frames = [fi[start:end] for (start, end) in zip(trialStartFrame[:len(trialEndFrame)], trialEndFrame)]
+    if len(trialEndFrame) < len(trialStartFrame):
+        frames.append(fi[trialStartFrame[-1]:trialResponseFrame[-1]])
     
     trueMaskOnset = [sum(fi[stim:stim+mask]) for (stim, mask) in 
                      zip(trialStimStartFrame, d['trialMaskOnset'])]

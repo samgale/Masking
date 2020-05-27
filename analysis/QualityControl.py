@@ -82,6 +82,7 @@ def check_frame_intervals(d):
     ax.set_xlabel('Frame Intervals (sec)')
     mouse, date = str(d).split('_')[-3:-1]
     plt.suptitle(mouse + '  ' + date)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
 
 # visual overview of when high frame intervals are occuring in the session
@@ -95,6 +96,8 @@ def dropped_frames(df):
     plt.xlabel('Trial Number')
     plt.title('Max Frame Intervals Per Trial')
     plt.suptitle(df.mouse + '  ' + df.date)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+
 
     fi_inds = [i for i, f in enumerate(max_fi) if f>.05]
     print((np.diff(fi_inds)))   # difference btwn trials with high frame intervals
