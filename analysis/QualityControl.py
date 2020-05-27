@@ -84,9 +84,9 @@ def check_frame_intervals(d):
     plt.suptitle(mouse + '  ' + date)
 
 
-
 # visual overview of when high frame intervals are occuring in the session
 def dropped_frames(df):
+    
     max_fi = [max(t) for t in df['trialFrameIntervals']]
   
     plt.figure()
@@ -97,7 +97,7 @@ def dropped_frames(df):
     plt.suptitle(df.mouse + '  ' + df.date)
 
     fi_inds = [i for i, f in enumerate(max_fi) if f>.05]
-    np.diff(fi_inds)   # difference btwn trials with high frame intervals
+    print((np.diff(fi_inds)))   # difference btwn trials with high frame intervals
     above_t = [max_fi[y] for y in fi_inds]  
     
 
