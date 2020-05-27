@@ -87,7 +87,7 @@ def create_df(data):
     trialStartFrame = d['trialStartFrame'][:end]
     trialStimStartFrame = d['trialStimStartFrame'][:end]
     trialResponseFrame = d['trialResponseFrame'][:end] 
-    trialEndFrame = d['trialEndFrame'][:]
+    trialEndFrame = d['trialEndFrame'][:end]
     quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
     
     maxResp = d['maxResponseWaitFrames'][()]
