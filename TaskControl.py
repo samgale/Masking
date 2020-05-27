@@ -92,6 +92,7 @@ class TaskControl():
         self._sessionFrame = 0 # index of frame since start of session
         self._trialFrame = 0 # index of frame since start of trial
         self._reward = False # reward delivered at next frame flip if True
+        self.rewardFrames = [] # index of frames at which reward delivered
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
         self._led = False # led triggered at next frame flip if True
         self._tone = False # tone triggered at next frame flip if True
@@ -174,6 +175,7 @@ class TaskControl():
         
         if self._reward:
             self.triggerReward()
+            self.rewardFrames.append(self._sessionFrame)
             self._reward = False
         if self._led:
             self.triggerLED()
@@ -303,6 +305,22 @@ class TaskControl():
             self._solenoid.write(0)
             self._solenoid.close()
             self._solenoid = None
+            
+    
+    def waterTest(self,numPulses=100,pulseInterval=240):
+        try:
+            self.prepareSession()
+            while self._continueSession:
+                if self._sessionFrame > 0 and not self._sessionFrame % pulseInterval:
+                    if len(self.rewardFrames) < numPulses:
+                        self._reward = True
+                    else:
+                        self._continueSession = False
+                self.showFrame()    
+        except:
+            raise
+        finally:
+            self.completeSession()
         
         
     def triggerReward(self):
