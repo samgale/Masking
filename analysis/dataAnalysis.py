@@ -245,9 +245,10 @@ def wheel_trace_slice(dataframe, prestim=False):
         wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
                 wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
     else:    
-        # returns entire wheel trace from start of trial to max possible trial length
-         wheel = wheelDF['deltaWheel']
-        
+        # returns entire wheel trace from start of trial to end of trial ///not max possible trial length
+#         wheel = [wheel[:stop] for (wheel, stop) in zip(
+#                wheelDF['deltaWheel'], wheelDF['diff2'])]
+#        THIS NEEDS MAJOR WORK
     return wheel
 
 
@@ -270,19 +271,19 @@ def rxnTimes(data, dataframe):
     sigThreshold = maxQuiescentMove * monitorSize
     rewThreshold = normRewardDist * monitorSize
 
-    wheelTrace = wheel_trace_slice(df, prestim=True)   # if want entire trial trace, add 'prestim=True'
+    wheelTrace = wheel_trace_slice(df)   # if want entire trial trace, add 'prestim=True'
     cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
 
     interpWheel = []
-    initiateMovement2 = []
+    initiateMovement = []
     significantMovement = []
     ignoreTrials = []  # old ignore_trials func actually calls current func and returns this list
-    outcomeTimes2 = []
+    outcomeTimes = []
     
     ## use below code to determine wheel direction changes during trial 
     # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
     
-    # wheel interpolation starts at stim start and ends at max trial length
+    # wheel interpolation starts at stim start and ends at max trial length if prestim!=True in above wheelTrace call
     # depends on how wheel_trace_slice is called though
     
     for i, (wheel, resp, rew, soa, frames) in enumerate(zip(
@@ -310,18 +311,18 @@ def rxnTimes(data, dataframe):
             init = np.argmax(abs(interp[100:])>(initiationThreshPix + interp[100])) + 100
         # does this handle turning the opposite direction ?
         
-        initiateMovement2.append(init)
+        initiateMovement.append(init)
         
         # this outcome time is not quite right - want time from start of choice til choice
         # (using odified version of sam's method)
         
         outcome = np.argmax(abs(interp) >= rewThreshold + interp[200])
         if outcome>0:
-            outcomeTimes2.append(outcome)
+            outcomeTimes.append(outcome)
         else:
-            outcomeTimes2.append(0)
+            outcomeTimes.append(0)
 
-    return np.array([initiateMovement2, outcomeTimes2, ignoreTrials])
+    return np.array([initiateMovement, outcomeTimes, ignoreTrials])
 
 
 ## code to plot the above wheel traces, to visually inspect for accuracy
