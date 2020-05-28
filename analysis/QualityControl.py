@@ -66,14 +66,15 @@ def check_frame_intervals(d):
     plots distribution of frame intervals over the session
     with hist bins centered at common frame intervals (.008, .016, etc)
     assuming a framerate of 120 hz
+    
+    Also plots when large dropped frame events occur, by trial
     '''
     
     ### FREQUENCY RATHER THAN RAW COUNT - SAM
     
     fi = d['frameIntervals'][:]   # in seconds 
     fr = int(np.round(1/np.median(fi)))   # frames per second
-    
-    
+       
     fig, ax = plt.subplots()
     
     plt.hist(fi, edgecolor='k', linewidth=1, bins = np.arange(0, max(fi)+1/fr, 1/fr) - 0.5/fr)
@@ -87,10 +88,7 @@ def check_frame_intervals(d):
     plt.suptitle(mouse + '  ' + date)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
-
-# visual overview of when high frame intervals are occuring in the session
-def dropped_frames(df):
-    
+# plot large dropped frame events
     max_fi = [max(t) for t in df['trialFrameIntervals']]
   
     plt.figure()
@@ -102,11 +100,11 @@ def dropped_frames(df):
     plt.suptitle(df.mouse + '  ' + date)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
-
-    fi_inds = [i for i, f in enumerate(max_fi) if f>.05]
-    print((np.diff(fi_inds)))   # difference btwn trials with high frame intervals
-    above_t = [max_fi[y] for y in fi_inds]  
-    
+# for sanity checking
+#    fi_inds = [i for i, f in enumerate(max_fi) if f>.05]
+#    print((np.diff(fi_inds)))   # difference btwn trials with high frame intervals
+#    above_t = [max_fi[y] for y in fi_inds]  
+#    
 
 
 

@@ -62,10 +62,7 @@ def create_df(data):
     
     d = data
     mouse, date = str(d).split('_')[-3:-1]
-    
-    fi = d['frameIntervals'][:]
-    framerate = int(np.round(1/np.median(fi)))
-    
+        
     def convert_to_ms(value):
         return value * 1000/framerate
     
@@ -75,6 +72,15 @@ def create_df(data):
     trialTargetFrames = d['trialTargetFrames'][:end]
     trialTargetContrast = d['trialTargetContrast'][:end]
     
+    trialStartFrame = d['trialStartFrame'][:end]
+    trialStimStartFrame = d['trialStimStartFrame'][:end]
+    trialResponseFrame = d['trialResponseFrame'][:end] 
+    trialEndFrame = d['trialEndFrame'][:end]
+    
+    fi = d['frameIntervals'][:trialEndFrame[-1]]
+    framerate = int(np.round(1/np.median(fi)))
+    
+
     trialOpenLoopFrames = d['trialOpenLoopFrames'][:end]
     if len(np.unique(trialOpenLoopFrames)>1):
         pass
@@ -86,11 +92,6 @@ def create_df(data):
     #    openLoopVar = d['openLoopFramesVariableMean'][()]
     #    openLoopMax = d['openLoopFramesMax'][()]
       
-    trialStartFrame = d['trialStartFrame'][:end]
-    trialStimStartFrame = d['trialStimStartFrame'][:end]
-    trialResponseFrame = d['trialResponseFrame'][:end] 
-    trialEndFrame = d['trialEndFrame'][:end]
-
     quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
     
     maxResp = d['maxResponseWaitFrames'][()]
@@ -201,15 +202,15 @@ def create_df(data):
     df.date = date
     df.framerate = framerate
     
-#        ## call reaction time function (defined below)
-#    times = rxnTimes(d, df)  # 0==initiation, 1==outcome, 2==ignore
-#    
-#    df['initiationTime_ms'] = times[0]
-#    df['outcomeTime_ms'] = times[1]
-#    df['ignoreTrial'] = False   
-#    for i in times[2]:
-#        df.loc[i, 'ignoreTrial'] = True
-#    
+        ## call reaction time function (defined below)
+    times = rxnTimes(d, df)  # 0==initiation, 1==outcome, 2==ignore
+    
+    df['initiationTime_ms'] = times[0]
+    df['outcomeTime_ms'] = times[1]
+    df['ignoreTrial'] = False   
+    for i in times[2]:
+        df.loc[i, 'ignoreTrial'] = True
+    
     return df
 
 
@@ -239,17 +240,21 @@ def wheel_trace_slice(dataframe, prestim=False):
     
     wheelDF['diff1'] = wheelDF['stimStart'] - wheelDF['trialStart']  #prestim
     wheelDF['diff2'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
+    wheelDF['trialOnly'] = wheelDF['respFrame'] - wheelDF['stimStart'] #trialOnly
     
         # returns portion of wheel trace that is relevant only to target presentation (no prestim)
-    if prestim==False:
-        wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
-                wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
-    else:  
-        pass
-        # returns entire wheel trace from start of trial to end of trial ///not max possible trial length
-#         wheel = [wheel[:stop] for (wheel, stop) in zip(
-#                wheelDF['deltaWheel'], wheelDF['diff2'])]
+#    if prestim==False:
+#        wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
+#                wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
+#    else:  
+#        pass
+#        # returns entire wheel trace from start of trial to end of trial ///not max possible trial length
+##         wheel = [wheel[:stop] for (wheel, stop) in zip(
+##                wheelDF['deltaWheel'], wheelDF['diff2'])]
 #        THIS NEEDS MAJOR WORK
+        
+    wheel = [wheel[-start:] for (wheel, start) in zip(
+                wheelDF['deltaWheel'], wheelDF['trialOnly'])]
     return wheel
 
 
@@ -272,6 +277,8 @@ def rxnTimes(data, dataframe):
     sigThreshold = maxQuiescentMove * monitorSize
     rewThreshold = normRewardDist * monitorSize
 
+    fi = df['trialFrameIntervals']
+
     wheelTrace = wheel_trace_slice(df, prestim=False)   # if want entire trial trace, add 'prestim=True'
     cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
 
@@ -288,7 +295,7 @@ def rxnTimes(data, dataframe):
     # depends on how wheel_trace_slice is called though
     
     for i, (wheel, resp, rew, soa, frames) in enumerate(zip(
-            cumulativeWheel, df['resp'], df['rewDir'], df['soa'], df['trialFrameIntervals'])):
+            cumulativeWheel, df['resp'], df['rewDir'], df['soa'], fi)):
 
         fp = wheel
         xp = np.cumsum(frames[-len(fp):])   # this depends on how wheel_trace is called 
