@@ -9,12 +9,14 @@ sanity checking and quality control after trials
 one thing to consider is that the longer SOAs have a greater chance of having 
 dropped frames
 
-from what I can tell, major dropped frames are happening at the start of the mask,
-or right before the mask comes on
+from what I can tell, minor dropped frames (~17-25 ms) are happening at the start of the mask,
+or right before the mask comes on, in masking sessions with dropped frames
+
+major dropped frames are occurring in a periodic fashion, ~120 ms every ~7 mins  
 
 """
 
-from dataAnalysis import import_data, create_df
+from dataAnalysis import import_data, create_df, get_dates
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -54,7 +56,8 @@ def check_soa_frames(df):
     plt.ylabel('Count')
     ax.set_yscale('log')
     plt.title('Comparing actual vs specified mask onset')
-    plt.suptitle(df.mouse + '  ' + df.date)
+    date = get_dates(df)
+    plt.suptitle(df.mouse + '  ' + date)
 
     
 # check for dropped frames    
@@ -95,7 +98,8 @@ def dropped_frames(df):
     plt.ylabel('Max Frame Interval, in sec')
     plt.xlabel('Trial Number')
     plt.title('Max Frame Intervals Per Trial')
-    plt.suptitle(df.mouse + '  ' + df.date)
+    date = get_dates(df)
+    plt.suptitle(df.mouse + '  ' + date)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
 
