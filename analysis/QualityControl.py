@@ -19,12 +19,16 @@ major dropped frames are occurring in a periodic fashion, ~120 ms every ~7 mins
 from dataAnalysis import import_data, create_df, get_dates
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+import seaborn as sns
 
-d = import_data()
-df = create_df(d)
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+sns.set_style('white')
+
 
 # checks the frame intervals from stim onset to mask onset
-def check_soa_frames(df):
+def check_soa_frames(dataframe):
     '''
     Compares the specified mask onset time with the actual frame intervals during
     that portion of the trial.  Marks certain trials for exclusion if the intervals 
@@ -71,7 +75,7 @@ def check_frame_intervals(d):
     '''
     
     ### FREQUENCY RATHER THAN RAW COUNT - SAM
-    
+    df = create_df(d)
     fi = d['frameIntervals'][:]   # in seconds 
     fr = int(np.round(1/np.median(fi)))   # frames per second
        
@@ -91,10 +95,11 @@ def check_frame_intervals(d):
 # plot large dropped frame events
     max_fi = [max(t) for t in df['trialFrameIntervals']]
   
-    plt.figure()
+    fig, ax = plt.subplots()
     plt.plot(max_fi)
-    plt.ylabel('Max Frame Interval, in sec')
-    plt.xlabel('Trial Number')
+    ax.set_xlim(0, len(max_fi)+1)
+    ax.set_ylabel('Max Frame Interval, in sec')
+    ax.set_xlabel('Trial Number')
     plt.title('Max Frame Intervals Per Trial')
     date = get_dates(df)
     plt.suptitle(df.mouse + '  ' + date)
