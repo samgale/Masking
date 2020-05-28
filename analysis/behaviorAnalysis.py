@@ -95,7 +95,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         subtitle = ['repeats incl']
 
     
-    ignoreTrials = ignore_trials(d)
+    ignoreTrials = [] #ignore_trials(d)
     
     postTrialFrames = 0 if d['postRewardTargetFrames'][()]>0 else 1 #make sure we have at least one frame after the reward
 

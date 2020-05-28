@@ -201,15 +201,15 @@ def create_df(data):
     df.date = date
     df.framerate = framerate
     
-        ## call reaction time function (defined below)
-    times = rxnTimes(d, df)  # 0==initiation, 1==outcome, 2==ignore
-    
-    df['initiationTime_ms'] = times[0]
-    df['outcomeTime_ms'] = times[1]
-    df['ignoreTrial'] = False   
-    for i in times[2]:
-        df.loc[i, 'ignoreTrial'] = True
-    
+#        ## call reaction time function (defined below)
+#    times = rxnTimes(d, df)  # 0==initiation, 1==outcome, 2==ignore
+#    
+#    df['initiationTime_ms'] = times[0]
+#    df['outcomeTime_ms'] = times[1]
+#    df['ignoreTrial'] = False   
+#    for i in times[2]:
+#        df.loc[i, 'ignoreTrial'] = True
+#    
     return df
 
 
@@ -241,10 +241,11 @@ def wheel_trace_slice(dataframe, prestim=False):
     wheelDF['diff2'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
     
         # returns portion of wheel trace that is relevant only to target presentation (no prestim)
-    if not prestim:
+    if prestim==False:
         wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
                 wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
-    else:    
+    else:  
+        pass
         # returns entire wheel trace from start of trial to end of trial ///not max possible trial length
 #         wheel = [wheel[:stop] for (wheel, stop) in zip(
 #                wheelDF['deltaWheel'], wheelDF['diff2'])]
@@ -271,7 +272,7 @@ def rxnTimes(data, dataframe):
     sigThreshold = maxQuiescentMove * monitorSize
     rewThreshold = normRewardDist * monitorSize
 
-    wheelTrace = wheel_trace_slice(df)   # if want entire trial trace, add 'prestim=True'
+    wheelTrace = wheel_trace_slice(df, prestim=False)   # if want entire trial trace, add 'prestim=True'
     cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
 
     interpWheel = []
@@ -313,8 +314,8 @@ def rxnTimes(data, dataframe):
         
         initiateMovement.append(init)
         
-        # this outcome time is not quite right - want time from start of choice til choice
-        # (using odified version of sam's method)
+        # this outcome time is not quite right - also want time from start of choice til choice
+        # (using modified version of sam's method)
         
         outcome = np.argmax(abs(interp) >= rewThreshold + interp[200])
         if outcome>0:
