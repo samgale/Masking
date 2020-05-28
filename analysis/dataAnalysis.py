@@ -240,12 +240,13 @@ def wheel_trace_slice(dataframe, prestim=False):
     wheelDF['diff1'] = wheelDF['stimStart'] - wheelDF['trialStart']  #prestim
     wheelDF['diff2'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
     
-    # returns portion of wheel trace that is relevant only to target presentation (no prestim)
-    wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
-            wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
-    
-    if prestim==True:
-        pass
+        # returns portion of wheel trace that is relevant only to target presentation (no prestim)
+    if not prestim:
+        wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
+                wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
+    else:    
+        # returns entire wheel trace from start of trial to max possible trial length
+         wheel = wheelDF['deltaWheel']
         
     return wheel
 
@@ -255,9 +256,7 @@ def rxnTimes(data, dataframe):
     
     d = data
     df = dataframe
-    
-    framerate = df.framerate
-    
+        
     ## USE THE TRIAL FRAME INTERVALS FROM DF -----
     
     monitorSize = d['monSizePix'][0] 
@@ -271,14 +270,14 @@ def rxnTimes(data, dataframe):
     sigThreshold = maxQuiescentMove * monitorSize
     rewThreshold = normRewardDist * monitorSize
 
-    wheelTrace = wheel_trace_slice(df)
+    wheelTrace = wheel_trace_slice(df, prestim=True)   # if want entire trial trace, add 'prestim=True'
     cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
 
     interpWheel = []
-    initiateMovement = []
+    initiateMovement2 = []
     significantMovement = []
     ignoreTrials = []  # old ignore_trials func actually calls current func and returns this list
-    outcomeTimes = []
+    outcomeTimes2 = []
     
     ## use below code to determine wheel direction changes during trial 
     # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
@@ -290,7 +289,7 @@ def rxnTimes(data, dataframe):
             cumulativeWheel, df['resp'], df['rewDir'], df['soa'], df['trialFrameIntervals'])):
 
         fp = wheel
-        xp = np.cumsum(frames[-len(fp):])   # this adjusts itself with wheel specification
+        xp = np.cumsum(frames[-len(fp):])   # this depends on how wheel_trace is called 
         x = np.arange(0, xp[-1], .001)
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
@@ -311,18 +310,18 @@ def rxnTimes(data, dataframe):
             init = np.argmax(abs(interp[100:])>(initiationThreshPix + interp[100])) + 100
         # does this handle turning the opposite direction ?
         
-        initiateMovement.append(init)
+        initiateMovement2.append(init)
         
         # this outcome time is not quite right - want time from start of choice til choice
         # (using odified version of sam's method)
         
         outcome = np.argmax(abs(interp) >= rewThreshold + interp[200])
         if outcome>0:
-            outcomeTimes.append(outcome)
+            outcomeTimes2.append(outcome)
         else:
-            outcomeTimes.append(0)
+            outcomeTimes2.append(0)
 
-    return np.array([initiateMovement, outcomeTimes, ignoreTrials])
+    return np.array([initiateMovement2, outcomeTimes2, ignoreTrials])
 
 
 ## code to plot the above wheel traces, to visually inspect for accuracy
