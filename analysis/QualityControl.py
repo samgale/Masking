@@ -16,7 +16,7 @@ major dropped frames are occurring in a periodic fashion, ~120 ms every ~7 mins
 
 """
 
-from dataAnalysis import import_data, create_df, get_dates
+from dataAnalysis import create_df, get_dates
 from behaviorAnalysis import formatFigure
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,6 +36,7 @@ def check_soa_frames(dataframe):
     exceed a set threshold 
     '''
     #select the trials that have visible masks
+    df = dataframe
     
     actualMask = np.array([t for t in df['actualSOA_ms'] if t>0])
     maskTheory = np.array([m*(1000/df.framerate) for m in df['soa_frames'] if m > 0])
