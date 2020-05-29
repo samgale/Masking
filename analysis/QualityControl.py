@@ -79,15 +79,17 @@ def check_frame_intervals(d):
     df = create_df(d)
     fi = d['frameIntervals'][:]   # in seconds 
     fr = int(np.round(1/np.median(fi)))   # frames per second
+    max_fi = [max(t) for t in df['trialFrameIntervals']]
+
     mouse = df.mouse
     date = get_dates(df)
     
 # plot histogram of frame interval frequencies
     fig, ax = plt.subplots()
-    
     plt.hist(fi, edgecolor='k', color='c', linewidth=1, bins = np.arange(0, max(fi)+1/fr, 1/fr) - 0.5/fr)
     ax.set_yscale('log')
     ax.set_xticks(np.round(np.arange(0, max(fi), 1/fr), 3))
+    ax.set_xlim([0, max(fi)+np.std(max_fi)])
     ax.tick_params(axis='x', rotation=60)
     plt.suptitle(mouse + '  ' + date)    
     formatFigure(fig, ax, title='Distribution of Frame Intervals', xLabel='Frame Intervals (sec)',
@@ -96,13 +98,11 @@ def check_frame_intervals(d):
 
 
 # plot occurrence of large dropped frame events
-    max_fi = [max(t) for t in df['trialFrameIntervals']]
   
     fig, ax = plt.subplots()
     plt.plot(max_fi)
     ax.set_xlim(0, len(max_fi)+1)
     ax.set_ylim(0, max(max_fi) + np.std(max_fi))
-
     plt.suptitle(df.mouse + '  ' + date)
     formatFigure(fig, ax, title='Max Frame Intervals Per Trial', xLabel='Trial Number',
                  yLabel='Max Frame Interval, in sec')
