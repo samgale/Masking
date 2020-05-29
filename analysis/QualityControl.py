@@ -89,7 +89,7 @@ def check_frame_intervals(d):
     plt.hist(fi, edgecolor='k', color='c', linewidth=1, bins = np.arange(0, max(fi)+1/fr, 1/fr) - 0.5/fr)
     ax.set_yscale('log')
     ax.set_xticks(np.round(np.arange(0, max(fi), 1/fr), 3))
-    ax.set_xlim([0, max(fi)+np.std(max_fi)])
+    ax.set_xlim([0, max(fi)+np.mean(fi)])
     ax.tick_params(axis='x', rotation=60)
     plt.suptitle(mouse + '  ' + date)    
     formatFigure(fig, ax, title='Distribution of Frame Intervals', xLabel='Frame Intervals (sec)',
@@ -112,7 +112,7 @@ def check_frame_intervals(d):
 #    fi_inds = [i for i, f in enumerate(max_fi) if f>.05]
 #    print((np.diff(fi_inds)))   # difference btwn trials with high frame intervals
 #    above_t = [max_fi[y] for y in fi_inds]  
-#    
+    
 
 
 
