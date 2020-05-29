@@ -17,6 +17,7 @@ major dropped frames are occurring in a periodic fashion, ~120 ms every ~7 mins
 """
 
 from dataAnalysis import import_data, create_df, get_dates
+from behaviorAnalysis import formatFigure
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -78,31 +79,33 @@ def check_frame_intervals(d):
     df = create_df(d)
     fi = d['frameIntervals'][:]   # in seconds 
     fr = int(np.round(1/np.median(fi)))   # frames per second
-       
+    mouse = df.mouse
+    date = get_dates(df)
+    
+# plot histogram of frame interval frequencies
     fig, ax = plt.subplots()
     
-    plt.hist(fi, edgecolor='k', linewidth=1, bins = np.arange(0, max(fi)+1/fr, 1/fr) - 0.5/fr)
+    plt.hist(fi, edgecolor='k', color='c', linewidth=1, bins = np.arange(0, max(fi)+1/fr, 1/fr) - 0.5/fr)
     ax.set_yscale('log')
     ax.set_xticks(np.round(np.arange(0, max(fi), 1/fr), 3))
     ax.tick_params(axis='x', rotation=60)
-    plt.title('Distribution of Frame Intervals')
-    ax.set_ylabel('Trials')
-    ax.set_xlabel('Frame Intervals (sec)')
-    mouse, date = str(d).split('_')[-3:-1]
-    plt.suptitle(mouse + '  ' + date)
+    plt.suptitle(mouse + '  ' + date)    
+    formatFigure(fig, ax, title='Distribution of Frame Intervals', xLabel='Frame Intervals (sec)',
+                 yLabel='Trials')
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
-# plot large dropped frame events
+
+# plot occurrence of large dropped frame events
     max_fi = [max(t) for t in df['trialFrameIntervals']]
   
     fig, ax = plt.subplots()
     plt.plot(max_fi)
     ax.set_xlim(0, len(max_fi)+1)
-    ax.set_ylabel('Max Frame Interval, in sec')
-    ax.set_xlabel('Trial Number')
-    plt.title('Max Frame Intervals Per Trial')
-    date = get_dates(df)
+    ax.set_ylim(0, max(max_fi) + np.std(max_fi))
+
     plt.suptitle(df.mouse + '  ' + date)
+    formatFigure(fig, ax, title='Max Frame Intervals Per Trial', xLabel='Trial Number',
+                 yLabel='Max Frame Interval, in sec')
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
 # for sanity checking

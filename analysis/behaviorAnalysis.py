@@ -198,7 +198,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
         
         
-#        if table==True:
+# trying to add table to plot with all response stats
+#    if table==True:
 #            cell_texts = session(d,ignoreRepeats=True, printValues=False)
 #            plt.figure()
 #            for i, (key, val) in enumerate(cell_texts.items()):
@@ -228,21 +229,26 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
 
 
 def get_files(mouse_id, task):
+    '''
+    task is either 'training_' or 'masking_'
+    '''
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
-    dataDir = os.path.join(os.path.join(directory, mouse_id), task)   #training_ for no mask, masking_ for mask
+    dataDir = os.path.join(os.path.join(directory, mouse_id), task)   
     files = os.listdir(dataDir)
     files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))
     return [os.path.join(dataDir,f) for f in files]  
     
               
 def trials(data):
-    trialResponse = data['trialResponse'].value
+    d=data
+    trialResponse = d['trialResponse'][:]
     trials = np.count_nonzero(trialResponse)
     correct = (trialResponse==1).sum()
     percentCorrect = (correct/float(trials)) * 100
     return percentCorrect
 
-def formatFigure(fig, ax, title=None, xLabel=None, yLabel=None, xTickLabels=None, yTickLabels=None, blackBackground=False, saveName=None):
+def formatFigure(fig, ax, title=None, xLabel=None, yLabel=None, xTickLabels=None, 
+                 yTickLabels=None, blackBackground=False, saveName=None):
     fig.set_facecolor('w')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -278,10 +284,10 @@ def performanceByParam(data, paramName, units=''):
     
     d =  data
     
-    trialResponse = d['trialResponse'].value    
+    trialResponse = d['trialResponse'][:]    
     numTrials = len(trialResponse)
     
-    trialRewardDirection = d['trialRewardDir'].value[:numTrials]
+    trialRewardDirection = d['trialRewardDir'][:numTrials]
     trialParam = d[paramName][:numTrials] 
     
     if any(np.isnan(trialParam)):    
@@ -293,7 +299,8 @@ def performanceByParam(data, paramName, units=''):
     misses = [[], []]
     noResps = [[],[]]
     for i, direction in enumerate([-1,1]):
-        directionResponses = [trialResponse[(trialRewardDirection==direction) & (trialParam == p)] for p in paramValues]
+        directionResponses = [trialResponse[(trialRewardDirection==direction) & 
+                                            (trialParam == p)] for p in paramValues]
         hits[i].append([np.sum(drs==1) for drs in directionResponses])
         misses[i].append([np.sum(drs==-1) for drs in directionResponses])
         noResps[i].append([np.sum(drs==0) for drs in directionResponses])
@@ -303,7 +310,9 @@ def performanceByParam(data, paramName, units=''):
     noResps = np.squeeze(np.array(noResps))
     totalTrials = hits+misses+noResps
     
-    for num, denom, title in zip([hits, hits, noResps], [totalTrials, hits+misses, totalTrials], ['total hit rate', 'response hit rate', 'no response rate']):
+    for num, denom, title in zip([hits, hits, noResps], 
+                                 [totalTrials, hits+misses, totalTrials], 
+                                 ['total hit rate', 'response hit rate', 'no response rate']):
         fig, ax = plt.subplots()
         ax.plot(paramValues, num[0]/denom[0], 'bo-')
         ax.plot(paramValues, num[1]/denom[1], 'ro-')
