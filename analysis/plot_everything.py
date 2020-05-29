@@ -13,15 +13,19 @@ from plotting_target_lengths import plot_flash
 from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param
 import dataAnalysis
+from QualityControl import check_frame_intervals
 
 # choose mouse file
 d = dataAnalysis.import_data()
 
 # plot session wheel trace - 1 plot, unless mask==True - 2 plots
 ##  if session is from 1/13 - 1/28, use framesToShowBeforeStart=30, else 60
-behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
+behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
                                ignoreRepeats=True, framesToShowBeforeStart=60, 
-                               mask=True, maskOnly=True)
+                               mask=False, maskOnly=False)
+
+# check for dropped frames
+check_frame_intervals(d)
 
 
 # plot target duration responses - 3 plots

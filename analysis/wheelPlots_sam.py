@@ -314,7 +314,27 @@ for perf in performanceParams:
     ax.set_ylabel(perf,fontsize=18)
     plt.tight_layout()
 
-
+# combine right/left
+for perf in performanceParams:
+    fig = plt.figure(facecolor='w',figsize=(7,6))
+    ax = fig.add_subplot(1,1,1)
+    p = np.mean([performance[perf][side] for side in (-1,1)],axis=0)
+    mean = np.mean(p,axis=0)
+    sem = np.std(p,axis=0)/(len(p)**0.5)
+    ax.plot(paramList,mean,'k-o',ms=8,mec='k',mfc='k')
+    for x,m,s in zip(paramList,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'k')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=16)
+    ax.set_xticks(paramList)
+    ax.set_xticklabels([p.replace(' ','\n') for p in paramLabels])
+#    ax.set_xlim(plim)
+    ax.set_xlim([8,plim[1]])
+    ax.set_ylim([0,1.01])
+    ax.set_xlabel(paramName,fontsize=18)
+    ax.set_ylabel(perf,fontsize=18)
+    plt.tight_layout()
 
 
 

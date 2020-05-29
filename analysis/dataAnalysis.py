@@ -58,13 +58,11 @@ def combine_dfs(dict1):
 
 def create_df(data):   
     
-##pull all of the relevant data to create a dataframe object 
+## PULL RELEVANT DATA FROM HDF5 FILE TO CREATE DATAFRAME 
+    
     d = data
     mouse, date = str(d).split('_')[-3:-1]
-    
-    fi = d['frameIntervals'][:]
-    framerate = int(np.round(1/np.median(fi)))
-    
+        
     def convert_to_ms(value):
         return value * 1000/framerate
     
@@ -74,34 +72,40 @@ def create_df(data):
     trialTargetFrames = d['trialTargetFrames'][:end]
     trialTargetContrast = d['trialTargetContrast'][:end]
     
+    trialStartFrame = d['trialStartFrame'][:end]
+    trialStimStartFrame = d['trialStimStartFrame'][:end]
+    trialResponseFrame = d['trialResponseFrame'][:end] 
+    trialEndFrame = d['trialEndFrame'][:end]
+    
+    fi = d['frameIntervals'][:trialEndFrame[-1]]
+    framerate = int(np.round(1/np.median(fi)))
+    
+
     trialOpenLoopFrames = d['trialOpenLoopFrames'][:end]
     if len(np.unique(trialOpenLoopFrames)>1):
         pass
         
+    # vars below are to look at turning behavior when prestim frames are not predictable
     #    preStimFrames = d['preStimFramesFixed'][()]
     #    preStimVar = d['preStimFramesVariableMean'][()]              
     #    openLoopFrames = d['openLoopFramesFixed'][()]
     #    openLoopVar = d['openLoopFramesVariableMean'][()]
     #    openLoopMax = d['openLoopFramesMax'][()]
       
-    trialStartFrame = d['trialStartFrame'][:end]
-    trialStimStartFrame = d['trialStimStartFrame'][:]
-    trialResponseFrame = d['trialResponseFrame'][:end] 
-    trialEndFrame = d['trialEndFrame'][:]
     quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
     
     maxResp = d['maxResponseWaitFrames'][()]
     deltaWheelPos = d['deltaWheelPos'][:]   
                    
     repeats = d['trialRepeat'][:end]
-    #nogoWait = d['nogoWaitFrames'][()]
+    #nogoWait = d['nogoWaitFrames'][()]   # these are often different than target wait frames
         
     maskOnset = convert_to_ms(d['maskOnset'][()])
     trialMaskOnset = convert_to_ms(d['trialMaskOnset'][:end])
     trialMaskContrast = d['trialMaskContrast'][:end]
 
     
-### process & clean data
+### PROCESS AND CLEAN DATA
     
     for i, target in enumerate(trialTargetFrames):  # this is needed for older files nogos are randomly assigned a dir
         if target==0:
@@ -111,7 +115,8 @@ def create_df(data):
              (trialRewardDirection, trialMaskContrast)) if rew==0 and con==0]
    
     if np.any(trialMaskOnset>0):
-        targetOnlyVal = maskOnset[-1] + 0.5*maskOnset[-1] #round(np.mean(np.diff(maskOnset)))  # assigns targetOnly condition an evenly-spaced value from soas
+        targetOnlyVal = maskOnset[-1] + 0.5*maskOnset[-1] 
+        #round(np.mean(np.diff(maskOnset)))  # assigns targetOnly condition an evenly-spaced value from soas
         maskOnset = np.append(maskOnset, targetOnlyVal)                     # makes final value the targetOnly condition
             
         for i, (mask, trial) in enumerate(zip(trialMaskOnset, trialTargetFrames)):   # filters target-Only trials 
@@ -120,14 +125,19 @@ def create_df(data):
     
     trialLength = trialResponseFrame - trialStimStartFrame
 
-    #gives entire wheel trace from trial start to the max Length of trial
-    deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp] for (start,stim, openLoop) in 
-                  zip(d['trialStartFrame'][:len(trialStimStartFrame)], trialStimStartFrame, trialOpenLoopFrames)]
+        # gives entire wheel trace from trial start to the max trial length
+        # i.e. often goes into the start of the next trial - 
+        # useful for analyzing turning beh on nogo/mask only
+    deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp] for (start, stim, openLoop) in 
+                  zip(d['trialStartFrame'][:len(trialStimStartFrame)],
+                      trialStimStartFrame, trialOpenLoopFrames)]
     
     turns, inds = nogo_turn(d)      #for both of these, [0]=nogos, [1]=maskOnly                    
     
-    #frame intervals for each trial
-    frames = [fi[start:end] for (start, end) in zip(trialStartFrame, trialEndFrame)]
+        #frame intervals for each trial
+    frames = [fi[start:end] for (start, end) in zip(trialStartFrame[:len(trialEndFrame)], trialEndFrame)]
+    if len(trialEndFrame) < len(trialStartFrame):
+        frames.append(fi[trialStartFrame[-1]:trialResponseFrame[-1]])
     
     trueMaskOnset = [sum(fi[stim:stim+mask]) for (stim, mask) in 
                      zip(trialStimStartFrame, d['trialMaskOnset'])]
@@ -140,7 +150,7 @@ def create_df(data):
 
     assert len(quiescentMoveFrames) == sum([len(qDict[x]) for x in qDict]), "Qframes Error"
                       
-### Create dataframe
+### CREATE DATAFRAME
                 
     data = list(zip(trialRewardDirection, trialResponse, 
                     trialStartFrame, trialStimStartFrame, trialResponseFrame, trialOpenLoopFrames))
@@ -150,14 +160,14 @@ def create_df(data):
                       index=index, 
                       columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame', 'openLoopFrames'])
     
-    df['trialLength'] = convert_to_ms(trialLength)
+    df['trialLength_ms'] = convert_to_ms(trialLength)
     
     df['mask'] = trialMaskContrast
     df['soa'] = trialMaskOnset
-    #df['maskLength'] = convert_to_ms(d['trialMaskFrames'][:end])
+    #df['maskLength_ms'] = convert_to_ms(d['trialMaskFrames'][:end])
     df['maskContrast'] = trialMaskContrast
 
-    df['targetDuration'] = convert_to_ms(trialTargetFrames)
+    df['targetDuration_ms'] = convert_to_ms(trialTargetFrames)
     df['targetContrast'] = trialTargetContrast
     
     df['nogo'] = False
@@ -184,7 +194,6 @@ def create_df(data):
     df['deltaWheel'] = deltaWheel
     
     df['trialFrameIntervals'] = frames
- #   df['framerate'] =  saved below as metadata
  
     df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
     df['actualSOA_ms'] = np.array(trueMaskOnset) * 1000
@@ -193,10 +202,11 @@ def create_df(data):
     df.date = date
     df.framerate = framerate
     
+        ## call reaction time function (defined below)
     times = rxnTimes(d, df)  # 0==initiation, 1==outcome, 2==ignore
     
-    df['initiationTime'] = times[0]
-    df['outcomeTime'] = times[1]
+    df['initiationTime_ms'] = times[0]
+    df['outcomeTime_ms'] = times[1]
     df['ignoreTrial'] = False   
     for i in times[2]:
         df.loc[i, 'ignoreTrial'] = True
@@ -205,9 +215,10 @@ def create_df(data):
 
 
 
-def get_dates(dateframe):
+def get_dates(dataframe):
+    
     from datetime import datetime
-    df=dateframe
+    df=dataframe
     if type(df.date) is list:
         dates = [datetime.strptime(date, '%Y%m%d').strftime('%m/%d/%Y') for date in df.date]
         date = '-'.join([dates[0], dates[-1]])
@@ -218,18 +229,32 @@ def get_dates(dateframe):
 
 
 
-def wheel_trace_slice(dataframe):
+def wheel_trace_slice(dataframe, prestim=False):
+    
     df = dataframe
 
     wheelDF = df[['trialStart','stimStart', 'respFrame', 'deltaWheel']].copy()
-    wheelDF['wheelLen'] = list(map(len, wheelDF.loc[:,'deltaWheel']))
+    wheelDF['wheelLen'] = list(map(len, wheelDF.loc[:,'deltaWheel']))   #len of deltaWheel trace
+    
+    
     
     wheelDF['diff1'] = wheelDF['stimStart'] - wheelDF['trialStart']  #prestim
     wheelDF['diff2'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
+    wheelDF['trialOnly'] = wheelDF['respFrame'] - wheelDF['stimStart'] #trialOnly
     
-    wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
-            wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
-    
+        # returns portion of wheel trace that is relevant only to target presentation (no prestim)
+#    if prestim==False:
+#        wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
+#                wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
+#    else:  
+#        pass
+#        # returns entire wheel trace from start of trial to end of trial ///not max possible trial length
+##         wheel = [wheel[:stop] for (wheel, stop) in zip(
+##                wheelDF['deltaWheel'], wheelDF['diff2'])]
+#        THIS NEEDS MAJOR WORK
+        
+    wheel = [wheel[-start:] for (wheel, start) in zip(
+                wheelDF['deltaWheel'], wheelDF['trialOnly'])]
     return wheel
 
 
@@ -238,9 +263,8 @@ def rxnTimes(data, dataframe):
     
     d = data
     df = dataframe
-    
-    fi = d['frameIntervals'][:]
-    framerate = int(np.round(1/np.median(fi)))
+        
+    ## USE THE TRIAL FRAME INTERVALS FROM DF -----
     
     monitorSize = d['monSizePix'][0] 
     
@@ -253,7 +277,9 @@ def rxnTimes(data, dataframe):
     sigThreshold = maxQuiescentMove * monitorSize
     rewThreshold = normRewardDist * monitorSize
 
-    wheelTrace = wheel_trace_slice(df)
+    fi = df['trialFrameIntervals']
+
+    wheelTrace = wheel_trace_slice(df, prestim=False)   # if want entire trial trace, add 'prestim=True'
     cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
 
     interpWheel = []
@@ -265,15 +291,19 @@ def rxnTimes(data, dataframe):
     ## use below code to determine wheel direction changes during trial 
     # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
     
-    for i, (wheel, resp, rew, soa) in enumerate(zip(
-            cumulativeWheel, df['resp'], df['rewDir'], df['soa'])):
+    # wheel interpolation starts at stim start and ends at max trial length if prestim!=True in above wheelTrace call
+    # depends on how wheel_trace_slice is called though
+    
+    for i, (wheel, resp, rew, soa, frames) in enumerate(zip(
+            cumulativeWheel, df['resp'], df['rewDir'], df['soa'], fi)):
 
         fp = wheel
-        xp = np.arange(0, len(fp))*1/framerate
+        xp = np.cumsum(frames[-len(fp):])   # this depends on how wheel_trace is called 
         x = np.arange(0, xp[-1], .001)
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
-        
+      
+
         sigMove = np.argmax(abs(interp)>=sigThreshold)   # or just > ??
         significantMovement.append(sigMove)
         if 0<sigMove<150:
@@ -291,8 +321,8 @@ def rxnTimes(data, dataframe):
         
         initiateMovement.append(init)
         
-        # this outcome time is not quite right - want time from start of choice til choice
-        # (using odified version of sam's method)
+        # this outcome time is not quite right - also want time from start of choice til choice
+        # (using modified version of sam's method)
         
         outcome = np.argmax(abs(interp) >= rewThreshold + interp[200])
         if outcome>0:
