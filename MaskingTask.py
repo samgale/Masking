@@ -91,7 +91,6 @@ class MaskingTask(TaskControl):
             self.openLoopFramesVariableMean = 0
             self.solenoidOpenTime = 0.2
             self.gratingEdge= 'raisedCos'
-         # only applies to raisedCos
             if taskVersion in ('rot','rotation'):
                 self.normTargetPos = [(0,0)]
                 self.targetOri = [-45,45]
@@ -118,22 +117,21 @@ class MaskingTask(TaskControl):
             # only use 1-2 sessions
             self.setDefaultParams('training1',taskVersion)
             self.normAutoMoveRate = 0
-            self.keepTargetOnScreen=False
+            self.keepTargetOnScreen = False
             self.normRewardDistance = 0.15 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
-            self.useIncorrectNoise=False
-            self.incorrectTrialRepeats = 20  # will repeat for unanswered trials 
-            self.maxConsecutiveSameDir = self.incorrectTrialRepeats+3
+            self.useIncorrectNoise = False
+            self.incorrectTrialRepeats = 20 # will repeat for unanswered trials 
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
                 self.useGoTone = False
             
         elif name == 'training3':
-            # start training, introduce incorrect trials and shorter wait time
+            # introduce shorter wait time and incorrect noise
             self.setDefaultParams('training2',taskVersion)
             self.normRewardDistance = 0.18
-            self.maxResponseWaitFrames = 1200   # manually adjust this 
+            self.maxResponseWaitFrames = 1200 # manually adjust this 
             self.incorrectTrialRepeats = 10
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
@@ -157,15 +155,6 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 50  # high while learning nogos
             self.incorrectTimeoutFrames = 720
             self.solenoidOpenTime = 0.05
-            
-        elif name == 'training6':
-            # introduce variable open loop frames
-            self.setDefaultParams('training5',taskVersion)
-            self.maxResponseWaitFrames = 60
-            self.openLoopFramesFixed = 24
-            self.openLoopFramesVariableMean = 36
-            self.openLoopFramesMax = 180
-            self.incorrectTrialRepeats = 0
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
@@ -292,7 +281,7 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None #CORBETT EDITED
+                    consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
                     showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
                     maskCount = maskCount + 1 if showMask else 0
                     if random.random() < self.probNoGo and consecutiveDir != 0:

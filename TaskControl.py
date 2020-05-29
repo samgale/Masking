@@ -32,11 +32,6 @@ class TaskControl():
         self.spacebarRewardsEnabled = True
         self.solenoidOpenTime = 0.05 # seconds
         self._solenoid = None
-        self.useLED = False
-        self.ledDur = 1.0
-        self.ledRampOn = 0
-        self.ledRampOff = 0.1
-        self.ledAmp = 5.0
         if self.rigName=='pilot':
             self.saveDir = r'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.screen = 1 # monitor to present stimuli on
@@ -113,11 +108,6 @@ class TaskControl():
                                   units='pix',
                                   color=self.monBackgroundColor)
         self._warper = Warper(self._win,warp=self.warp,warpfile=self.warpFile)
-        for _ in range(10):
-            self.frameRate = self._win.getActualFrameRate() # do this before recording frame intervals
-            if self.frameRate is not None:
-                break
-        assert(self.frameRate is not None)
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
         
         
@@ -214,7 +204,7 @@ class TaskControl():
     def startNidaqDevice(self):
         # analog inputs
         # AI0: rotary encoder
-        aiSampleRate = 2000 if self.frameRate > 100 else 1000
+        aiSampleRate = 2000 if self._win.monitorFramePeriod < 0.0125 else 1000
         aiBufferSize = 16
         self._rotaryEncoderInput = nidaqmx.Task()
         self._rotaryEncoderInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0',min_val=0,max_val=5)
@@ -234,30 +224,21 @@ class TaskControl():
         # analog outputs
         # AO0: water reward solenoid trigger
         aoSampleRate = 1000
-        rewardBufferSize = int(self.solenoidOpenTime * aoSampleRate) + 1
-        self._rewardSignal = np.zeros(rewardBufferSize)
+        nSamples = int(self.solenoidOpenTime * aoSampleRate) + 1
+        self._rewardSignal = np.zeros(nSamples)
         self._rewardSignal[:-1] = 5
         self._rewardOutput = nidaqmx.Task()
         self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao0',min_val=0,max_val=5)
         self._rewardOutput.write(0)
-        self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=rewardBufferSize)
+        self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=nSamples)
         self._nidaqTasks.append(self._rewardOutput)
         
         # AO1: led/laser trigger
-        if self.useLED:
-            ledBufferSize = int(self.ledDur * aoSampleRate) + 1
-            ledRamp = np.linspace(0,self.ledAmp,int(self.ledRamp * aoSampleRate))
-            self._ledSignal = np.zeros(ledBufferSize)
-            self._ledSignal[:-1] = self.ledAmp
-            if self.ledRampOn > 0:
-                self._ledSignal[:ledRamp.size] = ledRamp
-            if self.ledRampOff > 0:
-                self._ledSignal[-(ledRamp.size+1):-1] = ledRamp[::-1]
-            self._ledOutput = nidaqmx.Task()
-            self._ledOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao1',min_val=0,max_val=5)
-            self._ledOutput.write(0)
-            self._ledOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=ledBufferSize)
-            self._nidaqTasks.append(self._ledOutput)
+        self._optoOutput = nidaqmx.Task()
+        self._optoOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao1',min_val=0,max_val=5)
+        self._optoOutput.write(0)
+        self._optoOutput.timing.cfg_samp_clk_timing(aoSampleRate)
+        self._nidaqTasks.append(self._optoOutput)
             
         # digital inputs (port 0)
         # line 0.0: lick input
@@ -291,6 +272,7 @@ class TaskControl():
     
     def stopNidaqDevice(self):
         for task in self._nidaqTasks:
+            task.stop()
             task.close()
             
             
@@ -303,6 +285,7 @@ class TaskControl():
     def closeSolenoid(self):
         if self._solenoid is not None:
             self._solenoid.write(0)
+            self._solenoid.stop()
             self._solenoid.close()
             self._solenoid = None
             
@@ -327,10 +310,36 @@ class TaskControl():
         self._rewardOutput.stop()
         self._rewardOutput.write(self._rewardSignal,auto_start=True)
         
+        
+    def optoOn(self,amp=5,ramp=0):
+        self._optoAmp = amp
+        self.optoPulse(amp,onRamp=ramp,lastVal=amp)
     
-    def triggerLED(self):
-        self._ledOutput.stop()
-        self._ledOutput.write(self._ledSignal,auto_start=True)
+    
+    def optoOff(self,ramp=0):
+        amp = getattr(self,'_optoAmp',0) if ramp > 0 else 0 
+        self.optoPulse(amp,offRamp=ramp)
+    
+    
+    def optoPulse(self,amp=5,dur=0,onRamp=0,offRamp=0,lastVal=0):
+        sampleRate = self._optoOutput.timing.samp_clk_rate
+        nSamples = int((dur + onRamp + offRamp) * sampleRate) + 1
+        if nSamples < 2:
+            nSamples = 2
+        pulse = np.zeros(nSamples)
+        pulse[:-1] = amp
+        pulse[-1] = lastVal
+        if onRamp > 0:
+            ramp = np.linspace(0,amp,int(onRamp * sampleRate))
+            pulse[:ramp.size] = ramp
+        if offRamp > 0:
+            ramp = np.linspace(amp,0,int(offRamp * sampleRate))
+            print(ramp)
+            pulse[-(ramp.size+1):-1] = ramp
+        print(pulse)
+        self._optoOutput.stop()
+        self._optoOutput.timing.samp_quant_samp_per_chan = nSamples
+        self._optoOutput.write(pulse,auto_start=True)
     
         
     def getNidaqData(self):
