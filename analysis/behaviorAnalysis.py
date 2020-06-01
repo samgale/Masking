@@ -44,7 +44,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         responseFilter = [responseFilter]
     
     d = data
-    frameRate = d['frameRate'][()]
+    frameRate = d['frameRate'][()] if 'frameRate' in d.keys() else int(np.round(1/np.median(d['frameIntervals'][:])))
     trialEndFrames = d['trialEndFrame'][:]
     trialStartFrames = d['trialStartFrame'][:trialEndFrames.size]
     trialRewardDirection = d['trialRewardDir'][:trialEndFrames.size]
