@@ -228,46 +228,12 @@ def get_dates(dataframe):
 
 
 
-def wheel_trace_slice(dataframe, prestim=False):
-    
-    df = dataframe
-
-    wheelDF = df[['trialStart','stimStart', 'respFrame', 'deltaWheel', 'trialFrameIntervals']].copy()
-    wheelDF['wheelLen'] = list(map(len, wheelDF.loc[:,'deltaWheel']))   #len of deltaWheel trace
-    
-    
-    
-    wheelDF['stim'] = wheelDF['stimStart'] - wheelDF['trialStart']  #prestim
-    wheelDF['resp'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
-    wheelDF['trialOnly'] = wheelDF['respFrame'] - wheelDF['stimStart'] #trialOnly
-    
-        # returns portion of wheel trace that is relevant only to target presentation (no prestim)
-    if prestim==False:
-        wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
-                wheelDF['deltaWheel'], wheelDF['stim'], wheelDF['trialOnly'])]
-    else:  
-        pass
-#        # returns entire wheel trace from start of trial to end of trial ///not max possible trial length
-##         wheel = [wheel[:stop] for (wheel, stop) in zip(
-##                wheelDF['deltaWheel'], wheelDF['diff2'])]
-#        THIS NEEDS MAJOR WORK
-        
-    #returns wheel slice from stim start to maxTrialLength
-    wheel = [wheelTrace[stim:end] for (wheelTrace, stim, end) in 
-             zip(wheelDF['deltaWheel'], wheelDF['stim'], wheelDF['wheelLen'] )]
-        
-
-    return (wheel, wheelDF['stim'])
-
-
 
 def rxnTimes(data, dataframe):
     
     d = data
     df = dataframe
-        
-    ## USE THE TRIAL FRAME INTERVALS FROM DF -----
-    
+            
     monitorSize = d['monSizePix'][0] 
     
     normRewardDist = d['normRewardDistance'][()]
@@ -280,9 +246,8 @@ def rxnTimes(data, dataframe):
     rewThreshold = normRewardDist * monitorSize
 
     fi = d['frameIntervals'][:]
-
-    wheelTrace, stimInds = wheel_trace_slice(df, prestim=False)   # if want entire trial trace, add 'prestim=True'
-#    cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
+    
+    stimInds = df['stimStart'] - df['trialStart']
 
     interpWheel = []
     initiateMovement = []
