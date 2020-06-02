@@ -63,9 +63,6 @@ def create_df(data):
     d = data
     mouse, date = str(d).split('_')[-3:-1]
         
-    def convert_to_ms(value):
-        return value * 1000/framerate
-    
     trialResponse = d['trialResponse'][:]
     end = len(trialResponse)
     trialRewardDirection = d['trialRewardDir'][:end]
@@ -80,6 +77,8 @@ def create_df(data):
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
     
+    def convert_to_ms(value):
+        return value * 1000/framerate
 
     trialOpenLoopFrames = d['trialOpenLoopFrames'][:end]
     if len(np.unique(trialOpenLoopFrames)>1):
@@ -253,11 +252,12 @@ def wheel_trace_slice(dataframe, prestim=False):
 ##                wheelDF['deltaWheel'], wheelDF['diff2'])]
 #        THIS NEEDS MAJOR WORK
         
-    wheel = [wheelTrace[stim:stim+end] for (wheelTrace, stim, end) in 
-             zip(wheelDF['deltaWheel'], wheelDF['stim'], wheelDF['trialOnly'] )]
+    #returns wheel slice from stim start to maxTrialLength
+    wheel = [wheelTrace[stim:end] for (wheelTrace, stim, end) in 
+             zip(wheelDF['deltaWheel'], wheelDF['stim'], wheelDF['wheelLen'] )]
         
 
-    return wheel
+    return (wheel, wheelDF['stim'])
 
 
 
@@ -279,8 +279,9 @@ def rxnTimes(data, dataframe):
     sigThreshold = maxQuiescentMove * monitorSize
     rewThreshold = normRewardDist * monitorSize
 
+    fi = d['frameIntervals'][:]
 
-#    wheelTrace = wheel_trace_slice(df, prestim=False)   # if want entire trial trace, add 'prestim=True'
+    wheelTrace, stimInds = wheel_trace_slice(df, prestim=False)   # if want entire trial trace, add 'prestim=True'
 #    cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
 
     interpWheel = []
@@ -293,13 +294,13 @@ def rxnTimes(data, dataframe):
     # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
 
  
-    for i, (wheel, resp, rew, soa, f) in enumerate(zip(
-            df['deltaWheel'], df['resp'], df['rewDir'], df['soa'], df['trialFrameIntervals'])):
+    for i, (wheel, resp, rew, fiInd, stimInd) in enumerate(zip(
+            df['deltaWheel'],df['resp'], df['rewDir'], df['stimStart'], stimInds)):
 
-# frames (frame intervals) cover longer period than what we are looking at; need to slice in xp
         
-        fp = np.cumsum(wheel[:len(f)])
-        xp = np.cumsum(f[-len(fp):])    
+        f = fi[fiInd:fiInd+(len(wheel)-stimInd)]   #from stim start frame to len of maxTrial
+        fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   #deltaWheel from stimStart to len of trialFrameIntervals (trial end)
+        xp = np.cumsum(f)    
         x = np.arange(0, xp[-1], .001)
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
@@ -326,9 +327,9 @@ def rxnTimes(data, dataframe):
         # (using modified version of sam's method)
         
         if rew>0:
-             outcome = np.argmax(interp >= rewThreshold)
+             outcome = np.argmax(interp >= rewThreshold + interp[200])
         elif rew<0:
-            outcome = np.argmax(interp <= (rewThreshold*rew))
+            outcome = np.argmax(interp <= (rewThreshold*rew) + interp[200])
        
         if outcome>0:
             outcomeTimes.append(outcome)
@@ -339,15 +340,18 @@ def rxnTimes(data, dataframe):
 
 
 ## code to plot the above wheel traces, to visually inspect for accuracy
-test = [i for i, e in enumerate(interpWheel) if type(e)!=int]
-
-for i in test[:40]:
-    plt.figure()
-    plt.plot(interpWheel[i], lw=2)
-    plt.suptitle(i)
-    plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str))
-    plt.vlines(initiateMovement[i], -400, 400, ls='--', color='m', alpha=.4)
-    plt.vlines(significantMovement[i], -400, 400, ls='--', color='c', alpha=.4 )
-    plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3)
+#test = [i for i, e in enumerate(interpWheel) if type(e)!=int]
+#
+#for i in test[:40]:
+#    plt.figure()
+#    plt.plot(interpWheel[i], lw=2)
+#    plt.suptitle(str(i) + '  From Stim start to max trial len')
+#    plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str))
+#    plt.vlines(200, -500, 500, color='g', label='Go Tone')
+#    plt.vlines(initiateMovement[i], -400, 400, ls='--', color='m', alpha=.4, label='Initiation')
+#    plt.vlines(significantMovement[i], -400, 400, ls='--', color='c', alpha=.4 , label='Q threshold')
+#    plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3, label='Outcome Time')
+#    plt.vlines(df['trialLength_ms'][i], -500, 500, label='Trial Length')
+#    plt.legend()
 
 
