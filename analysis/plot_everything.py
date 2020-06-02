@@ -15,6 +15,7 @@ from responsePlotByParam import plot_by_param
 import dataAnalysis
 from QualityControl import check_frame_intervals
 
+
 # choose mouse file
 d = dataAnalysis.import_data()
 

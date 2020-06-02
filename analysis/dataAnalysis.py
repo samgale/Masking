@@ -77,7 +77,7 @@ def create_df(data):
     trialResponseFrame = d['trialResponseFrame'][:end] 
     trialEndFrame = d['trialEndFrame'][:end]
     
-    fi = d['frameIntervals'][:trialEndFrame[-1]]
+    fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
     
 
@@ -134,7 +134,7 @@ def create_df(data):
     
     turns, inds = nogo_turn(d)      #for both of these, [0]=nogos, [1]=maskOnly                    
     
-        #frame intervals for each trial
+        #frame intervals for each trial, start to end
     frames = [fi[start:end] for (start, end) in zip(trialStartFrame[:len(trialEndFrame)], trialEndFrame)]
     if len(trialEndFrame) < len(trialStartFrame):
         frames.append(fi[trialStartFrame[-1]:trialResponseFrame[-1]])
@@ -233,31 +233,30 @@ def wheel_trace_slice(dataframe, prestim=False):
     
     df = dataframe
 
-    wheelDF = df[['trialStart','stimStart', 'respFrame', 'deltaWheel']].copy()
+    wheelDF = df[['trialStart','stimStart', 'respFrame', 'deltaWheel', 'trialFrameIntervals']].copy()
     wheelDF['wheelLen'] = list(map(len, wheelDF.loc[:,'deltaWheel']))   #len of deltaWheel trace
     
     
     
-    wheelDF['diff1'] = wheelDF['stimStart'] - wheelDF['trialStart']  #prestim
-    wheelDF['diff2'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
+    wheelDF['stim'] = wheelDF['stimStart'] - wheelDF['trialStart']  #prestim
+    wheelDF['resp'] = wheelDF['respFrame'] - wheelDF['trialStart']  #entire trial
     wheelDF['trialOnly'] = wheelDF['respFrame'] - wheelDF['stimStart'] #trialOnly
     
         # returns portion of wheel trace that is relevant only to target presentation (no prestim)
-#    if prestim==False:
-#        wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
-#                wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
-#    else:  
-#        pass
+    if prestim==False:
+        wheel = [wheel[start:stop] for (wheel, start, stop) in zip(
+                wheelDF['deltaWheel'], wheelDF['stim'], wheelDF['trialOnly'])]
+    else:  
+        pass
 #        # returns entire wheel trace from start of trial to end of trial ///not max possible trial length
 ##         wheel = [wheel[:stop] for (wheel, stop) in zip(
 ##                wheelDF['deltaWheel'], wheelDF['diff2'])]
 #        THIS NEEDS MAJOR WORK
         
-    wheel = [wheelTrace[diff1:end] for (wheelTrace, diff1, end) in 
-             zip(wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
+    wheel = [wheelTrace[stim:stim+end] for (wheelTrace, stim, end) in 
+             zip(wheelDF['deltaWheel'], wheelDF['stim'], wheelDF['trialOnly'] )]
         
-#    wheel = [wheel[-start:] for (wheel, start) in zip(
-#                wheelDF['deltaWheel'], wheelDF['trialOnly'])]
+
     return wheel
 
 
@@ -275,15 +274,14 @@ def rxnTimes(data, dataframe):
     maxQuiescentMove = d['maxQuiescentNormMoveDist'][()]
     wheelSpeedGain = d['wheelSpeedGain'][()]
     
-    initiationThreshDeg = 0.5  #how did he decide this?
+    initiationThreshDeg = 0.5 
     initiationThreshPix = initiationThreshDeg*np.pi/180*wheelSpeedGain
     sigThreshold = maxQuiescentMove * monitorSize
     rewThreshold = normRewardDist * monitorSize
 
-    fi = df['trialFrameIntervals']
 
-    wheelTrace = wheel_trace_slice(df, prestim=False)   # if want entire trial trace, add 'prestim=True'
-    cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
+#    wheelTrace = wheel_trace_slice(df, prestim=False)   # if want entire trial trace, add 'prestim=True'
+#    cumulativeWheel = [np.cumsum(mvmt) for mvmt in wheelTrace]
 
     interpWheel = []
     initiateMovement = []
@@ -293,15 +291,15 @@ def rxnTimes(data, dataframe):
     
     ## use below code to determine wheel direction changes during trial 
     # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
-    
-    # wheel interpolation starts at stim start and ends at max trial length if prestim!=True in above wheelTrace call
-    # depends on how wheel_trace_slice is called though
-    
-    for i, (wheel, resp, rew, soa, frames) in enumerate(zip(
-            cumulativeWheel, df['resp'], df['rewDir'], df['soa'], fi)):
 
-        fp = wheel
-        xp = np.cumsum(frames[-len(fp):])   # this depends on how wheel_trace is called 
+ 
+    for i, (wheel, resp, rew, soa, f) in enumerate(zip(
+            df['deltaWheel'], df['resp'], df['rewDir'], df['soa'], df['trialFrameIntervals'])):
+
+# frames (frame intervals) cover longer period than what we are looking at; need to slice in xp
+        
+        fp = np.cumsum(wheel[:len(f)])
+        xp = np.cumsum(f[-len(fp):])    
         x = np.arange(0, xp[-1], .001)
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
@@ -341,15 +339,15 @@ def rxnTimes(data, dataframe):
 
 
 ## code to plot the above wheel traces, to visually inspect for accuracy
-#test = [i for i, e in enumerate(interpWheel) if type(e)!=int]
-#
-#for i in test[:40]:
-#    plt.figure()
-#    plt.plot(interpWheel[i], lw=2)
-#    plt.suptitle(i)
-#    plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str))
-#    plt.vlines(initiateMovement[i], -400, 400, ls='--', color='m', alpha=.4)
-#    plt.vlines(significantMovement[i], -400, 400, ls='--', color='c', alpha=.4 )
-#    plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3)
+test = [i for i, e in enumerate(interpWheel) if type(e)!=int]
+
+for i in test[:40]:
+    plt.figure()
+    plt.plot(interpWheel[i], lw=2)
+    plt.suptitle(i)
+    plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str))
+    plt.vlines(initiateMovement[i], -400, 400, ls='--', color='m', alpha=.4)
+    plt.vlines(significantMovement[i], -400, 400, ls='--', color='c', alpha=.4 )
+    plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3)
 
 
