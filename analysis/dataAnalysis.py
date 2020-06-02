@@ -253,8 +253,11 @@ def wheel_trace_slice(dataframe, prestim=False):
 ##                wheelDF['deltaWheel'], wheelDF['diff2'])]
 #        THIS NEEDS MAJOR WORK
         
-    wheel = [wheel[-start:] for (wheel, start) in zip(
-                wheelDF['deltaWheel'], wheelDF['trialOnly'])]
+    wheel = [wheelTrace[diff1:end] for (wheelTrace, diff1, end) in 
+             zip(wheelDF['deltaWheel'], wheelDF['diff1'], wheelDF['wheelLen'])]
+        
+#    wheel = [wheel[-start:] for (wheel, start) in zip(
+#                wheelDF['deltaWheel'], wheelDF['trialOnly'])]
     return wheel
 
 
@@ -324,7 +327,11 @@ def rxnTimes(data, dataframe):
         # this outcome time is not quite right - also want time from start of choice til choice
         # (using modified version of sam's method)
         
-        outcome = np.argmax(abs(interp) >= rewThreshold + interp[200])
+        if rew>0:
+             outcome = np.argmax(interp >= rewThreshold)
+        elif rew<0:
+            outcome = np.argmax(interp <= (rewThreshold*rew))
+       
         if outcome>0:
             outcomeTimes.append(outcome)
         else:
@@ -339,7 +346,8 @@ def rxnTimes(data, dataframe):
 #for i in test[:40]:
 #    plt.figure()
 #    plt.plot(interpWheel[i], lw=2)
-#    plt.title(i)
+#    plt.suptitle(i)
+#    plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str))
 #    plt.vlines(initiateMovement[i], -400, 400, ls='--', color='m', alpha=.4)
 #    plt.vlines(significantMovement[i], -400, 400, ls='--', color='c', alpha=.4 )
 #    plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3)

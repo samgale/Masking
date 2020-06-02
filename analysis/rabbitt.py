@@ -14,18 +14,19 @@ Next steps are to add a plot that separates response by side, especially for mic
 
 """
 
-from dataAnalysis import get_dates
+from dataAnalysis import get_dates, create_df
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
+import pandas 
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 sns.set_style('white')
 
 
-def rabbitt(dataframe):
+def plot_rabbitt(dataframe):
     
-    df = dataframe
+    df = dataframe if type(dataframe) is pandas.core.frame.DataFrame else create_df(dataframe)
     currentTrialPrevError = []  # inds of current trial
     currentTrialPrevCorr = []
     
