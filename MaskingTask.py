@@ -71,7 +71,10 @@ class MaskingTask(TaskControl):
         self.maskShape = 'target' # 'target', 'surround', 'full'
         self.maskOnset = [15] # frames >=0 relative to target stimulus onset
         self.maskFrames = [12] # duration of mask
-        self.maskContrast = [1]     
+        self.maskContrast = [1]
+        
+        # opto params
+#        self.optoOnset = []
 
     
     def setDefaultParams(self,name,taskVersion=None):
@@ -128,7 +131,7 @@ class MaskingTask(TaskControl):
                 self.useGoTone = False
             
         elif name == 'training3':
-            # introduce shorter wait time and incorrect noise
+            # introduce shorter wait time, quiescent period, and incorrect noise
             self.setDefaultParams('training2',taskVersion)
             self.normRewardDistance = 0.18
             self.maxResponseWaitFrames = 1200 # manually adjust this 
@@ -372,7 +375,7 @@ class MaskingTask(TaskControl):
                     if self.moveStim:
                         if rotateTarget:
                             if self.autoRotationRate > 0:
-                                deltaOri = rewardDir * self.autoRotationRate / self.frameRate
+                                deltaOri = rewardDir * self.autoRotationRate * self._win.monitorFramePeriod
                                 targetOri += deltaOri
                                 closedLoopWheelMove += deltaOri
                             elif self.gratingRotationGain > 0:
@@ -386,7 +389,7 @@ class MaskingTask(TaskControl):
                             target.ori = targetOri
                         else:
                             if self.normAutoMoveRate > 0:
-                                deltaPos = rewardDir * self.normAutoMoveRate * self.monSizePix[0] / self.frameRate
+                                deltaPos = rewardDir * self.normAutoMoveRate * self.monSizePix[0] * self._win.monitorFramePeriod
                                 targetPos[0] += deltaPos
                                 closedLoopWheelMove += deltaPos
                             else:
@@ -402,7 +405,7 @@ class MaskingTask(TaskControl):
                 if self.moveStim:
                     if targetFrames > 0:
                         if self.gratingDriftFreq > 0:
-                            target.phase[0] += rewardDir * self.gratingDriftFreq / self.frameRate
+                            target.phase[0] += rewardDir * self.gratingDriftFreq * self._win.monitorFramePeriod
                             target.phase = target.phase
                         elif self.reversePhasePeriod > 0 and ((self._trialFrame - self.trialPreStimFrames[-1]) % self.reversePhasePeriod) == 0:
                             phase = (0.5,0) if target.phase[0] == 0 else (0,0)
