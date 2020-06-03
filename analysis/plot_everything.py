@@ -29,6 +29,7 @@ behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1],
 # plot activity over entire session, trial-by-trial - 1 plot
 plot_session(d)
 
+
 # check for dropped frames
 check_frame_intervals(d)
 
@@ -43,9 +44,6 @@ plot_contrast(d)
 
 # plot masking session - 3 plots 
 performanceBySOA.plot_soa(d)
-
-
-
 
 
 # plot reaction time by parameter - 1 plot
