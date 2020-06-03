@@ -27,15 +27,15 @@ sns.set_style('white')
 def plot_rabbitt(dataframe):
     
     df = dataframe if type(dataframe) is pandas.core.frame.DataFrame else create_df(dataframe)
-    currentTrialPrevError = []  # inds of current trial
+    currentTrialPrevError = []  # indices of current trial
     currentTrialPrevCorr = []
     
     trialThatIsPrevError = []  # these are the inds of the prev trial to above trials
     trialThatIsPrevCorr = []
     
     
-    # get indices of trials where prev trial was either corr/error 
-    # e is the ind of previous trial, e+1 is ind of current trial (That we want the time for)
+# get indices of trials where prev trial was either corr/error 
+# e is the ind of previous trial, e+1 is ind of current trial (That we want the time for)
     for e, (prev, current) in enumerate(zip(df['resp'][:-1], df['resp'][1:])):
         
         if current==1:
@@ -51,12 +51,12 @@ def plot_rabbitt(dataframe):
                         else:
                             pass
     
-    # use indices to get outcome times from df    
-    # these are the times for the previous trial
+# use indices to get outcome times from df    
+# these are the times for the previous trial
     timePrevIncorrect = [df.loc[time, 'outcomeTime_ms'] for time in trialThatIsPrevError]
     timePrevCorrect = [df.loc[time, 'outcomeTime_ms'] for time in trialThatIsPrevCorr]
     
-    #these are all correct, current trials; preceding trials differ (above)
+#these are all correct, current trials; preceding trials differ (above)
     timeCurrTrialWithPrevIncorrect = [df.loc[time, 'outcomeTime_ms'] for time in currentTrialPrevError]
     timeCurrTrialWithPrevCorrect = [df.loc[time, 'outcomeTime_ms'] for time in currentTrialPrevCorr]
     
