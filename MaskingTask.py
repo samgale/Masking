@@ -125,7 +125,8 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
             self.useIncorrectNoise = False
-            self.incorrectTrialRepeats = 20 # will repeat for unanswered trials 
+            self.incorrectTrialRepeats = 20 # will repeat for unanswered trials
+            self.solenoidOpenTime = 0.1
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
                 self.useGoTone = False
@@ -138,7 +139,7 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 10
             self.useIncorrectNoise = True
             self.quiescentFrames = 60
-            self.solenoidOpenTime = 0.1
+            self.solenoidOpenTime = 0.08
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings
@@ -147,7 +148,7 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 5
             self.incorrectTimeoutFrames = 600
-            self.solenoidOpenTime = 0.08
+            self.solenoidOpenTime = 0.05
             
         elif name == 'training5':
             # introduce no-go trials
@@ -157,7 +158,6 @@ class MaskingTask(TaskControl):
             self.probNoGo = 0.33
             self.incorrectTrialRepeats = 50  # high while learning nogos
             self.incorrectTimeoutFrames = 720
-            self.solenoidOpenTime = 0.05
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
