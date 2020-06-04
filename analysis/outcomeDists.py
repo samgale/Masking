@@ -32,20 +32,20 @@ def plot_outcomes_byside(data):
     
     
     
-    fig, axes = plt.subplots(2, 2, sharex=True, sharey=True)
+    fig, axes = plt.subplots(2,2, sharex=True, sharey=True)
     
     fig.suptitle('Trial Outcome Time by side (ms)')
-    axes[0, 0].hist(corrR, color='r')
-    axes[0, 0].set_title('Right Correct')
+    axes[0,0].hist(corrR, color='r')
+    axes[0,0].set_title('Right Correct')
     
-    axes[0, 1].hist(incorrectR, color='k')
-    axes[0, 1].set_title('Right Incorrect')
+    axes[0,1].hist(incorrectR, color='k')
+    axes[0,1].set_title('Right Incorrect')
     
-    axes[1, 0].hist(corrL, color='b')
-    axes[1, 0].set_title('Left Correct')
+    axes[1,0].hist(corrL, color='b')
+    axes[1,0].set_title('Left Correct')
     
-    axes[1, 1].hist(incorrectL, color='k')
-    axes[1, 1].set_title('Left Incorrect')
+    axes[1,1].hist(incorrectL, color='k')
+    axes[1,1].set_title('Left Incorrect')
     
     
     for ax in axes.flat:
