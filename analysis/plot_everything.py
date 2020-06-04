@@ -21,9 +21,14 @@ d = dataAnalysis.import_data()
 
 # plot session wheel trace - 1 plot, unless mask==True - 2 plots
 ##  if session is from 1/13 - 1/28, use framesToShowBeforeStart=30, else 60
+
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
                                ignoreRepeats=True, framesToShowBeforeStart=60, 
                                mask=False, maskOnly=False)
+
+# plot activity over entire session, trial-by-trial - 1 plot
+plot_session(d)
+
 
 # check for dropped frames
 check_frame_intervals(d)
@@ -39,10 +44,6 @@ plot_contrast(d)
 
 # plot masking session - 3 plots 
 performanceBySOA.plot_soa(d)
-
-
-# plot activity over entire session, trial-by-trial - 1 plot
-plot_session(d)
 
 
 # plot reaction time by parameter - 1 plot
