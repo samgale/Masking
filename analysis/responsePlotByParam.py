@@ -30,8 +30,9 @@ def plot_by_param(df, selection='all', param1='soa', param2='trialLength',
     matplotlib.rcParams['pdf.fonttype'] = 42
     sns.set_style('white')
     
+    param2 = param2 + '_ms'
 
-    nonzeroRxns = df[(df['trialLength']!=df['trialLength'].max()) & 
+    nonzeroRxns = df[(df['trialLength_ms']!=df['trialLength_ms'].max()) & 
                      (df['ignoreTrial']!=True) & (df['resp']!=0)]
     # ^ this excludes noResp trials and correct NoGos; soa=-1 are nogo trials 
     
