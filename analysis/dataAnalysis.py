@@ -73,6 +73,7 @@ def create_df(data):
     trialStimStartFrame = d['trialStimStartFrame'][:end]
     trialResponseFrame = d['trialResponseFrame'][:end] 
     trialEndFrame = d['trialEndFrame'][:end]
+    postReward = d['postRewardTargetFrames'][()]
     
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
@@ -127,7 +128,7 @@ def create_df(data):
         # gives entire wheel trace from trial start to the max trial length
         # i.e. often goes into the start of the next trial - 
         # useful for analyzing turning beh on nogo/mask only
-    deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp] for (start, stim, openLoop) in 
+    deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp+postReward] for (start, stim, openLoop) in 
                   zip(d['trialStartFrame'][:len(trialStimStartFrame)],
                       trialStimStartFrame, trialOpenLoopFrames)]
     
@@ -239,6 +240,7 @@ def rxnTimes(data, dataframe):
     normRewardDist = d['normRewardDistance'][()]
     maxQuiescentMove = d['maxQuiescentNormMoveDist'][()]
     wheelSpeedGain = d['wheelSpeedGain'][()]
+    maxResp = d['maxResponseWaitFrames'][()]
     
     initiationThreshDeg = 0.5 
     initiationThreshPix = initiationThreshDeg*np.pi/180*wheelSpeedGain
@@ -259,12 +261,12 @@ def rxnTimes(data, dataframe):
     # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
 
  
-    for i, (wheel, resp, rew, fiInd, stimInd) in enumerate(zip(
-            df['deltaWheel'],df['resp'], df['rewDir'], df['stimStart'], stimInds)):
+    for i, (wheel, resp, rew, fiInd, stimInd, openLoop) in enumerate(zip(
+            df['deltaWheel'],df['resp'], df['rewDir'], df['stimStart'], stimInds, df['openLoopFrames'])):
 
         
-        f = fi[fiInd:fiInd+(len(wheel)-stimInd)]   #from stim start frame to len of maxTrial
-        fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   #deltaWheel from stimStart to len of trialFrameIntervals (trial end)
+        f = fi[fiInd:(fiInd+(len(wheel)-stimInd))]   #from stim start frame to len of maxTrial + 24 frames 
+        fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   
         xp = np.cumsum(f)    
         x = np.arange(0, xp[-1], .001)
         interp = np.interp(x,xp,fp)
@@ -291,11 +293,13 @@ def rxnTimes(data, dataframe):
         # this outcome time is not quite right - also want time from start of choice til choice
         # (using modified version of sam's method)
         
+        scal = 1 if interp[200] > 0 else -1
+          
         if rew>0:
-             outcome = np.argmax(interp >= rewThreshold + interp[200])
-        elif rew<0:
-            outcome = np.argmax(interp <= (rewThreshold*rew) + interp[200])
-       
+             outcome = np.argmax(interp >= rewThreshold + (scal * interp[200]))
+        elif rew<0:  
+            outcome = np.argmax(interp <= (rew*rewThreshold) + (scal * interp[200]))
+  
         if outcome>0:
             outcomeTimes.append(outcome)
         else:
@@ -317,6 +321,6 @@ def rxnTimes(data, dataframe):
 #    plt.vlines(significantMovement[i], -400, 400, ls='--', color='c', alpha=.4 , label='Q threshold')
 #    plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3, label='Outcome Time')
 #    plt.vlines(df['trialLength_ms'][i], -500, 500, label='Trial Length')
-#    plt.legend()
-
+#    plt.legend(loc='best')
+#
 
