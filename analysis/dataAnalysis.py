@@ -293,25 +293,24 @@ def rxnTimes(data, dataframe):
         # this outcome time is not quite right - also want time from start of choice til choice
         # (using modified version of sam's method)
         
-        scal = 1 if interp[200] > 0 else -1
           
         if rew>0:
-             outcome = np.argmax(interp >= rewThreshold + (scal * interp[200]))
+             outcome = np.argmax(interp[200:] >= rewThreshold + interp[200]) + 200
         elif rew<0:  
-            outcome = np.argmax(interp <= (rew*rewThreshold) + (scal * interp[200]))
+            outcome = np.argmax(interp[200:] <= (rew*rewThreshold) + interp[200]) + 200
   
-        if outcome>0:
-            outcomeTimes.append(outcome)
-        else:
+        if outcome==200:
             outcomeTimes.append(0)
+        else:
+            outcomeTimes.append(outcome)
 
     return np.array([initiateMovement, outcomeTimes, ignoreTrials])
 
 
 ## code to plot the above wheel traces, to visually inspect for accuracy
 #test = [i for i, e in enumerate(interpWheel) if type(e)!=int]
-#
-#for i in test[:40]:
+
+#for i in noOutcome:
 #    plt.figure()
 #    plt.plot(interpWheel[i], lw=2)
 #    plt.suptitle(str(i) + '  From Stim start to max trial len')
@@ -322,5 +321,5 @@ def rxnTimes(data, dataframe):
 #    plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3, label='Outcome Time')
 #    plt.vlines(df['trialLength_ms'][i], -500, 500, label='Trial Length')
 #    plt.legend(loc='best')
-#
+
 
