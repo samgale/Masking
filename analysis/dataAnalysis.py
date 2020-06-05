@@ -290,10 +290,8 @@ def rxnTimes(data, dataframe):
         
         initiateMovement.append(init)
         
-        # this outcome time is not quite right - also want time from start of choice til choice
-        # (using modified version of sam's method)
-        
-          
+        # also want time from start of choice til choice  (using modified version of sam's method)
+                 
         if rew>0:
              outcome = np.argmax(interp[200:] >= rewThreshold + interp[200]) + 200
         elif rew<0:  
