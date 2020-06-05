@@ -91,6 +91,7 @@ class TaskControl():
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
         self._tone = False # tone triggered at next frame flip if True
         self._noise = False # noise triggered at next frame flip if True
+        self._opto = False # dictionary of params for optoPulse at next frame flip or False
         
     
     def prepareWindow(self):
@@ -161,6 +162,10 @@ class TaskControl():
             self._diodeBox.fillColor = -self._diodeBox.fillColor
             self._diodeBox.draw()
         self._win.flip()
+        
+        if self._opto:
+            self.optoPulse(**self._opto)
+            self._opto = False
         
         if self._reward:
             self.triggerReward()
@@ -234,6 +239,7 @@ class TaskControl():
         self._optoOutput = nidaqmx.Task()
         self._optoOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao1',min_val=0,max_val=5)
         self._optoOutput.write(0)
+        self._optoAmp = 0
         self._optoOutput.timing.cfg_samp_clk_timing(aoSampleRate)
         self._nidaqTasks.append(self._optoOutput)
             
@@ -268,6 +274,8 @@ class TaskControl():
     
     
     def stopNidaqDevice(self):
+        if self._optoAmp:
+            self.optoOff()
         for task in self._nidaqTasks:
             task.stop()
             task.close()
@@ -309,12 +317,11 @@ class TaskControl():
         
         
     def optoOn(self,amp=5,ramp=0):
-        self._optoAmp = amp
         self.optoPulse(amp,onRamp=ramp,lastVal=amp)
     
     
     def optoOff(self,ramp=0):
-        amp = getattr(self,'_optoAmp',0) if ramp > 0 else 0 
+        amp = self._optoAmp if ramp > 0 else 0 
         self.optoPulse(amp,offRamp=ramp)
     
     
@@ -335,6 +342,7 @@ class TaskControl():
         self._optoOutput.stop()
         self._optoOutput.timing.samp_quant_samp_per_chan = nSamples
         self._optoOutput.write(pulse,auto_start=True)
+        self._optoAmp = lastVal
     
         
     def getNidaqData(self):
