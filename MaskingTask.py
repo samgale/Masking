@@ -33,7 +33,7 @@ class MaskingTask(TaskControl):
         self.openLoopFramesFixed = 24 # min frames after stimulus onset before wheel movement has effects
         self.openLoopFramesVariableMean = 0 # mean of additional open loop frames drawn from exponential distribution
         self.openLoopFramesMax = 120 # max total openLoopFrames
-        self.maxResponseWaitFrames = 360 # max frames between end of openLoopFrames and end of go trial
+        self.maxResponseWaitFrames = 120 # max frames between end of openLoopFrames and end of go trial
         self.nogoWaitFrames = 120 # frames after openLoopFrames during which mouse must remain still on nogo trials
         
         self.normRewardDistance = 0.25 # normalized to screen width
@@ -74,7 +74,9 @@ class MaskingTask(TaskControl):
         self.maskContrast = [1]
         
         # opto params
-#        self.optoOnset = []
+        self.probOpto = 0 # fraction of trials with optogenetic stimulation
+        self.optoAmp = 5 # V to led/laser driver
+        self.optoOnset = [] # frames >=0 relative to target stimulus onset
 
     
     def setDefaultParams(self,name,taskVersion=None):
@@ -156,6 +158,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.2
             self.maxResponseWaitFrames = 60
             self.probNoGo = 0.33
+            self.nogoWaitFrames = 60
             self.incorrectTrialRepeats = 50  # high while learning nogos
             self.incorrectTimeoutFrames = 720
             
@@ -255,6 +258,7 @@ class MaskingTask(TaskControl):
         self.trialMaskFrames = []
         self.trialMaskContrast = []
         self.trialRewardDir = []
+        self.trialOptoOnset = []
         self.trialResponse = []
         self.trialResponseFrame = []
         self.trialRepeat = [False]
@@ -334,6 +338,7 @@ class MaskingTask(TaskControl):
                             else:
                                 targetContrast = self.targetContrast[0]
                                 targetFrames = self.targetFrames[0]
+                    optoOnset = random.choice(self.optoOnset) if random.random() < self.probOpto else None
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
@@ -355,6 +360,7 @@ class MaskingTask(TaskControl):
                 self.trialMaskFrames.append(maskFrames)
                 self.trialMaskContrast.append(maskContrast)
                 self.trialRewardDir.append(rewardDir)
+                self.trialOptoOnset.append(optoOnset)
                 hasResponded = False
             
             # extend pre stim gray frames if wheel moving during quiescent period
@@ -419,7 +425,10 @@ class MaskingTask(TaskControl):
                             m.draw()
                     elif self._trialFrame < self.trialPreStimFrames[-1] + targetFrames:
                         target.draw()
-            
+                
+                if optoOnset is not None:
+                    pass
+                    
                 # define response if wheel moved past threshold (either side) or max trial duration reached
                 # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
                 # trialResponse for no go trials is 1 for no response or -1 for movement in either direction
@@ -450,7 +459,7 @@ class MaskingTask(TaskControl):
                 
             # show any post response stimuli or end trial
             if hasResponded:
-                if (self.trialResponse[-1] > 0 and targetFrames > 0 and
+                if (self.moveStim and self.trialResponse[-1] > 0 and targetFrames > 0 and
                     self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames):
                     # hold target and reward pos/ori after correct trial
                     if self._sessionFrame == self.trialResponseFrame[-1]:
