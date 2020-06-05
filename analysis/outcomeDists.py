@@ -17,12 +17,12 @@ import matplotlib.pyplot as plt
 
 def plot_outcomes_byside(data):
     
-
+    
     df = create_df(data)
     
     
-    rightTurns = df[(df['trialLength_ms']!=df['trialLength_ms'].max()) & (df['rewDir']==1)]
-    leftTurns = df[(df['trialLength_ms']!=df['trialLength_ms'].max()) & (df['rewDir']==-1)]
+    rightTurns = df[(df['trialLength_ms']!=df['trialLength_ms'].max()) & (df['rewDir']==1) & (df['ignoreTrial']==False)]
+    leftTurns = df[(df['trialLength_ms']!=df['trialLength_ms'].max()) & (df['rewDir']==-1) & (df['ignoreTrial']==False)]
     
     corrR = rightTurns['outcomeTime_ms'][rightTurns['resp']==1]
     incorrectR = rightTurns['outcomeTime_ms'][rightTurns['resp']==-1]
@@ -31,7 +31,25 @@ def plot_outcomes_byside(data):
     incorrectL = leftTurns['outcomeTime_ms'][leftTurns['resp']==-1]
     
     
+# only plotting correct     
+    fig, axes = plt.subplots(2, sharex=True, sharey=True)
     
+    fig.suptitle('Trial Outcome Time by side (ms)')
+    axes[0].hist(corrR, color='r')
+    axes[0].set_title('Right Correct')
+       
+    axes[1].hist(corrL, color='b')
+    axes[1].set_title('Left Correct')
+    
+    plt.xlabel('Outcome Time (ms)')
+    plt.ylabel('Number of Trials')
+        
+    for ax in axes.flat:
+        ax.set(xlabel='Outcome Time (ms)', ylabel='Number of trials')
+        ax.set_xlim(left=0)
+    
+    
+# plotting corr and incorrect    
     fig, axes = plt.subplots(2,2, sharex=True, sharey=True)
     
     fig.suptitle('Trial Outcome Time by side (ms)')
@@ -44,17 +62,16 @@ def plot_outcomes_byside(data):
     axes[1,0].hist(corrL, color='b')
     axes[1,0].set_title('Left Correct')
     
+    plt.xlabel('Outcome Time (ms)')
+    
     axes[1,1].hist(incorrectL, color='k')
     axes[1,1].set_title('Left Incorrect')
-    
-    
+     
     for ax in axes.flat:
-        ax.set(xlabel='Outcome Time (ms)', ylabel='Number of trials')
+        axes[0,0].set(xlabel='Outcome Time (ms)', ylabel='Number of trials')
         ax.set_xlim(left=0)
     
     # Hide x labels and tick labels for top plots and y ticks for right plots.
     for ax in axes.flat:
         ax.label_outer()
-    
-    
     
