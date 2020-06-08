@@ -23,15 +23,12 @@ class TaskControl():
         self.saveFrameIntervals = True
         self.drawDiodeBox = True
         self.monBackgroundColor = 0
-        self.nidaqDevice = 'USB-6001'
-        self.nidaqDeviceName = 'Dev1'
         self.wheelRotDir = -1 # 1 or -1
         self.wheelSpeedGain = 1200 # arbitrary scale factor
         self.minWheelAngleChange = 0 # radians
         self.maxWheelAngleChange = 0.5 # radians
         self.spacebarRewardsEnabled = True
         self.solenoidOpenTime = 0.05 # seconds
-        self._solenoid = None
         if self.rigName=='pilot':
             self.saveDir = r'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.screen = 1 # monitor to present stimuli on
@@ -44,6 +41,8 @@ class TaskControl():
             self.warpFile = None
             self.diodeBoxSize = 50
             self.diodeBoxPosition = (935,-515)
+            self.nidaqDevices = ('USB-6001','USB-6001')
+            self.nidaqDeviceNames = ('Dev1','Dev2')
         elif self.rigName=='box5':
             self.saveDir = r'C:\Users\svc_ccg\Documents\Data'
             self.screen = 0 # monitor to present stimuli on
@@ -56,6 +55,8 @@ class TaskControl():
             self.warpFile = None
             self.diodeBoxSize = 50
             self.diodeBoxPosition = (935,-515)
+            self.nidaqDevices = ('USB-6001',)
+            self.nidaqDeviceNames = ('Dev1',)
         
     
     def prepareSession(self):
@@ -91,7 +92,7 @@ class TaskControl():
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
         self._tone = False # tone triggered at next frame flip if True
         self._noise = False # noise triggered at next frame flip if True
-        self._opto = False # dictionary of params for optoPulse at next frame flip or False
+        self._opto = False # False or dictionary of params for optoPulse at next frame flip
         
     
     def prepareWindow(self):
@@ -204,12 +205,12 @@ class TaskControl():
         
     
     def startNidaqDevice(self):
-        # analog inputs
+        # Dev1 analog inputs
         # AI0: rotary encoder
         aiSampleRate = 2000 if self._win.monitorFramePeriod < 0.0125 else 1000
         aiBufferSize = 16
         self._rotaryEncoderInput = nidaqmx.Task()
-        self._rotaryEncoderInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0',min_val=0,max_val=5)
+        self._rotaryEncoderInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceNames[0]+'/ai0',min_val=0,max_val=5)
         self._rotaryEncoderInput.timing.cfg_samp_clk_timing(aiSampleRate,
                                                             sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS,
                                                             samps_per_chan=aiBufferSize)
@@ -223,72 +224,74 @@ class TaskControl():
         self._rotaryEncoderInput.start()
         self._nidaqTasks.append(self._rotaryEncoderInput)
         
-        # analog outputs
+        # Dev1 analog outputs
         # AO0: water reward solenoid
         aoSampleRate = 1000
         nSamples = int(self.solenoidOpenTime * aoSampleRate) + 1
         self._rewardSignal = np.zeros(nSamples)
         self._rewardSignal[:-1] = 5
         self._rewardOutput = nidaqmx.Task()
-        self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao0',min_val=0,max_val=5)
+        self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[0]+'/ao0',min_val=0,max_val=5)
         self._rewardOutput.write(0)
         self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=nSamples)
         self._nidaqTasks.append(self._rewardOutput)
         
-        # AO1: led/laser
-        self._optoOutput = nidaqmx.Task()
-        self._optoOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao1',min_val=0,max_val=5)
-        self._optoOutput.write(0)
-        self._optoAmp = 0
-        self._optoOutput.timing.cfg_samp_clk_timing(aoSampleRate)
-        self._nidaqTasks.append(self._optoOutput)
+        # Dev2 analog outputs
+        # AO0: led/laser
+        if len(self.nidaqDevices)>1:
+            self._optoOutput = nidaqmx.Task()
+            self._optoOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[1]+'/ao0',min_val=0,max_val=5)
+            self._optoOutput.write(0)
+            self._optoAmp = 0
+            self._optoOutput.timing.cfg_samp_clk_timing(aoSampleRate)
+            self._nidaqTasks.append(self._optoOutput)
             
-        # digital inputs (port 0)
+        # Dev1 digital inputs (port 0)
         # line 0.0: lick input
         self._lickInput = nidaqmx.Task()
-        self._lickInput.di_channels.add_di_chan(self.nidaqDeviceName+'/port0/line0',
+        self._lickInput.di_channels.add_di_chan(self.nidaqDeviceNames[0]+'/port0/line0',
                                                 line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
         self._nidaqTasks.append(self._lickInput)
         
-        # digital outputs (port 1)
+        # Dev1 digital outputs (port 1)
         # line 1.0: frame signal
         self._frameSignalOutput = nidaqmx.Task()
-        self._frameSignalOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line0',
+        self._frameSignalOutput.do_channels.add_do_chan(self.nidaqDeviceNames[0]+'/port1/line0',
                                                         line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
         self._frameSignalOutput.write(False)
         self._nidaqTasks.append(self._frameSignalOutput)
         
         # line 1.1: tone trigger
         self._toneOutput = nidaqmx.Task()
-        self._toneOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line1',
+        self._toneOutput.do_channels.add_do_chan(self.nidaqDeviceNames[0]+'/port1/line1',
                                                    line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
         self._toneOutput.write(False)
         self._nidaqTasks.append(self._toneOutput)
         
         # line 1.2: noise trigger
         self._noiseOutput = nidaqmx.Task()
-        self._noiseOutput.do_channels.add_do_chan(self.nidaqDeviceName+'/port1/line2',
+        self._noiseOutput.do_channels.add_do_chan(self.nidaqDeviceNames[0]+'/port1/line2',
                                                    line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE)
         self._noiseOutput.write(False)
         self._nidaqTasks.append(self._noiseOutput)
     
     
     def stopNidaqDevice(self):
-        if self._optoAmp:
+        if getattr(self,'_optoAmp',0):
             self.optoOff()
         for task in self._nidaqTasks:
-            task.stop()
+            task.stop() # waits for task to finish
             task.close()
             
             
     def openSolenoid(self):
         self._solenoid = nidaqmx.Task()
-        self._solenoid.ao_channels.add_ao_voltage_chan(self.nidaqDeviceName+'/ao0',min_val=0,max_val=5)
+        self._solenoid.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[0]+'/ao0',min_val=0,max_val=5)
         self._solenoid.write(5)
         
     
     def closeSolenoid(self):
-        if self._solenoid is not None:
+        if getattr(self,'_solenoid',0):
             self._solenoid.write(0)
             self._solenoid.stop()
             self._solenoid.close()
