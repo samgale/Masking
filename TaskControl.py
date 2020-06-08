@@ -393,16 +393,19 @@ def saveParameters(fileOut,paramDict,dictName=None):
                 saveParameters(fileOut,val,paramName)
             else:
                 try:
-                    if val is None:
-                        val = np.nan
-                    elif (isinstance(val,(list,tuple)) and len(val) > 1 and 
-                          all(isinstance(v,(list,tuple)) for v in val) and [len(v) for v in val].count(len(val[0])) < len(val)):
-                        # convert list of lists of unequal len to nan padded array
-                        valArray = np.full((len(val),max(len(v) for v in val)),np.nan)
-                        for i,v in enumerate(val):
-                            valArray[i,:len(v)] = v
-                        val = valArray
-                    fileOut.create_dataset(paramName,data=val)
+                    if isinstance(val,(list,tuple)) and all(isinstance(v,str) for v in val):
+                        fileOut.create_dataset(paramName,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=str))
+                    else:
+                        if val is None:
+                            val = np.nan
+                        elif (isinstance(val,(list,tuple)) and len(val) > 1 and 
+                              all(isinstance(v,(list,tuple)) for v in val) and [len(v) for v in val].count(len(val[0])) < len(val)):
+                            # convert list of lists of unequal len to nan padded array
+                            valArray = np.full((len(val),max(len(v) for v in val)),np.nan)
+                            for i,v in enumerate(val):
+                                valArray[i,:len(v)] = v
+                            val = valArray
+                        fileOut.create_dataset(paramName,data=val)
                 except:
                     print('could not save ' + key)
                     
