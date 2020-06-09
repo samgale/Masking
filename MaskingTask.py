@@ -106,12 +106,8 @@ class MaskingTask(TaskControl):
                 self.gratingEdgeBlurWidth = 0.04
                 self.useGoTone=False
             else:
-                if taskVersion in ('pos','position'):
-                    self.normTargetPos = [(-0.25,0),(0.25,0)]
-                    self.targetOri = [0]
-                else:
-                    self.normTargetPos = [(0,0)]
-                    self.targetOri = [-45,45]
+                self.normTargetPos = [(-0.25,0),(0.25,0)]
+                self.targetOri = [0]
                 self.normAutoMoveRate = 0.25
                 self.normRewardDistance =  0.25
                 self.targetSize = 25
@@ -123,7 +119,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training1',taskVersion)
             self.normAutoMoveRate = 0
             self.keepTargetOnScreen = False
-            self.normRewardDistance = 0.15 
+            self.normRewardDistance = 0.125 
             self.maxResponseWaitFrames = 3600
             self.incorrectTimeoutFrames = 240
             self.useIncorrectNoise = False
@@ -136,7 +132,7 @@ class MaskingTask(TaskControl):
         elif name == 'training3':
             # introduce shorter wait time, quiescent period, and incorrect noise
             self.setDefaultParams('training2',taskVersion)
-            self.normRewardDistance = 0.18
+            self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 1200 # manually adjust this 
             self.incorrectTrialRepeats = 10
             self.useIncorrectNoise = True
@@ -146,7 +142,7 @@ class MaskingTask(TaskControl):
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3',taskVersion)
-            self.normRewardDistance = 0.2
+            self.normRewardDistance = 0.175
             self.maxResponseWaitFrames = 120
             self.incorrectTrialRepeats = 5
             self.incorrectTimeoutFrames = 600
