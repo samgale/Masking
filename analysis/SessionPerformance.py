@@ -37,8 +37,6 @@ def plot_session(data):
     
     df = pd.DataFrame(data, index=trialResponseFrame, columns=['rewardDir', 'trialResp', 'mask', 'target', 'maskCon'])
     df['CumPercentCorrect'] = df['trialResp'].cumsum()
-    index = df.index
-    values = df.values
     
     #function? 
     rightCorr = df[(df['trialResp']==1) & (df['rewardDir']==1)]
@@ -84,7 +82,8 @@ def plot_session(data):
             ax.annotate(str(mask), xy=(i,corr), xytext=(0, 20), textcoords='offset points', fontsize=8)
             
         
-    plt.title(str(d).split('_')[-3:-1])
+    plt.suptitle(str(d).split('_')[-3:-1])
+    plt.title('Choices over the Session')
     plt.show()
 
 
