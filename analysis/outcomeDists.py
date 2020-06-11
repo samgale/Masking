@@ -10,14 +10,13 @@ to monitor biases
 
 """
 
-from dataAnalysis import import_data, create_df
+from dataAnalysis import import_data, create_df, get_dates
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 
 def plot_outcomes_byside(data):
-    
-    
+        
     df = create_df(data)
     
     
@@ -30,24 +29,29 @@ def plot_outcomes_byside(data):
     corrL = leftTurns['outcomeTime_ms'][leftTurns['resp']==1]
     incorrectL = leftTurns['outcomeTime_ms'][leftTurns['resp']==-1]
     
+    date = get_dates(df)
+    mouse = df.mouse
+    xMax = data['maxResponseWaitFrames'][()] * 1000/df.framerate
     
 # only plotting correct     
     fig, axes = plt.subplots(2, sharex=True, sharey=True)
-    
-    fig.suptitle('Trial Outcome Time by side (ms)')
-    axes[0].hist(corrR, color='r')
-    axes[0].set_title('Right Correct')
-       
-    axes[1].hist(corrL, color='b')
-    axes[1].set_title('Left Correct')
-    
-    plt.xlabel('Outcome Time (ms)')
-    plt.ylabel('Number of Trials')
         
-    for ax in axes.flat:
-        ax.set(xlabel='Outcome Time (ms)', ylabel='Number of trials')
-        ax.set_xlim(left=0)
+    bins = np.linspace(200, xMax, ((xMax-200)/50)+1)
     
+    fig.suptitle(mouse + '   ' + date)
+    axes[0].hist(corrR, color='r', bins=bins)
+    axes[0].set(ylabel = 'N Trials, Right Turning')
+    axes[0].set_title('Outcome Time for correct choices by side (ms)')
+       
+    axes[1].hist(corrL, color='b', bins=bins)
+    axes[1].set(ylabel='N Trials, Left Turning')
+    axes[1].set(xlabel='Outcome Time (ms)')
+    
+    for ax in axes.flat:
+        ax.set_xlim(left=200)
+
+    # annotate turning firection, rather than y label??
+    # need to normalize by frequency?? some mice responding more to one side, makes hists taller    
     
 # plotting corr and incorrect    
     fig, axes = plt.subplots(2,2, sharex=True, sharey=True)

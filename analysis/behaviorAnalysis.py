@@ -232,7 +232,8 @@ def get_files(mouse_id, task):
     '''
     task is either 'training_' or 'masking_'
     '''
-    directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
+    task += 'to_analyze'
+    directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice\'
     dataDir = os.path.join(os.path.join(directory, mouse_id), task)   
     files = os.listdir(dataDir)
     files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))

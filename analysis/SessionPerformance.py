@@ -13,6 +13,8 @@ from nogoData import nogo_turn
 """
 plots the choices (in order) over the length of a session
 
+change this to create a df using dataAnalysis and the column of nogo turning?
+
 """
 
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -35,8 +37,6 @@ def plot_session(data):
     
     df = pd.DataFrame(data, index=trialResponseFrame, columns=['rewardDir', 'trialResp', 'mask', 'target', 'maskCon'])
     df['CumPercentCorrect'] = df['trialResp'].cumsum()
-    index = df.index
-    values = df.values
     
     #function? 
     rightCorr = df[(df['trialResp']==1) & (df['rewardDir']==1)]
@@ -63,7 +63,7 @@ def plot_session(data):
     
     if 0 in trialTargetFrames:
     
-        no_gos = nogo_turn(d, ignoreRepeats=False, returnArray=True)[0] # False bc we want to see all the trials in order 
+        no_gos, _ = nogo_turn(d, ignoreRepeats=False, returnArray=True)[0] # False bc we want to see all the trials in order 
         
         nogoMiss = pd.DataFrame(nogoMiss['CumPercentCorrect'])
         ax.plot(nogoCorr['CumPercentCorrect'], 'g^', ms=10)
@@ -82,7 +82,8 @@ def plot_session(data):
             ax.annotate(str(mask), xy=(i,corr), xytext=(0, 20), textcoords='offset points', fontsize=8)
             
         
-    plt.title(str(d).split('_')[-3:-1])
+    plt.suptitle(str(d).split('_')[-3:-1])
+    plt.title('Choices over the Session')
     plt.show()
 
 
