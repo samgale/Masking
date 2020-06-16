@@ -84,6 +84,13 @@ def plot_session(data):
         
     plt.suptitle(str(d).split('_')[-3:-1])
     plt.title('Choices over the Session')
+    plt.ylabel('Cumulative Rewards')
+    plt.xlabel('Length of session (sec)')
+    
+    fi = d['frameIntervals'][:]
+    framerate = int(np.round(1/np.median(fi)))
+    labels = [str(np.round(int(ind/framerate))) for ind in ax.get_xticks()]
+    ax.set_xticklabels(labels)
     plt.show()
 
 
