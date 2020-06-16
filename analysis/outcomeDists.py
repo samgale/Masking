@@ -36,7 +36,7 @@ def plot_outcomes_byside(data):
 # only plotting correct     
     fig, axes = plt.subplots(2, sharex=True, sharey=True)
         
-    bins = np.linspace(200, xMax, ((xMax-200)/50)+1)
+    bins = np.linspace(200, xMax, ((xMax-200)/25)+1)
     
     fig.suptitle(mouse + '   ' + date)
     axes[0].hist(corrR, color='r', bins=bins)
@@ -54,28 +54,28 @@ def plot_outcomes_byside(data):
     # need to normalize by frequency?? some mice responding more to one side, makes hists taller    
     
 # plotting corr and incorrect    
-    fig, axes = plt.subplots(2,2, sharex=True, sharey=True)
-    
-    fig.suptitle('Trial Outcome Time by side (ms)')
-    axes[0,0].hist(corrR, color='r')
-    axes[0,0].set_title('Right Correct')
-    
-    axes[0,1].hist(incorrectR, color='k')
-    axes[0,1].set_title('Right Incorrect')
-    
-    axes[1,0].hist(corrL, color='b')
-    axes[1,0].set_title('Left Correct')
-    
-    plt.xlabel('Outcome Time (ms)')
-    
-    axes[1,1].hist(incorrectL, color='k')
-    axes[1,1].set_title('Left Incorrect')
-     
-    for ax in axes.flat:
-        axes[0,0].set(xlabel='Outcome Time (ms)', ylabel='Number of trials')
-        ax.set_xlim(left=0)
-    
-    # Hide x labels and tick labels for top plots and y ticks for right plots.
-    for ax in axes.flat:
-        ax.label_outer()
+#    fig, axes = plt.subplots(2,2, sharex=True, sharey=True)
+#    
+#    fig.suptitle('Trial Outcome Time by side (ms)')
+#    axes[0,0].hist(corrR, color='r')
+#    axes[0,0].set_title('Right Correct')
+#    
+#    axes[0,1].hist(incorrectR, color='k')
+#    axes[0,1].set_title('Right Incorrect')
+#    
+#    axes[1,0].hist(corrL, color='b')
+#    axes[1,0].set_title('Left Correct')
+#    
+#    plt.xlabel('Outcome Time (ms)')
+#    
+#    axes[1,1].hist(incorrectL, color='k')
+#    axes[1,1].set_title('Left Incorrect')
+#     
+#    for ax in axes.flat:
+#        axes[0,0].set(xlabel='Outcome Time (ms)', ylabel='Number of trials')
+#        ax.set_xlim(left=0)
+#    
+#    # Hide x labels and tick labels for top plots and y ticks for right plots.
+#    for ax in axes.flat:
+#        ax.label_outer()
     
