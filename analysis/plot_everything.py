@@ -14,6 +14,7 @@ from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param
 import dataAnalysis
 from QualityControl import check_frame_intervals
+from percentCorrect import session_stats
 
 
 # choose mouse file
@@ -28,6 +29,10 @@ behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1],
 
 # plot activity over entire session, trial-by-trial - 1 plot
 plot_session(d)
+
+
+# prints out performance counts/% from session
+session_stats(d)
 
 
 # check for dropped frames
