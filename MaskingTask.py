@@ -119,11 +119,10 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training1',taskVersion)
             self.normAutoMoveRate = 0
             self.keepTargetOnScreen = False
-            self.normRewardDistance = 0.125 
+            self.normRewardDistance = 0.12
             self.maxResponseWaitFrames = 3600
-            self.incorrectTimeoutFrames = 240
             self.useIncorrectNoise = False
-            self.incorrectTrialRepeats = 20 # will repeat for unanswered trials
+            self.incorrectTrialRepeats = 10 # will repeat for unanswered trials
             self.solenoidOpenTime = 0.1
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
@@ -134,28 +133,23 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training2',taskVersion)
             self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 1200 # manually adjust this 
-            self.incorrectTrialRepeats = 10
             self.useIncorrectNoise = True
+            self.incorrectTimeoutFrames = 240
             self.quiescentFrames = 60
             self.solenoidOpenTime = 0.08
             
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3',taskVersion)
-            self.normRewardDistance = 0.175
-            self.maxResponseWaitFrames = 120
-            self.incorrectTrialRepeats = 5
+            self.normRewardDistance = 0.18
+            self.maxResponseWaitFrames = 60
             self.incorrectTimeoutFrames = 600
             self.solenoidOpenTime = 0.05
             
         elif name == 'training5':
             # introduce no-go trials
             self.setDefaultParams('training4',taskVersion)
-            self.normRewardDistance = 0.2
-            self.maxResponseWaitFrames = 60
             self.probNoGo = 0.33
-            self.incorrectTrialRepeats = 50  # high while learning nogos
-            self.incorrectTimeoutFrames = 720
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
