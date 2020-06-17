@@ -119,10 +119,10 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training1',taskVersion)
             self.normAutoMoveRate = 0
             self.keepTargetOnScreen = False
-            self.normRewardDistance = 0.12
+            self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 3600
             self.useIncorrectNoise = False
-            self.incorrectTrialRepeats = 10 # will repeat for unanswered trials
+            self.incorrectTrialRepeats = 5 # will repeat for unanswered trials
             self.solenoidOpenTime = 0.1
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
@@ -131,7 +131,6 @@ class MaskingTask(TaskControl):
         elif name == 'training3':
             # introduce shorter wait time, quiescent period, and incorrect noise
             self.setDefaultParams('training2',taskVersion)
-            self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 1200 # manually adjust this 
             self.useIncorrectNoise = True
             self.incorrectTimeoutFrames = 240
@@ -141,7 +140,6 @@ class MaskingTask(TaskControl):
         elif name == 'training4':
             # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3',taskVersion)
-            self.normRewardDistance = 0.18
             self.maxResponseWaitFrames = 60
             self.incorrectTimeoutFrames = 600
             self.solenoidOpenTime = 0.05
