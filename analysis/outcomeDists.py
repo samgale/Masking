@@ -12,6 +12,8 @@ to monitor biases
 
 from dataAnalysis import import_data, create_df, get_dates
 import matplotlib.pyplot as plt
+from matplotlib.ticker import PercentFormatter
+
 import numpy as np
 
 
@@ -36,19 +38,25 @@ def plot_outcomes_byside(data):
 # only plotting correct     
     fig, axes = plt.subplots(2, sharex=True, sharey=True)
         
-    bins = np.linspace(200, xMax, ((xMax-200)/25)+1)
+    bins = np.linspace(200, xMax, ((xMax-200)/50)+1)
     
     fig.suptitle(mouse + '   ' + date)
-    axes[0].hist(corrR, color='r', bins=bins)
-    axes[0].set(ylabel = 'N Trials, Right Turning')
+    axes[0].hist(corrR, weights=np.ones(len(corrR)) / len(corrR), color='r', bins=bins)
+    axes[0].set(ylabel = '% Trials, Right Turning')
     axes[0].set_title('Outcome Time for correct choices by side (ms)')
        
-    axes[1].hist(corrL, color='b', bins=bins)
-    axes[1].set(ylabel='N Trials, Left Turning')
+    axes[1].hist(corrL, weights=np.ones(len(corrL)) / len(corrL), color='b', bins=bins)
+    axes[1].set(ylabel='% Trials, Left Turning')
     axes[1].set(xlabel='Outcome Time (ms)')
     
     for ax in axes.flat:
         ax.set_xlim(left=200)
+        
+    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+
+
+
+
 
     # annotate turning firection, rather than y label??
     # need to normalize by frequency?? some mice responding more to one side, makes hists taller    
