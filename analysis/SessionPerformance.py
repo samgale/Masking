@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib
 from matplotlib import pyplot as plt
 from nogoData import nogo_turn
+import numpy as np
 
 """
 plots the choices (in order) over the length of a session
@@ -53,12 +54,12 @@ def plot_session(data):
     
     fig, ax = plt.subplots()
     ax.plot(df['CumPercentCorrect'], 'k-')
-    ax.plot(rightCorr['CumPercentCorrect'], 'r^', ms=10)
-    ax.plot(leftCorr['CumPercentCorrect'], 'b^', ms=10)
-    ax.plot(rightMiss['CumPercentCorrect'], 'rv', ms=10)
-    ax.plot(leftMiss['CumPercentCorrect'], 'bv', ms=10)
-    ax.plot(rightNoResp['CumPercentCorrect'], 'o', mec='r', mfc='none',  ms=10)
-    ax.plot(leftNoResp['CumPercentCorrect'], 'o', mec='b', mfc='none', ms=10)
+    ax.plot(rightCorr['CumPercentCorrect'], 'r^', ms=10, label="right correct")
+    ax.plot(leftCorr['CumPercentCorrect'], 'b^', ms=10, label="left correct")
+    ax.plot(rightMiss['CumPercentCorrect'], 'rv', ms=10, label="right miss")
+    ax.plot(leftMiss['CumPercentCorrect'], 'bv', ms=10, label="left miss")
+    ax.plot(rightNoResp['CumPercentCorrect'], 'o', mec='r', mfc='none',  ms=10, label="right no response")
+    ax.plot(leftNoResp['CumPercentCorrect'], 'o', mec='b', mfc='none', ms=10, label="left no response")
     
     
     if 0 in trialTargetFrames:
@@ -71,9 +72,9 @@ def plot_session(data):
         # set marker face fill style to reflect direction turned 
         for nogo, x, direction in zip(no_gos, nogoMiss.index, nogoMiss['CumPercentCorrect']):
             if nogo > 0:
-                plt.plot(x, direction, 'gv', ms=10, markerfacecoloralt='red', fillstyle='left')  
+                plt.plot(x, direction, 'gv', ms=10, markerfacecoloralt='red', fillstyle='left', label="no go turn right")  
             elif nogo < 0:
-                plt.plot(x, direction, 'gv', ms=10, markerfacecoloralt='c', fillstyle='left')
+                plt.plot(x, direction, 'gv', ms=10, markerfacecoloralt='c', fillstyle='left', label="no go turn left")
     
     for mask,i,corr in zip(df['mask'], df.index, df['CumPercentCorrect']):
         if mask>0:
@@ -85,12 +86,13 @@ def plot_session(data):
     plt.suptitle(str(d).split('_')[-3:-1])
     plt.title('Choices over the Session')
     plt.ylabel('Cumulative Rewards')
-    plt.xlabel('Length of session (sec)')
+    plt.xlabel('Time in session (sec)')
     
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
     labels = [str(np.round(int(ind/framerate))) for ind in ax.get_xticks()]
     ax.set_xticklabels(labels)
+    plt.legend(loc="best", numpoints=1)
     plt.show()
 
 
