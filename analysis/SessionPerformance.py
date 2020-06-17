@@ -93,6 +93,7 @@ def plot_session(data):
     labels = [str(np.round(int(ind/framerate))) for ind in ax.get_xticks()]
     ax.set_xticklabels(labels)
     plt.legend(loc="best", numpoints=1)
+    plt.tight_layout()
     plt.show()
 
 
