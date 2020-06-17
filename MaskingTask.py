@@ -122,7 +122,7 @@ class MaskingTask(TaskControl):
             self.normRewardDistance = 0.15
             self.maxResponseWaitFrames = 3600
             self.useIncorrectNoise = False
-            self.incorrectTrialRepeats = 5 # will repeat for unanswered trials
+            self.incorrectTrialRepeats = 3 # will repeat for unanswered trials
             self.solenoidOpenTime = 0.1
             if taskVersion in ('rot','rotation'):
                 self.autoRotationRate = 0  
@@ -133,7 +133,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training2',taskVersion)
             self.maxResponseWaitFrames = 1200 # manually adjust this 
             self.useIncorrectNoise = True
-            self.incorrectTimeoutFrames = 240
+            self.incorrectTimeoutFrames = 360
             self.quiescentFrames = 60
             self.solenoidOpenTime = 0.08
             
@@ -141,13 +141,39 @@ class MaskingTask(TaskControl):
             # similar to training3 but more stringent parameter settings
             self.setDefaultParams('training3',taskVersion)
             self.maxResponseWaitFrames = 60
-            self.incorrectTimeoutFrames = 600
             self.solenoidOpenTime = 0.05
             
         elif name == 'training5':
             # introduce no-go trials
             self.setDefaultParams('training4',taskVersion)
             self.probNoGo = 0.33
+            
+        elif name == 'testing':
+            self.setDefaultParams('training5',taskVersion)
+            self.moveStim = False
+            self.postRewardTargetFrames = 0
+            self.useIncorrectNoise = False
+            self.incorrectTimeoutFrames = 0
+            self.incorrectTrialRepeats = 0 
+            self.targetFrames = [2]
+            
+        elif name == 'target duration':
+            self.setDefaultParams('testing',taskVersion)
+            self.targetFrames = [1,2,4,12]
+        
+        elif name == 'target contrast':
+            self.setDefaultParams('testing',taskVersion)
+            self.targetContrast = [0.2,0.4,0.6,0.8,1]
+            
+        elif name == 'masking':
+            self.setDefaultParams('testing',taskVersion)
+            self.maskType = 'plaid'
+            self.maskShape = 'target'
+            self.maskFrames = [24]
+            self.maskContrast = [1]
+            self.maskOnset = [2,3,4,6,12]
+            self.probMask = 0.6
+            self.targetContrast = [0.5]
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
