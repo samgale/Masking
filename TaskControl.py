@@ -164,6 +164,9 @@ class TaskControl():
             self._diodeBox.draw()
         self._win.flip()
         
+        self._sessionFrame += 1
+        self._trialFrame += 1
+        
         if self._opto:
             self.optoPulse(**self._opto)
             self._opto = False
@@ -179,9 +182,6 @@ class TaskControl():
         elif self._noise:
             self._noiseOutput.write(False)
             self._noise = False
-        
-        self._sessionFrame += 1
-        self._trialFrame += 1
         
         self._frameSignalOutput.write(False)
                                                
