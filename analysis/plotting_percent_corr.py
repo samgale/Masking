@@ -4,7 +4,6 @@ Created on Wed Jul 03 16:15:11 2019
 
 @author: svc_ccg
 """
-from __future__ import division
 import os
 import numpy as np
 import h5py
@@ -25,8 +24,9 @@ def plot_responses(mouse, respType, total=None):   #mosue id, 'correct' 'incorre
     
     #mouse = raw_input('Enter Mouse ID:   ')
     respType='correct'
-    mouse='460313'
-    files = get_files(mouse)
+    mouse='521266'
+    files = get_files(mouse, 'training_')
+    total = 'all'
     
     fig, ax = plt.subplots()  
     
@@ -35,20 +35,21 @@ def plot_responses(mouse, respType, total=None):   #mosue id, 'correct' 'incorre
     
     for i,f in enumerate(files):
         d = h5py.File(f)
-        trialResponse = d['trialResponse'].value
-        trialRewardDirection = d['trialRewardDir'].value[:-1]
-        trialTargetFrames = d['trialTargetFrames'].value[:-1]
+        trialResponse = d['trialResponse'][:]
+        trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]
+        trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)]
         
 #        if len(trialResponse) < 100:  #don't use files that have less than 100 trials 
 #            continue
         
         if len(trialResponse)!=len(trialRewardDirection):  # 312 had these 2 arrays the same length
-            trialRewardDirection = d['trialRewardDir'].value
+            trialRewardDirection = d['trialRewardDir'][:]
         
         def count(resp, direction):
             return len(trialResponse[(trialResponse==resp) & (trialRewardDirection==direction) & (trialTargetFrames!=0)])
         
-        turnRightTotal, turnLeftTotal = sum((trialRewardDirection==1) & (trialTargetFrames!=0)), sum((trialRewardDirection==-1) & (trialTargetFrames!=0))
+        turnRightTotal = sum((trialRewardDirection==1) & (trialTargetFrames!=0))
+        turnLeftTotal = sum((trialRewardDirection==-1) & (trialTargetFrames!=0))
         
         # count(response, reward direction) where -1 is turn left 
         rightTurnCorr, leftTurnCorr = count(1,1), count(1,-1)
@@ -79,7 +80,7 @@ def plot_responses(mouse, respType, total=None):   #mosue id, 'correct' 'incorre
         else:
             total = respTotal
     
-        for num, denom, noNum, noDenom in zip([response], [total], no_goCorrect, no_goTotal):   # here is where function arguments are used 
+        for num, denom, noNum, noDenom in zip(response, total, no_goCorrect, no_goTotal):   # here is where function arguments are used 
             if num/denom < 1:        
                 plotPoints.append(num/denom) 
                 chanceRates.append(np.array(scipy.stats.binom.interval(0.95, np.sum(denom), 0.5))/np.sum(denom))

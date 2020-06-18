@@ -233,7 +233,7 @@ def get_files(mouse_id, task):
     task is either 'training_' or 'masking_'
     '''
     task += 'to_analyze'
-    directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice\'
+    directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'
     dataDir = os.path.join(os.path.join(directory, mouse_id), task)   
     files = os.listdir(dataDir)
     files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))
@@ -250,6 +250,7 @@ def trials(data):
 
 def formatFigure(fig, ax, title=None, xLabel=None, yLabel=None, xTickLabels=None, 
                  yTickLabels=None, blackBackground=False, saveName=None):
+    
     fig.set_facecolor('w')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
