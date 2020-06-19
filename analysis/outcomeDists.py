@@ -21,19 +21,19 @@ def plot_outcomes_byside(data):
         
     df = create_df(data)
     
-    
+    xMax = data['maxResponseWaitFrames'][()] * 1000/df.framerate
+
     rightTurns = df[(df['trialLength_ms']!=df['trialLength_ms'].max()) & (df['rewDir']==1) & (df['ignoreTrial']==False)]
     leftTurns = df[(df['trialLength_ms']!=df['trialLength_ms'].max()) & (df['rewDir']==-1) & (df['ignoreTrial']==False)]
     
-    corrR = rightTurns['outcomeTime_ms'][rightTurns['resp']==1]
-    incorrectR = rightTurns['outcomeTime_ms'][rightTurns['resp']==-1]
+    corrR = rightTurns['outcomeTime_ms'][(rightTurns['resp']==1) & (rightTurns['outcomeTime_ms']<xMax)]
+    incorrectR = rightTurns['outcomeTime_ms'][(rightTurns['resp']==-1) & (rightTurns['outcomeTime_ms']<xMax)]
     
-    corrL = leftTurns['outcomeTime_ms'][leftTurns['resp']==1]
-    incorrectL = leftTurns['outcomeTime_ms'][leftTurns['resp']==-1]
+    corrL = leftTurns['outcomeTime_ms'][(leftTurns['resp']==1) & (leftTurns['outcomeTime_ms']<xMax)]
+    incorrectL = leftTurns['outcomeTime_ms'][(leftTurns['resp']==-1) & (leftTurns['outcomeTime_ms']<xMax)]
     
     date = get_dates(df)
     mouse = df.mouse
-    xMax = data['maxResponseWaitFrames'][()] * 1000/df.framerate
     
 # only plotting correct     
     fig, axes = plt.subplots(2, sharex=True, sharey=True)
@@ -41,16 +41,18 @@ def plot_outcomes_byside(data):
     bins = np.linspace(200, xMax, ((xMax-200)/50)+1)
     
     fig.suptitle(mouse + '   ' + date)
-    axes[0].hist(corrR, weights=np.ones(len(corrR)) / len(corrR), color='r', bins=bins)
+    axes[0].hist(corrR, weights=np.ones(len(corrR)) / len(corrR), color='r')#, #bins=bins)
     axes[0].set(ylabel = '% Trials, Right Turning')
     axes[0].set_title('Outcome Time for correct choices by side (ms)')
        
-    axes[1].hist(corrL, weights=np.ones(len(corrL)) / len(corrL), color='b', bins=bins)
+    axes[1].hist(corrL, weights=np.ones(len(corrL)) / len(corrL), color='b')#, bins=bins)
     axes[1].set(ylabel='% Trials, Left Turning')
     axes[1].set(xlabel='Outcome Time (ms)')
     
+    fig.set_facecolor('w')
+
     for ax in axes.flat:
-        ax.set_xlim(left=200)
+        ax.set_xlim(left=200, right=xMax)
         
     plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
 
