@@ -49,6 +49,7 @@ def plot_outcomes_byside(data):
     axes[1].set(ylabel='% Trials, Left Turning')
     axes[1].set(xlabel='Outcome Time (ms)')
     
+    fig.set_facecolor('w')
 
     for ax in axes.flat:
         ax.set_xlim(left=200, right=xMax)
