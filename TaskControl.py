@@ -23,10 +23,10 @@ class TaskControl():
         self.saveFrameIntervals = True
         self.drawDiodeBox = True
         self.monBackgroundColor = 0
-        self.wheelRotDir = -1 # 1 or -1
-        self.wheelSpeedGain = 1200 # arbitrary scale factor
-        self.minWheelAngleChange = 0 # radians
-        self.maxWheelAngleChange = 0.5 # radians
+        self.wheelRadius = 30.0 # mm
+        self.wheelPolarity = -1 # 1 or -1
+        self.minWheelAngleChange = 0 # radians per frame
+        self.maxWheelAngleChange = 0.5 # radians per frame
         self.spacebarRewardsEnabled = True
         self.solenoidOpenTime = 0.05 # seconds
         if self.rigName=='pilot':
@@ -357,17 +357,17 @@ class TaskControl():
             encoderData *= 2 * math.pi / 5
             encoderAngle = np.arctan2(np.mean(np.sin(encoderData)),np.mean(np.cos(encoderData)))
         self.rotaryEncoderRadians.append(encoderAngle)
-        self.deltaWheelPos.append(self.translateEncoderChange())
+        self.deltaWheelPos.append(self.calculateWheelChange())
         
         # digital
         if self._lickInput.read():
             self.lickFrames.append(self._sessionFrame)
         
     
-    def translateEncoderChange(self):
-        # translate encoder angle change to number of pixels to move visual stimulus
+    def calculateWheelChange(self):
+        # calculate angular change in wheel position
         if len(self.rotaryEncoderRadians) < 2 or np.isnan(self.rotaryEncoderRadians[-1]):
-            pixelsToMove = 0
+            angleChange = 0
         else:
             angleChange = self.rotaryEncoderRadians[-1] - self.rotaryEncoderRadians[-2]
             if angleChange < -math.pi:
@@ -375,10 +375,10 @@ class TaskControl():
             elif angleChange > math.pi:
                 angleChange -= 2 * math.pi
             if self.minWheelAngleChange < abs(angleChange) < self.maxWheelAngleChange:
-                pixelsToMove = angleChange * self.wheelRotDir * self.wheelSpeedGain
+                angleChange *= self.wheelPolarity
             else:
-                pixelsToMove = 0
-        return pixelsToMove
+                angleChange = 0
+        return angleChange
         
 
 
