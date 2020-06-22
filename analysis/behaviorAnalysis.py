@@ -51,6 +51,10 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     trialResponse = d['trialResponse'][:trialEndFrames.size]
     deltaWheel = d['deltaWheelPos'][:]
     
+    wheelRad = d['wheelRadius'][()]
+    if 'wheelRadius' in d.keys():
+        deltaWheel *= wheelRad
+    
     preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else np.array([d['preStimFrames'][:]]*trialStartFrames.size)
     
     trialStartFrames += preStimFrames    
@@ -166,6 +170,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                     trialWheel = np.cumsum(
                             deltaWheel[trialStart-framesToShowBeforeStart:trialStart-framesToShowBeforeStart + maxTrialFrames
                                        ])
+                    trialWheel *= wheelRad
                     trialWheel -= trialWheel[0]
                     trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                     rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None

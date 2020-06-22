@@ -236,11 +236,18 @@ def rxnTimes(data, dataframe):
     df = dataframe
             
     monitorSize = d['monSizePix'][0] 
-    
-    normRewardDist = d['normRewardDistance'][()]
-    maxQuiescentMove = d['maxQuiescentNormMoveDist'][()]
-    wheelSpeedGain = d['wheelSpeedGain'][()]
     maxResp = d['maxResponseWaitFrames'][()]
+    
+# these 2nd values are needed for files after 6/18/2020    
+    normRewardDist = d['normRewardDistance'][()] if 'wheelRewardDistance' not in d.keys()\
+    else d['wheelRewardDistance'][()]  #normalized to screen width in pixels- used for wheelgain
+    maxQuiescentMove = d['maxQuiescentNormMoveDist'][()] if 'maxQuiescentNormMoveDist' in d.keys()\
+    else d['maxQuiescentMoveDist'][()]   # in mm
+    wheelSpeedGain = d['wheelSpeedGain'][()] if 'wheelSpeedGain' in d.keys() else d['wheelGain'][()]
+    
+## Here need to stop using screen and start using amount wheel turned 
+    wheelRad = d['wheelRadius'][()]
+    wheelRewardDist = d['wheelRewardDistance'][()]
     
     initiationThreshDeg = 0.5 
     initiationThreshPix = initiationThreshDeg*np.pi/180*wheelSpeedGain
@@ -266,6 +273,7 @@ def rxnTimes(data, dataframe):
 
         
         f = fi[fiInd:(fiInd+(len(wheel)-stimInd))]   #from stim start frame to len of maxTrial + 24 frames 
+        wheel *= wheelRad
         fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   
         xp = np.cumsum(f)    
         x = np.arange(0, xp[-1], .001)
@@ -293,13 +301,13 @@ def rxnTimes(data, dataframe):
         # also want time from start of choice til choice  (using modified version of sam's method)
                  
         if rew>0:
-             outcome = np.argmax(interp[200:] >= rewThreshold + interp[200]) + 200
+             outcome = np.argmax(interp[150:] >= rewThreshold + interp[150]) + 150
         elif rew<0:  
-            outcome = np.argmax(interp[200:] <= (rew*rewThreshold) + interp[200]) + 200
+            outcome = np.argmax(interp[150:] <= (rew*rewThreshold) + interp[150]) + 150
         else:
-            outcome = np.argmax(abs(interp[200:]) >= (abs(rewThreshold) + interp[200])) + 200
+            outcome = np.argmax(abs(interp[150:]) >= (abs(rewThreshold) + interp[150])) + 150
   
-        if outcome==200:
+        if outcome==150:
             outcomeTimes.append(0)
         else:
             outcomeTimes.append(outcome)
