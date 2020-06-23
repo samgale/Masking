@@ -10,13 +10,13 @@ rxnTimes(d) returns an np.array with 3 lists, the 3rd being ignoreTrials
 
 """
 
-from dataAnalysis import rxnTimes, create_df
 
 
 def ignore_trials(data):
-    d = data
-    df = create_df(d)
-    return rxnTimes(d, df)[2]
+    from dataAnalysis import rxnTimes, create_df
+
+    df = create_df(data)
+    return rxnTimes(data, df)[2]
 
 
 

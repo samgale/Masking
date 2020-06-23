@@ -53,7 +53,10 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     wheelRad = d['wheelRadius'][()]
     if 'wheelRadius' in d.keys():
-        deltaWheel *= wheelRad
+        deltaWheel *= wheelRad  # deltaWheel now (post 6-19) in radians
+        ylabel = 'Distance Wheel Turned (mm)'
+    else:
+        ylabel = 'Wheel Position (pix)'
     
     preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else np.array([d['preStimFrames'][:]]*trialStartFrames.size)
     
@@ -153,7 +156,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
 
     
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
-                 yLabel='Wheel Position (pix)', title=name_date[-3:-1] + subtitle)
+                 yLabel=ylabel, title=name_date[-3:-1] + subtitle)
     plt.tight_layout()
     
     if mask:
@@ -223,7 +226,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
 #        
         
         formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
-                     yLabel='Wheel Position (pix)', title=name_date[-3:-1] + [ 'Mask Trials'])
+                     yLabel=ylabel, title=name_date[-3:-1] + [ 'Mask Trials'])
         plt.tight_layout()
         
     else:

@@ -250,11 +250,16 @@ def rxnTimes(data, dataframe):
     wheelRewardDist = d['wheelRewardDistance'][()]
     
     initiationThreshDeg = 0.5 
-    initiationThreshPix = initiationThreshDeg*np.pi/180*wheelSpeedGain
-    sigThreshold = maxQuiescentMove * monitorSize
-    rewThreshold = normRewardDist * monitorSize
+    initiationThreshPix = initiationThreshDeg*np.pi/180*wheelSpeedGain   ###  THIS NEEDS CHANGED
+   # sigThreshold = maxQuiescentMove * monitorSize   ### THIS NEEDS CHANGED 
+    #rewThreshold = normRewardDist * monitorSize
+    rewThreshold = wheelRewardDist if 'wheelRewardDistance' in d.keys() else normRewardDist*monitorSize
 
     fi = d['frameIntervals'][:]
+    if len(np.unique(df['openLoopFrames'])) == 1:
+        closedLoop = int(np.unique(df['openLoopFrames'])*(1000/df.framerate))
+    else:
+        closedLoop = df['openLoopFrames']/df.framerate
     
     stimInds = df['stimStart'] - df['trialStart']
 
@@ -273,15 +278,17 @@ def rxnTimes(data, dataframe):
 
         
         f = fi[fiInd:(fiInd+(len(wheel)-stimInd))]   #from stim start frame to len of maxTrial + 24 frames 
-        wheel *= wheelRad
+        wheel *= wheelRad   # in frames 
         fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   
         xp = np.cumsum(f)    
-        x = np.arange(0, xp[-1], .001)
+        x = np.arange(0, xp[-1], .001)   # in ms 
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
       
-
-        sigMove = np.argmax(abs(interp)>=sigThreshold)   # or just > ??
+        if 'wheelRadius' in d.keys():
+           sigMove = np.argmax(abs(interp)>=abs(maxQuiescentMove)) 
+        else:
+            sigMove = np.argmax(abs(interp)>=sigThreshold)   # or just > ??
         significantMovement.append(sigMove)
         if 0<sigMove<150:
             ignoreTrials.append(i)
@@ -301,13 +308,13 @@ def rxnTimes(data, dataframe):
         # also want time from start of choice til choice  (using modified version of sam's method)
                  
         if rew>0:
-             outcome = np.argmax(interp[150:] >= rewThreshold + interp[150]) + 150
+             outcome = np.argmax(interp[closedLoop:] >= rewThreshold + interp[closedLoop]) + closedLoop
         elif rew<0:  
-            outcome = np.argmax(interp[150:] <= (rew*rewThreshold) + interp[150]) + 150
+            outcome = np.argmax(interp[closedLoop:] <= (rew*rewThreshold) + interp[closedLoop]) + closedLoop
         else:
-            outcome = np.argmax(abs(interp[150:]) >= (abs(rewThreshold) + interp[150])) + 150
+            outcome = np.argmax(abs(interp[closedLoop:]) >= (abs(rewThreshold) + interp[closedLoop])) + closedLoop
   
-        if outcome==150:
+        if outcome==closedLoop:
             outcomeTimes.append(0)
         else:
             outcomeTimes.append(outcome)
@@ -317,9 +324,10 @@ def rxnTimes(data, dataframe):
 
 ## code to plot the above wheel traces, to visually inspect for accuracy
 #test = [i for i, e in enumerate(interpWheel) if type(e)!=int]
-
+    
+## --- for catch trials ---
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
-#
+
 #plt.figure()
 #for i in catchTrials:
 #    
@@ -334,4 +342,17 @@ def rxnTimes(data, dataframe):
 ##plt.vlines(df['trialLength_ms'][i], -500, 500, label='Trial Length')
 #plt.legend(loc='best')
 
+### ---- for ignoreTrials ----
+    
+#for i in ignoreTrials:
+#    plt.figure()
+#    plt.plot(interpWheel[i], color='k', alpha=.5)
+#    plt.suptitle(i)
+#    plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str))
+#    plt.vlines(150, -40, 40, color='g', ls ='--', label='Closed Loop', lw=2)
+#    plt.vlines(initiateMovement[i], -40, 40, ls='--', color='m', alpha=.4, label='Initiation')
+#    plt.vlines(significantMovement[i], -40, 40, ls='--', color='c', alpha=.4 , label='Q threshold')
+#    plt.vlines(outcomeTimes[i], -40, 40, ls='--', color='b', alpha=.3, label='Outcome Time')
+#    plt.vlines(df['trialLength_ms'][i], -50, 50, label='Trial Length')
+#    plt.legend(loc='best')
 
