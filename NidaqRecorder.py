@@ -14,9 +14,9 @@ dataFile.close()
 """
 
 import h5py, os, time
-from functools import partial
-import nidaq
 import numpy as np
+import nidaqmx
+from nidaqmx.stream_readers import AnalogMultiChannelReader
 
 
 def readData(filePath):
@@ -24,20 +24,17 @@ def readData(filePath):
     analogDataset = dataFile['AnalogInput']
     sampleRate = analogDataset.attrs.get('sampleRate')
     channelNames = analogDataset.attrs.get('channelNames')
-    return dataFile,analogDataset,sampleRate,channelNames
-
-
-def saveData(dataset,data):
-    dataset.resize(dataset.shape[0]+data.shape[0],axis=0)
-    dataset[-data.shape[0]:] = data
+    return dataFile,analogDataset,sampleRate,channelNames    
 
 
 class NidaqRecorder():
     
     def __init__(self):
-        self.saveDirPath = r'C:\\Users\\SVC_CCG\\Desktop\\Data'
+        self.saveDirPath = 'C:\\Users\svc_ccg\\Desktop\\Data'
         
-        self.analogInputChannels = [0,1,2,3,4,5,6]
+        self.nidaqDevice = 'USB-6009'
+        self.nidaqDeviceName = 'Dev1'
+        
         self.analogInputNames = ('vsync',
                                  'photodiode',
                                  'rotaryEncoder',
@@ -47,7 +44,8 @@ class NidaqRecorder():
                                  'cam2Exposure')
         self.analogInputSampleRate = 2000.0
         self.analogInputBufferSize = 500
-        self.analogInputRange = [-10.0,10.0]
+        self.analogInputMin = -10.0
+        self.analogInputMax = 10.0
         
     def start(self,fileName=None):
         startTime = time.strftime('%Y%m%d_%H%M%S')
@@ -56,7 +54,7 @@ class NidaqRecorder():
         self.dataFile = h5py.File(dataFilePath,'w',libver='latest')
         self.dataFile.attrs.create('startTime',startTime)
         
-        numChannels = len(self.analogInputChannels)
+        numChannels = len(self.analogInputNames)
         analogDataset = self.dataFile.create_dataset('AnalogInput',
                                                      (0,numChannels),
                                                      maxshape=(None,numChannels),
@@ -67,16 +65,31 @@ class NidaqRecorder():
         analogDataset.attrs.create('sampleRate',self.analogInputSampleRate)
         analogDataset.attrs.create('channelNames',self.analogInputNames)
         
-        self.analogInput = nidaq.AnalogInput(device='Dev1',
-                                             channels=self.analogInputChannels,
-                                             clock_speed=self.analogInputSampleRate,
-                                             buffer_size=self.analogInputBufferSize,
-                                             voltage_range=self.analogInputRange,
-                                             custom_callback=partial(saveData,analogDataset))
-        self.analogInput.start()
+        self.analogInput = nidaqmx.Task()
+        self.analogInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0:'+str(numChannels-1),
+                                                         min_val=self.analogInputMin,
+                                                         max_val=self.analogInputMax)
+        self.analogInput.timing.cfg_samp_clk_timing(self.analogInputSampleRate,
+                                                    sample_mode=nidaqmx.constants.AcquisitionType.CONTINUOUS,
+                                                    samps_per_chan=self.analogInputBufferSize)
         
+        analogInputReader = AnalogMultiChannelReader(self.analogInput.in_stream)
+        analogInputData = np.zeros((numChannels,self.analogInputBufferSize))
+                                            
+        def saveAnalogData(task_handle,every_n_samples_event_type,number_of_samples,callback_data):
+            analogInputReader.read_many_sample(analogInputData,number_of_samples_per_channel=number_of_samples)
+            analogDataset.resize(analogDataset.shape[0]+number_of_samples,axis=0)
+            analogDataset[-number_of_samples:] = analogInputData.T
+            return 0
+        
+        self.analogInput.register_every_n_samples_acquired_into_buffer_event(self.analogInputBufferSize,
+                                                                             saveAnalogData)
+        
+        self.analogInput.start()
+
+    
     def stop(self):
-        self.analogInput.clear()
+        self.analogInput.close()
         self.dataFile.close()
 
 
