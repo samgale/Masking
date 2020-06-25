@@ -67,6 +67,7 @@ class NidaqRecorder():
         
         self.analogInput = nidaqmx.Task()
         self.analogInput.ai_channels.add_ai_voltage_chan(self.nidaqDeviceName+'/ai0:'+str(numChannels-1),
+                                                         terminal_config=nidaqmx.constants.TerminalConfiguration.RSE,
                                                          min_val=self.analogInputMin,
                                                          max_val=self.analogInputMax)
         self.analogInput.timing.cfg_samp_clk_timing(self.analogInputSampleRate,

@@ -22,17 +22,13 @@ channelNames = syncData.attrs.get('channelNames')
 vsync = syncData[:,channelNames=='vsync'][:,0]
 photodiode = syncData[:,channelNames=='photodiode'][:,0]
 syncTime = np.arange(1/syncSampleRate,(syncData.shape[0]+1)/syncSampleRate,1/syncSampleRate)
+syncFile.close()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(syncTime,vsync,'b')
 ax.plot(syncTime,photodiode,'k')
-ax.plot(syncTime,syncData[:,channelNames=='cam1Saving'][:,0],'r')
-ax.plot(syncTime,syncData[:,channelNames=='cam2Saving'][:,0],'g')
-ax.plot(syncTime,syncData[:,channelNames=='cam1Exposure'][:,0],'m')
-ax.plot(syncTime,syncData[:,channelNames=='cam2Exposure'][:,0],'y')
 
-syncFile.close()
 
 
 # get data
