@@ -66,14 +66,16 @@ def catch_trials(d):
         ol = int(df.loc[i, 'openLoopFrames'])
         ind = stim - start 
         wheel = np.cumsum(df.loc[i, 'deltaWheel'][ind:]*wheelRad)
-        if i not in catchMove:
-            ax.plot(wheel, c='k', alpha=.2)
-            
-        if i in catchMove:
+        
+        if df.loc[i, 'ignoreTrial']==True:
+            ax.plot(wheel, color='orange', alpha=.3, label='Ignored' if "Ignored" not in plt.gca().get_legend_handles_labels()[1] else '')
+        elif i in catchMove and df.loc[i, 'ignoreTrial']==False:
             ax.plot(wheel, c='c', alpha=.6, label="Reward Trial" if "Reward Trial" not in plt.gca().get_legend_handles_labels()[1] else '')  
 #            ax.plot(wheel[])  # plotting "rewards"
             direction = np.argmax(abs(wheel[ol:]) >= (abs(rewThreshold + wheel[ol]))) + ol
-            wheelDir.append(wheel[direction])
+            wheelDir.append(wheel[direction]) 
+        else:   # no reward and not ignore
+            ax.plot(wheel, c='k', alpha=.2)
     
     formatFigure(fig, ax, title="Catch Trial Wheel Traces", xLabel="Trial Length (s)", yLabel=ylabel) 
     
@@ -86,10 +88,13 @@ def catch_trials(d):
     plt.suptitle(df.mouse + '  ' + date)
     plt.legend(loc='best', fontsize='small', numpoints=1) 
     
+    ignored_counts = df['rewDir'].isnull().groupby(df['ignoreTrial']).sum()   #counting ignore trials for catch trials
+    
     print('\n')
     print('Prob catch trial: ' + str(d['probCatch'][()]))
     print('Total catch: ' + str(len(catchTrials)))
     print('Turn R: ' + str(moveR))
     print('Turn L: ' + str(moveL))
     print('No rew: ' + str(noRew))
+    print('Ignored: ' + str(ignored_counts[1]))
 
