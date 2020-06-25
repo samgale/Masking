@@ -83,16 +83,16 @@ def create_df(data):
 
     trialOpenLoopFrames = d['trialOpenLoopFrames'][:end]
     if len(np.unique(trialOpenLoopFrames)>1):
-        pass
-        
+        pass  
     # vars below are to look at turning behavior when prestim frames are not predictable
     #    preStimFrames = d['preStimFramesFixed'][()]
     #    preStimVar = d['preStimFramesVariableMean'][()]              
     #    openLoopFrames = d['openLoopFramesFixed'][()]
     #    openLoopVar = d['openLoopFramesVariableMean'][()]
     #    openLoopMax = d['openLoopFramesMax'][()]
-      
-    quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]
+    
+    #quiescent period violations
+    quiescentMoveFrames = [q for q in d['quiescentMoveFrames'][:] if q<trialStimStartFrame[-1]]  
     
     maxResp = d['maxResponseWaitFrames'][()]
     deltaWheelPos = d['deltaWheelPos'][:]   
@@ -128,7 +128,7 @@ def create_df(data):
         # gives entire wheel trace from trial start to the max trial length
         # i.e. often goes into the start of the next trial - 
         # useful for analyzing turning beh on nogo/mask only
-    deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp+postReward] for (start, stim, openLoop) in 
+    deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp+postReward] for (start, stim, openLoop) in  
                   zip(d['trialStartFrame'][:len(trialStimStartFrame)],
                       trialStimStartFrame, trialOpenLoopFrames)]
     
@@ -161,6 +161,7 @@ def create_df(data):
                       columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame', 'openLoopFrames'])
     
     df['trialLength_ms'] = convert_to_ms(trialLength)
+    df['closedLoopFramesTotal'] = trialResponseFrame-trialStimStartFrame-trialOpenLoopFrames
     
     df['mask'] = trialMaskContrast
     df['soa'] = trialMaskOnset
@@ -237,23 +238,26 @@ def rxnTimes(data, dataframe):
             
     monitorSize = d['monSizePix'][0] 
     maxResp = d['maxResponseWaitFrames'][()]
+    postReward = d['postRewardTargetFrames'][()]
     
-# these 2nd values are needed for files after 6/18/2020    
-    normRewardDist = d['normRewardDistance'][()] if 'wheelRewardDistance' not in d.keys()\
-    else d['wheelRewardDistance'][()]  #normalized to screen width in pixels- used for wheelgain
+# these 2nd values are needed for files after 6/18/2020   
+    # reward dist and queiscentMove in mm
+    rewardDist = d['wheelRewardDistance'][()] if 'wheelRewardDistance' in d.keys()\
+        else d['normRewardDistance'][()]  #normalized to screen width in pixels- used for wheelgain
     maxQuiescentMove = d['maxQuiescentNormMoveDist'][()] if 'maxQuiescentNormMoveDist' in d.keys()\
-    else d['maxQuiescentMoveDist'][()]   # in mm
-    wheelSpeedGain = d['wheelSpeedGain'][()] if 'wheelSpeedGain' in d.keys() else d['wheelGain'][()]
+        else d['maxQuiescentMoveDist'][()]   # in mm
+    wheelGain = d['wheelSpeedGain'][()] if 'wheelSpeedGain' in d.keys() else d['wheelGain'][()]
     
-## Here need to stop using screen and start using amount wheel turned 
-    wheelRad = d['wheelRadius'][()]
-    wheelRewardDist = d['wheelRewardDistance'][()]
+    wheelRadius = d['wheelRadius'][()]
     
-    initiationThreshDeg = 0.5 
-    initiationThreshPix = initiationThreshDeg*np.pi/180*wheelSpeedGain   ###  THIS NEEDS CHANGED
-   # sigThreshold = maxQuiescentMove * monitorSize   ### THIS NEEDS CHANGED 
-    #rewThreshold = normRewardDist * monitorSize
-    rewThreshold = wheelRewardDist if 'wheelRewardDistance' in d.keys() else normRewardDist*monitorSize
+    if 'wheelRewardDistance' in d.keys():
+        initiationThresh = rewardDist/wheelRadius
+    else:
+        initiationThreshDeg = 0.5 
+        initiationThresh= initiationThreshDeg*np.pi/180*maxQuiescentMove  
+        
+    sigThreshold = maxQuiescentMove if 'wheelRewardDistance' in d.keys() else maxQuiescentMove*monitorSize  
+    rewThreshold = rewardDist if 'wheelRewardDistance' in d.keys() else rewardDist*monitorSize
 
     fi = d['frameIntervals'][:]
     if len(np.unique(df['openLoopFrames'])) == 1:
@@ -273,22 +277,19 @@ def rxnTimes(data, dataframe):
     # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
 
  
-    for i, (wheel, resp, rew, fiInd, stimInd, openLoop) in enumerate(zip(
-            df['deltaWheel'],df['resp'], df['rewDir'], df['stimStart'], stimInds, df['openLoopFrames'])):
+    for i, (resp, rew, fiInd, stimInd, openLoop) in enumerate(zip(
+            df['resp'], df['rewDir'], df['stimStart'], stimInds, df['openLoopFrames'])):
 
-        
-        f = fi[fiInd:(fiInd+(len(wheel)-stimInd))]   #from stim start frame to len of maxTrial + 24 frames 
-        wheel *= wheelRad   # in frames 
+        wheel = df.loc[i, 'deltaWheel'].copy()
+        f = fi[fiInd:(fiInd+(len(wheel)-stimInd-postReward))]   #from stim start frame to len of maxTrial
+        wheel *= wheelRadius  #(180/np.pi * wheelRadius)   # in frames 
         fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   
         xp = np.cumsum(f)    
         x = np.arange(0, xp[-1], .001)   # in ms 
         interp = np.interp(x,xp,fp)
         interpWheel.append(interp)
       
-        if 'wheelRadius' in d.keys():
-           sigMove = np.argmax(abs(interp)>=abs(maxQuiescentMove)) 
-        else:
-            sigMove = np.argmax(abs(interp)>=sigThreshold)   # or just > ??
+        sigMove = np.argmax(abs(interp)>=sigThreshold)   
         significantMovement.append(sigMove)
         if 0<sigMove<150:
             ignoreTrials.append(i)
@@ -297,10 +298,10 @@ def rxnTimes(data, dataframe):
         if (rew==0) and (resp==1):
             init = 0 
         else:
-            init = np.argmax(abs(interp)>initiationThreshPix)
+            init = np.argmax(abs(interp)>initiationThresh)
 
         if (0<init<100) and sigMove>150:
-            init = np.argmax(abs(interp[100:])>(initiationThreshPix + interp[100])) + 100
+            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
         # does this handle turning the opposite direction ?
         
         initiateMovement.append(init)
@@ -344,7 +345,7 @@ def rxnTimes(data, dataframe):
 
 ### ---- for ignoreTrials ----
     
-#for i in ignoreTrials:
+#for i in range(20):
 #    plt.figure()
 #    plt.plot(interpWheel[i], color='k', alpha=.5)
 #    plt.suptitle(i)

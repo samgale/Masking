@@ -13,6 +13,28 @@ import scipy.signal
 import matplotlib.pyplot as plt
 
 
+# get analog sync data
+syncPath = fileIO.getFile('Select sync file',fileType='*.hdf5')
+syncFile = h5py.File(syncPath,'r')
+syncData = syncFile['AnalogInput']
+syncSampleRate = syncData.attrs.get('sampleRate')
+channelNames = syncData.attrs.get('channelNames')
+vsync = syncData[:,channelNames=='vsync'][:,0]
+photodiode = syncData[:,channelNames=='photodiode'][:,0]
+syncTime = np.arange(1/syncSampleRate,(syncData.shape[0]+1)/syncSampleRate,1/syncSampleRate)
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(syncTime,vsync,'b')
+ax.plot(syncTime,photodiode,'k')
+ax.plot(syncTime,syncData[:,channelNames=='cam1Saving'][:,0],'r')
+ax.plot(syncTime,syncData[:,channelNames=='cam2Saving'][:,0],'g')
+ax.plot(syncTime,syncData[:,channelNames=='cam1Exposure'][:,0],'m')
+ax.plot(syncTime,syncData[:,channelNames=='cam2Exposure'][:,0],'y')
+
+syncFile.close()
+
+
 # get data
 f = fileIO.getFile(rootDir=r'C:/Users/SVC_CCG/Desktop/Data/')
 
