@@ -175,15 +175,14 @@ class TaskControl():
             self.triggerReward()
             self.rewardFrames.append(self._sessionFrame)
             self._reward = False
-            
+        
+        self._frameSignalOutput.write(False)
         if self._tone:
             self._toneOutput.write(False)
             self._tone = False
         elif self._noise:
             self._noiseOutput.write(False)
             self._noise = False
-        
-        self._frameSignalOutput.write(False)
                                                
     
     def completeSession(self):
