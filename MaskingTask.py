@@ -137,13 +137,14 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 1200 # manually adjust this 
             self.useIncorrectNoise = True
             self.incorrectTimeoutFrames = 360
-            self.incorrectTrialRepeats = 3 # will repeat for unanswered trials
+            self.incorrectTrialRepeats = 5 # will repeat for unanswered trials
             self.solenoidOpenTime = 0.08
             self.probCatch = 0.15
             
         elif name == 'training4':
             # final training stage
             self.setDefaultParams('training3',taskVersion)
+            self.wheelRewardDistance = 8.0
             self.maxResponseWaitFrames = 60
             self.solenoidOpenTime = 0.05
             
@@ -156,6 +157,7 @@ class MaskingTask(TaskControl):
         elif name == 'testing':
             self.setDefaultParams('training4',taskVersion)
             self.moveStim = False
+            self.wheelRewardDistance = 6.0
             self.postRewardTargetFrames = 0
             self.useIncorrectNoise = False
             self.incorrectTimeoutFrames = 0
