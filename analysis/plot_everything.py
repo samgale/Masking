@@ -13,7 +13,7 @@ from plotting_target_lengths import plot_flash
 from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param
 import dataAnalysis
-from QualityControl import check_frame_intervals
+from QualityControl import check_frame_intervals, check_qviolations
 from percentCorrect import session_stats
 from catchTrials import catch_trials
 
@@ -47,6 +47,10 @@ session_stats(d)
 
 # check for dropped frames
 check_frame_intervals(d)
+
+
+# check number of quiescent period violations 
+check_qviolations(d, plot_type='sum')
 
 
 # plot target duration responses - 3 plots

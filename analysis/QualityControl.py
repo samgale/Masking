@@ -115,16 +115,19 @@ def check_frame_intervals(d):
 #    above_t = [max_fi[y] for y in fi_inds]  
     
 
-def check_qviolations(d):
+def check_qviolations(d, plot_type='sum'):  # or type='count'
     
     df = create_df(d)
     
     time = df['trialStart']*1/df.framerate/60
 
     fig, ax = plt.subplots()
-    ax.plot(time, df['quiescentViolations'], 'mo', ms=8)   #'o', mec='m', mfc='none', ms=8)
-    ax.set_ylim([0,np.max(df['quiescentViolations']) + 1])
-    
+    if plot_type=='sum':
+        ax.plot(time, np.cumsum(df['quiescentViolations']), color='m')
+    elif plot_type=='count':
+        ax.plot(time, df['quiescentViolations'], 'mo', ms=8)  
+        ax.set_ylim([0,np.max(df['quiescentViolations']) + 1])
+        
     formatFigure(fig, ax, title='Quiescent Period Violations per Trial', xLabel='Time from session start (min)', 
                  yLabel='Number of violations')
     
