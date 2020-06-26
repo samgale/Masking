@@ -9,8 +9,10 @@ from __future__ import division
 import fileIO
 import os
 import h5py
-import cv2
 import numpy as np
+import skvideo
+skvideo.setFFmpegPath('C:\\Users\\svc_ccg\\Desktop\\ffmpeg\\bin')
+import skvideo.io
 
 
 # get sync, behav cam, and screen cam data files
@@ -75,15 +77,17 @@ mergedFrameShape = (h1+h2+gap,max(w1,w2))
 
 # create merged video file
 savePath = fileIO.saveFile('Save movie as',rootDir=dirPath,fileType='*.mp4')
-mergedVideoFrameRate = behavCamFile.attrs.get('frameRate')
 
-v = cv2.VideoWriter(savePath,cv2.VideoWriter_fourcc(*'MPG4'),mergedVideoFrameRate,mergedFrameShape[::-1])
+inputParams = {'-r': str(behavCamFile.attrs.get('frameRate'))}
+outputParams = {'-r': '30', '-vcodec': 'libx264', '-crf': '23', '-preset': 'veryslow'}
+
+v = skvideo.io.FFmpegWriter(savePath,inputdict=inputParams,outputdict=outputParams)
 mergedFrame = np.zeros(mergedFrameShape,dtype=np.uint8)
 for i in range(alignedScreenCamFrames.size):
     mergedFrame[:h1,offset1:offset1+w1] = behavCamFile['frames'][alignedBehavCamFrames[i],:,:]
     mergedFrame[h1+gap:,offset2:offset2+w2] = screenCamFile['frames'][alignedScreenCamFrames[i],:,:]
-    v.write(mergedFrame)
-v.release()
+    v.writeFrame(mergedFrame)
+v.close()
 
 
 # close hdf5 files
