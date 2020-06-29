@@ -139,5 +139,21 @@ def check_qviolations(d, plot_type='sum'):  # or type='count'
     df['quiescentViolations'].describe()
 
 
+def check_wheel(d):
+    
+    wheelRadius = d['wheelRadius'][()]
+    fig, ax = plt.subplots()
+    ax.hist(d['deltaWheelPos'][:]*wheelRadius, bins=10, color='orange', alpha=.5)
+    ax.set_yscale('log')
+    
+    formatFigure(fig, ax, title='Distribution of Delta Wheel Position', 
+                 xLabel='Wheel movement (mm)', yLabel='Count')
+   
+    date = d['startTime'][()].split('_')
+    from datetime import datetime
+    date = datetime.strptime(date[0], '%Y%m%d').strftime('%m/%d/%Y')
+    
+    
+    plt.suptitle(d['subjectName'][()] + '  ' + date)
 
 

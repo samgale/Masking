@@ -38,19 +38,22 @@ def catch_trials(d):
     maxResp = d['maxResponseWaitFrames'][()]
     trialRew = d['trialResponseDir'][:]
     closedLoop = d['openLoopFramesFixed'][()]
+    framerate = df.framerate
     
     catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
     catchRew = [i for i in catchTrials if df.loc[i, 'trialLength_ms'] < np.max(df['trialLength_ms'])]
     
-    noRew = len(catchTrials) - len(catchRew)
+    noRew = [i for i in catchTrials if i not in catchRew]
     
     moveR = [i for i in catchTrials if trialRew[i]==1]
     moveL = [i for i in catchTrials if trialRew[i]==-1]
     ignore = [i for i in catchTrials if df.loc[i, 'ignoreTrial']==True]
-        
+    
+    time = np.arange(maxResp+maxResp/2)/framerate
+    
     fig, ax = plt.subplots()
-    plt.vlines(closedLoop, -20, 20, ls='--', color='g', lw=3, label='Start Closed Loop')
-    plt.vlines(maxResp + closedLoop, -20, 20, ls='--', color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
+    plt.vlines((closedLoop/framerate), -20, 20, ls='--', color='g', lw=3, label='Start Closed Loop')
+    plt.vlines((maxResp + closedLoop)/framerate, -20, 20, ls='--', color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
 
     
     for i in catchTrials:
@@ -58,26 +61,24 @@ def catch_trials(d):
         start = df.loc[i, 'trialStart']
         ind = stim - start 
         wheel = np.cumsum(df.loc[i, 'deltaWheel'][ind:]*wheelRad)
+        wheel = wheel[:len(time)]
         
         if i in ignore:
            pass
-#            ax.plot(wheel, color='orange', alpha=.3, label='Ignored'\
+#            ax.plot(time, wheel, color='orange', alpha=.3, label='Ignored'\
 #                    if "Ignored" not in plt.gca().get_legend_handles_labels()[1] else '')
            # if df.loc[i, ']
         
         elif i in catchRew and i not in ignore:
-            ax.plot(wheel, c='c', alpha=.6, label="Reward Trial" if "Reward Trial"\
+            ax.plot(time, wheel, c='c', alpha=.6, label="Reward Trial" if "Reward Trial"\
                     not in plt.gca().get_legend_handles_labels()[1] else '')  
 #            ax.plot(wheel[])  # plotting "rewards"
             
         else:   # no reward and not ignore
-            ax.plot(wheel, c='k', alpha=.2)
+            ax.plot(time, wheel, c='k', alpha=.2)
     
     formatFigure(fig, ax, title="Catch Trial Wheel Traces", xLabel="Trial Length (s)", yLabel=ylabel) 
-    
-    xlabl = [np.round(i/df.framerate, 1) for i in ax.get_xticks()]
-    ax.set_xticklabels(xlabl)   
-    
+      
     date = get_dates(df)
     
     plt.suptitle(df.mouse + '  ' + date)
@@ -95,6 +96,6 @@ def catch_trials(d):
     print('Ignored (early move): ' + str(int(ignored_counts[1])))
     print('Turn R: ' + str(len([i for i in moveR if i not in ignore])))
     print('Turn L: ' + str(len([j for j in moveL if j not in ignore])))
-    print('No response: ' + str(noRew))
+    print('No response: ' + str(len([k for k in noRew if k not in ignore])))
    
 
