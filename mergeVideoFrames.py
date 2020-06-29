@@ -9,8 +9,10 @@ from __future__ import division
 import fileIO
 import os
 import h5py
-import cv2
 import numpy as np
+import skvideo
+skvideo.setFFmpegPath('C:\\Users\\svc_ccg\\Desktop\\ffmpeg\\bin')
+import skvideo.io
 
 
 # get sync, behav cam, and screen cam data files
@@ -40,18 +42,18 @@ syncTime = np.arange(syncSampInt,syncSampInt*syncData.shape[0]+syncSampInt,syncS
 
 frameTimes = []
 for sync in (behavCamSync,screenCamSync):
-    risingEdges = np.concatenate(([False],(sync[1:]-sync[:-1])>0.1))
+    risingEdges = np.concatenate(([False],(sync[1:]-sync[:-1])>0.5))
     frameTimes.append(syncTime[risingEdges])
     frameIntervals = np.diff(frameTimes[-1])
     frameTimes[-1] = frameTimes[-1][np.concatenate(([True],frameIntervals>0.1*frameIntervals.mean()))]
 behavCamFrameTimes,screenCamFrameTimes = frameTimes
 
-assert(behavCamFrameTimes.size==behavCamFile.attrs.get('numFrames'))
-assert(screenCamFrameTimes.size==screenCamFile.attrs.get('numFrames'))
+assert(behavCamFrameTimes.size==behavCamFile['frames'].shape[0])
+assert(screenCamFrameTimes.size==screenCamFile['frames'].shape[0])
 
 
 # align screen cam to behavior cam for chosen screen cam frame range
-screenCamFrameRange = (87555,87897) 
+screenCamFrameRange = (1,3600)
 screenCamFramesToShow = np.arange(screenCamFrameRange[0]-1,screenCamFrameRange[1])
 screenCamTimesToShow = screenCamFrameTimes[screenCamFramesToShow]
 behavCamFramesToShow = np.where((behavCamFrameTimes>=screenCamTimesToShow[0]) & (behavCamFrameTimes<=screenCamTimesToShow[-1]))[0]
@@ -61,8 +63,8 @@ alignedBehavCamFrames = behavCamFramesToShow[:-1]
 
 
 # calculate merged frame shape
-h1,w1 = behavCamFile['1'].shape
-h2,w2 = screenCamFile['1'].shape
+h1,w1 = behavCamFile['frames'].shape[1:]
+h2,w2 = screenCamFile['frames'].shape[1:]
 if h1>h2:
     offset1 = 0
     offset2 = int(0.5*(h1-h2))
@@ -74,16 +76,18 @@ mergedFrameShape = (h1+h2+gap,max(w1,w2))
 
 
 # create merged video file
-savePath = fileIO.saveFile(rootDir=dirPath)
-mergedVideoFrameRate = behavCamFile.attrs.get('frameRate')
+savePath = fileIO.saveFile('Save movie as',rootDir=dirPath,fileType='*.mp4')
 
-v = cv2.VideoWriter(savePath,-1,mergedVideoFrameRate,mergedFrameShape[::-1])
+inputParams = {'-r': str(behavCamFile.attrs.get('frameRate'))}
+outputParams = {'-r': '30', '-vcodec': 'libx264', '-crf': '23', '-preset': 'veryslow'}
+
+v = skvideo.io.FFmpegWriter(savePath,inputdict=inputParams,outputdict=outputParams)
 mergedFrame = np.zeros(mergedFrameShape,dtype=np.uint8)
 for i in range(alignedScreenCamFrames.size):
-    mergedFrame[:h1,offset1:offset1+w1] = behavCamFile[str(alignedBehavCamFrames[i]+1)][:,:]
-    mergedFrame[h1+gap:,offset2:offset2+w2] = screenCamFile[str(alignedScreenCamFrames[i]+1)][:,:]
-    v.write(mergedFrame)
-v.release()
+    mergedFrame[:h1,offset1:offset1+w1] = behavCamFile['frames'][alignedBehavCamFrames[i],:,:]
+    mergedFrame[h1+gap:,offset2:offset2+w2] = screenCamFile['frames'][alignedScreenCamFrames[i],:,:]
+    v.writeFrame(mergedFrame)
+v.close()
 
 
 # close hdf5 files
