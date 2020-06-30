@@ -35,7 +35,7 @@ mpl.style.use('classic')
 '''
     
 def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, 
-                  framesToShowBeforeStart=60, mask=False, maskOnly=False):
+                  framesToShowBeforeStart=60, mask=False, maskOnly=False, xlim='auto'):
 
 
     #Clean up inputs if needed    
@@ -154,9 +154,14 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     name_date = str(data).split('_')    
 
+    if xlim=='auto':
+        pass
+    else:
+        ax.set_xlim(xlim[0],xlim[1 ])
     
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
                  yLabel=ylabel, title=name_date[-3:-1] + subtitle)
+    
     plt.tight_layout()
     
     if mask:

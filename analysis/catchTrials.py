@@ -15,7 +15,7 @@ import matplotlib as mpl
 
 mpl.rcParams['pdf.fonttype']=42
 
-def catch_trials(d):
+def catch_trials(d, xlim='auto'):
     
         # filter out catch trials
         # find trials where they turned past the reward threshold; which direction
@@ -49,12 +49,12 @@ def catch_trials(d):
     moveL = [i for i in catchTrials if trialRew[i]==-1]
     ignore = [i for i in catchTrials if df.loc[i, 'ignoreTrial']==True]
     
-    time = np.arange(maxResp+maxResp/2)/framerate
+    if xlim=='auto':
+        time = np.arange(maxResp+maxResp/2)/framerate
+    else:
+        time = np.arange(xlim[1]*framerate)/framerate
     
     fig, ax = plt.subplots()
-    plt.vlines((closedLoop/framerate), -20, 20, ls='--', color='g', lw=3, label='Start Closed Loop')
-    plt.vlines((maxResp + closedLoop)/framerate, -20, 20, ls='--', color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
-
     
     for i in catchTrials:
         stim = df.loc[i, 'stimStart']
@@ -77,8 +77,19 @@ def catch_trials(d):
         else:   # no reward and not ignore
             ax.plot(time, wheel, c='k', alpha=.2)
     
+    ylim = ax.get_ylim()
+    
+    ax.vlines((closedLoop/framerate), ylim[0], ylim[1], ls='--', color='g', lw=3, label='Start Closed Loop')
+    ax.vlines((maxResp + closedLoop)/framerate, ylim[0], ylim[1], ls='--', color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
+
+    if xlim=='auto':
+        pass
+    else:
+        ax.set_xlim(xlim[0], xlim[1])
+    
     formatFigure(fig, ax, title="Catch Trial Wheel Traces", xLabel="Trial Length (s)", yLabel=ylabel) 
-      
+    
+
     date = get_dates(df)
     
     plt.suptitle(df.mouse + '  ' + date)

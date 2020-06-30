@@ -141,13 +141,14 @@ def check_qviolations(d, plot_type='sum'):  # or type='count'
 
 def check_wheel(d):
     
-    wheelRadius = d['wheelRadius'][()]
+    #wheelRadius = d['wheelRadius'][()]
+    maxWheelAngleChange = d['maxWheelAngleChange'][()]
     fig, ax = plt.subplots()
-    ax.hist(d['deltaWheelPos'][:]*wheelRadius, bins=10, color='orange', alpha=.5)
+    ax.hist(d['deltaWheelPos'][:], bins=np.arange(-maxWheelAngleChange,maxWheelAngleChange,0.01), color='orange', alpha=.5)
     ax.set_yscale('log')
     
     formatFigure(fig, ax, title='Distribution of Delta Wheel Position', 
-                 xLabel='Wheel movement (mm)', yLabel='Count')
+                 xLabel='Wheel movement (radians)', yLabel='Count')
    
     date = d['startTime'][()].split('_')
     from datetime import datetime
