@@ -26,19 +26,20 @@ d = dataAnalysis.import_data()
 
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
                                ignoreRepeats=True, framesToShowBeforeStart=60, 
-                               mask=False, maskOnly=False)
+                               mask=False, maskOnly=False, xlim=[0, 1])
 
 # plot no response trials only (with repeats)
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
                                ignoreRepeats=False, framesToShowBeforeStart=60, 
-                               mask=False, maskOnly=False)
+                               mask=False, maskOnly=False,  xlim=[0, 1])
 
 # plot activity over entire session, trial-by-trial - 1 plot
 plot_session(d)
 
 
 # plots catch trial wheel traces 
-catch_trials(d)
+catch_trials(d, xlim=[0, d['maxResponseWaitFrames'][()]/120])   
+
 
 
 # prints out performance counts/% from session

@@ -57,4 +57,5 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
     if returnArray==True:    
         return [wheelMvmt, ind]
 
+#catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
 
