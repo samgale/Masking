@@ -53,7 +53,7 @@ assert(screenCamFrameTimes.size==screenCamFile['frames'].shape[0])
 
 
 # align screen cam to behavior cam for chosen screen cam frame range
-screenCamFrameRange = (1,3600)
+screenCamFrameRange = (1,600)
 screenCamFramesToShow = np.arange(screenCamFrameRange[0]-1,screenCamFrameRange[1])
 screenCamTimesToShow = screenCamFrameTimes[screenCamFramesToShow]
 behavCamFramesToShow = np.where((behavCamFrameTimes>=screenCamTimesToShow[0]) & (behavCamFrameTimes<=screenCamTimesToShow[-1]))[0]
@@ -79,7 +79,7 @@ mergedFrameShape = (h1+h2+gap,max(w1,w2))
 savePath = fileIO.saveFile('Save movie as',rootDir=dirPath,fileType='*.mp4')
 
 inputParams = {'-r': str(behavCamFile.attrs.get('frameRate'))}
-outputParams = {'-r': '30', '-vcodec': 'libx264', '-crf': '23', '-preset': 'veryslow'}
+outputParams = {'-r': '30', '-vcodec': 'libx264', '-crf': '23', '-preset': 'slow'}
 
 v = skvideo.io.FFmpegWriter(savePath,inputdict=inputParams,outputdict=outputParams)
 mergedFrame = np.zeros(mergedFrameShape,dtype=np.uint8)
