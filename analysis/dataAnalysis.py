@@ -222,12 +222,18 @@ def create_df(data):
 def get_dates(dataframe):
     
     from datetime import datetime
+    import pandas
     df=dataframe
-    if type(df.date) is list:
-        dates = [datetime.strptime(date, '%Y%m%d').strftime('%m/%d/%Y') for date in df.date]
-        date = '-'.join([dates[0], dates[-1]])
+    if type(df) is pandas.core.frame.DataFrame:
+        if type(df.date) is list:
+            dates = [datetime.strptime(date, '%Y%m%d').strftime('%m/%d/%Y') for date in df.date]
+            date = '-'.join([dates[0], dates[-1]])
+        else:
+            date = datetime.strptime(df.date, '%Y%m%d').strftime('%m/%d/%Y')
+    elif type(df) is str:
+        date = datetime.strptime(df, '%Y%m%d').strftime('%m/%d/%Y')
     else:
-        date = datetime.strptime(df.date, '%Y%m%d').strftime('%m/%d/%Y')
+        print('Wrong Format for date')
         
     return date
 
