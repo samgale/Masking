@@ -212,6 +212,9 @@ def create_df(data):
     for i in times[2]:
         df.loc[i, 'ignoreTrial'] = True
     
+    df['catchTrial'] = ~np.isfinite(df['rewDir'])
+
+    
     return df
 
 
