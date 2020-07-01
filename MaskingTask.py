@@ -132,7 +132,7 @@ class MaskingTask(TaskControl):
             # increase reward distance
             # introduce quiescent period, shorter response window, incorrect penalty, and catch trials
             self.setDefaultParams('training2',taskVersion)
-            self.wheelRewardDistance = 6.0
+            self.wheelRewardDistance = 4.0
             self.quiescentFrames = 60
             self.maxResponseWaitFrames = 1200 # manually adjust this 
             self.useIncorrectNoise = True
@@ -144,7 +144,6 @@ class MaskingTask(TaskControl):
         elif name == 'training4':
             # final training stage
             self.setDefaultParams('training3',taskVersion)
-            self.wheelRewardDistance = 8.0
             self.maxResponseWaitFrames = 60
             self.solenoidOpenTime = 0.05
             
