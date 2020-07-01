@@ -38,7 +38,7 @@ plot_session(d)
 
 
 # plots catch trial wheel traces 
-catch_trials(d, xlim=[0, 2.2])   
+catch_trials(d, xlim=[0,1], ylim='auto', plot_ignore=False)   
 
 
 
