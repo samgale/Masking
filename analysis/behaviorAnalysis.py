@@ -111,6 +111,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
 
     fig, ax = plt.subplots()
     
+    ax.margins(0)
     # turnRightTrials == stim presented on L, turn right - viceversa for turnLeftTrials - or for orientation, turn right
     nogoTrials = []
     turnRightTrials = []
@@ -153,7 +154,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
 #        ymax = max([np.max(x[-maxResp:]) for x in turnRightTrials])
 #        ymin = min([np.min(x[-maxResp:]) for x in turnLeftTrials])
 #        ax.set_ylim(ymin, ymax)
-        ax.set_ylim('auto')
+        ax.set_ylim(auto=True)
     else:
         ax.set_ylim(ylim[0], ylim[1])
         
@@ -172,8 +173,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         ax.set_xlim(0, ((maxResp+openLoopFrames[0])/frameRate))
     else:
         ax.set_xlim(xlim[0],xlim[1])
-                
-        
+                    
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
                  yLabel=ylabel, title=name + ' ' + date + ' ' + subtitle)
     
