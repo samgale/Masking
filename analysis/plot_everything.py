@@ -26,12 +26,12 @@ d = dataAnalysis.import_data()
 
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
                                ignoreRepeats=True, framesToShowBeforeStart=60, 
-                               mask=False, maskOnly=False, xlim=[0, .8], ylim=[-20, 40])
+                               mask=False, maskOnly=False, xlim=[0, .8], ylim=[-20, 20])
 
 # plot no response trials only (with repeats)
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
                                ignoreRepeats=False, framesToShowBeforeStart=60, 
-                               mask=False, maskOnly=False,  xlim='auto', ylim=[-10,10])
+                               mask=False, maskOnly=False,  xlim=[0, .8], ylim=[-10,10])
 
 
 # plots catch trial wheel traces 
@@ -56,11 +56,13 @@ qualityControl.check_qviolations(d, plot_type='sum')
 
 qualityControl.check_qviolations(d, plot_type='count')
 
+
 # check distribution of delta wheel position 
 qualityControl.check_wheel(d)
 
 
-# plot target duration responses - 3 plots
+
+# plot target duration responses - 3 plots ###################################
 plot_flash(d)
 
 
