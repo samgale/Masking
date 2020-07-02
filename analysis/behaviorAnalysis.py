@@ -150,9 +150,10 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                         turnLeftTrials.append(trialWheel)
     
     if ylim=='auto':
-        ymax = max([np.max(x[-maxResp:]) for x in turnRightTrials])
-        ymin = min([np.min(x[-maxResp:]) for x in turnRightTrials])
-        ax.set_ylim(ymin, ymax)
+#        ymax = max([np.max(x[-maxResp:]) for x in turnRightTrials])
+#        ymin = min([np.min(x[-maxResp:]) for x in turnLeftTrials])
+#        ax.set_ylim(ymin, ymax)
+        ax.set_ylim('auto')
     else:
         ax.set_ylim(ylim[0], ylim[1])
         
@@ -165,10 +166,10 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
     
     name = d['subjectName'][()]
-    date = get_dates(str(data).split('_')[2])    
+    date = get_dates(str(d).split('_')[2])    
 
     if xlim=='auto':
-        ax.set_xlim(0, (maxResp/frameRate))
+        ax.set_xlim(0, ((maxResp+openLoopFrames[0])/frameRate))
     else:
         ax.set_xlim(xlim[0],xlim[1])
                 
