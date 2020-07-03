@@ -166,7 +166,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     ax.plot(trialTime[:nogoTrials.shape[1]], np.nanmean(nogoTrials,0), 'k', linewidth=3)
     ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
     
-    name = d['subjectName'][()]
+    name = str(d).split('_')[1]
     date = get_dates(str(d).split('_')[2])    
 
     if xlim=='auto':
