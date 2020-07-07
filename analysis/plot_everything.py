@@ -21,12 +21,17 @@ from catchTrials import catch_trials
 # choose mouse file
 d = dataAnalysis.import_data()
 
+
+# prints out performance counts/% from session
+session_stats(d)
+
+
 # plot session wheel trace - 1 plot, unless mask==True - 2 plots
 ##  if session is from 1/13 - 1/28, use framesToShowBeforeStart=30, else 60
 
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
                                ignoreRepeats=True, framesToShowBeforeStart=60, 
-                               mask=False, maskOnly=False, xlim=[0, .8], ylim=[-20, 20])
+                               mask=False, maskOnly=False, xlim=[0, .8], ylim=[-25, 30])
 
 # plot no response trials only (with repeats)
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
@@ -37,10 +42,6 @@ behaviorAnalysis.makeWheelPlot(d, responseFilter=[0],
 # plots catch trial wheel traces 
 catch_trials(d, xlim=[0,.8], ylim='auto', plot_ignore=False)   
 
-
-
-# prints out performance counts/% from session
-session_stats(d)
 
 
 # plot activity over entire session, trial-by-trial - 1 plot
