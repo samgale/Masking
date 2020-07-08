@@ -54,7 +54,7 @@ def plot_session(data):
     # add in nan trials 
     
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=[9.75, 6.5])
     ax.plot(df['CumPercentCorrect'], 'k-')
     ax.plot(rightCorr['CumPercentCorrect'], 'r^', ms=10, label="right correct")
     ax.plot(leftCorr['CumPercentCorrect'], 'b^', ms=10, label="left correct")
@@ -93,9 +93,13 @@ def plot_session(data):
     fig.set_facecolor('w')
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
+    
+    plt.legend(loc="best", numpoints=1)
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.91, bottom=0.1, left=0.075, right=0.985, hspace=0.2, wspace=0.2)
+    ax.margins(x=0.01, y=.01)
     labels = [str(np.round(int((ind/framerate)/60))) for ind in ax.get_xticks()]
     ax.set_xticklabels(labels)
-    plt.legend(loc="best", numpoints=1)
     plt.show()
 
 

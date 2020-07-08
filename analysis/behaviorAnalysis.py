@@ -36,7 +36,7 @@ mpl.style.use('classic')
 '''
     
 def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, 
-                  framesToShowBeforeStart=60, mask=False, maskOnly=False, xlim='auto', ylim='auto'):
+                  framesToShowBeforeStart=60, mask=False, maskOnly=False, xlim='auto', ylim='auto', figsize=None):
 
 
     #Clean up inputs if needed    
@@ -109,7 +109,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     postTrialFrames = 0 if d['postRewardTargetFrames'][()]>0 else 1 #make sure we have at least one frame after the reward
 
-    fig, ax = plt.subplots()
+    
+    fig, ax = plt.subplots(figsize=figsize)
     
     ax.margins(0)
     # turnRightTrials == stim presented on L, turn right - viceversa for turnLeftTrials - or for orientation, turn right

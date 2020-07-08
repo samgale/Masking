@@ -66,7 +66,9 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False):
         else:   # no response trials
             ax.plot(time, wheel, c='k', alpha=.2)
     
-    ylim = ax.get_ylim()
+    
+    ylim = ax.get_ylim() if ylim=='auto' else ylim
+    
     
     ax.vlines((closedLoop/framerate), ylim[0], ylim[1], ls='--', color='g', lw=3, label='Start Closed Loop')
     ax.vlines((maxResp + closedLoop)/framerate, ylim[0], ylim[1], ls='--', color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
@@ -82,6 +84,8 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False):
     
     plt.suptitle(df.mouse + '  ' + date)
     plt.legend(loc='best', fontsize='small', numpoints=1) 
+    plt.tight_layout()
+    plt.subplots_adjust(top=.9)
     
     ignored_counts = df['rewDir'].isnull().groupby(df['ignoreTrial']).sum()   #counting ignore trials for catch trials
     
