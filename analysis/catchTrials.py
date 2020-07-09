@@ -111,13 +111,13 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False):
             wheel = np.cumsum(df.loc[i, 'deltaWheel'][ind:]*wheelRad)
             wheel = wheel[:len(time)]
             
-            ax.plot(time, wheel, color='orange', alpha=.3, label='Ignored'\
+            ax.plot(time, wheel, color='orange', alpha=.5, label='Ignored'\
                         if "Ignored" not in plt.gca().get_legend_handles_labels()[1] else '')
         
         if ylim=='auto':        
             ylim = ax.get_ylim()
         else:
-            ylim=[-10,10]
+            ylim=ylim
     
         ax.vlines((closedLoop/framerate), ylim[0], ylim[1], ls='--', color='g', 
                   lw=3, label='Start Closed Loop')
@@ -133,3 +133,5 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False):
         
         plt.suptitle(df.mouse + '  ' + date)
         plt.legend(loc='best', fontsize='small', numpoints=1) 
+        plt.tight_layout()
+        plt.subplots_adjust(top=.9)

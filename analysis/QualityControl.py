@@ -124,12 +124,16 @@ def check_qviolations(d, plot_type='sum'):  # or type='count'
     fig, ax = plt.subplots()
     if plot_type=='sum':
         ax.plot(time, np.cumsum(df['quiescentViolations']), color='m')
+        ylabel = 'Cumulative violations'
     elif plot_type=='count':
         ax.plot(time, df['quiescentViolations'], 'mo', ms=8)  
-        ax.set_ylim([0,np.max(df['quiescentViolations']) + 1])
+        ax.set_ylim([-.5,np.max(df['quiescentViolations']) + 1])
+        ylabel = 'Number of violations'
         
     formatFigure(fig, ax, title='Quiescent Period Violations per Trial', xLabel='Time from session start (min)', 
-                 yLabel='Number of violations')
+                 yLabel=ylabel)
+    plt.tight_layout()
+    ax.set_xlim([-.5, (np.round(max(time))+1)])
     
     np.sum(df['quiescentViolations'])
     
