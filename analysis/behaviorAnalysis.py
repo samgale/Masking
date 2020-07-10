@@ -15,6 +15,7 @@ import matplotlib.style
 import matplotlib as mpl
 import scipy.signal 
 from ignoreTrials import ignore_trials
+from dataAnalysis import get_dates
 
 mpl.rcParams['pdf.fonttype']=42
 
@@ -35,7 +36,7 @@ mpl.style.use('classic')
 '''
     
 def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, 
-                  framesToShowBeforeStart=60, mask=False, maskOnly=False, xlim='auto'):
+                  framesToShowBeforeStart=60, mask=False, maskOnly=False, xlim='auto', ylim='auto', figsize=None):
 
 
     #Clean up inputs if needed    
@@ -50,6 +51,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     trialRewardDirection = d['trialRewardDir'][:trialEndFrames.size]
     trialResponse = d['trialResponse'][:trialEndFrames.size]
     deltaWheel = d['deltaWheelPos'][:]
+    maxResp = d['maxResponseWaitFrames'][()]
     
     wheelRad = d['wheelRadius'][()]
     if 'wheelRadius' in d.keys():
@@ -61,6 +63,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else np.array([d['preStimFrames'][:]]*trialStartFrames.size)
     
     trialStartFrames += preStimFrames    
+    
     
     if 'trialOpenLoopFrames' in d.keys():
         openLoopFrames = d['trialOpenLoopFrames'][:]
@@ -87,7 +90,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     if ignoreRepeats == True:
         if 'trialRepeat' in d.keys():
             prevTrialIncorrect = d['trialRepeat'][:len(trialResponse)]
-            subtitle = ['repeats ignored']
+            subtitle = '(repeats ignored)'
         elif 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'][()] > 0:
             prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))
             trialResponse = trialResponse[prevTrialIncorrect==False]
@@ -97,23 +100,27 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
             nogo = nogo[prevTrialIncorrect==False]
             subtitle = ['repeats ignored']
         elif 'incorrectTrialRepeats' in d and d['incorrectTrialRepeats'][()] == 0:
-            subtitle= ['no repeated trials']
+            subtitle= '(no repeated trials)'
     else:
-        subtitle = ['repeats incl']
+        subtitle = '(repeats incl)'
 
     
     ignoreTrials = ignore_trials(d)
     
     postTrialFrames = 0 if d['postRewardTargetFrames'][()]>0 else 1 #make sure we have at least one frame after the reward
 
-    fig, ax = plt.subplots()
     
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    ax.margins(0)
     # turnRightTrials == stim presented on L, turn right - viceversa for turnLeftTrials - or for orientation, turn right
     nogoTrials = []
     turnRightTrials = []
     turnLeftTrials = []
-    maxTrialFrames = max(trialEndFrames-trialStartFrames+framesToShowBeforeStart+postTrialFrames)  #??? why  
+    maxTrialFrames = max(trialEndFrames-trialStartFrames+framesToShowBeforeStart+postTrialFrames)   
     trialTime = (np.arange(maxTrialFrames)-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
+    
+    
     for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(
             trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
         if i>0 and i<len(trialStartFrames):
@@ -144,6 +151,14 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
                         turnLeftTrials.append(trialWheel)
     
+    if ylim=='auto':
+#        ymax = max([np.max(x[-maxResp:]) for x in turnRightTrials])
+#        ymin = min([np.min(x[-maxResp:]) for x in turnLeftTrials])
+#        ax.set_ylim(ymin, ymax)
+        ax.set_ylim(auto=True)
+    else:
+        ax.set_ylim(ylim[0], ylim[1])
+        
     turnRightTrials = pd.DataFrame(turnRightTrials).fillna(np.nan).values
     turnLeftTrials = pd.DataFrame(turnLeftTrials).fillna(np.nan).values
     nogoTrials = pd.DataFrame(nogoTrials).fillna(np.nan).values
@@ -152,17 +167,20 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     ax.plot(trialTime[:nogoTrials.shape[1]], np.nanmean(nogoTrials,0), 'k', linewidth=3)
     ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
     
-    name_date = str(data).split('_')    
+    name = str(d).split('_')[1]
+    date = get_dates(str(d).split('_')[2])    
 
     if xlim=='auto':
-        pass
+        ax.set_xlim(0, ((maxResp+openLoopFrames[0])/frameRate))
     else:
-        ax.set_xlim(xlim[0],xlim[1 ])
-    
+        ax.set_xlim(xlim[0],xlim[1])
+                    
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
-                 yLabel=ylabel, title=name_date[-3:-1] + subtitle)
+                 yLabel=ylabel, title=name + ' ' + date + ' ' + subtitle)
     
     plt.tight_layout()
+    
+    
     
     if mask:
         maskContrast = d['trialMaskContrast'][:len(trialResponse)]  #plot mask only trials 

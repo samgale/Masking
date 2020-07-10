@@ -15,26 +15,17 @@ import matplotlib as mpl
 
 mpl.rcParams['pdf.fonttype']=42
 
-def catch_trials(d, xlim='auto'):
-    
-        # filter out catch trials
-        # find trials where they turned past the reward threshold; which direction
-        # count the trials turned R, L, or not past thresh
-        # plot catch trial wheel trace 
-        # To the right of the catch trial wheel plot, print the fraction of trials 
-        # that were left, right, or no move past threshold.
-        # and add quiescent violations  ****
-        
+def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False):
+            
         
     df = create_df(d)
     
     monitorSize = d['monSizePix'][0] 
     normRewardDist = d['wheelRewardDistance'][()] if 'wheelRewardDistance' in d.keys() else d['normRewardDistance'][()]
-    #maxQuiescentMove = d['maxQuiescentNormMoveDist'][()]
-   # sigMove = maxQuiescentMove * monitorSize
+
     ylabel = 'Wheel Distance Turned (mm)' if 'wheelRewardDistance' in d.keys() else 'Wheel Position'
     wheelRad = d['wheelRadius'][()]
-    rewThreshold = normRewardDist if 'wheelRewardDistance' in d.keys() else normRewardDist*monitorSize
+#    rewThreshold = normRewardDist if 'wheelRewardDistance' in d.keys() else normRewardDist*monitorSize
     maxResp = d['maxResponseWaitFrames'][()]
     trialRew = d['trialResponseDir'][:]
     closedLoop = d['openLoopFramesFixed'][()]
@@ -50,9 +41,10 @@ def catch_trials(d, xlim='auto'):
     ignore = [i for i in catchTrials if df.loc[i, 'ignoreTrial']==True]
     
     if xlim=='auto':
-        time = np.arange(maxResp+maxResp/2)/framerate
+        time = np.arange(maxResp+closedLoop)/framerate
     else:
         time = np.arange(xlim[1]*framerate)/framerate
+    
     
     fig, ax = plt.subplots()
     
@@ -65,42 +57,39 @@ def catch_trials(d, xlim='auto'):
         
         if i in ignore:
            pass
-#            ax.plot(time, wheel, color='orange', alpha=.3, label='Ignored'\
-#                    if "Ignored" not in plt.gca().get_legend_handles_labels()[1] else '')
-           # if df.loc[i, ']
         
-        elif i in catchRew and i not in ignore:
+        elif i in catchRew and i not in ignore:   # moved past reward threshold within the trial time
             ax.plot(time, wheel, c='c', alpha=.6, label="Reward Trial" if "Reward Trial"\
                     not in plt.gca().get_legend_handles_labels()[1] else '')  
 #            ax.plot(wheel[])  # plotting "rewards"
             
-        else:   # no reward and not ignore
+        else:   # no response trials
             ax.plot(time, wheel, c='k', alpha=.2)
     
-    ylim = ax.get_ylim()
+    
+    ylim = ax.get_ylim() if ylim=='auto' else ylim
+    
     
     ax.vlines((closedLoop/framerate), ylim[0], ylim[1], ls='--', color='g', lw=3, label='Start Closed Loop')
     ax.vlines((maxResp + closedLoop)/framerate, ylim[0], ylim[1], ls='--', color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
 
     if xlim=='auto':
-        pass
+        ax.set_xlim(0, (maxResp+closedLoop+(maxResp/2)/framerate))
     else:
         ax.set_xlim(xlim[0], xlim[1])
     
     formatFigure(fig, ax, title="Catch Trial Wheel Traces", xLabel="Trial Length (s)", yLabel=ylabel) 
     
-
     date = get_dates(df)
     
     plt.suptitle(df.mouse + '  ' + date)
     plt.legend(loc='best', fontsize='small', numpoints=1) 
+    plt.tight_layout()
+    plt.subplots_adjust(top=.9)
     
     ignored_counts = df['rewDir'].isnull().groupby(df['ignoreTrial']).sum()   #counting ignore trials for catch trials
     
-    #### applt similar counut function from percentCorrect to get L, R
-    i
-    
-    
+        
     print('\n')
     print('Prob catch trial: ' + str(d['probCatch'][()]))
     print('Total catch: ' + str(len(catchTrials)))
@@ -110,3 +99,39 @@ def catch_trials(d, xlim='auto'):
     print('No response: ' + str(len([k for k in noRew if k not in ignore])))
    
 
+
+    if plot_ignore==True:   # plot of ignored trials 
+
+        fig, ax = plt.subplots()
+    
+        for i in ignore:
+            stim = df.loc[i, 'stimStart']
+            start = df.loc[i, 'trialStart']
+            ind = stim - start 
+            wheel = np.cumsum(df.loc[i, 'deltaWheel'][ind:]*wheelRad)
+            wheel = wheel[:len(time)]
+            
+            ax.plot(time, wheel, color='orange', alpha=.5, label='Ignored'\
+                        if "Ignored" not in plt.gca().get_legend_handles_labels()[1] else '')
+        
+        if ylim=='auto':        
+            ylim = ax.get_ylim()
+        else:
+            ylim=ylim
+    
+        ax.vlines((closedLoop/framerate), ylim[0], ylim[1], ls='--', color='g', 
+                  lw=3, label='Start Closed Loop')
+        ax.vlines((maxResp + closedLoop)/framerate, ylim[0], ylim[1], ls='--', 
+                  color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
+    
+        if xlim=='auto':
+            ax.set_xlim(0, maxResp+closedLoop/framerate)
+        else:
+            ax.set_xlim(xlim[0], xlim[1])
+        
+        formatFigure(fig, ax, title="Ignored Catch Trial Wheel Traces", xLabel="Trial Length (s)", yLabel=ylabel) 
+        
+        plt.suptitle(df.mouse + '  ' + date)
+        plt.legend(loc='best', fontsize='small', numpoints=1) 
+        plt.tight_layout()
+        plt.subplots_adjust(top=.9)

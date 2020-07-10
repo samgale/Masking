@@ -21,29 +21,31 @@ from catchTrials import catch_trials
 # choose mouse file
 d = dataAnalysis.import_data()
 
+
+# prints out performance counts/% from session
+session_stats(d)
+
+
 # plot session wheel trace - 1 plot, unless mask==True - 2 plots
 ##  if session is from 1/13 - 1/28, use framesToShowBeforeStart=30, else 60
 
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
                                ignoreRepeats=True, framesToShowBeforeStart=60, 
-                               mask=False, maskOnly=False, xlim=[0, 1])
+                               mask=False, maskOnly=False, xlim=[0, .8], ylim=[-25, 30])
 
 # plot no response trials only (with repeats)
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
                                ignoreRepeats=False, framesToShowBeforeStart=60, 
-                               mask=False, maskOnly=False,  xlim=[0, 1])
-
-# plot activity over entire session, trial-by-trial - 1 plot
-plot_session(d)
+                               mask=False, maskOnly=False,  xlim=[0, .8], ylim=[-10,10])
 
 
 # plots catch trial wheel traces 
-catch_trials(d, xlim=[0, d['maxResponseWaitFrames'][()]/120])   
+catch_trials(d, xlim=[0,.8], ylim='auto', plot_ignore=False)   
 
 
 
-# prints out performance counts/% from session
-session_stats(d)
+# plot activity over entire session, trial-by-trial - 1 plot
+plot_session(d)
 
 
 # check for dropped frames
@@ -55,11 +57,13 @@ qualityControl.check_qviolations(d, plot_type='sum')
 
 qualityControl.check_qviolations(d, plot_type='count')
 
+
 # check distribution of delta wheel position 
 qualityControl.check_wheel(d)
 
 
-# plot target duration responses - 3 plots
+
+# plot target duration responses - 3 plots ###################################
 plot_flash(d)
 
 
