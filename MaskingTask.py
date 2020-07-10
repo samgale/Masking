@@ -93,6 +93,7 @@ class MaskingTask(TaskControl):
             self.preStimFramesVariableMean = 120
             self.preStimFramesMax = 600
             self.quiescentFrames = 0
+            self.maxResponseWaitFrames = 3600
             self.useGoTone = False
             self.solenoidOpenTime = 0.2
             self.gratingEdge= 'raisedCos'
@@ -132,7 +133,7 @@ class MaskingTask(TaskControl):
             # increase reward distance
             # introduce quiescent period, shorter response window, incorrect penalty, and catch trials
             self.setDefaultParams('training2',taskVersion)
-            self.wheelRewardDistance = 4.0
+            self.wheelRewardDistance = 2.0
             self.quiescentFrames = 60
             self.maxResponseWaitFrames = 1200 # manually adjust this 
             self.useIncorrectNoise = True
@@ -156,7 +157,6 @@ class MaskingTask(TaskControl):
         elif name == 'testing':
             self.setDefaultParams('training4',taskVersion)
             self.moveStim = False
-            self.wheelRewardDistance = 6.0
             self.postRewardTargetFrames = 0
             self.useIncorrectNoise = False
             self.incorrectTimeoutFrames = 0
@@ -180,6 +180,12 @@ class MaskingTask(TaskControl):
             self.maskOnset = [2,3,4,6,12]
             self.probMask = 0.6
             self.targetContrast = [0.5]
+            
+        elif name == 'opto':
+            self.setDefaultParams('masking',taskVersion)
+            self.maskOnset = [2,4]
+            self.probOpto = 0.5
+            self.optoOnset = [0,4,8,12]
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
