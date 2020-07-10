@@ -93,6 +93,7 @@ class MaskingTask(TaskControl):
             self.preStimFramesVariableMean = 120
             self.preStimFramesMax = 600
             self.quiescentFrames = 0
+            self.maxResponseWaitFrames = 3600
             self.useGoTone = False
             self.solenoidOpenTime = 0.2
             self.gratingEdge= 'raisedCos'
