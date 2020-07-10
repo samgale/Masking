@@ -122,7 +122,7 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False):
         ax.vlines((closedLoop/framerate), ylim[0], ylim[1], ls='--', color='g', 
                   lw=3, label='Start Closed Loop')
         ax.vlines((maxResp + closedLoop)/framerate, ylim[0], ylim[1], ls='--', 
-                  color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
+                  color='b', alpha=.5, lw=2, label='Max Response')
     
         if xlim=='auto':
             ax.set_xlim(0, maxResp+closedLoop/framerate)

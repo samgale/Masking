@@ -26,6 +26,7 @@ import seaborn as sns
 
 matplotlib.rcParams['pdf.fonttype'] = 42
 sns.set_style('white')
+sns.set_style('ticks')
 
 
 # checks the frame intervals from stim onset to mask onset

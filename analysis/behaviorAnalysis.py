@@ -165,7 +165,12 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     ax.plot(trialTime[:turnRightTrials.shape[1]], np.nanmean(turnRightTrials,0), 'r', linewidth=3)
     ax.plot(trialTime[:turnLeftTrials.shape[1]], np.nanmean(turnLeftTrials, 0), 'b', linewidth=3)
     ax.plot(trialTime[:nogoTrials.shape[1]], np.nanmean(nogoTrials,0), 'k', linewidth=3)
-    ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
+    
+    plt.vlines((openLoopFrames/frameRate), ylim[0], ylim[1], 'k', ls='--', label='Closed Loop' 
+            if 'Closed Loop' not in plt.gca().get_legend_handles_labels()[1] else '')
+    
+   # plt.hlines([-d['wheelRewardDistance'][()], d['wheelRewardDistance'][()]], xlim[0], xlim[1], 
+#                color='k', linestyle='--', alpha=.8, label='Reward Threshold')
     
     name = str(d).split('_')[1]
     date = get_dates(str(d).split('_')[2])    
@@ -174,9 +179,17 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         ax.set_xlim(0, ((maxResp+openLoopFrames[0])/frameRate))
     else:
         ax.set_xlim(xlim[0],xlim[1])
-                    
+     
+    plt.vlines((maxResp + openLoopFrames)/frameRate, ylim[0], ylim[1], ls='--', 
+                  color='c', alpha=.5, lw=1, label='Max Response')
+               
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
                  yLabel=ylabel, title=name + ' ' + date + ' ' + subtitle)
+    
+    if len(plt.gca().get_legend_handles_labels()[1])>0:
+        plt.legend(loc='best', fontsize='medium', numpoints=1)
+    else:
+        pass
     
     plt.tight_layout()
     
