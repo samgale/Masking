@@ -90,8 +90,9 @@ def check_frame_intervals(d):
     fig, ax = plt.subplots()
     plt.hist(fi, edgecolor='k', color='c', linewidth=1, bins = np.arange(0, max(fi)+1/fr, 1/fr) - 0.5/fr)
     ax.set_yscale('log')
+    ax.set_ylim(.3, ax.get_ylim()[1])
     ax.set_xticks(np.round(np.arange(0, max(fi), 1/fr), 3))
-    ax.set_xlim([0, max(fi)+np.mean(fi)])
+    ax.set_xlim([-.01, max(fi)+np.mean(fi)])
     ax.tick_params(axis='x', rotation=60)
     plt.suptitle(mouse + '  ' + date)    
     formatFigure(fig, ax, title='Distribution of Frame Intervals', xLabel='Frame Intervals (sec)',
@@ -116,45 +117,58 @@ def check_frame_intervals(d):
 #    above_t = [max_fi[y] for y in fi_inds]  
     
 
-def check_qviolations(d, plot_type='sum'):  # or type='count'
+def check_qviolations(d, plot_type='sum', arrayOnly=False):  # or type='count'
     
     df = create_df(d)
     
     time = df['trialStart']*1/df.framerate/60
 
-    fig, ax = plt.subplots()
-    if plot_type=='sum':
-        ax.plot(time, np.cumsum(df['quiescentViolations']), color='m')
-        ylabel = 'Cumulative violations'
-    elif plot_type=='count':
-        ax.plot(time, df['quiescentViolations'], 'mo', ms=8)  
-        ax.set_ylim([-.5,np.max(df['quiescentViolations']) + 1])
-        ylabel = 'Number of violations'
+    array = ['Total Quiescent Violations: ' + str(np.sum(df['quiescentViolations'])),
+             'Max violations: ' + str(np.max(df['quiescentViolations']))]
+    
+    if arrayOnly == True:
+        return array
+    
+    else:
         
-    formatFigure(fig, ax, title='Quiescent Period Violations per Trial', xLabel='Time from session start (min)', 
-                 yLabel=ylabel)
-    plt.tight_layout()
-    ax.set_xlim([-.5, (np.round(max(time))+1)])
+        print([a for a in array])
     
-    np.sum(df['quiescentViolations'])
+
+        fig, ax = plt.subplots()
+        if plot_type=='sum':
+            ax.plot(time, np.cumsum(df['quiescentViolations']), color='m')
+            ylabel = 'Cumulative violations'
+        elif plot_type=='count':
+            ax.plot(time, df['quiescentViolations'], 'mo', ms=8)  
+            ax.set_ylim([-.5,np.max(df['quiescentViolations']) + 1])
+            ylabel = 'Number of violations'
+            
+        formatFigure(fig, ax, title='Quiescent Period Violations per Trial', xLabel='Time from session start (min)', 
+                     yLabel=ylabel)
+        plt.tight_layout()
+        ax.set_xlim([-.5, (np.round(max(time))+1)])
     
-    print('Total Quiescent Period Violations: ' + str(np.sum(df['quiescentViolations'])))
-    print('Max violations: ' + str(np.max(df['quiescentViolations'])))
+
     
-    df['quiescentViolations'].describe()
 
 
 def check_wheel(d):
     
     #wheelRadius = d['wheelRadius'][()]
     maxWheelAngleChange = d['maxWheelAngleChange'][()]
+    deltaWheel = d['deltaWheelPos'][:]
     fig, ax = plt.subplots()
-    ax.hist(d['deltaWheelPos'][:], bins=np.arange(-maxWheelAngleChange,maxWheelAngleChange,0.01), color='orange', alpha=.5)
+    ax.hist(deltaWheel, bins=np.arange(-maxWheelAngleChange,maxWheelAngleChange,0.01), 
+            color='orange', alpha=.5)
     ax.set_yscale('log')
+    
+    xrange = [np.max(deltaWheel), np.min(deltaWheel)]
+    xmax = max(map(abs, xrange))
+    
+    ax.set_xlim(-xmax-.05, xmax+.05)
     
     formatFigure(fig, ax, title='Distribution of Delta Wheel Position', 
                  xLabel='Wheel movement (radians)', yLabel='Count')
-   
     date = d['startTime'][()].split('_')
     from datetime import datetime
     date = datetime.strptime(date[0], '%Y%m%d').strftime('%m/%d/%Y')
