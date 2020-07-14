@@ -23,24 +23,24 @@ d = dataAnalysis.import_data()
 
 
 # prints out performance counts/% from session
-session_stats(d)
+session_stats(d, returnAs = 'print')
 
 
 # plot session wheel trace - 1 plot, unless mask==True - 2 plots
 ##  if session is from 1/13 - 1/28, use framesToShowBeforeStart=30, else 60
 
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
-                               ignoreRepeats=True, framesToShowBeforeStart=60, 
-                               mask=False, maskOnly=False, xlim=[0, .8], ylim=[-25, 30])
+                               ignoreRepeats=True, framesToShowBeforeStart=0, 
+                               mask=False, maskOnly=False, xlim=[0, .8], ylim=[-20,20])
 
 # plot no response trials only (with repeats)
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
-                               ignoreRepeats=False, framesToShowBeforeStart=60, 
+                               ignoreRepeats=False, framesToShowBeforeStart=0, 
                                mask=False, maskOnly=False,  xlim=[0, .8], ylim=[-10,10])
 
 
 # plots catch trial wheel traces 
-catch_trials(d, xlim=[0,.8], ylim='auto', plot_ignore=False)   
+catch_trials(d, xlim=[0,.8], ylim='auto', plot_ignore=True)   
 
 
 
@@ -61,6 +61,7 @@ qualityControl.check_qviolations(d, plot_type='count')
 # check distribution of delta wheel position 
 qualityControl.check_wheel(d)
 
+d.close()
 
 
 # plot target duration responses - 3 plots ###################################

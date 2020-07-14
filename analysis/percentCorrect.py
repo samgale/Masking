@@ -19,7 +19,7 @@ import numpy as np
 from dataAnalysis import create_df
 
 
-def session_stats(d, nogo=False):
+def session_stats(d, nogo=False, returnAs:'str_array'):    #returnAs 'str_array', 'num_array', or 'print'
 
     print(str(d) + '\n')
     
@@ -27,15 +27,6 @@ def session_stats(d, nogo=False):
     
     sessionDuration = d['trialResponseFrame'][-1]   # in frames
     
-    if 'wheelRewardDistance' in d.keys():
-        print('Wheel Reward Dist: ' + str(d['wheelRewardDistance'][()]))
-    
-    print('Norm reward: ' + str(d['normRewardDistance'][()]))
-    print('Max wait frames: ' + str(d['maxResponseWaitFrames'][()]))
-    print('Prob go right: ' + str(d['probGoRight'][()]))
-    print('Session duration (mins): ' + str(np.round(sessionDuration/df.framerate/60, 2)))
-    print('\n')
-
     catchTrials = df['catchTrial'].value_counts()[1]
     notCatch = df['catchTrial'].value_counts()[0]
     
@@ -65,30 +56,94 @@ def session_stats(d, nogo=False):
     respTotal = usableTrialTotal - (rightNoResp + leftNoResp)
     totalCorrect = (rightCorrect + leftCorrect)
 
-    print('Repeats: ' + str(len(repeats)) + '/' + str(totalTrials))
-    print('Total Ignore: ' + str(ignored[1]+ignored[-1]))
-    print('Performance trials: ' + str(usableTrialTotal))
-    print('\n')
+    if returnAs == 'str_array'.lower():
+        
+            array = ['Wheel Reward Dist: ' + str(d['wheelRewardDistance'][()]),
+                     'Norm reward: ' + str(d['normRewardDistance'][()]),
+                     'Max wait frames: ' + str(d['maxResponseWaitFrames'][()]),
+                     'Prob go right: ' + str(d['probGoRight'][()]),
+                     'Session duration (mins): ' + str(np.round(sessionDuration/df.framerate/60, 2)),
+                     '/n/',
+                     'Repeats: ' + str(len(repeats)) + '/' + str(totalTrials),
+                     'Total Ignore: ' + str(ignored[1]+ignored[-1]),
+                     'Performance trials: ' + str(usableTrialTotal),
+                     'Right Ignore: ' + str(ignored[1]),
+                     'Right trials: ' + str(len(right)),
+                     'R % Correct: ' + str(np.round(rightCorrect/len(right), 2)),
+                     'R % Incorrect: ' + str(np.round(rightIncorrect/len(right),2)),
+                     'R % No Resp: ' + str(np.round(rightNoResp/len(right),2)),
+                     'Left Ignore: ' + str(ignored[-1]),
+                     'Left trials: ' + str(len(left)),
+                     'L % Correct: ' + str(np.round(leftCorrect/len(left), 2)),
+                     'L % Incorrect: ' + str(np.round(leftIncorrect/len(left),2)),
+                     'L % No Resp: ' + str(np.round(leftNoResp/len(left),2)),
+                     'Total Correct, given Response: ' + str(np.round((leftCorrect+rightCorrect)/respTotal,2)),
+                     'Total Correct: ' + str(np.round(totalCorrect/usableTrialTotal,2)),
+                     'Rewards this session:  ' + str(len(df[df['resp']==1])),
+                     '\n']
+            
+            return array 
+        
+        
+    elif returnAs == 'num_array'.lower():   # returns array of ints and floats, no titles or words
+        
+         array = [d['wheelRewardDistance'][()],
+                  d['normRewardDistance'][()],
+                  d['maxResponseWaitFrames'][()],
+                  d['probGoRight'][()],
+                  np.round(sessionDuration/df.framerate/60, 2),
+                  len(repeats)/(totalTrials),
+                  ignored[1]+ignored[-1],
+                  usableTrialTotal,
+                  ignored[1],
+                  len(right),
+                  np.round(rightCorrect/len(right), 2),
+                  np.round(rightIncorrect/len(right),2),
+                  np.round(rightNoResp/len(right),2),
+                  ignored[-1],
+                  len(left),
+                  np.round(leftCorrect/len(left), 2),
+                  np.round(leftIncorrect/len(left),2),
+                  np.round(leftNoResp/len(left),2),
+                  np.round((leftCorrect+rightCorrect)/respTotal,2),
+                  np.round(totalCorrect/usableTrialTotal,2),
+                  len(df[df['resp']==1])]
+         
+         return array
+         
+    else:
+
+        if 'wheelRewardDistance' in d.keys():
+            print('Wheel Reward Dist: ' + str(d['wheelRewardDistance'][()]))
+        
+        print('Norm reward: ' + str(d['normRewardDistance'][()]))
+        print('Max wait frames: ' + str(d['maxResponseWaitFrames'][()]))
+        print('Prob go right: ' + str(d['probGoRight'][()]))
+        print('Session duration (mins): ' + str(np.round(sessionDuration/df.framerate/60, 2)))
+        print('\n')
+        print('Repeats: ' + str(len(repeats)) + '/' + str(totalTrials))
+        print('Total Ignore: ' + str(ignored[1]+ignored[-1]))
+        print('Performance trials: ' + str(usableTrialTotal))
+        print('\n')
+        print("Right Ignore: " + str(ignored[1]))
+        print("Right trials: " + str(len(right)))
+        print("R % Correct: " + str(np.round(rightCorrect/len(right), 2)))
+        print("R % Incorrect: " + str(np.round(rightIncorrect/len(right),2)))
+        print("R % No Resp: " + str(np.round(rightNoResp/len(right),2)))
+        print('\n') 
+        print("Left Ignore: " + str(ignored[-1]))
+        print("Left trials: " + str(len(left)))
+        print("L % Correct: " + str(np.round(leftCorrect/len(left), 2)))
+        print("L % Incorrect: " + str(np.round(leftIncorrect/len(left),2)))
+        print("L % No Resp: " + str(np.round(leftNoResp/len(left),2)))
+        print('\n')
+        print('Total Correct, given Response: ' + str(np.round((leftCorrect+rightCorrect)/respTotal,2)))
+        print('Total Correct: ' + str(np.round(totalCorrect/usableTrialTotal,2)))
+        print("Rewards this session:  " + str(len(df[df['resp']==1])))  # all rewards, including repeats and ignored 
+        # can use to calculate how much water mouse recieved in session 
+        print('\n')
+        
     
-    print("Right Ignore: " + str(ignored[1]))
-    print("Right trials: " + str(len(right)))
-    print("R % Correct: " + str(np.round(rightCorrect/len(right), 2)))
-    print("R % Incorrect: " + str(np.round(rightIncorrect/len(right),2)))
-    print("R % No Resp: " + str(np.round(rightNoResp/len(right),2)))
-    print('\n') 
-    
-    print("Left Ignore: " + str(ignored[-1]))
-    print("Left trials: " + str(len(left)))
-    print("L % Correct: " + str(np.round(leftCorrect/len(left), 2)))
-    print("L % Incorrect: " + str(np.round(leftIncorrect/len(left),2)))
-    print("L % No Resp: " + str(np.round(leftNoResp/len(left),2)))
-    print('\n')
-    
-    print('Total Correct, given Response: ' + str(np.round((leftCorrect+rightCorrect)/respTotal,2)))
-    print('Total Correct: ' + str(np.round(totalCorrect/usableTrialTotal,2)))
-    print("Rewards this session:  " + str(len(df[df['resp']==1])))  # all rewards, including repeats and ignored 
-    # can use to calculate how much water mouse recieved in session 
-    print('\n')
     
     
     
