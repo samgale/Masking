@@ -112,7 +112,6 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     fig, ax = plt.subplots(figsize=figsize)
     
-    ax.margins(0)
     # turnRightTrials == stim presented on L, turn right - viceversa for turnLeftTrials - or for orientation, turn right
     nogoTrials = []
     turnRightTrials = []
@@ -151,13 +150,41 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                             ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
                         turnLeftTrials.append(trialWheel)
     
-    if ylim=='auto':
-#        ymax = max([np.max(x[-maxResp:]) for x in turnRightTrials])
-#        ymin = min([np.min(x[-maxResp:]) for x in turnLeftTrials])
-#        ax.set_ylim(ymin, ymax)
-        ax.set_ylim(auto=True)
+    
+    if xlim=='auto':
+        ax.set_xlim(0, ((maxResp+(openLoopFrames[0]*2))/frameRate))
     else:
-        ax.set_ylim(ylim[0], ylim[1])
+        ax.set_xlim(xlim[0],xlim[1])
+    
+    if ylim=='auto':
+        
+        def autoscale_y(ax,margin=0.1):
+      
+            def get_bottom_top(line):
+                xd = line.get_xdata()
+                yd = line.get_ydata()
+                lo,hi = ax.get_xlim()
+                y_displayed = yd[((xd>lo) & (xd<hi))]
+                h = np.max(y_displayed) - np.min(y_displayed)
+                bot = np.min(y_displayed)-margin*h
+                top = np.max(y_displayed)+margin*h
+                return bot,top
+        
+            lines = ax.get_lines()
+            bot,top = np.inf, -np.inf
+        
+            for line in lines:
+                new_bot, new_top = get_bottom_top(line)
+                if new_bot < bot: bot = new_bot
+                if new_top > top: top = new_top
+        
+            ax.set_ylim(bot,top)
+
+        autoscale_y(ax, margin=.1)
+        ax.set_ylim(ax.get_ylim())
+
+    else:
+        ax.set_ylim(ylim)
         
     turnRightTrials = pd.DataFrame(turnRightTrials).fillna(np.nan).values
     turnLeftTrials = pd.DataFrame(turnLeftTrials).fillna(np.nan).values
@@ -166,8 +193,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     ax.plot(trialTime[:turnLeftTrials.shape[1]], np.nanmean(turnLeftTrials, 0), 'b', linewidth=3)
     ax.plot(trialTime[:nogoTrials.shape[1]], np.nanmean(nogoTrials,0), 'k', linewidth=3)
     
-    plt.vlines((openLoopFrames/frameRate), ylim[0], ylim[1], 'k', ls='--', label='Closed Loop' 
-            if 'Closed Loop' not in plt.gca().get_legend_handles_labels()[1] else '')
+    plt.vlines((openLoopFrames/frameRate), ax.get_ylim()[0], ax.get_ylim()[1], 'k', ls='--', 
+               label='Closed Loop' if 'Closed Loop' not in plt.gca().get_legend_handles_labels()[1] else '')
     
    # plt.hlines([-d['wheelRewardDistance'][()], d['wheelRewardDistance'][()]], xlim[0], xlim[1], 
 #                color='k', linestyle='--', alpha=.8, label='Reward Threshold')
@@ -175,12 +202,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     name = str(d).split('_')[1]
     date = get_dates(str(d).split('_')[2])    
 
-    if xlim=='auto':
-        ax.set_xlim(0, ((maxResp+openLoopFrames[0])/frameRate))
-    else:
-        ax.set_xlim(xlim[0],xlim[1])
      
-    plt.vlines((maxResp + openLoopFrames)/frameRate, ylim[0], ylim[1], ls='--', 
+    plt.vlines((maxResp + openLoopFrames)/frameRate, ax.get_ylim()[0], ax.get_ylim()[1], ls='--', 
                   color='c', alpha=.5, lw=1, label='Max Response')
                
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
