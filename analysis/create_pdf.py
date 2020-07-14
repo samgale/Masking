@@ -49,9 +49,6 @@ def create_daily_summary(d):
     c.setFont('Helvetica', 12)
     c.drawString(3.3*inch, 10.5*inch, mouse_id + '                 ' + titleDate)
     
-    
-    
-    
 # insert daily wheel plot on left of canvas
     reportlab.platypus.Image(dataDir + '/Wheel Plots/Daily Wheel/' + mouse_id + ' ' + date + '.png', 
                              width=6*inch, height=4.5*inch).drawOn(c, .1*inch, 5.5*inch)
@@ -81,6 +78,7 @@ def create_daily_summary(d):
     
 # break
     c.showPage()
+ 
     
     
 # page 2    
@@ -107,6 +105,7 @@ def create_daily_summary(d):
     c.showPage()
     
     
+    
 # page 3
 # insert frame dist plot in upper left 1/6 
     reportlab.platypus.Image(dataDir + '/Other plots/frame dist/' + 'frame dist ' + date + '.png',
@@ -121,6 +120,8 @@ def create_daily_summary(d):
                              width=8*inch, height=6*inch).drawOn(c, .5*inch, 1*inch)    
 # break
     c.showPage()
+    
+    
     
 # page 4    
 # insert qVio sum plot top left 2/3s
