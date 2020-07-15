@@ -79,6 +79,7 @@ class MaskingTask(TaskControl):
         self.probOpto = 0 # fraction of trials with optogenetic stimulation
         self.optoAmp = 5 # V to led/laser driver
         self.optoOnset = [0] # frames >=0 relative to target stimulus onset
+        self.maxConsecutiveOptoTrials = 3
 
     
     def setDefaultParams(self,name,taskVersion=None):
@@ -146,6 +147,7 @@ class MaskingTask(TaskControl):
             # final training stage
             self.setDefaultParams('training3',taskVersion)
             self.maxResponseWaitFrames = 60
+            self.incorrectTimeoutFrames = 720
             self.solenoidOpenTime = 0.05
             
         elif name == 'nogo':
@@ -298,6 +300,7 @@ class MaskingTask(TaskControl):
         self.quiescentMoveFrames = [] # frames where quiescent period was violated
         incorrectRepeatCount = 0
         maskCount = 0
+        optoCount = 0
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
         
         # run loop for each frame presented on the monitor
@@ -357,7 +360,12 @@ class MaskingTask(TaskControl):
                         else:
                             targetContrast = self.targetContrast[0]
                             targetFrames = self.targetFrames[0]
-                    optoOnset = random.choice(self.optoOnset) if random.random() < self.probOpto else np.nan
+                    if len(self.trialResponse)>0 and optoCount < self.maxConsecutiveOptoTrials and random.random() < self.probOpto:
+                        optoOnset = random.choice(self.optoOnset)
+                        optoCount += 1
+                    else:
+                        optoOnset = np.nan
+                        optoCount = 0
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
