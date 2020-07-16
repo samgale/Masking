@@ -18,6 +18,8 @@ import os
 
 
 def save_daily_plots(d):
+    
+    plt.ioff()
 
     mouse_id=d['subjectName'][()]
     date = d['startTime'][()].split('_')[0][-4:]
@@ -36,7 +38,6 @@ def save_daily_plots(d):
                                    ignoreRepeats=True, ion=False, framesToShowBeforeStart=0, 
                                    mask=False, maskOnly=False, xlim='auto', ylim='auto')
     
-    
     plt.savefig(wheelDir+'/Daily Wheel/' + mouse_id + ' ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()
     
@@ -46,15 +47,14 @@ def save_daily_plots(d):
     behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
                                    ignoreRepeats=False, ion=False, framesToShowBeforeStart=0, 
                                    mask=False, maskOnly=False,  xlim='auto', ylim=[-10,10])
-    
-    plt.rcParams.update({'font.size': 10})
-    plt.subplots_adjust(top=0.9, bottom=0.1, left=0.1, right=0.96)
-    
+        
     plt.savefig(wheelDir+'/No Resp Wheel/' + mouse_id + ' ' + date + ' no resp.png', dpi=300, bbox_inches='tight')
     plt.close()
     
+    
+    
 # plots catch trial wheel traces 
-    catch_trials(d, xlim='auto', ion=False) 
+    catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False, ion=False) 
     
     plt.savefig(wheelDir+'/Catch/' + mouse_id + ' catch ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -62,7 +62,7 @@ def save_daily_plots(d):
     
     
 # plot activity over entire session, trial-by-trial - 1 plot
-    plot_session(d)
+    plot_session(d, ion=False)
     plt.savefig(dataDir + '/Session plots/' + mouse_id + ' session ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()
     

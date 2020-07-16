@@ -18,9 +18,14 @@ change this to create a df using dataAnalysis and the column of nogo turning?
 
 """
 
-def plot_session(data):
+def plot_session(data, ion=True):
     
     matplotlib.rcParams['pdf.fonttype'] = 42
+    
+    if ion==False:
+        plt.ioff()
+    else:
+        plt.ion()
     
     d=data
     trialResponse = d['trialResponse'][()]
@@ -54,7 +59,7 @@ def plot_session(data):
     leftNoResp = df[(df['trialResp']==0) & (df['rewardDir']==-1)]
     
     # add in nan trials 
-    
+
     
     fig, ax = plt.subplots(figsize=[9.75, 6.5])
     ax.plot(df['CumPercentCorrect'], 'k-')
@@ -88,6 +93,7 @@ def plot_session(data):
             plt.axvline(x=i, ymin=-100, ymax=300, c='k', ls='--', alpha=.5)
             ax.annotate(str(mask), xy=(i,corr), xytext=(0, 20), textcoords='offset points', fontsize=8)
             
+
         
     plt.suptitle(str(d).split('_')[-3:-1])
     plt.title('Choices over the Session')
@@ -104,6 +110,4 @@ def plot_session(data):
     ax.margins(x=0.01, y=.01)
     labels = [str(np.round(int((ind/framerate)/60))) for ind in ax.get_xticks()]
     ax.set_xticklabels(labels)
-    plt.show()
-
 
