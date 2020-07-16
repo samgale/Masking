@@ -33,8 +33,8 @@ def save_daily_plots(d):
     
 # daily wheel plot
     behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
-                                   ignoreRepeats=True, framesToShowBeforeStart=0, 
-                                   mask=False, maskOnly=False, xlim=[0, .8], ylim='auto')
+                                   ignoreRepeats=True, ion=False, framesToShowBeforeStart=0, 
+                                   mask=False, maskOnly=False, xlim='auto', ylim='auto')
     
     
     plt.savefig(wheelDir+'/Daily Wheel/' + mouse_id + ' ' + date + '.png', dpi=300, bbox_inches='tight')
@@ -44,8 +44,8 @@ def save_daily_plots(d):
     
 # plot no response trials only (with repeats)
     behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
-                                   ignoreRepeats=False, framesToShowBeforeStart=0, 
-                                   mask=False, maskOnly=False,  xlim=[0, .8], ylim=[-10,10])
+                                   ignoreRepeats=False, ion=False, framesToShowBeforeStart=0, 
+                                   mask=False, maskOnly=False,  xlim='auto', ylim=[-10,10])
     
     plt.rcParams.update({'font.size': 10})
     plt.subplots_adjust(top=0.9, bottom=0.1, left=0.1, right=0.96)
@@ -54,7 +54,7 @@ def save_daily_plots(d):
     plt.close()
     
 # plots catch trial wheel traces 
-    catch_trials(d, xlim=[0, .8]) 
+    catch_trials(d, xlim='auto', ion=False) 
     
     plt.savefig(wheelDir+'/Catch/' + mouse_id + ' catch ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()

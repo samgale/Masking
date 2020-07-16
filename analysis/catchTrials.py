@@ -15,7 +15,7 @@ import matplotlib as mpl
 
 mpl.rcParams['pdf.fonttype']=42
 
-def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False):
+def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False, ion=True):
             
         
     df = create_df(d)
@@ -63,7 +63,11 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
         print('\n')
         for count in array:
             print(count)
-    
+            
+        plt.ion()
+        if ion==False:
+            plt.ioff()
+        
         fig, ax = plt.subplots()
         
         for i in catchTrials:
@@ -131,7 +135,7 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
                       color='b', alpha=.5, lw=2, label='Max Response')
         
             if xlim=='auto':
-                ax.set_xlim(0, maxResp+closedLoop/framerate)
+                ax.set_xlim(0, ((maxResp+(closedLoop*2))/framerate))
             else:
                 ax.set_xlim(xlim[0], xlim[1])
             
