@@ -41,7 +41,7 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
     ignore = [i for i in catchTrials if df.loc[i, 'ignoreTrial']==True]
     
     if xlim=='auto':
-        time = np.arange(maxResp+closedLoop)/framerate
+        time = np.arange((maxResp+(closedLoop*2)))/framerate
     else:
         time = np.arange(xlim[1]*framerate)/framerate
     
@@ -96,7 +96,7 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
         ax.vlines((maxResp + closedLoop)/framerate, ylim[0], ylim[1], ls='--', color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
     
         if xlim=='auto':
-            ax.set_xlim(0, (maxResp+closedLoop+(maxResp/2)/framerate))
+            ax.set_xlim(0, ((maxResp+(closedLoop*2))/framerate))
         else:
             ax.set_xlim(xlim[0], xlim[1])
         
