@@ -31,12 +31,12 @@ session_stats(d, returnAs = 'print')
 
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
                                ignoreRepeats=True, framesToShowBeforeStart=0, 
-                               mask=False, maskOnly=False, xlim=[0, .8], ylim=[-20,20])
+                               mask=False, maskOnly=False, xlim=[0, .8], ylim='auto')
 
 # plot no response trials only (with repeats)
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
                                ignoreRepeats=False, framesToShowBeforeStart=0, 
-                               mask=False, maskOnly=False,  xlim=[0, .8], ylim=[-10,10])
+                               mask=False, maskOnly=False,  xlim=[0, .8], ylim=[-8,8])
 
 
 # plots catch trial wheel traces 

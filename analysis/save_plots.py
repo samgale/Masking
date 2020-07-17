@@ -17,10 +17,10 @@ import matplotlib.pyplot as plt
 import os
 
 
-def save_daily_plots(d):
+def save_daily_plots(data):
     
     plt.ioff()
-
+    d = data
     mouse_id=d['subjectName'][()]
     date = d['startTime'][()].split('_')[0][-4:]
     date = date[:2]+'-'+date[2:]
@@ -29,9 +29,8 @@ def save_daily_plots(d):
     
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'Plots') 
-    
-    
     wheelDir = os.path.join(dataDir, 'Wheel plots')
+    
     
 # daily wheel plot
     behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
@@ -104,5 +103,24 @@ def save_daily_plots(d):
     plt.close()
 
 
+#if d[moveStim][()]==False:
+#    if len(d['targetFrames'][:])>1:
+#        plot_flash(d)
+#        plt.savefig(dataDir + '/Other plots/other/' + 
+#                    'target duration ' + date + '.png', dpi=300, bbox_inches='tight')
+#   plt.close()
+#    
+#    if len(d['targetContrast'][:])>1:
+#         plot_contrast(d)
+#         plt.savefig(dataDir + '/Other plots/other/' +  
+#                    'target contrast ' + date + '.png', dpi=300, bbox_inches='tight')
+#         plt.close()    
+    
+#    if len(d['maskOnset'][:])>1:
+#        performanceBySOA.plot_soa(d)
+#
+#        plt.savefig(dataDir + '/Masking plots/' + mouse_id +
+#                ' masking ' + date + '.png', dpi=300, bbox_inches='tight')
+#        plt.close()
 
 
