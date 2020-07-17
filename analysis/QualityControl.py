@@ -130,7 +130,6 @@ def check_qviolations(d, plot_type='sum', arrayOnly=False):  # or type='count'
         return array
     
     else:
-        
         print([a for a in array])
     
 

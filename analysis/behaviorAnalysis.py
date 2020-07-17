@@ -35,7 +35,7 @@ mpl.style.use('classic')
                             with nans to correct for variable length. 
 '''
     
-def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, 
+def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, ion = True,
                   framesToShowBeforeStart=60, mask=False, maskOnly=False, xlim='auto', ylim='auto', figsize=None):
 
 
@@ -43,6 +43,10 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     #if response filter is an int, make it a list
     if type(responseFilter) is int:
         responseFilter = [responseFilter]
+        
+    plt.ion()
+    if ion == False:
+        plt.ioff()
     
     d = data
     frameRate = d['frameRate'][()] if 'frameRate' in d.keys() else int(np.round(1/np.median(d['frameIntervals'][:])))
