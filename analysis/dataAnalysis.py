@@ -128,7 +128,7 @@ def create_df(data):
         # gives entire wheel trace from trial start to the max trial length
         # i.e. often goes into the start of the next trial - 
         # useful for analyzing turning beh on nogo/mask only
-    deltaWheel = [deltaWheelPos[start:stim+openLoop+maxResp+postReward] for (start, stim, openLoop) in  
+    deltaWheel = [deltaWheelPos[start:stim+(openLoop*2)+maxResp+postReward] for (start, stim, openLoop) in  
                   zip(d['trialStartFrame'][:len(trialStimStartFrame)],
                       trialStimStartFrame, trialOpenLoopFrames)]
     

@@ -18,7 +18,8 @@ def plot_flash(data,showTrialN=True):
     d = data
     trialResponse = d['trialResponse'][:]
     trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]    # leave off last trial, ended session before answer 
-    framerate = round(d['frameRate'][()])
+    fi = d['frameIntervals'][:]
+    framerate = int(np.round(1/np.median(fi)))
     trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)] * 1000/framerate  
     repeats = d['incorrectTrialRepeats'][()]
     
