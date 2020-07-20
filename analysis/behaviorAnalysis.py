@@ -133,7 +133,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                     if resp in responseFilter: 
                         trialWheel = np.cumsum(deltaWheel[stim:stim+maxResp+(openLoopFrames[i]*2)])
                         trialWheel -= trialWheel[0]
-                        trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd+1))[0]
+                        trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                         rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
                         if nogo[i]:
                             ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.2)   # plotting no-go trials

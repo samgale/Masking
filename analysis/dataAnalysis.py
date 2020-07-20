@@ -163,28 +163,43 @@ def create_df(data):
     df['trialLength_ms'] = convert_to_ms(trialLength)
     df['closedLoopFramesTotal'] = trialResponseFrame-trialStimStartFrame-trialOpenLoopFrames
     
-    df['mask'] = trialMaskContrast
-    df['soa'] = trialMaskOnset
-    #df['maskLength_ms'] = convert_to_ms(d['trialMaskFrames'][:end])
-    df['maskContrast'] = trialMaskContrast
-
     df['targetDuration_ms'] = convert_to_ms(trialTargetFrames)
     df['targetContrast'] = trialTargetContrast
     
-    df['nogo'] = False
-    for i in nogos:
-        df.loc[i, 'nogo'] = True
-        df.loc[i, 'soa'] = -maskOnset[0]  # this helps for summary stats
-   
+    
     def fill():
         return np.zeros(len(trialResponse)).astype(int)
     
-    df['nogoMove'] = fill()
-    df['maskOnlyMove'] = fill()
-          
-    for e, col in enumerate(('nogoMove', 'maskOnlyMove')):
-        for (i,turn) in zip(inds[e], turns[e]):
-            df.at[i, col] = turn
+    if d['probMask'][()] > 0:
+        df['mask'] = trialMaskContrast
+        df['soa'] = trialMaskOnset
+        #df['maskLength_ms'] = convert_to_ms(d['trialMaskFrames'][:end])
+        df['maskContrast'] = trialMaskContrast
+        df['maskOnlyMove'] = fill()
+
+        for col in 'maskOnlyMove':
+            for (i,turn) in zip(inds[1], turns[1]):
+                df.at[i, col] = turn
+                
+        df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
+        df['actualSOA_ms'] = np.array(trueMaskOnset) * 1000
+
+
+    if d['probNoGo'][()]>0:
+        df['nogo'] = False
+        for i in nogos:
+            df.loc[i, 'nogo'] = True
+            df.loc[i, 'soa'] = -maskOnset[0]  # this helps for summary stats
+        df['nogoMove'] = fill()
+
+        for col in 'noGoMove':
+                for (i,turn) in zip(inds[0], turns[0]):
+                    df.at[i, col] = turn
+        
+        
+    if d['probOpto'][()]>0:
+        df['optoOnset'] = d['trialOptoOnset'][:len(df)]
+
         
     df['repeat'] = repeats    
     
@@ -196,8 +211,7 @@ def create_df(data):
     
     df['trialFrameIntervals'] = frames
  
-    df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
-    df['actualSOA_ms'] = np.array(trueMaskOnset) * 1000
+
  
     df.mouse = mouse
     df.date = date
