@@ -112,12 +112,10 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     ignoreTrials = ignore_trials(d)
     
     postTrialFrames = 0 if d['postRewardTargetFrames'][()]>0 else 1 #make sure we have at least one frame after the reward
-
+    stimStart = d['trialStimStartFrame'][:]
     
     fig, ax = plt.subplots(figsize=figsize)
     
-    # turnRightTrials == stim presented on L, turn right - viceversa for turnLeftTrials - 
-    # or for orientation, turn right
     nogoTrials = []
     turnRightTrials = []
     turnLeftTrials = []
@@ -125,21 +123,17 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     trialTime = (np.arange(maxTrialFrames)-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
     
     
-    for i, (trialStart, trialEnd, rewardDirection, resp) in enumerate(zip(
-            trialStartFrames, trialEndFrames, trialRewardDirection, trialResponse)):
+    for i, (trialStart, trialEnd, stim, rewardDirection, resp) in enumerate(zip(
+            trialStartFrames, trialEndFrames, stimStart, trialRewardDirection, trialResponse)):
         if i>0 and i<len(trialStartFrames):
             if i in ignoreTrials:
                 pass
             else:
                 if np.isfinite(rewardDirection):   # excludes catch trials
-                    if resp in responseFilter: #and rewardDirection is type(int):
-                        trialWheel = np.cumsum(deltaWheel[
-                                trialStart-framesToShowBeforeStart:
-                                    trialStart-framesToShowBeforeStart + maxTrialFrames
-                                ])
+                    if resp in responseFilter: 
+                        trialWheel = np.cumsum(deltaWheel[stim:stim+maxResp+(openLoopFrames[i]*2)])
                         trialWheel -= trialWheel[0]
-                        trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
-                        print(trialreward)
+                        trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd+1))[0]
                         rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
                         if nogo[i]:
                             ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.2)   # plotting no-go trials
@@ -170,32 +164,39 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     else:
         ax.set_xlim(xlim[0],xlim[1])
     
-    if ylim=='auto':
+    
+    def autoscale_y(ax,margin=0.1):
+          
+        def get_bottom_top(line):
+            xd = line.get_xdata()
+            yd = line.get_ydata()
+            lo,hi = ax.get_xlim()
+            y_displayed = yd[((xd>lo) & (xd<hi))]
+            h = np.max(y_displayed) - np.min(y_displayed)
+            
+            bot = np.min(y_displayed)-margin*h
+            top = np.max(y_displayed)+margin*h
+#            if np.any(xd,yd,lo,hi) == []:
+#                pass
+            bot,top=0,0
+            return [bot,top]
         
-        def autoscale_y(ax,margin=0.1):
-      
-            def get_bottom_top(line):
-                xd = line.get_xdata()
-                yd = line.get_ydata()
-                lo,hi = ax.get_xlim()
-                y_displayed = yd[((xd>lo) & (xd<hi))]
-                h = np.max(y_displayed) - np.min(y_displayed)
-                bot = np.min(y_displayed)-margin*h
-                top = np.max(y_displayed)+margin*h
-                return bot,top
+        lines = ax.get_lines()
+        bot,top = -200,200
         
-            lines = ax.get_lines()
-            bot,top = np.inf, -np.inf
-        
-            for line in lines:
-                new_bot, new_top = get_bottom_top(line)
-                if new_bot < bot: bot = new_bot
-                if new_top > top: top = new_top
-        
-            ax.set_ylim(bot,top)
+        for line in lines:
+            new_bot, new_top = get_bottom_top(line)
+            if new_bot < bot: bot = new_bot
+            if new_top > top: top = new_top
 
-        autoscale_y(ax, margin=.1)
-        ax.set_ylim(ax.get_ylim())
+        ax.set_ylim(bot,top)
+
+    
+    
+    if ylim=='auto':
+        plt.autoscale(True, axis={'y'})
+#        autoscale_y(ax, margin=.1)
+#        ax.set_ylim(ax.get_ylim())
 
     else:
         ax.set_ylim(ylim)
