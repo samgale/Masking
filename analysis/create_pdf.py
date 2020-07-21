@@ -33,11 +33,11 @@ def create_daily_summary(d):
     
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
-            subtitle = ' Target Duration exp '
+            subtitle = '- Target Duration exp -'
         elif len(d['targetContrast'][:])>1:
-            subtitle = ' Target Contrast exp '
+            subtitle = '- Target Contrast exp -'
         elif len(d['maskOnset'][:])>1:
-            subtitle = ' Masking exp '
+            subtitle = '- Masking exp -'
         else:
             subtitle = None
     
@@ -171,9 +171,13 @@ def create_daily_summary(d):
 # complete page and break
     c.showPage()
 
-
+# if not a normal training day
     if d['moveStim'][()]==False:
+        
+# add flash plots         
         if len(d['targetFrames'][:])>1:
+            
+#            flashText = 
             
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target duration response rate ' + date + '.png', 
@@ -184,29 +188,42 @@ def create_daily_summary(d):
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target duration correct given response ' + date + '.png', 
                   width=6*inch, height=4.5*inch).drawOn(c, .1*inch, .4*inch)
- 
-            c.showPage()
-           
+     
+    
+# add target contrast plots     
+        if len(d['targetContrast'][:])>1:
+             
+#            contrastText = 
+            
             Image(dataDir + '/Other plots/other/' + mouse_id + 
-                  ' target duration fraction correct ' + date + '.png', 
+                  ' target contrast response rate ' + date + '.png', 
                   width=6*inch, height=4.5*inch).drawOn(c, .1*inch, 5.5*inch)
-    
-    
-#      
-#        if len(d['targetContrast'][:])>1:
-#             plot_contrast(d)
-#             plt.savefig(dataDir + '/Other plots/other/' +  
-#                        'target contrast ' + date + '.png', dpi=300, bbox_inches='tight')
-#             plt.close()    
-#        
-#        if len(d['maskOnset'][:])>1:
-#            performanceBySOA.plot_soa(d)
-#    
-#            plt.savefig(dataDir + '/Masking plots/' + mouse_id +
-#                    ' masking ' + date + '.png', dpi=300, bbox_inches='tight')
-#            plt.close()
+            
+            # add text for counts at each side and length
+            
+            Image(dataDir + '/Other plots/other/' + mouse_id + 
+                  ' target contrast correct given response ' + date + '.png', 
+                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, .4*inch)
+        
+                          
+# add masking plots         
+        if len(d['maskOnset'][:])>1:
+            
+#            maskText = 
+            
+            Image(dataDir + '/Masking plots/' + mouse_id + 
+                  ' masking response rate ' + date + '.png', 
+                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, 5.5*inch)
+            
+            
+            Image(dataDir + '/Masking plots/' + mouse_id + 
+                  ' masking correct given response ' + date + '.png', 
+                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, .4*inch)
+        
+# complete page and break
+    c.showPage()
 
-
+#  add response time plots *********
 
 #finish pdf    
     c.showPage()
