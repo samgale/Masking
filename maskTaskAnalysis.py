@@ -5,12 +5,12 @@ Created on Mon Mar 11 12:34:44 2019
 @author: svc_ccg
 """
 
-from __future__ import division
-import fileIO
+import os
 import h5py
 import numpy as np
-import scipy.signal
+import pandas as pd
 import matplotlib.pyplot as plt
+import fileIO
 
 
 # get analog sync data
@@ -31,98 +31,55 @@ ax.plot(syncTime,photodiode,'k')
 
 
 
-# get data
-f = fileIO.getFile(rootDir=r'C:/Users/SVC_CCG/Desktop/Data/')
+# get probe data
+probeDataDir = fileIO.getDir()
 
-d = h5py.File(f)
+probeSampleRate = 30000
 
-frameRate = int(round(d['frameRate'].value))
+kilosortFileNames = {'spike_clusters',
+                     'spike_times',
+                     'templates',
+                     'spike_templates',
+                     'channel_positions',
+                     'amplitudes'}
 
-preStimFrames = d['preStimFrames'].value
+spikeData = {key: np.load(os.path.join(probeDataDir,'kilosort',key+'.npy')) for key in kilosortFileNames}
 
-trialStartFrame = d['trialStartFrame'][:]
+clusterIDs = pd.read_csv(os.path.join(probeDataDir,'kilosort','cluster_KSLabel.tsv'),sep='\t')
 
-trialEndFrame = d['trialEndFrame'][:]
+unitIDs = np.unique(spikeData['spike_clusters'])
 
-trialResponse = d['trialResponse'][:]
-
-trialMaskOnset = d['trialMaskOnset'][:trialResponse.size]
-
-encoderAngle = d['rotaryEncoderRadians'][:]
-
-
-# calculate reaction time
-angleChange = np.concatenate(([0],np.diff(encoderAngle)))
-angleChange[angleChange<-np.pi] += 2*np.pi
-angleChange[angleChange>np.pi] -= 2*np.pi
-angleChange = scipy.signal.medfilt(angleChange,5)
-reactionThresh = 0.1
-reactionTime = np.full(trialResponse.size,np.nan)
-for trial,(start,end) in enumerate(zip(trialStartFrame,trialEndFrame)):
-    r = np.where(np.absolute(angleChange[start+preStimFrames:end])>reactionThresh)[0]
-    if any(r):
-        reactionTime[trial] = r[0]/frameRate
-
-
-# determine fraction correct for each mask onset delay
-trialMaskOnset[np.isnan(trialMaskOnset)] = 2*np.nanmax(trialMaskOnset)
-maskOnsets = np.unique(trialMaskOnset)
-numTrials = np.zeros(maskOnsets.size)
-numIncorrect = numTrials.copy()
-numNoResp = numTrials.copy()
-numCorrect = numTrials.copy()
-reactionTimeCorrect = numTrials.copy()
-reactionTimeIncorrect = numTrials.copy()
-outcomeTimeCorrect = numTrials.copy()
-outcomeTimeIncorrect = numTrials.copy()
-for i,mo in enumerate(maskOnsets):
-    moTrials = trialMaskOnset==mo
-    incorrect,noResp,correct = [trialResponse==j for j in (-1,0,1)]
-    numTrials[i] = moTrials.sum()
-    numIncorrect[i],numNoResp[i],numCorrect[i] = [np.sum(moTrials & trials) for trials in (incorrect,noResp,correct)]
-    reactionTimeIncorrect[i],reactionTimeCorrect[i] = [np.nanmean(reactionTime[moTrials & trials]) for trials in (incorrect,correct)]
-    outcomeTimeIncorrect[i],outcomeTimeCorrect[i] = [(np.mean(trialEndFrame[moTrials & trials])-preStimFrames)/frameRate for trials in (incorrect,correct)]
-fractionCorrect = (numCorrect/(numCorrect+numIncorrect))
+units = {}
+for u in unitIDs:
+    units[u] = {}
+    units[u]['label'] = clusterIDs[clusterIDs['cluster_id']==u]['KSLabel'].tolist()[0]
     
+    uind = np.where(spikeData['spike_clusters']==u)[0]
     
-fig = plt.figure(facecolor='w')
-ax = fig.add_subplot(1,1,1)
-ax.plot([0,maskOnsets[-1]],[0.5,0.5],'--',color='0.5')
-ax.plot(maskOnsets/frameRate,fractionCorrect,'ko-',ms=10)
-for side in ('top','right'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xlim(np.array([-0.02,1.02])*maskOnsets[-1]/frameRate)
-ax.set_ylim([0,1.02])
-ax.set_xlabel('Stimulus onset asynchrony (s)',fontsize=16)
-ax.set_ylabel('Fraction Correct',fontsize=16)
-plt.tight_layout()
-
-
-fig = plt.figure(facecolor='w')
-ax = fig.add_subplot(1,1,1)
-ax.plot(maskOnsets/frameRate,reactionTimeIncorrect,'bo',ms=10)
-ax.plot(maskOnsets/frameRate,reactionTimeCorrect,'ro',ms=10)
-for side in ('top','right'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xlim(np.array([-0.02,1.02])*maskOnsets[-1]/frameRate)
-ax.set_xlabel('Stimulus onset asynchrony (s)',fontsize=16)
-ax.set_ylabel('Reaction time (s)',fontsize=16)
-plt.tight_layout()
-
-
-fig = plt.figure(facecolor='w')
-ax = fig.add_subplot(1,1,1)
-ax.plot(maskOnsets/frameRate,outcomeTimeIncorrect,'bo',ms=10)
-ax.plot(maskOnsets/frameRate,outcomeTimeCorrect,'ro',ms=10)
-for side in ('top','right'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xlim(np.array([-0.02,1.02])*maskOnsets[-1]/frameRate)
-ax.set_xlabel('Stimulus onset asynchrony (s)',fontsize=16)
-ax.set_ylabel('Outcome time (s)',fontsize=16)
-plt.tight_layout()
+    units[u]['samples'] = spikeData['spike_times'][uind]
+    
+    #choose 1000 spikes with replacement, then average their templates together
+    chosen_spikes = np.random.choice(uind,1000)
+    chosen_templates = spikeData['spike_templates'][chosen_spikes].flatten()
+    units[u]['template'] = np.mean(spikeData['templates'][chosen_templates],axis=0)
+    
+    peakChan = np.unravel_index(np.argmin(units[u]['template']),units[u]['template'].shape)[1]
+    units[u]['peakChan'] = peakChan
+    units[u]['position'] = spikeData['channel_positions'][peakChan]
+    units[u]['amplitudes'] = spikeData['amplitudes'][uind]
+    
+    template = units[u]['template'][:,peakChan]
+    if any(np.isnan(template)):
+        units[u]['peakToTrough'] = np.nan
+    else:
+        peakInd = np.argmin(template)
+        units[u]['peakToTrough'] = np.argmax(template[peakInd:])/(probeSampleRate/1000)
+    
+    #check if this unit is noise
+    tempNorm = template/np.max(np.absolute(template))
+    units[u]['normTempIntegral'] = tempNorm.sum()
+    if abs(tempNorm.sum())>4:
+        units[u]['label'] = 'noise'
 
 
   
