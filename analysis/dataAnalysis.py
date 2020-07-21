@@ -169,10 +169,9 @@ def create_df(data):
     
     def fill():
         return np.zeros(len(trialResponse)).astype(int)
-    
+
+# if masking    
     if d['probMask'][()] > 0:
-        df['mask'] = trialMaskContrast
-        df['soa'] = trialMaskOnset
         #df['maskLength_ms'] = convert_to_ms(d['trialMaskFrames'][:end])
         df['maskContrast'] = trialMaskContrast
         df['maskOnlyMove'] = fill()
@@ -181,10 +180,10 @@ def create_df(data):
             for (i,turn) in zip(inds[1], turns[1]):
                 df.at[i, col] = turn
                 
-        df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
-        df['actualSOA_ms'] = np.array(trueMaskOnset) * 1000
+        df['soa'] = trialMaskOnset
+        #df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
 
-
+# if nogo trials
     if d['probNoGo'][()]>0:
         df['nogo'] = False
         for i in nogos:
@@ -196,9 +195,9 @@ def create_df(data):
                 for (i,turn) in zip(inds[0], turns[0]):
                     df.at[i, col] = turn
         
-        
+# if using optogenetics       
     if d['probOpto'][()]>0:
-        df['optoOnset'] = d['trialOptoOnset'][:len(df)]
+        df['optoOnset'] = convert_to_ms(d['trialOptoOnset'][:len(df)])
 
         
     df['repeat'] = repeats    
@@ -211,13 +210,12 @@ def create_df(data):
     
     df['trialFrameIntervals'] = frames
  
-
- 
+#dataframe metadata
     df.mouse = mouse
     df.date = date
     df.framerate = framerate
     
-        ## call reaction time function (defined below)
+## call reaction time function (defined below)
     times = rxnTimes(d, df)  # 0==initiation, 1==outcome, 2==ignore
     
     df['initiationTime_ms'] = times[0]
