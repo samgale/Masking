@@ -10,7 +10,26 @@ import h5py
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from numba import njit
 import fileIO
+
+
+@njit
+def findRisingEdges(signal,thresh,refractory):
+    """
+    thresh: difference between current and previous value
+    refractory: samples after detected edge to ignore
+    """
+    edges = []
+    lastVal = signal[0]
+    lastEdge = -refractory
+    for i in range(1,signal.size):
+        val = signal[i]
+        if i-lastEdge>refractory and val-lastVal>thresh:
+            lastEdge = i+1
+            edges.append(lastEdge)
+        lastVal = val
+    return edges
 
 
 # get analog sync data
@@ -36,14 +55,12 @@ probeDataDir = fileIO.getDir()
 
 probeSampleRate = 30000
 
-kilosortFileNames = {'spike_clusters',
-                     'spike_times',
-                     'templates',
-                     'spike_templates',
-                     'channel_positions',
-                     'amplitudes'}
-
-spikeData = {key: np.load(os.path.join(probeDataDir,'kilosort',key+'.npy')) for key in kilosortFileNames}
+spikeData = {key: np.load(os.path.join(probeDataDir,'kilosort',key+'.npy')) for key in ('spike_clusters',
+                                                                                        'spike_times',
+                                                                                        'templates',
+                                                                                        'spike_templates',
+                                                                                        'channel_positions',
+                                                                                        'amplitudes')}
 
 clusterIDs = pd.read_csv(os.path.join(probeDataDir,'kilosort','cluster_KSLabel.tsv'),sep='\t')
 
@@ -80,6 +97,39 @@ for u in unitIDs:
     units[u]['normTempIntegral'] = tempNorm.sum()
     if abs(tempNorm.sum())>4:
         units[u]['label'] = 'noise'
+
+
+totalChannels = 136
+probeChannels = 128      
+
+rawData = np.memmap(os.path.join(probeDataDir,'continuous.dat'),dtype='int16',mode='r')    
+rawData = np.reshape(rawData,(int(rawData.size/totalChannels),-1)).T
+
+
+analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync',
+                                                                          'photodiode',
+                                                                          'rotaryEncoder',
+                                                                          'cam1Saving',
+                                                                          'cam2Saving',
+                                                                          'cam1Exposure',
+                                                                          'cam2Exposure',
+                                                                          'led'))}
+
+    
+frameSamples = findRisingEdges(analogInData['vsync'],thresh=15000,refractory=2)
+
+behavDataPath = fileIO.getFile('',fileType='*.hdf5')
+behavData = h5py.File(behavDataPath,'r')
+
+assert(len(frameSamples)==behavData['frameIntervals'].size+1)
+
+
+
+
+
+
+
+
 
 
   
