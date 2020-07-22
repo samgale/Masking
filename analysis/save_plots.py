@@ -103,24 +103,52 @@ def save_daily_plots(data):
     plt.close()
 
 
-#if d[moveStim][()]==False:
-#    if len(d['targetFrames'][:])>1:
-#        plot_flash(d)
-#        plt.savefig(dataDir + '/Other plots/other/' + 
-#                    'target duration ' + date + '.png', dpi=300, bbox_inches='tight')
-#   plt.close()
-#    
-#    if len(d['targetContrast'][:])>1:
-#         plot_contrast(d)
-#         plt.savefig(dataDir + '/Other plots/other/' +  
-#                    'target contrast ' + date + '.png', dpi=300, bbox_inches='tight')
-#         plt.close()    
+    if d['moveStim'][()]==False:
+        if len(d['targetFrames'][:])>1:
+            plot_flash(d)  # creates 3 plots
+            
+            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                        ' target duration response rate ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                        ' target duration correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                        ' target duration fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()
+        
+        
+        if len(d['targetContrast'][:])>1:
+            plot_contrast(d)  # creates 3 plots
+            
+            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                        ' target contrast response rate ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                        ' target contrast correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                        ' target contrast fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()    
+        
+        
+        if len(d['maskOnset'][:])>1:
+            performanceBySOA.plot_soa(d)   # creates 3 plots
     
-#    if len(d['maskOnset'][:])>1:
-#        performanceBySOA.plot_soa(d)
-#
-#        plt.savefig(dataDir + '/Masking plots/' + mouse_id +
-#                ' masking ' + date + '.png', dpi=300, bbox_inches='tight')
-#        plt.close()
+            plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
+                        ' masking response rate ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
+                        ' masking correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
+                        ' masking fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
+            plt.close()
 
 

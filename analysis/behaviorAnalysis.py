@@ -119,7 +119,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     nogoTrials = []
     turnRightTrials = []
     turnLeftTrials = []
-    maxTrialFrames = max(trialEndFrames-trialStartFrames+framesToShowBeforeStart+postTrialFrames)   
+#    maxTrialFrames = max(trialEndFrames-trialStartFrames+framesToShowBeforeStart+postTrialFrames)   
+    maxTrialFrames = maxResp + (d['openLoopFramesFixed'][()]*2)
     trialTime = (np.arange(maxTrialFrames)-framesToShowBeforeStart)/frameRate  # evenly-spaced array of times for x-axis
     
     

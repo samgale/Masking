@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 
 
-def plot_flash(data,showTrialN=True):
+def plot_flash(data,showTrialN=False, returnArray=False):
     
     matplotlib.rcParams['pdf.fonttype'] = 42
 
@@ -52,7 +52,7 @@ def plot_flash(data,showTrialN=True):
     
     # here call no_go movement function? 
     
-    if 0 in trialTargetFrames:        # this already excludes repeats 
+    if 0 in trialRewardDirection:        # this already excludes repeats 
     
         nogoTotal = len(trialTargetFrames[trialTargetFrames==0])
         nogoCorrect = len(trialResponse2[(trialResponse2==1) & (trialTargetFrames==0)])
@@ -104,9 +104,9 @@ def plot_flash(data,showTrialN=True):
                                  [totalTrials, hits+misses, totalTrials],
                                  ['Fraction Correct', 'Fraction Correct Given Response', 'Response Rate']):
         fig, ax = plt.subplots()
-        ax.plot(targetFrames, num[0]/denom[0], 'bo-', lw=3, alpha=.7)  #here [0] is right trials and [1] is left
-        ax.plot(targetFrames, num[1]/denom[1], 'ro-', lw=3, alpha=.7)
-        ax.plot(targetFrames, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5)  #plots the combined average 
+        ax.plot(targetFrames, num[0]/denom[0], 'bo-', lw=3, alpha=.7, label='Right turning')  #here [0] is right trials and [1] is left
+        ax.plot(targetFrames, num[1]/denom[1], 'ro-', lw=3, alpha=.7, label='Left turning')
+        ax.plot(targetFrames, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
         y=(num[0]/denom[0])
         y2=(num[1]/denom[1])
         if showTrialN:
@@ -117,12 +117,12 @@ def plot_flash(data,showTrialN=True):
         xticks = targetFrames
         xticklabels = list(np.round(xticks).astype(int))
         if title=='Response Rate':
-            if 0 in trialTargetFrames:
+            if 0 in trialRewardDirection:
                 ax.plot(0, nogoCorrect/nogoTotal, 'ko', ms=8)
                 ax.plot(0, nogoR/nogoMove, 'r>', ms=8)  #plot the side that was turned in no-go with an arrow in that direction
                 ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
-            xticks = np.concatenate(([0],xticks))
-            xticklabels = ['no go']+xticklabels
+                xticks = np.concatenate(([0],xticks))
+                xticklabels = ['no go']+xticklabels
            
         formatFigure(fig, ax, xLabel='Target Duration (ms)', yLabel=title, 
                      title=str(d).split('_')[-3:-1])
@@ -133,7 +133,13 @@ def plot_flash(data,showTrialN=True):
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
+        plt.legend(loc='best', fontsize='small', numpoints=1) 
             
     plt.show()
+ 
+    
+    array_counts = {'target frames': targetFrames, 'total trials': totalTrials, 
+                    'hits': hits, 'misses': misses, 'no response': noResps}
+    return array_counts
     
     
