@@ -6,6 +6,7 @@ Created on Mon Mar 11 12:34:44 2019
 """
 
 import os
+import gc
 import h5py
 import numpy as np
 import pandas as pd
@@ -36,14 +37,12 @@ probeDataDir = fileIO.getDir()
 
 probeSampleRate = 30000
 
-kilosortFileNames = {'spike_clusters',
-                     'spike_times',
-                     'templates',
-                     'spike_templates',
-                     'channel_positions',
-                     'amplitudes'}
-
-spikeData = {key: np.load(os.path.join(probeDataDir,'kilosort',key+'.npy')) for key in kilosortFileNames}
+spikeData = {key: np.load(os.path.join(probeDataDir,'kilosort',key+'.npy')) for key in ('spike_clusters',
+                                                                                        'spike_times',
+                                                                                        'templates',
+                                                                                        'spike_templates',
+                                                                                        'channel_positions',
+                                                                                        'amplitudes')}
 
 clusterIDs = pd.read_csv(os.path.join(probeDataDir,'kilosort','cluster_KSLabel.tsv'),sep='\t')
 
@@ -80,6 +79,50 @@ for u in unitIDs:
     units[u]['normTempIntegral'] = tempNorm.sum()
     if abs(tempNorm.sum())>4:
         units[u]['label'] = 'noise'
+
+
+totalChannels = 136
+probeChannels = 128      
+
+rawData = np.memmap(os.path.join(probeDataDir,'continuous.dat'),dtype='int16',mode='r')    
+rawData = np.reshape(rawData,(int(rawData.size/totalChannels),-1)).T
+
+
+analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync',
+                                                                          'photodiode',
+                                                                          'rotaryEncoder',
+                                                                          'cam1Saving',
+                                                                          'cam2Saving',
+                                                                          'cam1Exposure',
+                                                                          'cam2Exposure',
+                                                                          'led'))}
+
+edgeThresh = 1000
+downsampleRate = 2000
+downsampleInt = int(probeSampleRate/downsampleRate)
+
+vsyncDownsampled = analogInData['vsync'][::downsampleInt]
+
+aboveThresh = vsyncDownsampled>edgeThresh
+
+frameSamples = downsampleInt*(np.where(aboveThresh[1:] & ~aboveThresh[:-1])[0]+1)
+
+
+
+
+@njit
+def findRisingEdges(signal,thresh=1000):
+    edges = []
+    last = 0
+    for i,val in enumerate(signal):
+        if last and val>thresh and last<thresh:
+            edges.append(i)
+        last = val
+        if i%100000==0:
+            gc.collect()
+    return edges
+
+frameSamples = findRisingEdges(analogInData['vsync'])
 
 
   
