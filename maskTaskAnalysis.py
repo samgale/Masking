@@ -6,12 +6,30 @@ Created on Mon Mar 11 12:34:44 2019
 """
 
 import os
-import gc
 import h5py
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from numba import njit
 import fileIO
+
+
+@njit
+def findRisingEdges(signal,thresh,refractory):
+    """
+    thresh: difference between current and previous value
+    refractory: samples after detected edge to ignore
+    """
+    edges = []
+    lastVal = signal[0]
+    lastEdge = -refractory
+    for i in range(1,signal.size):
+        val = signal[i]
+        if i-lastEdge>refractory and val-lastVal>thresh:
+            lastEdge = i+1
+            edges.append(lastEdge)
+        lastVal = val
+    return edges
 
 
 # get analog sync data
@@ -97,32 +115,21 @@ analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync
                                                                           'cam2Exposure',
                                                                           'led'))}
 
-edgeThresh = 1000
-downsampleRate = 2000
-downsampleInt = int(probeSampleRate/downsampleRate)
+    
+frameSamples = findRisingEdges(analogInData['vsync'],thresh=15000,refractory=2)
 
-vsyncDownsampled = analogInData['vsync'][::downsampleInt]
+behavDataPath = fileIO.getFile('',fileType='*.hdf5')
+behavData = h5py.File(behavDataPath,'r')
 
-aboveThresh = vsyncDownsampled>edgeThresh
-
-frameSamples = downsampleInt*(np.where(aboveThresh[1:] & ~aboveThresh[:-1])[0]+1)
+assert(len(frameSamples)==behavData['frameIntervals'].size+1)
 
 
 
 
-@njit
-def findRisingEdges(signal,thresh=1000):
-    edges = []
-    last = 0
-    for i,val in enumerate(signal):
-        if last and val>thresh and last<thresh:
-            edges.append(i)
-        last = val
-        if i%100000==0:
-            gc.collect()
-    return edges
 
-frameSamples = findRisingEdges(analogInData['vsync'])
+
+
+
 
 
   
