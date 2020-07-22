@@ -10,6 +10,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from nogoData import nogo_turn
 import numpy as np
+from dataAnalysis import ignore_after, get_dates
 
 """
 plots the choices (in order) over the length of a session
@@ -21,6 +22,8 @@ change this to create a df using dataAnalysis and the column of nogo turning?
 def plot_session(data, ion=True):
     
     matplotlib.rcParams['pdf.fonttype'] = 42
+    matplotlib.style.use('classic')
+
     
     if ion==False:
         plt.ioff()
@@ -28,12 +31,17 @@ def plot_session(data, ion=True):
         plt.ion()
     
     d=data
+     
+    fi = d['frameIntervals'][:]
+    framerate = int(np.round(1/np.median(fi)))
+    
     trialResponse = d['trialResponse'][()]
-    trialResponseFrame = d['trialResponseFrame'][:len(trialResponse)]
-    trialTargetFrames= d['trialTargetFrames'][:len(trialResponse)]   # to identify nogos 
-    trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]
-    maskOnset = d['trialMaskOnset'][:len(trialResponse)]
-    trialMaskContrast = d['trialMaskContrast'][:len(trialResponse)]
+    end = len(trialResponse)
+    trialResponseFrame = d['trialResponseFrame'][:end]
+    trialTargetFrames= d['trialTargetFrames'][:end]   # to identify nogos 
+    trialRewardDirection = d['trialRewardDir'][:end]
+    maskOnset = d['trialMaskOnset'][:end]
+    trialMaskContrast = d['trialMaskContrast'][:end]
     
     for i, trial in enumerate(trialTargetFrames):
         if trial==0:
@@ -43,6 +51,9 @@ def plot_session(data, ion=True):
     
     df = pd.DataFrame(data, index=trialResponseFrame, columns=['rewardDir', 'trialResp', 'mask', 'target', 'maskCon'])
     df['CumPercentCorrect'] = df['trialResp'].cumsum()
+    
+    end = ignore_after(d, 10)
+    
     # add in code that gives a value for the nan rows 
 
     
@@ -93,7 +104,8 @@ def plot_session(data, ion=True):
             plt.axvline(x=i, ymin=-100, ymax=300, c='k', ls='--', alpha=.5)
             ax.annotate(str(mask), xy=(i,corr), xytext=(0, 20), textcoords='offset points', fontsize=8)
             
-
+    plt.vlines(end[1], ax.get_ylim()[0], ax.get_ylim()[1], 'k', ls='--', 
+               label='End Analysis' if 'End Analysis' not in plt.gca().get_legend_handles_labels()[1] else '')
         
     plt.suptitle(str(d).split('_')[-3:-1])
     plt.title('Choices over the Session')
@@ -101,10 +113,8 @@ def plot_session(data, ion=True):
     plt.xlabel('Time in session (min)')
     
     fig.set_facecolor('w')
-    fi = d['frameIntervals'][:]
-    framerate = int(np.round(1/np.median(fi)))
     
-    plt.legend(loc="best", numpoints=1)
+    plt.legend(loc="best", fontsize='medium', numpoints=1)
     plt.tight_layout()
     plt.subplots_adjust(top=0.91, bottom=0.1, left=0.075, right=0.985, hspace=0.2, wspace=0.2)
     ax.margins(x=0.01, y=.01)

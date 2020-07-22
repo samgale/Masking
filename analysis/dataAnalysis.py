@@ -55,6 +55,27 @@ def combine_dfs(dict1):
     return df
 
 
+def ignore_after(data, lim):
+    d = data
+    count = 0
+    for i, resp in enumerate(d['trialResponse'][:]):
+        if resp==0:
+            count+=1
+        elif resp==-1 or resp==1:
+            count=0
+        else:
+            count+=1
+        
+        if count >= lim:
+            break
+        trialNum=i-lim
+            
+    startFrame = d['trialStartFrame'][trialNum]
+    
+    return trialNum, startFrame-1
+
+
+
 
 def create_df(data):   
     
@@ -242,7 +263,7 @@ def get_dates(dataframe):
             date = '-'.join([dates[0], dates[-1]])
         else:
             date = datetime.strptime(df.date, '%Y%m%d').strftime('%m/%d/%Y')
-    elif type(df) is str:
+    elif type(df) is str:   #i.e. not a dataframe, a file
         date = datetime.strptime(df, '%Y%m%d').strftime('%m/%d/%Y')
     else:
         print('Wrong Format for date')
