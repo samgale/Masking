@@ -104,8 +104,10 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
                     xticks = np.concatenate(([0],xticks))
                     xticklabels = ['no go']+xticklabels
             
-            for x,ntrials in zip(targetFrames,denom):
-                for y,n,clr in zip((1.05,1.1),ntrials,'rb'):
+            tar = np.append(targetFrames, targetFrames)
+            
+            for x,Rtrials,Ltrials in zip(tar,denom[0], denom[1]):
+                for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
                     fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
     
 
@@ -120,4 +122,7 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
             ax.tick_params(direction='out',top=False,right=False)
             plt.subplots_adjust(top=0.875, bottom=0.105, left=0.095, right=0.955, hspace=0.2, wspace=0.2)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
+            
+            
+            
             
