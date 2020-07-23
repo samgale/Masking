@@ -188,7 +188,8 @@ fs = peakToTrough<=0.5
 unitPos = np.array([units[u]['position'][1]/1000 for u in goodUnits])
 
 psth = []
-baseRate = []
+peakBaseRate = []
+meanBaseRate = []
 peakOptoResp = []
 meanOptoResp = []
 meanOptoRate = []
@@ -202,23 +203,24 @@ for trials in (opto,):
         startTimes = frameSamples[stimStart[trials]]/probeSampleRate-preTime
         p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=0.005,avg=True)
         psth.append(p)
-        baseRate.append(p[t<preTime].mean())
-        peakOptoResp.append(p[(t>preTime) & (t<preTime+trialTime)].max()-baseRate[-1])
+        peakBaseRate.append(p[t<preTime].max())
+        meanBaseRate.append(p[t<preTime].mean())
+        peakOptoResp.append(p[(t>preTime) & (t<preTime+trialTime)].max()-peakBaseRate[-1])
         meanOptoRate.append(p[(t>preTime+trialTime-0.25) & (t<preTime+trialTime)].mean())
-        meanOptoResp.append(meanOptoRate[-1]-baseRate[-1])
+        meanOptoResp.append(meanOptoRate[-1]-meanBaseRate[-1])
 
 
 fig = plt.figure(figsize=(8,8))
 gs = matplotlib.gridspec.GridSpec(4,2)
 for j,(x,xlbl) in enumerate(zip((peakToTrough,unitPos),('Peak to trough (ms)','Distance from tip (mm)'))):
-    for i,(y,ylbl) in enumerate(zip((baseRate,peakOptoResp,meanOptoResp,meanOptoRate),('Baseline rate','Peak opto response','Mean opto response','Mean opto rate'))):
+    for i,(y,ylbl) in enumerate(zip((meanBaseRate,peakOptoResp,meanOptoResp,meanOptoRate),('Baseline rate','Peak opto response','Mean opto response','Mean opto rate'))):
         ax = fig.add_subplot(gs[i,j])
         for ind,clr in zip((fs,~fs),'rk'):
             ax.plot(x[ind],np.array(y)[ind],'o',mec=clr,mfc='none')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-        if i==2:
+        if i in (1,2):
             ax.plot(plt.get(ax,'xlim'),[0,0],'--',color='0.6',zorder=0)
         if i==3:
             ax.set_xlabel(xlbl)
@@ -228,7 +230,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-inhib = np.array(meanOptoResp)<0
+inhib = (np.array(meanOptoResp)<0) & (np.array(peakOptoResp)<1)
 ax.plot(np.array(psth)[~inhib].mean(axis=0),'r')
 ax.plot(np.array(psth)[inhib].mean(axis=0),'k')
 
