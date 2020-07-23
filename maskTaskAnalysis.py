@@ -6,9 +6,14 @@ Created on Mon Mar 11 12:34:44 2019
 """
 
 import os
+import time
 import h5py
 import numpy as np
 import pandas as pd
+import scipy.signal
+import scipy.ndimage
+import matplotlib
+matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 from numba import njit
 import fileIO
@@ -30,6 +35,37 @@ def findRisingEdges(signal,thresh,refractory):
             edges.append(lastEdge)
         lastVal = val
     return edges
+
+
+def getPSTH(spikes,startTimes,windowDur,binSize=0.01,avg=True):
+    bins = np.arange(0,windowDur+binSize,binSize)
+    counts = np.zeros((len(startTimes),bins.size-1))    
+    for i,start in enumerate(startTimes):
+        counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,bins)[0]
+    if avg:
+        counts = counts.mean(axis=0)
+    counts /= binSize
+    t = bins[:-1]-binSize/2
+    return counts,t
+
+
+def getSDF(spikes,startTimes,windowDur,sampInt=0.001,filt='exponential',filtWidth=0.005,avg=True):
+        t = np.arange(0,windowDur+sampInt,sampInt)
+        counts = np.zeros((startTimes.size,t.size-1))
+        for i,start in enumerate(startTimes):
+            counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,t)[0]
+        if filt in ('exp','exponential'):
+            filtPts = int(5*filtWidth/sampInt)
+            expFilt = np.zeros(filtPts*2)
+            expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=filtWidth/sampInt,sym=False)
+            expFilt /= expFilt.sum()
+            sdf = scipy.ndimage.filters.convolve1d(counts,expFilt,axis=1)
+        else:
+            sdf = scipy.ndimage.filters.gaussian_filter1d(counts,filtWidth/sampInt,axis=1)
+        if avg:
+            sdf = sdf.mean(axis=0)
+        sdf /= sampInt
+        return sdf,t[:-1]
 
 
 # get analog sync data
@@ -116,20 +152,88 @@ analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync
                                                                           'led'))}
 
     
-frameSamples = findRisingEdges(analogInData['vsync'],thresh=15000,refractory=2)
+frameSamples = np.array(findRisingEdges(analogInData['vsync'],thresh=15000,refractory=2))
 
 behavDataPath = fileIO.getFile('',fileType='*.hdf5')
 behavData = h5py.File(behavDataPath,'r')
 
-assert(len(frameSamples)==behavData['frameIntervals'].size+1)
+frameIntervals = behavData['frameIntervals'][:]
+
+assert(frameSamples.size==frameIntervals.size+1)
+
+frameRate = round(1/np.median(frameIntervals))
+
+ntrials = behavData['trialEndFrame'].size
+stimStart = behavData['trialStimStartFrame'][:ntrials]
+trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:ntrials]
+assert(np.unique(trialOpenLoopFrames).size==1)
+openLoopFrames = trialOpenLoopFrames[0]
+responseWindowFrames = behavData['maxResponseWaitFrames'][()]
+optoOnset = behavData['trialOptoOnset'][:ntrials]
+targetFrames = behavData['trialTargetFrames'][:ntrials]
+maskFrames = behavData['trialMaskFrames'][:ntrials]
+maskOnset = behavData['trialMaskOnset'][:ntrials]
+
+control = np.isnan(optoOnset)
+opto = optoOnset==0
+targetOnly = (targetFrames>0) & (maskFrames==0)
+
+goodUnits = np.array([u for u in units if units[u]['label']=='good'])
+hasSpikes = np.array([units[u]['samples'].size/rawData.shape[1]*probeSampleRate for u in goodUnits]) > 0.5
+goodUnits = goodUnits[hasSpikes]
+goodUnits = goodUnits[np.argsort([units[u]['peakChan'] for u in goodUnits])]
+
+peakToTrough = np.array([units[u]['peakToTrough'] for u in goodUnits])
+fs = peakToTrough<=0.5
+unitPos = np.array([units[u]['position'][1]/1000 for u in goodUnits])
+
+psth = []
+peakBaseRate = []
+meanBaseRate = []
+peakOptoResp = []
+meanOptoResp = []
+meanOptoRate = []
+preTime = 0.5
+postTime = 0.5
+trialTime = (openLoopFrames+responseWindowFrames)/frameRate
+windowDur = preTime+trialTime+postTime
+for trials in (opto,):
+    for u in goodUnits:
+        spikeTimes = units[u]['samples']/probeSampleRate
+        startTimes = frameSamples[stimStart[trials]]/probeSampleRate-preTime
+        p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=0.005,avg=True)
+        psth.append(p)
+        peakBaseRate.append(p[t<preTime].max())
+        meanBaseRate.append(p[t<preTime].mean())
+        peakOptoResp.append(p[(t>preTime) & (t<preTime+trialTime)].max()-peakBaseRate[-1])
+        meanOptoRate.append(p[(t>preTime+trialTime-0.25) & (t<preTime+trialTime)].mean())
+        meanOptoResp.append(meanOptoRate[-1]-meanBaseRate[-1])
 
 
+fig = plt.figure(figsize=(8,8))
+gs = matplotlib.gridspec.GridSpec(4,2)
+for j,(x,xlbl) in enumerate(zip((peakToTrough,unitPos),('Peak to trough (ms)','Distance from tip (mm)'))):
+    for i,(y,ylbl) in enumerate(zip((meanBaseRate,peakOptoResp,meanOptoResp,meanOptoRate),('Baseline rate','Peak opto response','Mean opto response','Mean opto rate'))):
+        ax = fig.add_subplot(gs[i,j])
+        for ind,clr in zip((fs,~fs),'rk'):
+            ax.plot(x[ind],np.array(y)[ind],'o',mec=clr,mfc='none')
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        if i in (1,2):
+            ax.plot(plt.get(ax,'xlim'),[0,0],'--',color='0.6',zorder=0)
+        if i==3:
+            ax.set_xlabel(xlbl)
+        if j==0:
+            ax.set_ylabel(ylbl)
+plt.tight_layout()
 
-
-
-
-
-
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+inhib = (np.array(meanOptoResp)<0) & (np.array(peakOptoResp)<1)
+ax.plot(np.array(psth)[~inhib].mean(axis=0),'r')
+ax.plot(np.array(psth)[inhib].mean(axis=0),'k')
 
 
   
+
