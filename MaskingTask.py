@@ -529,8 +529,8 @@ class MaskingTask(TaskControl):
                         if self._sessionFrame == self.trialResponseFrame[-1]:
                             target.ori = initTargetOri + rewardMove * -rewardDir
                         target.draw()
-                elif self._trialFrame < self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
-                    pass # wait until end of response window
+                elif not np.isnan(optoOnset) and self._trialFrame < self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
+                    pass # wait until end of response window to turn off opto
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
