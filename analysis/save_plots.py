@@ -33,9 +33,9 @@ def save_daily_plots(data):
     
     
 # daily wheel plot
-    behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], 
-                                   ignoreRepeats=True, ion=False, framesToShowBeforeStart=0, 
-                                   mask=False, maskOnly=False, xlim='auto', ylim='auto')
+    behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], ignoreRepeats=True, 
+                                   ion=False, framesToShowBeforeStart=0, mask=False, 
+                                   maskOnly=False, xlim='auto', ylim='auto', ignoreNoResp=10)
     
     plt.savefig(wheelDir+'/Daily Wheel/' + mouse_id + ' ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -43,9 +43,9 @@ def save_daily_plots(data):
     
     
 # plot no response trials only (with repeats)
-    behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], 
-                                   ignoreRepeats=False, ion=False, framesToShowBeforeStart=0, 
-                                   mask=False, maskOnly=False,  xlim='auto', ylim=[-10,10])
+    behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], ignoreRepeats=False, ion=False, 
+                                   framesToShowBeforeStart=0, mask=False, maskOnly=False,  
+                                   xlim='auto', ylim=[-8,8], ignoreNoResp=10 )
         
     plt.savefig(wheelDir+'/No Resp Wheel/' + mouse_id + ' ' + date + ' no resp.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -61,7 +61,7 @@ def save_daily_plots(data):
     
     
 # plot activity over entire session, trial-by-trial - 1 plot
-    plot_session(d, ion=False)
+    plot_session(d, ion=False, ignoreNoRespAfter=10)
     plt.savefig(dataDir + '/Session plots/' + mouse_id + ' session ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()
     
@@ -105,7 +105,7 @@ def save_daily_plots(data):
 
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
-            plot_flash(d)  # creates 3 plots
+            plot_flash(d, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
             plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
                         ' target duration response rate ' + date + '.png', dpi=300, bbox_inches='tight')

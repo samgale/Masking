@@ -37,7 +37,7 @@ mpl.style.use('classic')
     
 def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True,
                   ion = True, framesToShowBeforeStart=0, mask=False, maskOnly=False, 
-                  xlim='auto', ylim='auto', figsize=None, ignoreNoResp=True):
+                  xlim='auto', ylim='auto', figsize=None, ignoreNoResp=10):
 
 
     #Clean up inputs if needed    
@@ -54,8 +54,8 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     trialEndFrames = d['trialEndFrame'][:]
     
-    end_analysis = ignore_after(d, 10)
-    end = end_analysis[0] if ignoreNoResp==True else trialEndFrames.size
+    end_analysis = ignore_after(d, ignoreNoResp)
+    end = end_analysis[0] if ignoreNoResp is not None else trialEndFrames.size
     
     trialEndFrames = trialEndFrames[:end]
     trialStartFrames = d['trialStartFrame'][:end]

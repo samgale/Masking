@@ -13,7 +13,14 @@ from nogoData import nogo_turn
 from dataAnalysis import ignore_after, get_dates
 
 
-def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
+def plot_flash(data,showTrialN=True, ignoreNoRespAfter=None, returnArray=False):
+    '''
+    plots the percent correct or response for a variable target duration session
+    
+    showTrialN=True will add the total counts into the plots 
+    ignoreNoResp takes an int, and will ignore all trials after [int] consecutive no resps
+    returnArray=True is for the save plot, will return just the values and no plots
+    '''
     
     matplotlib.rcParams['pdf.fonttype'] = 42
 
@@ -23,15 +30,14 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
     mouse = info[0]
     trialResponse = d['trialResponse'][:]
     
-    end = ignore_after(d, 10)[0] if ignoreNoResp is not None else len(trialResponse)
+    end = ignore_after(d, ignoreNoRespAfter)[0] if ignoreNoRespAfter is not None else len(trialResponse)
     
     trialResponse = trialResponse[:end]
-    trialRewardDirection = d['trialRewardDir'][:end]    # leave off last trial, ended session before answer 
+    trialRewardDirection = d['trialRewardDir'][:end]   
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
-    trialTargetFrames = d['trialTargetFrames'][:end] * 1000/framerate  
-    repeats = d['incorrectTrialRepeats'][()]   # max num of repeats 
-    
+    trialTargetFrames = d['trialTargetFrames'][:end] * 1000/framerate 
+        
     if 'trialRepeat' in d.keys():
         prevTrialIncorrect = d['trialRepeat'][:end]  #recommended, since keeps track of how many repeats occurred 
     else:
@@ -49,7 +55,8 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
     noResps = [[],[]]
     
     for i, direction in enumerate([-1,1]):
-        directionResponses = [trialResponse2[(trialRewardDirection==direction) & (trialTargetFrames == tf)] for tf in targetFrames]
+        directionResponses = [trialResponse2[(trialRewardDirection==direction) & 
+                                             (trialTargetFrames == tf)] for tf in targetFrames]
         hits[i].append([np.sum(drs==1) for drs in directionResponses])
         misses[i].append([np.sum(drs==-1) for drs in directionResponses])
         noResps[i].append([np.sum(drs==0) for drs in directionResponses])
@@ -87,13 +94,7 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
             ax.plot(targetFrames, num[0]/denom[0], 'bo-', lw=3, alpha=.7, label='Right turning')  #here [0] is right trials and [1] is left
             ax.plot(targetFrames, num[1]/denom[1], 'ro-', lw=3, alpha=.7, label='Left turning')
             ax.plot(targetFrames, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
-            y=(num[0]/denom[0])
-            y2=(num[1]/denom[1])
-            if showTrialN:
-                for i, length in enumerate(targetFrames):
-                    plt.annotate(str(denom[0][i]), xy=(length,y[i]), xytext=(5, -10), textcoords='offset points')  #adds total num of trials
-                    plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(5, -10), textcoords='offset points')
-            
+           
             xticks = targetFrames
             xticklabels = list(np.round(xticks).astype(int))
             if title=='Response Rate':
@@ -103,16 +104,18 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
                     ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
                     xticks = np.concatenate(([0],xticks))
                     xticklabels = ['no go']+xticklabels
-            
-            tar = np.append(targetFrames, targetFrames)
-            
-            for x,Rtrials,Ltrials in zip(tar,denom[0], denom[1]):
-                for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
-                    fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
-    
+                        
+            if showTrialN==True:
+                
+                tar = np.append(targetFrames, targetFrames)
+
+                for x,Rtrials,Ltrials in zip(tar,denom[0], denom[1]):
+                    for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
+                        fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
+        
 
             formatFigure(fig, ax, xLabel='Target Duration (ms)', yLabel=title)
-            fig.suptitle((mouse + '    ' + date), fontsize=12)
+            fig.suptitle(('(' + mouse + '    ' + date + ')'), fontsize=13)
             ax.set_xticks(xticks)
             ax.set_xticklabels(xticklabels)
             ax.set_xlim([-5, targetFrames[-1]+1])
@@ -120,7 +123,7 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
-            plt.subplots_adjust(top=0.875, bottom=0.105, left=0.095, right=0.955, hspace=0.2, wspace=0.2)
+            plt.subplots_adjust(top=0.86, bottom=0.105, left=0.095, right=0.955, hspace=0.2, wspace=0.2)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
             
             

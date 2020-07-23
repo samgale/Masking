@@ -88,7 +88,7 @@ def create_daily_summary(d):
     sessionText.setFont('Helvetica', 9)
     sessionText.setLeading(12)
     sessionText.setWordSpace(1)
-    session = session_stats(d, returnAs='str_array')
+    session = session_stats(d, ignoreNoRespAfter=10, returnAs='str_array')
     for stat in session:
         sessionText.textLine(stat)
     c.drawText(sessionText)
@@ -219,13 +219,13 @@ def create_daily_summary(d):
             
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target duration response rate ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, 5.5*inch)
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
             
             # add text for counts at each side and length
             
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target duration correct given response ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, .4*inch)
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
      
     
 # add target contrast plots     
@@ -235,13 +235,13 @@ def create_daily_summary(d):
             
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target contrast response rate ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, 5.5*inch)
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
             
             # add text for counts at each side and length
             
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target contrast correct given response ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, .4*inch)
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
         
                           
 # add masking plots         
@@ -251,12 +251,12 @@ def create_daily_summary(d):
             
             Image(dataDir + '/Masking plots/' + mouse_id + 
                   ' masking response rate ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, 5.5*inch)
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
             
             
             Image(dataDir + '/Masking plots/' + mouse_id + 
                   ' masking correct given response ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .1*inch, .4*inch)
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
         
 # complete page and break
         c.showPage()

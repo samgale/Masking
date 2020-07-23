@@ -19,7 +19,7 @@ import numpy as np
 from dataAnalysis import create_df, ignore_after
 
 
-def session_stats(d, ignoreNoResp=None, returnAs='str_array'):    #returnAs 'str_array', 'num_array', or 'print'
+def session_stats(d, ignoreNoRespAfter=None, returnAs='str_array'):    #returnAs 'str_array', 'num_array', or 'print'
 
     print(str(d) + '\n')
     
@@ -27,8 +27,8 @@ def session_stats(d, ignoreNoResp=None, returnAs='str_array'):    #returnAs 'str
     
     framerate=df.framerate
     
-    if ignoreNoResp is not None:
-        end = ignore_after(d, ignoreNoResp)[0]
+    if ignoreNoRespAfter is not None:
+        end = ignore_after(d, ignoreNoRespAfter)[0]
         df = df[:end]
     
     sessionDuration = d['trialResponseFrame'][-1]   # in frames

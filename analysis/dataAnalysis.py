@@ -66,9 +66,11 @@ def ignore_after(data, lim):
         else:
             count+=1
         
-        if count >= lim:
+        if count == lim:
+            trialNum=i-lim
             break
-        trialNum=i-lim
+        else:
+            trialNum=i
             
     startFrame = d['trialStartFrame'][trialNum]
     
