@@ -15,8 +15,10 @@ import matplotlib as mpl
 
 mpl.rcParams['pdf.fonttype']=42
 
-def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False, ion=True):
+def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False, 
+                 ion=True, ignoreNoRespAfter=None):
             
+### figure out how to add ignoreNoRespAfter to work with this code
         
     df = create_df(d)
     
