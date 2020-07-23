@@ -110,7 +110,7 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
     
 
             formatFigure(fig, ax, xLabel='Target Duration (ms)', yLabel=title)
-            fig.suptitle((mouse + ' ' + date), fontsize=10)
+            fig.suptitle((mouse + '    ' + date), fontsize=12)
             ax.set_xticks(xticks)
             ax.set_xticklabels(xticklabels)
             ax.set_xlim([-5, targetFrames[-1]+1])
@@ -118,25 +118,6 @@ def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
-            plt.tight_layout()
+            plt.subplots_adjust(top=0.875, bottom=0.105, left=0.095, right=0.955, hspace=0.2, wspace=0.2)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
             
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-        xdata = [0,1,2]
-        yright = [0,0.5,1]
-        yleft = [1,0.66,0.33]
-        ntrials = [(2,3),(4,5),(1,6)]
-        ax.plot(xdata,yright,'ro')
-        ax.plot(xdata,yleft,'bo')
-        for x,ns in zip(xdata,ntrials):
-            for y,n,clr in zip((1.05,1.1),ns,'rb'):
-                fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
-
-                
-        
-     
-        
-    
-        
-        
