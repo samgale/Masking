@@ -15,7 +15,7 @@ import matplotlib.style
 import matplotlib as mpl
 import scipy.signal 
 from ignoreTrials import ignore_trials
-from dataAnalysis import get_dates
+from dataAnalysis import get_dates, ignore_after
 
 mpl.rcParams['pdf.fonttype']=42
 
@@ -35,8 +35,9 @@ mpl.style.use('classic')
                             with nans to correct for variable length. 
 '''
     
-def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True, ion = True,
-                  framesToShowBeforeStart=60, mask=False, maskOnly=False, xlim='auto', ylim='auto', figsize=None):
+def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True,
+                  ion = True, framesToShowBeforeStart=0, mask=False, maskOnly=False, 
+                  xlim='auto', ylim='auto', figsize=None, ignoreNoResp=True):
 
 
     #Clean up inputs if needed    
@@ -50,10 +51,16 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     
     d = data
     frameRate = d['frameRate'][()] if 'frameRate' in d.keys() else int(np.round(1/np.median(d['frameIntervals'][:])))
+    
     trialEndFrames = d['trialEndFrame'][:]
-    trialStartFrames = d['trialStartFrame'][:trialEndFrames.size]
-    trialRewardDirection = d['trialRewardDir'][:trialEndFrames.size]
-    trialResponse = d['trialResponse'][:trialEndFrames.size]
+    
+    end_analysis = ignore_after(d, 10)
+    end = end_analysis[0] if ignoreNoResp==True else trialEndFrames.size
+    
+    trialEndFrames = trialEndFrames[:end]
+    trialStartFrames = d['trialStartFrame'][:end]
+    trialRewardDirection = d['trialRewardDir'][:end]
+    trialResponse = d['trialResponse'][:end]
     deltaWheel = d['deltaWheelPos'][:]
     maxResp = d['maxResponseWaitFrames'][()]
     

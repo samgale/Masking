@@ -38,15 +38,15 @@ def create_daily_summary(d):
             subtitle = '- Target Contrast exp -'
         elif len(d['maskOnset'][:])>1:
             subtitle = '- Masking exp -'
-        else:
-            subtitle = None
+    else:
+        subtitle = None
     
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'Plots/') 
     
     outfileDir = ('/' + mouse_id + '/Daily Summary/')
-#    outfileName = (mouse_id + ' Daily Summary ' + date + '.pdf')
-    outfileName= (mouse_id + ' testing ' + ' .pdf')
+    outfileName = (mouse_id + ' Daily Summary ' + date + '.pdf')
+#    outfileName= (mouse_id + ' testing ' + ' .pdf')
     outfilePath = os.path.join(outfileDir, outfileName)
     
     c = canvas.Canvas(directory + outfilePath, pagesize=letter)
@@ -57,7 +57,7 @@ def create_daily_summary(d):
     if subtitle is None:
         loc1 = 2
         loc2 = 3.3
-        loc3 = 3.8
+        loc3 = 4.5
         subtitle = ''
     else:
         loc1 = 1
@@ -139,7 +139,7 @@ def create_daily_summary(d):
     
 # insert wheel pos dist plot underneath 
     Image(dataDir + '/Other plots/wheel pos/' + 'wheel ' + date + '.png',
-                             width=8*inch, height=6*inch).drawOn(c, .5*inch, 1*inch)    
+                             width=8*inch, height=6*inch).drawOn(c, .1*inch, .5*inch)    
 # complete page and break
     c.showPage()
     
@@ -221,12 +221,12 @@ def create_daily_summary(d):
                   width=6*inch, height=4.5*inch).drawOn(c, .1*inch, .4*inch)
         
 # complete page and break
-    c.showPage()
+        c.showPage()
 
 #  add response time plots *********
 
 #finish pdf    
-    c.showPage()
+#    c.showPage()
 
 # save 
     c.save()
