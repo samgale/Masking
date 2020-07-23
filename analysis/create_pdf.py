@@ -6,6 +6,7 @@ Created on Mon Jul 13 14:54:31 2020
 """
 
 import performanceBySOA
+import plotting_target_lengths
 from qualityControl import check_qviolations
 from percentCorrect import session_stats
 from catchTrials import catch_trials
@@ -13,7 +14,7 @@ import matplotlib.pyplot as plt
 import os
 import reportlab.platypus as plat
 from reportlab.pdfgen import canvas
-from reportlab.platypus import Image
+from reportlab.platypus import Image, Table, TableStyle
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import letter
 from datetime import datetime
@@ -177,7 +178,44 @@ def create_daily_summary(d):
 # add flash plots         
         if len(d['targetFrames'][:])>1:
             
-#            flashText = 
+#            flash = plotting_target_lengths.plot_flash(d, returnArray=True)
+#            
+#            flashText = c.beginText()
+#            catchText.setTextOrigin(6.2*inch, 9.8*inch)
+#            catchText.setFont('Helvetica', 9)
+#            catchText.setLeading(12)
+#            catchText.setWordSpace(1)
+#
+            ## make a manual table
+#            print eahc line of target frames
+#            then print each line of each list of total trials
+#            
+                # -- total trials --
+                    
+#          target (ms)  Right     Left
+#            8.33        75        67
+#           16.66       78        62
+#           33.33      ....       ....
+#            
+#            
+#            
+#            
+#            
+#            
+#            
+#            
+#            for count in flash:
+#                catchText.textLine(count)
+#            c.drawText(catchText)
+#        
+            
+            
+            
+            
+            
+            
+            
+            
             
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target duration response rate ' + date + '.png', 

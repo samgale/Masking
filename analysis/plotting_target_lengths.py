@@ -10,22 +10,30 @@ import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 from nogoData import nogo_turn
+from dataAnalysis import ignore_after, get_dates
 
 
-def plot_flash(data,showTrialN=False, returnArray=False):
+def plot_flash(data,showTrialN=False, ignoreNoResp=None, returnArray=False):
     
     matplotlib.rcParams['pdf.fonttype'] = 42
 
     d = data
+    info = str(d).split('_')[-3:-1]
+    date = get_dates(info[1])
+    mouse = info[0]
     trialResponse = d['trialResponse'][:]
-    trialRewardDirection = d['trialRewardDir'][:len(trialResponse)]    # leave off last trial, ended session before answer 
+    
+    end = ignore_after(d, 10)[0] if ignoreNoResp is not None else len(trialResponse)
+    
+    trialResponse = trialResponse[:end]
+    trialRewardDirection = d['trialRewardDir'][:end]    # leave off last trial, ended session before answer 
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
-    trialTargetFrames = d['trialTargetFrames'][:len(trialResponse)] * 1000/framerate  
-    repeats = d['incorrectTrialRepeats'][()]   # max repeats 
+    trialTargetFrames = d['trialTargetFrames'][:end] * 1000/framerate  
+    repeats = d['incorrectTrialRepeats'][()]   # max num of repeats 
     
     if 'trialRepeat' in d.keys():
-        prevTrialIncorrect = d['trialRepeat'][:len(trialResponse)]  #recommended, since keeps track of how many repeats occurred 
+        prevTrialIncorrect = d['trialRepeat'][:end]  #recommended, since keeps track of how many repeats occurred 
     else:
         prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))         # array of boolean values about whethe the trial before was incorr
     trialResponse2 = trialResponse[(prevTrialIncorrect==False)]                    # false = not a repeat, true = repeat
@@ -95,9 +103,14 @@ def plot_flash(data,showTrialN=False, returnArray=False):
                     ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
                     xticks = np.concatenate(([0],xticks))
                     xticklabels = ['no go']+xticklabels
-               
-            formatFigure(fig, ax, xLabel='Target Duration (ms)', yLabel=title, 
-                         title=str(d).split('_')[-3:-1])
+            
+            for x,ntrials in zip(targetFrames,denom):
+                for y,n,clr in zip((1.05,1.1),ntrials,'rb'):
+                    fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
+    
+
+            formatFigure(fig, ax, xLabel='Target Duration (ms)', yLabel=title)
+            fig.suptitle((mouse + ' ' + date), fontsize=10)
             ax.set_xticks(xticks)
             ax.set_xticklabels(xticklabels)
             ax.set_xlim([-5, targetFrames[-1]+1])
@@ -105,7 +118,21 @@ def plot_flash(data,showTrialN=False, returnArray=False):
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
+            plt.tight_layout()
             plt.legend(loc='best', fontsize='small', numpoints=1) 
+            
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        xdata = [0,1,2]
+        yright = [0,0.5,1]
+        yleft = [1,0.66,0.33]
+        ntrials = [(2,3),(4,5),(1,6)]
+        ax.plot(xdata,yright,'ro')
+        ax.plot(xdata,yleft,'bo')
+        for x,ns in zip(xdata,ntrials):
+            for y,n,clr in zip((1.05,1.1),ns,'rb'):
+                fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
+
                 
         
      
