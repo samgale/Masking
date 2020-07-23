@@ -135,7 +135,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training2',taskVersion)
             self.wheelRewardDistance = 2.0
             self.quiescentFrames = 60
-            self.maxResponseWaitFrames = 1200 # manually adjust this 
+            self.maxResponseWaitFrames = 1200 # adjust this 
             self.useIncorrectNoise = True
             self.incorrectTimeoutFrames = 360
             self.incorrectTrialRepeats = 5 # will repeat for unanswered trials
@@ -160,7 +160,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training4',taskVersion)
             self.moveStim = False
             self.postRewardTargetFrames = 0
-            self.targetFrames = [24]
+            self.targetFrames = [24] # adjust this
             
         elif name == 'testing':
             self.setDefaultParams('training5',taskVersion)
@@ -529,8 +529,8 @@ class MaskingTask(TaskControl):
                         if self._sessionFrame == self.trialResponseFrame[-1]:
                             target.ori = initTargetOri + rewardMove * -rewardDir
                         target.draw()
-                elif not np.isnan(optoOnset) and self._trialFrame < self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
-                    pass # wait until end of response window to turn off opto
+                elif self._trialFrame < self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
+                    pass # wait until end of response window
                 else:
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
