@@ -7,8 +7,7 @@ Created on Tue Jun 30 10:59:57 2020
 
 import behaviorAnalysis
 import performanceBySOA
-from plottingTargetContrast import plot_contrast
-from plotting_target_lengths import plot_flash
+from plotting_variable_params import plot_param
 from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param
 import qualityControl
@@ -35,7 +34,7 @@ def save_daily_plots(data):
 # daily wheel plot
     behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], ignoreRepeats=True, 
                                    ion=False, framesToShowBeforeStart=0, mask=False, 
-                                   maskOnly=False, xlim='auto', ylim='auto', ignoreNoResp=10)
+                                   maskOnly=False, xlim='auto', ylim='auto', ignoreNoRespAfter=10)
     
     plt.savefig(wheelDir+'/Daily Wheel/' + mouse_id + ' ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -45,7 +44,7 @@ def save_daily_plots(data):
 # plot no response trials only (with repeats)
     behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], ignoreRepeats=False, ion=False, 
                                    framesToShowBeforeStart=0, mask=False, maskOnly=False,  
-                                   xlim='auto', ylim=[-8,8], ignoreNoResp=10 )
+                                   xlim='auto', ylim=[-8,8], ignoreNoRespAfter=10 )
         
     plt.savefig(wheelDir+'/No Resp Wheel/' + mouse_id + ' ' + date + ' no resp.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -105,7 +104,7 @@ def save_daily_plots(data):
 
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
-            plot_flash(d, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
+            plot_param(d, param='targetFrames', showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
             plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
                         ' target duration response rate ' + date + '.png', dpi=300, bbox_inches='tight')
@@ -121,7 +120,7 @@ def save_daily_plots(data):
         
         
         if len(d['targetContrast'][:])>1:
-            plot_contrast(d)  # creates 3 plots
+            plot_param(d, param='targetContrast', showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
             plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
                         ' target contrast response rate ' + date + '.png', dpi=300, bbox_inches='tight')

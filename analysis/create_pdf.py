@@ -12,9 +12,10 @@ from percentCorrect import session_stats
 from catchTrials import catch_trials
 import matplotlib.pyplot as plt
 import os
-import reportlab.platypus as plat
+import numpy as np
+import reportlab.platypus 
 from reportlab.pdfgen import canvas
-from reportlab.platypus import Image, Table, TableStyle
+from reportlab.platypus import Image
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import letter
 from datetime import datetime
@@ -231,8 +232,16 @@ def create_daily_summary(d):
 # add target contrast plots     
         if len(d['targetContrast'][:])>1:
              
-#            contrastText = 
             
+            targetLen = c.beginText()
+            targetLen.setTextOrigin(6.5*inch, 9.8*inch)
+            targetLen.setFont('Helvetica', 10)
+            qvioText.setLeading(12)
+            qvioText.setWordSpace(1) 
+            framerate = int(np.round(1/np.median(d['frameIntervals'][:])))
+            targetLen.textLine('Target Duration: ' + str(d['targetFrames'][0]*framerate) + ' ms')
+            c.drawText(targetLen)
+                    
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target contrast response rate ' + date + '.png', 
                   width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)

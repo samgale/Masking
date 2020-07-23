@@ -134,7 +134,7 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
             if param=='targetFrames':
                 ax.set_xlim([-5, sessionParams[-1]+1])
             elif param=='targetContrast':
-                ax.set_xlim([-5, sessionParams[-1] + sessionParams[0]])
+                ax.set_xlim([0, 1.05])
             ax.set_ylim([0,1.05])
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
