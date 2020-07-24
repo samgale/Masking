@@ -18,16 +18,19 @@ from dataAnalysis import get_dates, import_data
        Do this for both of the plots: fraction of trials with response and fraction correct given response.  """   
 
 
-def plot_opto_vs_param(data, param = 'targetContrast'):
+def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' ):
     
     '''
     plotting optogenetic onset to other variable parameter in session
     param == 'targetContrast', 'targetLength', 'soa'
+    plotType == 'optoByParam' or 'combined_opto'
+    former creates 2x np.unique(paramVals) where opto is x axis and L and R are plotted 
+    latter creates 2 plots, each with x axis as paramVal, and average L & R performance for opto as plots
     '''
-    
+    d = data
     matplotlib.rcParams['pdf.fonttype'] = 42
 
-    d = data
+   
     info = str(d).split('_')[-3:-1]
     date = get_dates(info[1])
     mouse = info[0]
@@ -56,8 +59,10 @@ def plot_opto_vs_param(data, param = 'targetContrast'):
 # list of unique paramter values, depending on what param was declared            
     paramVals = np.unique(trialParam)    
     param_num = len(np.unique(paramVals))
+    opto_num = len(np.unique(trialOptoOnset))
+    optoOnset = np.unique(trialOptoOnset)
     
-    if param == 'targetFrames' or param == 'targetContrast':
+    if param == 'targetLength' or param == 'targetContrast':
         paramVals = paramVals[paramVals>0]
     
 # remove catch trials 
@@ -66,56 +71,196 @@ def plot_opto_vs_param(data, param = 'targetContrast'):
     trialParam = trialParam[(np.isfinite(trialRewardDirection)==True)]
     trialRewardDirection = trialRewardDirection[(np.isfinite(trialRewardDirection)==True)]
     
-# lists of responses by param for each opto level 
-    hitsR = [[] for i in range(param_num)]
-    missesR = [[] for i in range(param_num)]
-    noRespsR = [[] for i in range(param_num)]
-     
-    for i, val in enumerate(np.unique(paramVals)):
-        responsesR = [trialResponse[(trialParam==val) & (trialRewardDirection==1) & 
-                                       (trialOptoOnset == op)] for op in np.unique(trialOptoOnset)]
-        hitsR[i].append([np.sum(drs==1) for drs in responsesR])
-        missesR[i].append([np.sum(drs==-1) for drs in responsesR])
-        noRespsR[i].append([np.sum(drs==0) for drs in responsesR])
     
-    hitsR = np.squeeze(np.array(hitsR))
-    missesR = np.squeeze(np.array(missesR))
-    noRespsR = np.squeeze(np.array(noRespsR))
-    totalTrialsR = hitsR+missesR+noRespsR
+    if plotType == 'opto_by_param':
     
+    # each list is for a parameter value (like contrast) and the vals within are the opto trials, in order
+        hitsR = [[] for i in range(param_num)]
+        missesR = [[] for i in range(param_num)]
+        noRespsR = [[] for i in range(param_num)]
+         
+        for i, val in enumerate(np.unique(trialParam)):
+            responsesR = [trialResponse[(trialParam==val) & (trialRewardDirection==1) & 
+                                           (trialOptoOnset==op)] for op in optoOnset]
+            hitsR[i].append([np.sum(drs==1) for drs in responsesR])
+            missesR[i].append([np.sum(drs==-1) for drs in responsesR])
+            noRespsR[i].append([np.sum(drs==0) for drs in responsesR])
+            print(op)
+        
+        hitsR = np.squeeze(np.array(hitsR))
+        missesR = np.squeeze(np.array(missesR))
+        noRespsR = np.squeeze(np.array(noRespsR))
+        totalTrialsR = hitsR+missesR+noRespsR
+        
+        
+    # trials where mouse should turn Left for reward    
+        hitsL = [[] for i in range(opto_num)]  # each list is for param value (contrast, etc)  list of hits by 
+        missesL = [[] for i in range(opto_num)]
+        noRespsL = [[] for i in range(opto_num)]
+        
+        
+         for i, val in enumerate(np.unique(trialParam)):
+            responsesL = [trialResponse[(trialParam==val) & (trialRewardDirection==1) & 
+                                           (trialOptoOnset==op)] for op in np.unique(trialOptoOnset)]
+            hitsL[i].append([np.sum(drs==1) for drs in responsesL])
+            missesL[i].append([np.sum(drs==-1) for drs in responsesL])
+            noRespsL[i].append([np.sum(drs==0) for drs in responsesL])
+                
+        hitsL = np.squeeze(np.array(hitsL))
+        missesL = np.squeeze(np.array(missesL))
+        noRespsL = np.squeeze(np.array(noRespsL))
+        totalTrialsL = hitsL+missesL+noRespsL
     
-    hitsL = [[] for i in range(param_num)]
-    missesL = [[] for i in range(param_num)]
-    noRespsL = [[] for i in range(param_num)]
+## plotting    
+        for i, value in enumerate(paramVals):
+            for Rnum, Lnum, Rdenom, Ldenom, title in zip([hitsR, hitsR+missesR], 
+                                                         [hitsL, hitsL+missesL],
+                                                         [hitsR+missesR, totalTrialsR],
+                                                         [hitsR+missesL, totalTrialsL],
+                                                         ['Fraction Correct Given Response', 'Response Rate']):
+                
+                fig, ax = plt.subplots()
+                ax.plot(optoOnset, Lnum[i]/Ldenom[i], 'bo-', lw=3, alpha=.7, label='Left turning') 
+                ax.plot(paramVals, Rnum[i]/Rdenom[i], 'ro-', lw=3, alpha=.7, label='Right turning')
+                ax.plot(paramVals, (Lnum+Rnum)/(Ldenom+Rdenom), 'ko--', alpha=.5, label='Combined average') 
+               
     
+                            
+                xticks = paramVals
+                xticklabels = list(paramVals)
     
-    for i, val in enumerate(np.unique(paramVals)):     
-        responsesL = [trialResponse[(trialParam==val) & (trialRewardDirection==-1) & 
-                                        (trialOptoOnset == op)] for op in np.unique(trialOptoOnset)]
-        hitsL[i].append([np.sum(drs==1) for drs in responsesL])
-        missesL[i].append([np.sum(drs==-1) for drs in responsesL])
-        noRespsL[i].append([np.sum(drs==0) for drs in responsesL])
-            
-    hitsL = np.squeeze(np.array(hitsL))
-    missesL = np.squeeze(np.array(missesL))
-    noRespsL = np.squeeze(np.array(noRespsL))
-    totalTrialsL = hitsL+missesL+noRespsL
-    
-    averages = []
-    for i, value in enumerate(paramVals):
-        for Rnum, Lnum, Rdenom, Ldenom, title in zip([hitsR, hitsR+missesR], 
-                                                     [hitsL, hitsL+missesL],
-                                                     [hitsR+missesR, totalTrialsR],
-                                                     [hitsR+missesL, totalTrialsL],
-                                                     ['Fraction Correct Given Response', 'Response Rate']):
+                if param=='targetLength':
+                    xticklabels = list(np.round(xticks).astype(int))
+                    xlab = 'Target Duration (ms)'
+                elif param=='targetContrast':
+                    xlab = 'Target Contrast'
+                elif param=='opto':
+                    xlab = 'Opto Onset'
+                    x,lbl = ([0],['no\nopto'])
+                    xticks = np.concatenate((x,xticks))
+                    xticklabels = lbl+xticklabels
+                    ax.xaxis.set_label_coords(0.5,-0.08)
                     
-                    fig, ax = plt.subplots()
-                    ax.plot(optoOnset, Rnum[i]/Rdenom[i], 'bo-', lw=3, alpha=.7, label='Right turning')  
-                    ax.plot(optoOnset, Lnum[i]/Ldenom[i], 'ro-', lw=3, alpha=.7, label='Left turning')
-                    ax.plot(optoOnset, (Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]), 'ko--', alpha=.5, 
-                            label='Combined average')  
-                    averages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
-                   
+                elif param=='soa':
+                    xlab = 'Mask Onset From Target Onset (ms)'
+                    if title=='Response Rate':
+                        x,lbl = ([0],['mask\nonly'])
+                        xticks = np.concatenate((x,xticks))
+                        xticklabels = lbl+xticklabels
+                        ax.xaxis.set_label_coords(0.5,-0.08)
+                    
+                if title=='Response Rate':   #no go
+                    if 0 in trialRewardDirection:
+                        ax.plot(0, nogoCorrect/nogoTotal, 'ko', ms=8)
+                        ax.plot(0, nogoR/nogoMove, 'r>', ms=8)  #plot the side that was turned in no-go with an arrow in that direction
+                        ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
+                        xticks = np.concatenate(([0],xticks))
+                        xticklabels = ['no go']+xticklabels
+                 
+                                    
+                if showTrialN==True:
+                    for x,Rtrials,Ltrials in zip(paramVals,Rdenom, Ldenom):
+                        for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
+                            fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
+            
+    
+                formatFigure(fig, ax, xLabel=xlab, yLabel=title)
+                fig.suptitle(('(' + mouse + '    ' + date + ')'), fontsize=13)
+                ax.set_xticks(xticks)
+                ax.set_xticklabels(xticklabels)
+                
+                if param=='targetLength':
+                    ax.set_xlim([-5, paramVals[-1]+1])
+                elif param=='targetContrast':
+                    ax.set_xlim([0, 1.05])
+                else:
+                    ax.set_xlim([-.5, max(paramVals)+1])
+                    
+                ax.set_ylim([0,1.05])
+                ax.spines['right'].set_visible(False)
+                ax.spines['top'].set_visible(False)
+                ax.tick_params(direction='out',top=False,right=False)
+                plt.subplots_adjust(top=0.86, bottom=0.105, left=0.095, right=0.92, hspace=0.2, wspace=0.2)
+                plt.legend(loc='best', fontsize='small', numpoints=1) 
+    
+    
+    
+    
+    
+    elif plotType == 'combined_opto_by_param':
+    
+    
+    
+        # each list is for an opto onset, and the values within are by paramValue  
+        #  ex:  list1 = opto Onset 0, within are trials for each contrast level [0, .2, .4, 1]
+            
+        # trials where mouse should turn Right for reward
+            hitsR = [[] for i in range(opto_num)]
+            missesR = [[] for i in range(opto_num)]
+            noRespsR = [[] for i in range(opto_num)]
+             
+            for i, op in enumerate(np.unique(trialOptoOnset)):
+                responsesR = [trialResponse[(trialOptoOnset==op) & (trialRewardDirection==1) & 
+                                               (trialParam==val)] for val in paramVals]
+                hitsR[i].append([np.sum(drs==1) for drs in responsesR])
+                missesR[i].append([np.sum(drs==-1) for drs in responsesR])
+                noRespsR[i].append([np.sum(drs==0) for drs in responsesR])
+                print(op)
+            
+            hitsR = np.squeeze(np.array(hitsR))
+            missesR = np.squeeze(np.array(missesR))
+            noRespsR = np.squeeze(np.array(noRespsR))
+            totalTrialsR = hitsR+missesR+noRespsR
+            
+            
+        # trials where mouse should turn Left for reward    
+            hitsL = [[] for i in range(opto_num)]  # each list is for param value (contrast, etc)  list of hits by 
+            missesL = [[] for i in range(opto_num)]
+            noRespsL = [[] for i in range(opto_num)]
+            
+            
+            for i, op in enumerate(np.unique(trialOptoOnset)):
+                responsesL = [trialResponse[(trialOptoOnset==op) & (trialRewardDirection==-1) & 
+                                               (trialParam==val)] for val in paramVals]
+                hitsL[i].append([np.sum(drs==1) for drs in responsesL])
+                missesL[i].append([np.sum(drs==-1) for drs in responsesL])
+                noRespsL[i].append([np.sum(drs==0) for drs in responsesL])
+                    
+            hitsL = np.squeeze(np.array(hitsL))
+            missesL = np.squeeze(np.array(missesL))
+            noRespsL = np.squeeze(np.array(noRespsL))
+            totalTrialsL = hitsL+missesL+noRespsL
+            
+            
+        # first list in each array is no opto (-1)
+            respAverages = []
+            correctAverages = []
+            
+            fig, ax = plt.subplots()
+            
+            for i, value in enumerate(paramVals):
+                for Rnum, Lnum, Rdenom, Ldenom, title in zip([hitsR, hitsR+missesR], 
+                                                             [hitsL, hitsL+missesL],
+                                                             [hitsR+missesR, totalTrialsR],
+                                                             [hitsR+missesL, totalTrialsL],
+                                                             ['Fraction Correct Given Response', 'Response Rate']):
+                            
+                            
+                            
+                            if title == 'Fraction Correct Given Response':
+                                correctAverages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
+                            elif title == 'Response Rate':
+                                 respAverages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
+        
+                                    
+               fig, ax = plt.subplots()
+            for stats in respAverages:  
+                
+                 
+                ax.plot(paramVals, (Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]), 'b', 
+                        alpha=lineLevel, label=('Opto onset: ' + )) 
+            
+                      
                     xticks = optoOnset
                     xticklabels = list(optoOnset)
         
@@ -139,12 +284,13 @@ def plot_opto_vs_param(data, param = 'targetContrast'):
                     
                     if value >0:
                         fig.suptitle(('(' + mouse + ',   ' + date + ')    ' + 
-                                  pval + ' = ' + str(value), fontsize=13)
-                    else
+                                      pval + ' = ' + str(value)), fontsize=13)
+                    else:
+                        fig.suptitle(('(' + mouse + ',   ' + date + ')     ' + 'No target'), fontsize=13)
                                     
                     ax.set_xticks(xticks)
                     ax.set_xticklabels(xticklabels)
-    
+        
                     ax.set_xlim([-1, max(optoOnset)+1])  
                     ax.set_ylim([0,1.05])
                     ax.spines['right'].set_visible(False)
@@ -152,7 +298,6 @@ def plot_opto_vs_param(data, param = 'targetContrast'):
                     ax.tick_params(direction='out',top=False,right=False)
                     plt.subplots_adjust(top=0.86, bottom=0.105, left=0.095, right=0.92, hspace=0.2, wspace=0.2)
                     plt.legend(loc='best', fontsize='small', numpoints=1) 
-                    
-                    
-                
-                
+                            
+           
+                        

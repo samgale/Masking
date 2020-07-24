@@ -106,7 +106,7 @@ def save_daily_plots(data):
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
             param = 'targetLength'
-            plot_param(d, param='targetFrames', showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
+            plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
             plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
                         ' target duration response rate ' + date + '.png', dpi=300, bbox_inches='tight')
@@ -122,8 +122,8 @@ def save_daily_plots(data):
         
         
         if len(d['targetContrast'][:])>1:
-            param = 'contrast'
-            plot_param(d, param='targetContrast', showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
+            param = 'targetContrast'
+            plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
             plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
                         ' target contrast response rate ' + date + '.png', dpi=300, bbox_inches='tight')
@@ -156,7 +156,7 @@ def save_daily_plots(data):
 
     if d['probOpto'][()] > 0:
         
-        plot_opto_vs_param(d, param)
+        plot_opto_vs_param(d, param, plotType='optoByParam')
         
         for i, val in enumerate(d['optoOnset'][:]):
             plt.savefig(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) +  ' ' + str(param) +

@@ -23,9 +23,10 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     returnArray=True is for the save plot, will return just the values and no plots
     '''
     
-    matplotlib.rcParams['pdf.fonttype'] = 42
-# get file data
     d = data
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    
+# get file data
     info = str(d).split('_')[-3:-1]
     date = get_dates(info[1])
     mouse = info[0]
@@ -140,10 +141,10 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                                      ['Fraction Correct', 'Fraction Correct Given Response', 'Response Rate']):
             
             
-                fig, ax = plt.subplots()
-                ax.plot(paramVals, num[0]/denom[0], 'bo-', lw=3, alpha=.7, label='Left turning')  #here [0] is right trials and [1] is left
-                ax.plot(paramVals, num[1]/denom[1], 'ro-', lw=3, alpha=.7, label='Right turning')
-                ax.plot(paramVals, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
+            fig, ax = plt.subplots()
+            ax.plot(paramVals, num[0]/denom[0], 'bo-', lw=3, alpha=.7, label='Left turning')  #here [0] is right trials and [1] is left
+            ax.plot(paramVals, num[1]/denom[1], 'ro-', lw=3, alpha=.7, label='Right turning')
+            ax.plot(paramVals, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
            
 
                         
@@ -158,9 +159,9 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
             elif param=='opto':
                 xlab = 'Opto Onset'
                 x,lbl = ([0],['no\nopto'])
-                    xticks = np.concatenate((x,xticks))
-                    xticklabels = lbl+xticklabels
-                    ax.xaxis.set_label_coords(0.5,-0.08)
+                xticks = np.concatenate((x,xticks))
+                xticklabels = lbl+xticklabels
+                ax.xaxis.set_label_coords(0.5,-0.08)
                 
             elif param=='soa':
                 xlab = 'Mask Onset From Target Onset (ms)'
