@@ -86,7 +86,7 @@ def create_df(data):
     d = data
     mouse, date = str(d).split('_')[-3:-1]
         
-    trialResponse = d['trialResponse'][:]
+    trialResponse = d['trialResponse'][:-1]
     end = len(trialResponse)
     trialRewardDirection = d['trialRewardDir'][:end]
     trialTargetFrames = d['trialTargetFrames'][:end]
@@ -328,6 +328,7 @@ def rxnTimes(data, dataframe):
         f = fi[fiInd:(fiInd+(len(wheel)-stimInd-postReward))]   #from stim start frame to len of maxTrial
         wheel *= wheelRadius  #(180/np.pi * wheelRadius)   # in frames 
         fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   
+
         xp = np.cumsum(f)    
         x = np.arange(0, xp[-1], .001)   # in ms 
         interp = np.interp(x,xp,fp)
