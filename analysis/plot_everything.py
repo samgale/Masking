@@ -7,9 +7,7 @@ Created on Thu Jan 23 10:57:35 2020
 
 
 import behaviorAnalysis
-import performanceBySOA
-from plottingTargetContrast import plot_contrast
-from plotting_target_lengths import plot_flash
+from plotting_variable_params import plot_param
 from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param
 import dataAnalysis
@@ -33,12 +31,12 @@ session_stats(d, returnAs = 'print')
 
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], ignoreRepeats=True, 
                                framesToShowBeforeStart=0, mask=False, maskOnly=False, 
-                               xlim=[0, .8], ylim='auto')
+                               xlim=[0, .8], ylim='auto', ignoreNoRespAfter=10 )
 
 # plot no response trials only (with repeats)
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], ignoreRepeats=False, 
                                framesToShowBeforeStart=0, mask=False, maskOnly=False,  
-                               xlim=[0, .8], ylim=[-8,8])
+                               xlim=[0, .8], ylim=[-8,8], ignoreNoRespAfter=10 )
 
 
 # plots catch trial wheel traces 
@@ -67,16 +65,15 @@ d.close()
 
 
 # plot target duration responses - 3 plots ###################################
-plot_flash(d)
+plot_param(d, 'targetFrames')
 
 
 # plot contrast responses - 3 plots
-plot_contrast(d)
+plot_param(d, 'targetContrast')
 
 
 # plot masking session - 3 plots 
-performanceBySOA.plot_soa(d)
-
+plot_param(d, 'soa')
 
 # plot reaction time by parameter - 1 plot
 # (df, selection='all', param1='soa', param2='trialLength', stat='Median', errorBars=False)
