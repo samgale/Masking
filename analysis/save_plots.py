@@ -14,6 +14,7 @@ import qualityControl
 from catchTrials import catch_trials
 import matplotlib.pyplot as plt
 import os
+from plottingOptoAgainstParam import plot_opto_vs_param
 
 
 def save_daily_plots(data):
@@ -104,6 +105,7 @@ def save_daily_plots(data):
 
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
+            param = 'targetLength'
             plot_param(d, param='targetFrames', showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
             plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
@@ -120,6 +122,7 @@ def save_daily_plots(data):
         
         
         if len(d['targetContrast'][:])>1:
+            param = 'contrast'
             plot_param(d, param='targetContrast', showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
             plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
@@ -132,10 +135,11 @@ def save_daily_plots(data):
             
             plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
                         ' target contrast fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()    
-        
+            plt.close()
+            
         
         if len(d['maskOnset'][:])>1:
+            param = 'soa'
             performanceBySOA.plot_soa(d)   # creates 3 plots
     
             plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
@@ -150,4 +154,17 @@ def save_daily_plots(data):
                         ' masking fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
             plt.close()
 
-
+    if d['probOpto'][()] > 0:
+        
+        plot_opto_vs_param(d, param)
+        
+        for i, val in enumerate(d['optoOnset'][:]):
+            plt.savefig(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) +  ' ' + str(param) +
+                        ' opto response rate ' + date + '.png', dpi=300)
+            plt.close()
+            
+            plt.savefig(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) + ' ' + str(param) +
+                        ' opto correct given response ' + date + '.png', dpi=300)
+            plt.close()
+        
+        

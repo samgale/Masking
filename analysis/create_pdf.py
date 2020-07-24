@@ -179,44 +179,7 @@ def create_daily_summary(d):
 # add flash plots         
         if len(d['targetFrames'][:])>1:
             
-#            flash = plotting_target_lengths.plot_flash(d, returnArray=True)
-#            
-#            flashText = c.beginText()
-#            catchText.setTextOrigin(6.2*inch, 9.8*inch)
-#            catchText.setFont('Helvetica', 9)
-#            catchText.setLeading(12)
-#            catchText.setWordSpace(1)
-#
-            ## make a manual table
-#            print eahc line of target frames
-#            then print each line of each list of total trials
-#            
-                # -- total trials --
-                    
-#          target (ms)  Right     Left
-#            8.33        75        67
-#           16.66       78        62
-#           33.33      ....       ....
-#            
-#            
-#            
-#            
-#            
-#            
-#            
-#            
-#            for count in flash:
-#                catchText.textLine(count)
-#            c.drawText(catchText)
-#        
-            
-            
-            
-            
-            
-            
-            
-            
+            param = 'targetLength'
             
             Image(dataDir + '/Other plots/other/' + mouse_id + 
                   ' target duration response rate ' + date + '.png', 
@@ -231,7 +194,7 @@ def create_daily_summary(d):
     
 # add target contrast plots     
         if len(d['targetContrast'][:])>1:
-             
+            param = 'contrast'
             
             targetLen = c.beginText()
             targetLen.setTextOrigin(6.5*inch, 9.8*inch)
@@ -255,6 +218,7 @@ def create_daily_summary(d):
                           
 # add masking plots         
         if len(d['maskOnset'][:])>1:
+            param = 'soa'
             
 #            maskText = 
             
@@ -269,6 +233,20 @@ def create_daily_summary(d):
         
 # complete page and break
         c.showPage()
+        
+        if d['probOpto'][()]>0:
+            
+            for i, val in enumerate(d['optoOnset'][:]):
+                Image(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) +  ' ' + str(param) +
+                            ' opto response rate ' + date + '.png',
+                            width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+                
+                Image(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) + ' ' + str(param) +
+                        ' opto correct given response ' + date + '.png',
+                        width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+                
+                c.showPage()
+                
 
 #  add response time plots *********
 
