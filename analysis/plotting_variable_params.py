@@ -13,32 +13,38 @@ from nogoData import nogo_turn
 from dataAnalysis import ignore_after, get_dates
 
 
-def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=None, returnArray=False):
+def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=None, returnArray=False):
     '''
     plots the percent correct or response for a variable target duration session
     
-    param is variable parameter that you want to visualize - targetFrames, targetContrast, opto, soa
+    param is variable parameter that you want to visualize - targetLength, targetContrast, opto, soa
     showTrialN=True will add the total counts into the plots 
     ignoreNoResp takes an int, and will ignore all trials after [int] consecutive no resps
     returnArray=True is for the save plot, will return just the values and no plots
     '''
     
     matplotlib.rcParams['pdf.fonttype'] = 42
-
+# get file data
     d = data
     info = str(d).split('_')[-3:-1]
     date = get_dates(info[1])
     mouse = info[0]
-    trialResponse = d['trialResponse'][:]
+   
+
+# if sequence of no resps exceeds val assigned to 'ignoreNoRespAfter' in function call,
+# returns trial num to ignore trials after 
+    end = ignore_after(d, ignoreNoRespAfter)[0] if ignoreNoRespAfter is not None else len(d['trialResponse'][:])
     
-    end = ignore_after(d, ignoreNoRespAfter)[0] if ignoreNoRespAfter is not None else len(trialResponse)
     
-    trialResponse = trialResponse[:end]
+# assign relevant file values to variables 
+    trialResponse = d['trialResponse'][:end]
     trialRewardDirection = d['trialRewardDir'][:end]   
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
-    
-    if param =='targetFrames':
+
+
+# determine parameter to analyze    
+    if param =='targetLength':
         trialParam = d['trialTargetFrames'][:end] * 1000/framerate 
     elif param =='targetContrast':
         trialParam = d['trialTargetContrast'][:end]
@@ -46,37 +52,58 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
         trialParam = d['trialOptoOnset'][:end]
     elif param == 'soa':
         trialParam = d['trialMaskOnset'][:end]
-        
-        
+    
+    
+# if there are repeats, identify and ignore them
     if 'trialRepeat' in d.keys():
         prevTrialIncorrect = d['trialRepeat'][:end]  #recommended, since keeps track of how many repeats occurred 
     else:
-        prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))         # array of boolean values about whethe the trial before was incorr
-    trialResponse2 = trialResponse[(prevTrialIncorrect==False)]                    # false = not a repeat, true = repeat
-    trialRewardDirection = trialRewardDirection[prevTrialIncorrect==False]      # use this to filter out repeated trials 
-    trialParam = trialParam[prevTrialIncorrect==False]
-    
-    sessionParams = np.unique(trialParam)
-    if param == 'targetFrames' or param == 'targetContrast':
-        sessionParams = sessionParams[sessionParams>0]
-    
-    if param == 'soa':   #handling mask only vs no mask (both onset == 0)
-        noMaskVal = sessionParams[-1] + round(np.mean(np.diff(sessionParams)))  # assigns noMask condition an evenly-spaced value from soas
-        maskOnset = np.append(sessionParams, noMaskVal)              # makes final value the no-mask condition
+        prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))
+
+
+# ignore repeats AND catch trials (no target)   
+    trialResponse2 = trialResponse[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]                    
+    trialParam = trialParam[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]
+    trialRewardDirection = trialRewardDirection[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]      
+
+
+# for session with opotgenetics, selects only those trials with the optogenetics
+    if param=='opto':
+        for i, trial in enumerate(trialParam):  # replace nans (no opto) with -1
+            if ~np.isfinite(trial):
+                trialParam[i] = -1
+
+
+# now that repeats and catch have been removed, identify parameter values
+    paramVals = np.unique(trialParam)
+
+
+# ignore param values that == 0, these are no target    
+    if param == 'targetLength' or param == 'targetContrast':
+        paramVals = paramVals[paramVals>0]
+
+
+#handling mask only vs no mask (both onset == 0)    
+    if param == 'soa':   
+        noMaskVal = paramVals[-1] + round(np.mean(np.diff(paramVals)))  # assigns noMask condition an evenly-spaced value from soas
+        paramVals = np.append(paramVals, noMaskVal)              # makes final value the no-mask condition
         
-        for i, (mask, trial) in enumerate(zip(trialParam, d['trialTargetFrames'][:end])):   # filters target-Only trials 
+    # filters target-Only trials
+        for i, (mask, trial) in enumerate(zip(trialParam, 
+               d['trialTargetFrames'][:end][(prevTrialIncorrect==False) & (np.isfinite(d['trialRewardDir'][:]))])):    
             if trial>0 and mask==0:
-                trialMaskOnset[i]=noMaskVal
+                trialParam[i]=noMaskVal
+ 
+
     
-    
-    # [[R stim] , [L stim]]
+# separate trials into [[turn l] , [turn R]] and parameter value
     hits = [[],[]]
     misses = [[], []]
     noResps = [[],[]]
     
     for i, direction in enumerate([-1,1]):
         directionResponses = [trialResponse2[(trialRewardDirection==direction) & 
-                                             (trialParam == tf)] for tf in sessionParams]
+                                             (trialParam == tf)] for tf in paramVals]
         hits[i].append([np.sum(drs==1) for drs in directionResponses])
         misses[i].append([np.sum(drs==-1) for drs in directionResponses])
         noResps[i].append([np.sum(drs==0) for drs in directionResponses])
@@ -102,29 +129,39 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
     
     
     if returnArray==True:
-        array_counts = {'target frames': sessionParams, 'total trials': totalTrials, 
+        array_counts = {str(param): paramVals, 'total trials': totalTrials, 
                         'hits': hits, 'misses': misses, 'no response': noResps}
         return array_counts
-        
+    
+    
     elif returnArray==False:   
         for num, denom, title in zip([hits, hits, hits+misses], 
                                      [totalTrials, hits+misses, totalTrials],
                                      ['Fraction Correct', 'Fraction Correct Given Response', 'Response Rate']):
-            fig, ax = plt.subplots()
-            ax.plot(sessionParams, num[0]/denom[0], 'bo-', lw=3, alpha=.7, label='Right turning')  #here [0] is right trials and [1] is left
-            ax.plot(sessionParams, num[1]/denom[1], 'ro-', lw=3, alpha=.7, label='Left turning')
-            ax.plot(sessionParams, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
+            
+            
+                fig, ax = plt.subplots()
+                ax.plot(paramVals, num[0]/denom[0], 'bo-', lw=3, alpha=.7, label='Left turning')  #here [0] is right trials and [1] is left
+                ax.plot(paramVals, num[1]/denom[1], 'ro-', lw=3, alpha=.7, label='Right turning')
+                ax.plot(paramVals, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
            
-            xticks = sessionParams
-            xticklabels = list(sessionParams)
 
-            if param=='targetFrames':
+                        
+            xticks = paramVals
+            xticklabels = list(paramVals)
+
+            if param=='targetLength':
                 xticklabels = list(np.round(xticks).astype(int))
                 xlab = 'Target Duration (ms)'
             elif param=='targetContrast':
                 xlab = 'Target Contrast'
             elif param=='opto':
                 xlab = 'Opto Onset'
+                x,lbl = ([0],['no\nopto'])
+                    xticks = np.concatenate((x,xticks))
+                    xticklabels = lbl+xticklabels
+                    ax.xaxis.set_label_coords(0.5,-0.08)
+                
             elif param=='soa':
                 xlab = 'Mask Onset From Target Onset (ms)'
                 if title=='Response Rate':
@@ -143,7 +180,7 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
              
                                 
             if showTrialN==True:
-                for x,Rtrials,Ltrials in zip(sessionParams,denom[0], denom[1]):
+                for x,Rtrials,Ltrials in zip(paramVals,denom[0], denom[1]):
                     for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
                         fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
         
@@ -153,12 +190,12 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
             ax.set_xticks(xticks)
             ax.set_xticklabels(xticklabels)
             
-            if param=='targetFrames':
-                ax.set_xlim([-5, sessionParams[-1]+1])
+            if param=='targetLength':
+                ax.set_xlim([-5, paramVals[-1]+1])
             elif param=='targetContrast':
                 ax.set_xlim([0, 1.05])
             else:
-                ax.set_xlim([-.5, max(sessionParams)+1])
+                ax.set_xlim([-.5, max(paramVals)+1])
                 
             ax.set_ylim([0,1.05])
             ax.spines['right'].set_visible(False)
@@ -169,4 +206,9 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
             
             
             
-            
+            for x,y,z in zip(trialResponse2, d['trialOptoOnset'][:len(trialResponse2)], trialRewardDirection):
+                if np.isfinite(y):
+                    print('finite:  ', x,y,z)
+                else:
+                    print('no finite:  ', x,y,z)
+                        
