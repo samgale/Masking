@@ -60,6 +60,15 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
     if param == 'targetFrames' or param == 'targetContrast':
         sessionParams = sessionParams[sessionParams>0]
     
+    if param == 'soa':   #handling mask only vs no mask (both onset == 0)
+        noMaskVal = sessionParams[-1] + round(np.mean(np.diff(sessionParams)))  # assigns noMask condition an evenly-spaced value from soas
+        maskOnset = np.append(sessionParams, noMaskVal)              # makes final value the no-mask condition
+        
+        for i, (mask, trial) in enumerate(zip(trialParam, d['trialTargetFrames'][:end])):   # filters target-Only trials 
+            if trial>0 and mask==0:
+                trialMaskOnset[i]=noMaskVal
+    
+    
     # [[R stim] , [L stim]]
     hits = [[],[]]
     misses = [[], []]
@@ -117,16 +126,22 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
             elif param=='opto':
                 xlab = 'Opto Onset'
             elif param=='soa':
-                xlab = 'Mask Onset From Target Onset  (soa)'
+                xlab = 'Mask Onset From Target Onset (ms)'
+                if title=='Response Rate':
+                    x,lbl = ([0],['mask\nonly'])
+                    xticks = np.concatenate((x,xticks))
+                    xticklabels = lbl+xticklabels
+                    ax.xaxis.set_label_coords(0.5,-0.08)
                 
-            if title=='Response Rate':
+            if title=='Response Rate':   #no go
                 if 0 in trialRewardDirection:
                     ax.plot(0, nogoCorrect/nogoTotal, 'ko', ms=8)
                     ax.plot(0, nogoR/nogoMove, 'r>', ms=8)  #plot the side that was turned in no-go with an arrow in that direction
                     ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
                     xticks = np.concatenate(([0],xticks))
                     xticklabels = ['no go']+xticklabels
-                        
+             
+                                
             if showTrialN==True:
                 for x,Rtrials,Ltrials in zip(sessionParams,denom[0], denom[1]):
                     for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
