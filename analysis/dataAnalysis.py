@@ -219,7 +219,7 @@ def create_df(data):
                     df.at[i, col] = turn
         
 # if using optogenetics       
-    if d['probOpto'][()]>0:
+    if 'probOpto' in d and d['probOpto'][()]>0:
         df['optoOnset'] = convert_to_ms(d['trialOptoOnset'][:len(df)])
 
         
