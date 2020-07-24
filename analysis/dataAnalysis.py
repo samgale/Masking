@@ -64,7 +64,7 @@ def ignore_after(data, lim):
         elif resp==-1 or resp==1:
             count=0
         else:
-            count+=1
+            count+=0
         
         if count == lim:
             trialNum=i-lim

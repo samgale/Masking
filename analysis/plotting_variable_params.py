@@ -17,7 +17,7 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
     '''
     plots the percent correct or response for a variable target duration session
     
-    param is variable parameter that you want to visualize - targetFrames or targetContrast
+    param is variable parameter that you want to visualize - targetFrames, targetContrast, opto, soa
     showTrialN=True will add the total counts into the plots 
     ignoreNoResp takes an int, and will ignore all trials after [int] consecutive no resps
     returnArray=True is for the save plot, will return just the values and no plots
@@ -38,10 +38,14 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
     
-    if param=='targetFrames':
+    if param =='targetFrames':
         trialParam = d['trialTargetFrames'][:end] * 1000/framerate 
-    elif param=='targetContrast':
+    elif param =='targetContrast':
         trialParam = d['trialTargetContrast'][:end]
+    elif param =='opto':
+        trialParam = d['trialOptoOnset'][:end]
+    elif param == 'soa':
+        trialParam = d['trialMaskOnset'][:end]
         
         
     if 'trialRepeat' in d.keys():
@@ -53,9 +57,10 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
     trialParam = trialParam[prevTrialIncorrect==False]
     
     sessionParams = np.unique(trialParam)
-    sessionParams = sessionParams[sessionParams>0]
+    if param == 'targetFrames' or param == 'targetContrast':
+        sessionParams = sessionParams[sessionParams>0]
     
-    # [R stim] , [L stim]
+    # [[R stim] , [L stim]]
     hits = [[],[]]
     misses = [[], []]
     noResps = [[],[]]
@@ -102,12 +107,17 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
             ax.plot(sessionParams, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
            
             xticks = sessionParams
+            xticklabels = list(sessionParams)
+
             if param=='targetFrames':
                 xticklabels = list(np.round(xticks).astype(int))
                 xlab = 'Target Duration (ms)'
             elif param=='targetContrast':
-                xticklabels = list(sessionParams)
                 xlab = 'Target Contrast'
+            elif param=='opto':
+                xlab = 'Opto Onset'
+            elif param=='soa':
+                xlab = 'Mask Onset From Target Onset  (soa)'
                 
             if title=='Response Rate':
                 if 0 in trialRewardDirection:
@@ -118,10 +128,7 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
                     xticklabels = ['no go']+xticklabels
                         
             if showTrialN==True:
-                
-                tar = np.append(sessionParams, sessionParams)
-
-                for x,Rtrials,Ltrials in zip(tar,denom[0], denom[1]):
+                for x,Rtrials,Ltrials in zip(sessionParams,denom[0], denom[1]):
                     for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
                         fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
         
@@ -135,6 +142,9 @@ def plot_param(data, param='targetFrames', showTrialN=True, ignoreNoRespAfter=No
                 ax.set_xlim([-5, sessionParams[-1]+1])
             elif param=='targetContrast':
                 ax.set_xlim([0, 1.05])
+            else:
+                ax.set_xlim([-.5, max(sessionParams)+1])
+                
             ax.set_ylim([0,1.05])
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
