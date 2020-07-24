@@ -210,9 +210,9 @@ unitPos = np.array([units[u]['position'][1]/1000 for u in goodUnits])
 psth = []
 peakBaseRate = np.full(goodUnits.size,np.full)
 meanBaseRate = peakBaseRate.copy()
-peakOptoResp = peakBaseRate.copy()
-meanOptoResp = peakBaseRate.copy()
-meanOptoRate = peakBaseRate.copy()
+transientOptoResp = peakBaseRate.copy()
+sustainedOptoResp = peakBaseRate.copy()
+sustainedOptoRate = peakBaseRate.copy()
 preTime = 0.5
 postTime = 0.5
 trialTime = (openLoopFrames+responseWindowFrames)/frameRate
@@ -225,9 +225,9 @@ for i,u in enumerate(goodUnits):
     psth.append(p)
     peakBaseRate[i] = p[t<preTime].max()
     meanBaseRate[i] = p[t<preTime].mean()
-    peakOptoResp[i] = p[(t>preTime) & (t<preTime+trialTime)].max()-peakBaseRate[i]
-    meanOptoRate[i] = p[(t>preTime+trialTime-0.25) & (t<preTime+trialTime)].mean()
-    meanOptoResp[i] = meanOptoRate[i]-meanBaseRate[i]
+    transientOptoResp[i] = p[(t>preTime) & (t<preTime+trialTime)].max()-peakBaseRate[i]
+    sustainedOptoRate[i] = p[(t>preTime+trialTime-0.25) & (t<preTime+trialTime)].mean()
+    sustainedOptoResp[i] = sustainedOptoRate[i]-meanBaseRate[i]
 psth = np.array(psth)
 t -= preTime
 
@@ -235,7 +235,7 @@ t -= preTime
 fig = plt.figure(figsize=(8,8))
 gs = matplotlib.gridspec.GridSpec(4,2)
 for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to trough (ms)','Distance from tip (mm)'))):
-    for i,(y,ylbl) in enumerate(zip((meanBaseRate,peakOptoResp,meanOptoResp,meanOptoRate),('Baseline rate','Peak opto response','Mean opto response','Mean opto rate'))):
+    for i,(y,ylbl) in enumerate(zip((meanBaseRate,transientOptoResp,sustainedOptoResp,sustainedOptoRate),('Baseline rate','Transient opto response','Sustained opto response','Sustained opto rate'))):
         ax = fig.add_subplot(gs[i,j])
         for ind,clr in zip((fs,~fs),'rb'):
             ax.plot(xdata[ind],y[ind],'o',mec=clr,mfc='none')
@@ -255,8 +255,8 @@ plt.tight_layout()
 
 
 fig = plt.figure(figsize=(8,8))
-excit = meanOptoResp>0
-inhib = ((meanOptoResp<0) & (peakOptoResp<0))
+excit = sustainedOptoResp>0
+inhib = ((sustainedOptoResp<0) & (transientOptoResp<0))
 other = ~(excit | inhib)
 gs = matplotlib.gridspec.GridSpec(3,2)
 for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,other),('FS','RS','Excited','Inhibited','Other')):
