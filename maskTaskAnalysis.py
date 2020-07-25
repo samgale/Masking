@@ -181,6 +181,16 @@ frameDisplayLag = 4
 
 
 #
+goodUnits = np.array([u for u in units if units[u]['label']=='good'])
+hasSpikes = np.array([units[u]['samples'].size/totalSamples*sampleRate for u in goodUnits]) > 0.1
+goodUnits = goodUnits[hasSpikes]
+goodUnits = goodUnits[np.argsort([units[u]['peakChan'] for u in goodUnits])]
+
+peakToTrough = np.array([units[u]['peakToTrough'] for u in goodUnits])
+fs = peakToTrough<=0.5
+unitPos = np.array([units[u]['position'][1]/1000 for u in goodUnits])
+
+
 ntrials = behavData['trialEndFrame'].size
 stimStart = behavData['trialStimStartFrame'][:ntrials]
 trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:ntrials]
@@ -196,16 +206,6 @@ control = np.isnan(optoOnset)
 opto = optoOnset==0
 targetOnly = (targetFrames>0) & (maskFrames==0)
 
-goodUnits = np.array([u for u in units if units[u]['label']=='good'])
-
-bins = np.arange(0,totalSamples,600*sampleRate)
-hasSpikes = np.array([units[u]['samples'].size/totalSamples*sampleRate for u in goodUnits]) > 0.1
-goodUnits = goodUnits[hasSpikes]
-goodUnits = goodUnits[np.argsort([units[u]['peakChan'] for u in goodUnits])]
-
-peakToTrough = np.array([units[u]['peakToTrough'] for u in goodUnits])
-fs = peakToTrough<=0.5
-unitPos = np.array([units[u]['position'][1]/1000 for u in goodUnits])
 
 psth = []
 peakBaseRate = np.full(goodUnits.size,np.full)
