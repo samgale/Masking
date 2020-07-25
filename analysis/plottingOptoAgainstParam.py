@@ -78,51 +78,55 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
     trialRewardDirection = trialRewardDirection[(np.isfinite(trialRewardDirection)==True)]
     
     
-    if plotType == 'optoByParam':
-    
-    
+
     # each list is for an opto onset, and the values within are by paramValue  
-    #  ex:  list1 = opto Onset 0, within are trials for each contrast level [0, .2, .4, 1]
-        
+    #  ex:  list1 = opto Onset 0, within are trials for each contrast level [0, .2, .4, 1]    
     # trials where mouse should turn Right for reward
-        hitsR = [[] for i in range(opto_num)]
-        missesR = [[] for i in range(opto_num)]
-        noRespsR = [[] for i in range(opto_num)]
-         
-        for i, op in enumerate(np.unique(trialOptoOnset)):
-            responsesR = [trialResponse[(trialOptoOnset==op) & (trialRewardDirection==1) & 
-                                           (trialParam==val)] for val in paramVals]
-            hitsR[i].append([np.sum(drs==1) for drs in responsesR])
-            missesR[i].append([np.sum(drs==-1) for drs in responsesR])
-            noRespsR[i].append([np.sum(drs==0) for drs in responsesR])
-            print(op)
+    hitsR = [[] for i in range(opto_num)]
+    missesR = [[] for i in range(opto_num)]
+    noRespsR = [[] for i in range(opto_num)]
+     
+    for i, op in enumerate(np.unique(trialOptoOnset)):
+        responsesR = [trialResponse[(trialOptoOnset==op) & (trialRewardDirection==1) & 
+                                       (trialParam==val)] for val in paramVals]
+        hitsR[i].append([np.sum(drs==1) for drs in responsesR])
+        missesR[i].append([np.sum(drs==-1) for drs in responsesR])
+        noRespsR[i].append([np.sum(drs==0) for drs in responsesR])
+        print(op)
+    
+    hitsR = np.squeeze(np.array(hitsR))
+    missesR = np.squeeze(np.array(missesR))
+    noRespsR = np.squeeze(np.array(noRespsR))
+    totalTrialsR = hitsR+missesR+noRespsR
+    
+    
+# trials where mouse should turn Left for reward    
+    hitsL = [[] for i in range(opto_num)]  # each list is for param value (contrast, etc)  list of hits by 
+    missesL = [[] for i in range(opto_num)]
+    noRespsL = [[] for i in range(opto_num)]
+    
+    
+    for i, op in enumerate(np.unique(trialOptoOnset)):
+        responsesL = [trialResponse[(trialOptoOnset==op) & (trialRewardDirection==-1) & 
+                                       (trialParam==val)] for val in paramVals]
+        hitsL[i].append([np.sum(drs==1) for drs in responsesL])
+        missesL[i].append([np.sum(drs==-1) for drs in responsesL])
+        noRespsL[i].append([np.sum(drs==0) for drs in responsesL])
+            
+    hitsL = np.squeeze(np.array(hitsL))
+    missesL = np.squeeze(np.array(missesL))
+    noRespsL = np.squeeze(np.array(noRespsL))
+    totalTrialsL = hitsL+missesL+noRespsL
+    
         
-        hitsR = np.squeeze(np.array(hitsR))
-        missesR = np.squeeze(np.array(missesR))
-        noRespsR = np.squeeze(np.array(noRespsR))
-        totalTrialsR = hitsR+missesR+noRespsR
+## plotting   
+ 
+    if plotType == 'optoByParam': 
         
         
-    # trials where mouse should turn Left for reward    
-        hitsL = [[] for i in range(opto_num)]  # each list is for param value (contrast, etc)  list of hits by 
-        missesL = [[] for i in range(opto_num)]
-        noRespsL = [[] for i in range(opto_num)]
+        respAverages = []
+        correctAverages = []
         
-        
-        for i, op in enumerate(np.unique(trialOptoOnset)):
-            responsesL = [trialResponse[(trialOptoOnset==op) & (trialRewardDirection==-1) & 
-                                           (trialParam==val)] for val in paramVals]
-            hitsL[i].append([np.sum(drs==1) for drs in responsesL])
-            missesL[i].append([np.sum(drs==-1) for drs in responsesL])
-            noRespsL[i].append([np.sum(drs==0) for drs in responsesL])
-                
-        hitsL = np.squeeze(np.array(hitsL))
-        missesL = np.squeeze(np.array(missesL))
-        noRespsL = np.squeeze(np.array(noRespsL))
-        totalTrialsL = hitsL+missesL+noRespsL
-        
-        
-## plotting    
         for i, on in enumerate(optoOnset):
             for Rnum, Lnum, Rdenom, Ldenom, title in zip([hitsR, hitsR+missesR], 
                                                          [hitsL, hitsL+missesL],
@@ -132,13 +136,20 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
                 
                 
                 fig, ax = plt.subplots()
-
                 
-                ax.plot(paramVals, Lnum[i]/Ldenom[i], 'bo-', lw=3, alpha=.7, label='Left turning') 
-                ax.plot(paramVals, Rnum[i]/Rdenom[i], 'ro-', lw=3, alpha=.7, label='Right turning')
+                Lpoint = [num/denom if denom!=0 else 0 for (num, denom) in zip(Lnum[i],Ldenom[i])]  # workaround for division by 0 error
+                ax.plot(paramVals, Lpoint , 'bo-', lw=3, alpha=.7, label='Left turning') 
+                
+                Rpoint = [num/denom if denom!=0 else 0 for (num, denom) in zip(Rnum[i],Rdenom[i])]
+                ax.plot(paramVals, Rpoint, 'ro-', lw=3, alpha=.7, label='Right turning')
 
                 ax.plot(paramVals, (Lnum[i]+Rnum[i])/(Ldenom[i]+Rdenom[i]), 'ko--', alpha=.5, label='Combined average') 
                
+                if title == 'Fraction Correct Given Response':
+                    correctAverages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
+                elif title == 'Response Rate':
+                    respAverages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
+                
                 
                 showTrialN=True           
                 if showTrialN==True:
@@ -245,7 +256,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
 #                    
 #                    if value >0:
 #                        fig.suptitle(('(' + mouse + ',   ' + date + ')    ' + 
-#                                      pval + ' = ' + str(value)), fontsize=13)
+#                                      pval + ' = ' + str(poi)), fontsize=13)
 #                    else:
 #                        fig.suptitle(('(' + mouse + ',   ' + date + ')     ' + 'No target'), fontsize=13)
 #                                    
