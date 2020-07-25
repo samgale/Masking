@@ -206,10 +206,10 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
             plt.legend(loc='best', fontsize='small', numpoints=1) 
             
             
-            
-            for x,y,z in zip(trialResponse2, d['trialOptoOnset'][:len(trialResponse2)], trialRewardDirection):
-                if np.isfinite(y):
-                    print('finite:  ', x,y,z)
-                else:
-                    print('no finite:  ', x,y,z)
-                        
+#            
+#            for x,y,z in zip(trialResponse2, d['trialOptoOnset'][:len(trialResponse2)], trialRewardDirection):
+#                if np.isfinite(y):
+#                    print('finite:  ', x,y,z)
+#                else:
+#                    print('no finite:  ', x,y,z)
+#                        

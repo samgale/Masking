@@ -15,12 +15,14 @@ from catchTrials import catch_trials
 import matplotlib.pyplot as plt
 import os
 from plottingOptoAgainstParam import plot_opto_vs_param
+import numpy as np
 
 
 def save_daily_plots(data):
     
-    plt.ioff()
     d = data
+    plt.ioff()
+    
     mouse_id=d['subjectName'][()]
     date = d['startTime'][()].split('_')[0][-4:]
     date = date[:2]+'-'+date[2:]
@@ -158,13 +160,17 @@ def save_daily_plots(data):
         
         plot_opto_vs_param(d, param, plotType='optoByParam')
         
-        for i, val in enumerate(d['optoOnset'][:]):
-            plt.savefig(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) +  ' ' + str(param) +
-                        ' opto response rate ' + date + '.png', dpi=300)
+        onset = d['optoOnset'][:]
+        onset = np.insert(onset,0, -1)
+        for i, val in enumerate(np.flip(onset)):
+            if val==-1:
+                val='no opto'
+            plt.savefig(dataDir + '/Opto plots/' + mouse_id +
+                        ' ' + param + ' ' + str(val) + ' opto response rate ' + date + '.png', dpi=300)
             plt.close()
             
-            plt.savefig(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) + ' ' + str(param) +
-                        ' opto correct given response ' + date + '.png', dpi=300)
+            plt.savefig(dataDir + '/Opto plots/' + mouse_id + 
+                        ' ' + param + ' ' + str(val) + ' opto correct given response ' + date + '.png', dpi=300)
             plt.close()
         
         

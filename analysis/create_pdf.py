@@ -194,7 +194,7 @@ def create_daily_summary(d):
     
 # add target contrast plots     
         if len(d['targetContrast'][:])>1:
-            param = 'contrast'
+            param = 'targetContrast'
             
             targetLen = c.beginText()
             targetLen.setTextOrigin(6.5*inch, 9.8*inch)
@@ -235,14 +235,24 @@ def create_daily_summary(d):
         c.showPage()
         
         if d['probOpto'][()]>0:
+           
+            Image(dataDir + '/Opto plots/' + mouse_id + ' ' + param + ' ' + 'no opto' + 
+                  ' opto response rate ' + date + '.png',
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+                
+            Image(dataDir + '/Opto plots/' + mouse_id + ' ' + param + ' ' + 'no opto' +
+                  ' opto correct given response ' + date + '.png',
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+                
+            c.showPage()
             
             for i, val in enumerate(d['optoOnset'][:]):
-                Image(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) +  ' ' + str(param) +
-                            ' opto response rate ' + date + '.png',
-                            width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+                Image(dataDir + '/Opto plots/' + mouse_id + ' ' + param + ' ' + str(val) + 
+                      ' opto response rate ' + date + '.png',
+                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
                 
-                Image(dataDir + '/Opto plots/' + mouse_id + ' ' + str(val) + ' ' + str(param) +
-                        ' opto correct given response ' + date + '.png',
+                Image(dataDir + '/Opto plots/' + mouse_id + ' ' + param + ' ' + str(val) + 
+                      ' opto correct given response ' + date + '.png',
                         width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
                 
                 c.showPage()

@@ -29,18 +29,19 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
     wheelRad = d['wheelRadius'][()]
 #    rewThreshold = normRewardDist if 'wheelRewardDistance' in d.keys() else normRewardDist*monitorSize
     maxResp = d['maxResponseWaitFrames'][()]
-    trialRew = d['trialResponseDir'][:]
+    trialResp = d['trialResponseDir'][:]
     closedLoop = d['openLoopFramesFixed'][()]
     framerate = df.framerate
     
-    catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
-    catchRew = [i for i in catchTrials if df.loc[i, 'trialLength_ms'] < np.max(df['trialLength_ms'])]
+    catchTrials = df[df['rewDir'].isnull()==True]
+    catch = list(catchTrials.index)
+    catchMove = [i for i in catch if catchTrials.loc[i, 'trialLength_ms'] < np.max(catchTrials['trialLength_ms'])]
     
-    noRew = [i for i in catchTrials if i not in catchRew]
+    noRew = [i for i in catch if i not in catchMove]
     
-    moveR = [i for i in catchTrials if trialRew[i]==1]
-    moveL = [i for i in catchTrials if trialRew[i]==-1]
-    ignore = [i for i in catchTrials if df.loc[i, 'ignoreTrial']==True]
+    moveR = [i for i in catch if trialResp[i]==1]
+    moveL = [i for i in catch if trialResp[i]==-1]
+    ignore = [i for i in catch if df.loc[i, 'ignoreTrial']==True]
     
     if xlim=='auto':
         time = np.arange((maxResp+(closedLoop*2)))/framerate
@@ -72,20 +73,19 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
         
         fig, ax = plt.subplots()
         
-        for i in catchTrials:
-            stim = df.loc[i, 'stimStart']
-            start = df.loc[i, 'trialStart']
+        for i in catch:
+            stim = catchTrials.loc[i, 'stimStart']
+            start = catchTrials.loc[i, 'trialStart']
             ind = stim - start 
-            wheel = np.cumsum(df.loc[i, 'deltaWheel'][ind:]*wheelRad)
+            wheel = np.cumsum(catchTrials.loc[i, 'deltaWheel'][ind:]*wheelRad)
             wheel = wheel[:len(time)]
             
             if i in ignore:
                pass
             
-            elif i in catchRew and i not in ignore:   # moved past reward threshold within the trial time
+            elif i in catchMove and i not in ignore:   # moved past reward threshold within the trial time
                 ax.plot(time, wheel, c='c', alpha=.6, label="Reward Trial" if "Reward Trial"\
                         not in plt.gca().get_legend_handles_labels()[1] else '')  
-    #            ax.plot(wheel[])  # plotting "rewards"
                 
             else:   # no response trials
                 ax.plot(time, wheel, c='k', alpha=.2)
