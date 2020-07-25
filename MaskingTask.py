@@ -190,13 +190,12 @@ class MaskingTask(TaskControl):
         elif name == 'opto contrast':
             self.setDefaultParams('target contrast',taskVersion)
             self.probOpto = 0.5
-            self.optoOnset = [0,9,12,15]
-            self.targetContrast = [0.2,0.4,0.8]
+            self.optoOnset = [0,11,14]
             
         elif name == 'opto masking':
             self.setDefaultParams('masking',taskVersion)
             self.probOpto = 0.5
-            self.optoOnset = [0,9,12,15]
+            self.optoOnset = [0,11,14]
             self.maskOnset = [2,4]
             
         else:
