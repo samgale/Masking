@@ -202,8 +202,10 @@ targetFrames = behavData['trialTargetFrames'][:ntrials]
 maskFrames = behavData['trialMaskFrames'][:ntrials]
 maskOnset = behavData['trialMaskOnset'][:ntrials]
 
+optoOnsetToPlot = 0
+optoOnsetTime = optoOnsetToPlot/frameRate
 control = np.isnan(optoOnset)
-opto = optoOnset==0
+opto = optoOnset==optoOnsetToPlot
 targetOnly = (targetFrames>0) & (maskFrames==0)
 
 
@@ -233,6 +235,27 @@ t -= preTime
 
 
 fig = plt.figure(figsize=(8,8))
+excit = sustainedOptoResp>0
+inhib = ((sustainedOptoResp<0) & (transientOptoResp<0))
+other = ~(excit | inhib)
+gs = matplotlib.gridspec.GridSpec(3,2)
+for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,other),('FS','RS','Excited','Inhibited','Other')):
+    ax = fig.add_subplot(gs[i,j])
+    ax.plot(t,psth[ind].mean(axis=0),clr)
+    ylim = plt.get(ax,'ylim')
+    poly = np.array([(optoOnsetTime,0),(trialTime+0.1,0),(trialTime,ylim[1]),(optoOnsetTime,ylim[1])])
+    ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
+    ax.text(1,1,lbl+' (n='+str(np.sum(ind))+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    if (i==1 and j==0) or i==2:
+        ax.set_xlabel('Time from LED onset (s)')
+    ax.set_ylabel('Spikes/s')
+plt.tight_layout()
+
+
+fig = plt.figure(figsize=(8,8))
 gs = matplotlib.gridspec.GridSpec(4,2)
 for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to trough (ms)','Distance from tip (mm)'))):
     for i,(y,ylbl) in enumerate(zip((meanBaseRate,transientOptoResp,sustainedOptoResp,sustainedOptoRate),('Baseline rate','Transient opto response','Sustained opto response','Sustained opto rate'))):
@@ -254,25 +277,7 @@ for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to troug
 plt.tight_layout()
 
 
-fig = plt.figure(figsize=(8,8))
-excit = sustainedOptoResp>0
-inhib = ((sustainedOptoResp<0) & (transientOptoResp<0))
-other = ~(excit | inhib)
-gs = matplotlib.gridspec.GridSpec(3,2)
-for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,other),('FS','RS','Excited','Inhibited','Other')):
-    ax = fig.add_subplot(gs[i,j])
-    ax.plot(t,psth[ind].mean(axis=0),clr)
-    ylim = plt.get(ax,'ylim')
-    poly = np.array([(0,0),(trialTime+0.1,0),(trialTime,ylim[1]),(0,ylim[1])])
-    ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
-    ax.text(1,1,lbl+' (n='+str(np.sum(ind))+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    if (i==1 and j==0) or i==2:
-        ax.set_xlabel('Time from LED onset (s)')
-    ax.set_ylabel('Spikes/s')
-plt.tight_layout()
+
 
   
 
