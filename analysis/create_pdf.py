@@ -257,6 +257,11 @@ def create_daily_summary(d):
                 
                 c.showPage()
                 
+            Image(dataDir + '/Opto plots/' + mouse_id + ' combined opto ' + date + '.png',
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+            
+            c.showPage()
+                
 
 #  add response time plots *********
 

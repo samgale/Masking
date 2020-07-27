@@ -108,57 +108,69 @@ def save_daily_plots(data):
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
             param = 'targetLength'
-            plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
-            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
-                        ' target duration response rate ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
+            if d['probOpto'][()]==0:
             
-            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
-                        ' target duration correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
-            
-            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
-                        ' target duration fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
+                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
+                
+                plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                            ' target duration response rate ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                            ' target duration correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                            ' target duration fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
         
         
         if len(d['targetContrast'][:])>1:
             param = 'targetContrast'
-            plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
             
-            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
-                        ' target contrast response rate ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
-            
-            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
-                        ' target contrast correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
-            
-            plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
-                        ' target contrast fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
+            if d['probOpto'][()]==0:
+
+                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
+                
+                plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                            ' target contrast response rate ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                            ' target contrast correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
+                            ' target contrast fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
             
         
         if len(d['maskOnset'][:])>1:
             param = 'soa'
-            performanceBySOA.plot_soa(d)   # creates 3 plots
-    
-            plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
-                        ' masking response rate ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
             
-            plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
-                        ' masking correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
-            
-            plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
-                        ' masking fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
-            plt.close()
+            if d['probOpto'][()]==0:
+
+                performanceBySOA.plot_soa(d)   # creates 3 plots
+        
+                plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
+                            ' masking response rate ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
+                            ' masking correct given response ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
+                
+                plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
+                            ' masking fraction correct ' + date + '.png', dpi=300, bbox_inches='tight')
+                plt.close()
 
     if d['probOpto'][()] > 0:
         
         plot_opto_vs_param(d, param, plotType='optoByParam')
+        
+        plt.savefig(dataDir + '/Opto plots/' + mouse_id + ' combined opto ' + date + '.png', dpi=300)
+        plt.close()
         
         onset = d['optoOnset'][:]
         onset = np.insert(onset,0, -1)

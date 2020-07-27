@@ -135,6 +135,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         return array_counts
     
     
+    
     elif returnArray==False:   
         for num, denom, title in zip([hits, hits, hits+misses], 
                                      [totalTrials, hits+misses, totalTrials],
