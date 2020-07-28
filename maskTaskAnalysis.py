@@ -22,6 +22,7 @@ import fileIO
 @njit
 def findRisingEdges(signal,thresh,refractory):
     """
+    signal: typically a large memmap array (loop through values rather than load all into memory)
     thresh: difference between current and previous value
     refractory: samples after detected edge to ignore
     """
@@ -68,7 +69,7 @@ def getSDF(spikes,startTimes,windowDur,sampInt=0.001,filt='exponential',filtWidt
         return sdf,t[:-1]
 
 
-# get analog sync data
+# get analog sync data acquired with NidaqRecorder
 syncPath = fileIO.getFile('Select sync file',fileType='*.hdf5')
 syncFile = h5py.File(syncPath,'r')
 syncData = syncFile['AnalogInput']
@@ -79,10 +80,29 @@ photodiode = syncData[:,channelNames=='photodiode'][:,0]
 syncTime = np.arange(1/syncSampleRate,(syncData.shape[0]+1)/syncSampleRate,1/syncSampleRate)
 syncFile.close()
 
+frameSamples = np.array(findRisingEdges(vsync,thresh=1,refractory=2))
+
+behavDataPath = fileIO.getFile('',fileType='*.hdf5')
+behavData = h5py.File(behavDataPath,'r')
+
+psychopyFrameIntervals = behavData['frameIntervals'][:]
+frameRate = round(1/np.median(psychopyFrameIntervals))
+
+assert(frameSamples.size==psychopyFrameIntervals.size+1)
+
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot(syncTime,vsync,'b')
-ax.plot(syncTime,photodiode,'k')
+samples = np.arange(frameSamples[0]-100,frameSamples[0]+201)
+t = (samples-frameSamples[0])/syncSampleRate
+ax.plot(t,vsync[samples],color='k',label='vsync')
+ax.plot(t,photodiode[samples],color='0.5',label='photodiode')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlabel('Time from first frame (s)')
+ax.legend()
+plt.tight_layout()
 
 
 
