@@ -299,5 +299,24 @@ plt.tight_layout()
 
 
 
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ind = frameSamples[stimStart[np.where(opto)[0][0]]]
+samples = np.arange(ind-1500,ind+3001)
+t = (samples-frameSamples[0])/sampleRate
+ax.plot(t,analogInData['vsync'][samples],color='k',label='vsync')
+ax.plot(t,analogInData['photodiode'][samples],color='0.5',label='photodiode')
+ax.plot(t,analogInData['led'][samples],color='b',label='led')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlabel('Time from first frame (s)')
+ax.legend()
+plt.tight_layout()
+
+
+
+
   
 
