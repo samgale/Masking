@@ -109,20 +109,27 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
     noRespsL = np.squeeze(np.array(noRespsL))
     totalTrialsL = hitsL+missesL+noRespsL
     
-    catch = [[[] for i in range(opto_num)]]*2
-    for trial, turn, op in zip(trialParam, d['trialResponseDir'][:], trialOptoOnset):
-        if trial==0:
-            pass
-            
-            
-    
-    
-        
-## plotting   
- 
 
+    trialTurn = d['trialResponseDir'][:]
+    for i, trial in enumerate(trialTurn):
+        if ~np.isfinite(trial):
+            trialTurn[i] = 0        # sam encoded these nan's as ints and they are a pain to deal with 
+    
+    catch = [[] for i in range(opto_num)]
+    
+    for i, o in enumerate(optoOn):
+        for trial, opto, turn in zip(trialParam, trialOptoOnset, trialTurn):
+            if trial==0 and opto==o:
+                    catch[i].append(abs(int(turn)))  # this removes the side turned but I dont know how to handle better
+                                 
+    catchCounts = list(map(len, [c for c in catch]))
+    catchTurn = list(map(sum, [c for c in catch]))
+
+    
+    
         
-        
+## plotting    #############################################################
+         
    
 ## plot as single plot with subplots 
 #        fig, axs = plt.subplots(opto_num, 2, sharex='col', sharey='row', gridspec_kw={'hspace': .2, 'wspace': .5})
@@ -193,7 +200,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
             if param=='targetLength':
                 ax.set_xlim([-5, paramVals[-1]+1])
             elif param=='targetContrast':
-                ax.set_xlim([.2, 1.05])  #############################FIX 
+                ax.set_xlim([paramVals[0]-.2, 1.05])  
                                 
             ax.set_ylim([0,1.05])
             ax.spines['right'].set_visible(False)
@@ -202,12 +209,11 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
             plt.subplots_adjust(top=0.86, bottom=0.123, left=0.1, right=0.92, hspace=0.2, wspace=0.2)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
                     
+            
 
-# create combined average opto plot
-# need to specify if plotting response or correct 
-                
-#        if plotType == 'combined_opto':
-      
+# create combined average opto plot against contrast  ########################################################
+## shades of blue
+                      
     for avgs, yLbl in zip([respAverages, correctAverages], ['Response Rate', 'Fraction Correct']):
     
         fig, ax = plt.subplots()
@@ -216,6 +222,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
             colors.append('b')
         colors.append('k')  # no opto condition
         alphas = np.linspace(.2,1, opto_num)   ### need to find a different color system
+        
         
         for resp, color, al, lbl in zip(avgs, colors, alphas, optoOn):
             if lbl==noOpto:
@@ -226,27 +233,50 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
                 
             ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
         
+ ## catch trials        
+        if yLbl == 'Response Rate':
+            total = (totalTrialsR) + (totalTrialsL)
+            for tur, cat, al, clr in zip(catchTurn, catchCounts, alphas, colors):
+                ax.plot(0, (tur/cat), 'o', alpha=al, color=clr)
+        else:
+            total = (hitsR + missesR) + (hitsL + missesL)
+    
+        
         if showTrialN==True:
             text_spacing = [1.05]
             for _ in range(opto_num-1):
                 text_spacing.append(np.round(text_spacing[-1]+.05,3))
-                
-            for x,trials in zip(paramVals,(np.transpose(totalTrialsR) + np.transpose(totalTrialsL))):
+
+            for x,trials in zip(paramVals, np.transpose(total)):
                 for y, n, al, clr in zip(text_spacing, trials, alphas, colors):
                     fig.text(x, y, str(n), transform= ax.transData,  color=clr, alpha=al, fontsize=10, 
                              ha='center',va='bottom')
-        
+            if yLbl=='Response Rate':
+                 for y, n, al, clr in zip(text_spacing, catchCounts, alphas, colors):
+                     fig.text(0, y, str(n), transform= ax.transData,  color=clr, alpha=al, fontsize=10, 
+                              ha='center',va='bottom')
+    
         
         formatFigure(fig, ax, xLabel=xlab, yLabel=yLbl)
         
+        paramList = [p for p in paramVals]
         xticks = paramVals
+        
+        if yLbl == 'Response Rate':
+            xticks = np.insert(xticks, 0, 0)
+            paramList.insert(0, 'Catch')
+            
         ax.set_xticks(xticks)
-        ax.set_xticklabels(list(paramVals))
+        ax.set_xticklabels(paramList)
 
         if param=='targetLength':
-            ax.set_xlim([-5, paramVals[-1]+1])
+            ax.set_xlim([0, paramVals[-1]+1])
         elif param=='targetContrast':
-            ax.set_xlim([paramVals[0]-.2, 1.05]) #############################FIX 
+            if yLbl == 'Response Rate':
+                ax.set_xlim([-.2, 1.05])
+            else:
+                ax.set_xlim([paramVals[0]-.2, 1.05])  
+            
             
         fig.suptitle('(' + mouse + ',   ' + date + ')      Combined Opto Onset vs Contrast' , fontsize=13)
            
@@ -260,15 +290,12 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
 
 
     
-## plotting the contrast levels against the opto on the x-axis -  need to specify if plotting response or correct 
+## plotting the contrast levels against the opto on the x-axis  ###################################################
 ## shades of black          
             
         fig, ax = plt.subplots()
-        
         alphaLevels = np.linspace(.2,1, param_num)
-        
-        optoList = list(map(int, optoOn))
-       
+        optoList = list(map(int, optoOn))   
         
         for resp, al, lbl in zip(np.transpose(avgs), alphaLevels, paramVals):   #shades of gray
             
@@ -276,18 +303,28 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
             label = lbl.astype(str) +  '% contrast'
             
             ax.plot(optoList, resp, 'ko-',  lw=3, alpha=al, label=label)
-
+           
+            
             showTrialN=True
             if showTrialN==True:
                 text_spacing = [1.05]
                 for _ in range(param_num-1):
                     text_spacing.append(np.round(text_spacing[-1]+.05,3))
                 
-                for x,trials in zip(optoList, ((totalTrialsR + totalTrialsL))):
+                for x,trials in zip(optoList, total):
                     for y, n, al in zip(text_spacing, trials, alphaLevels):
-                        fig.text(x,y,str(n),transform=ax.transData,color='k', alpha=al, fontsize=10,
+                        fig.text(x,y,str(n),transform=ax.transData, color='k', alpha=al, fontsize=10,
                                  ha='center',va='bottom')
                         
+              
+            if yLbl == 'Response Rate':
+                ax.plot(optoOn, (np.array(catchTurn)/np.array(catchCounts)), 'mo-', lw=3, alpha=.3, 
+                        label = 'Catch Trials' if 'Catch Trials' not in plt.gca().get_legend_handles_labels()[1] else '')
+                for x, trials in zip(optoList, catchCounts):
+                        fig.text(x,(text_spacing[-1] +.05), str(trials),transform=ax.transData,
+                                 color='m', alpha=.3, fontsize=10, ha='center',va='bottom')
+                
+                
             formatFigure(fig, ax, xLabel='Optogenetic Onset (ms)', yLabel=yLbl)
             
             xlabls = [np.round(int((on/framerate)*1000)) for on in optoList]
@@ -308,4 +345,20 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = 'optoByParam' 
             plt.subplots_adjust(top=0.815, bottom=0.133, left=0.1, right=0.945, hspace=0.2, wspace=0.2)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
                     
-                        
+                
+ 
+
+###########################################################################################           
+testR = [[] for i in range(opto_num)]
+for i, op in enumerate(optoOn):
+    for j, (rew,resp) in enumerate(zip(trialRewardDirection, trialResponse)):
+        if rew==1:
+            if trialOptoOnset[j] == op:
+                testR[i].append(resp)
+                
+testL = [[] for i in range(opto_num)]
+for i, op in enumerate(optoOn):
+    for j, (rew,resp) in enumerate(zip(trialRewardDirection, trialResponse)):
+        if rew==-1:
+            if trialOptoOnset[j] == op:
+                testL[i].append(resp)
