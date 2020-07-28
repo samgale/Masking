@@ -85,6 +85,7 @@ class MaskingTask(TaskControl):
     def setDefaultParams(self,name,taskVersion=None):
         if name == 'training1':
             # stim moves to reward automatically; wheel movement ignored
+            self.spacebarRewardsEnabled = False
             self.probGoRight = 0.5
             self.probCatch = 0
             self.probNoGo = 0
@@ -190,7 +191,8 @@ class MaskingTask(TaskControl):
         elif name == 'opto contrast':
             self.setDefaultParams('target contrast',taskVersion)
             self.probOpto = 0.5
-            self.optoOnset = [0,11,14]
+            self.optoOnset = [6,7,8,9,10,11]
+            self.targetContrast = [0.4,1]
             
         elif name == 'opto masking':
             self.setDefaultParams('masking',taskVersion)

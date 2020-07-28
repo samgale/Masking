@@ -6,7 +6,6 @@ Created on Mon Mar 11 12:34:44 2019
 """
 
 import os
-import time
 import h5py
 import numpy as np
 import pandas as pd
@@ -20,8 +19,10 @@ import fileIO
 
 
 @njit
-def findRisingEdges(signal,thresh,refractory):
+def findSignalEdges(signal,edgeType,thresh,refractory):
     """
+    signal: typically a large memmap array (loop through values rather than load all into memory)
+    edgeType: 'rising' or 'falling'
     thresh: difference between current and previous value
     refractory: samples after detected edge to ignore
     """
@@ -30,9 +31,9 @@ def findRisingEdges(signal,thresh,refractory):
     lastEdge = -refractory
     for i in range(1,signal.size):
         val = signal[i]
-        if i-lastEdge>refractory and val-lastVal>thresh:
-            lastEdge = i+1
-            edges.append(lastEdge)
+        if i-lastEdge>refractory and ((edgeType=='rising' and val-lastVal>thresh) or (edgeType=='falling' and val-lastVal<thresh)):
+            edges.append(i)
+            lastEdge = i
         lastVal = val
     return edges
 
@@ -45,7 +46,7 @@ def getPSTH(spikes,startTimes,windowDur,binSize=0.01,avg=True):
     if avg:
         counts = counts.mean(axis=0)
     counts /= binSize
-    t = bins[:-1]-binSize/2
+    t = bins[:-1]
     return counts,t
 
 
@@ -68,7 +69,8 @@ def getSDF(spikes,startTimes,windowDur,sampInt=0.001,filt='exponential',filtWidt
         return sdf,t[:-1]
 
 
-# get analog sync data
+
+# get analog sync data acquired with NidaqRecorder
 syncPath = fileIO.getFile('Select sync file',fileType='*.hdf5')
 syncFile = h5py.File(syncPath,'r')
 syncData = syncFile['AnalogInput']
@@ -76,13 +78,67 @@ syncSampleRate = syncData.attrs.get('sampleRate')
 channelNames = syncData.attrs.get('channelNames')
 vsync = syncData[:,channelNames=='vsync'][:,0]
 photodiode = syncData[:,channelNames=='photodiode'][:,0]
+led = syncData[:,channelNames=='led'][:,0]
 syncTime = np.arange(1/syncSampleRate,(syncData.shape[0]+1)/syncSampleRate,1/syncSampleRate)
 syncFile.close()
 
+frameSamples = np.array(findSignalEdges(vsync,edgeType='falling',thresh=-0.5,refractory=2))
+
+behavDataPath = fileIO.getFile('',fileType='*.hdf5')
+behavData = h5py.File(behavDataPath,'r')
+
+psychopyFrameIntervals = behavData['frameIntervals'][:]
+frameRate = round(1/np.median(psychopyFrameIntervals))
+
+assert(frameSamples.size==psychopyFrameIntervals.size+1)
+
+ntrials = behavData['trialEndFrame'].size
+stimStart = behavData['trialStimStartFrame'][:ntrials]
+trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:ntrials]
+assert(np.unique(trialOpenLoopFrames).size==1)
+openLoopFrames = trialOpenLoopFrames[0]
+responseWindowFrames = behavData['maxResponseWaitFrames'][()]
+optoOnset = behavData['trialOptoOnset'][:ntrials]
+targetFrames = behavData['trialTargetFrames'][:ntrials]
+maskFrames = behavData['trialMaskFrames'][:ntrials]
+maskOnset = behavData['trialMaskOnset'][:ntrials]
+
+optoOnsetToPlot = 0
+optoOnsetTime = optoOnsetToPlot/frameRate
+control = np.isnan(optoOnset)
+opto = optoOnset==optoOnsetToPlot
+targetOnly = (targetFrames>0) & (maskFrames==0)
+
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot(syncTime,vsync,'b')
-ax.plot(syncTime,photodiode,'k')
+samples = np.arange(frameSamples[0]-100,frameSamples[0]+201)
+t = (samples-frameSamples[0])/syncSampleRate
+ax.plot(t,vsync[samples],color='k',label='vsync')
+ax.plot(t,photodiode[samples],color='0.5',label='photodiode')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlabel('Time from first frame (s)')
+ax.legend()
+plt.tight_layout()
+
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ind = frameSamples[stimStart[np.where(opto)[0][0]]]
+samples = np.arange(ind-1500,ind+3001)
+t = (samples-ind)/syncSampleRate
+ax.plot(t,vsync[samples],color='k',label='vsync')
+ax.plot(t,photodiode[samples],color='0.5',label='photodiode')
+ax.plot(t,led[samples],color='b',label='led')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlabel('Time from trial start (s)')
+ax.legend()
+plt.tight_layout()
+
 
 
 
@@ -153,7 +209,7 @@ analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync
                                                                           'led'))}
 
 # get frame times and compare with psychopy frame intervals
-frameSamples = np.array(findRisingEdges(analogInData['vsync'],thresh=15000,refractory=2))
+frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
 
 behavDataPath = fileIO.getFile('',fileType='*.hdf5')
 behavData = h5py.File(behavDataPath,'r')
@@ -219,15 +275,16 @@ preTime = 0.5
 postTime = 0.5
 trialTime = (openLoopFrames+responseWindowFrames)/frameRate
 windowDur = preTime+trialTime+postTime
+binSize = 0.005
 trials = opto
 for i,u in enumerate(goodUnits):
     spikeTimes = units[u]['samples']/sampleRate
     startTimes = frameSamples[stimStart[trials]]/sampleRate-preTime
-    p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=0.005,avg=True)
+    p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
     psth.append(p)
     peakBaseRate[i] = p[t<preTime].max()
     meanBaseRate[i] = p[t<preTime].mean()
-    transientOptoResp[i] = p[(t>preTime) & (t<preTime+trialTime)].max()-peakBaseRate[i]
+    transientOptoResp[i] = p[(t>=preTime-binSize) & (t<preTime+trialTime)].max()-peakBaseRate[i]
     sustainedOptoRate[i] = p[(t>preTime+trialTime-0.25) & (t<preTime+trialTime)].mean()
     sustainedOptoResp[i] = sustainedOptoRate[i]-meanBaseRate[i]
 psth = np.array(psth)
@@ -275,6 +332,11 @@ for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to troug
             for x,lbl,clr in zip((0.25,0.75),('FS','RS'),'rb'):
                 ax.text(x,1.05,lbl,transform=ax.transAxes,color=clr,fontsize=12,ha='center',va='bottom')
 plt.tight_layout()
+
+
+
+
+
 
 
 
