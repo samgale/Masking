@@ -176,89 +176,99 @@ def create_daily_summary(d):
 # if not a normal training day
     if d['moveStim'][()]==False:
         
+        
 # add flash plots         
         if len(d['targetFrames'][:])>1:
             
             param = 'targetLength'
+            if d['probOpto'][()]==0:
             
-            Image(dataDir + '/Other plots/other/' + mouse_id + 
-                  ' target duration response rate ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
-            
-            # add text for counts at each side and length
-            
-            Image(dataDir + '/Other plots/other/' + mouse_id + 
-                  ' target duration correct given response ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+                Image(dataDir + '/Other plots/other/' + mouse_id + 
+                      ' target duration response rate ' + date + '.png', 
+                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+                
+                # add text for counts at each side and length
+                
+                Image(dataDir + '/Other plots/other/' + mouse_id + 
+                      ' target duration correct given response ' + date + '.png', 
+                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
      
     
 # add target contrast plots     
         if len(d['targetContrast'][:])>1:
             param = 'targetContrast'
             
-            targetLen = c.beginText()
-            targetLen.setTextOrigin(6.5*inch, 9.8*inch)
-            targetLen.setFont('Helvetica', 10)
-            qvioText.setLeading(12)
-            qvioText.setWordSpace(1) 
-            framerate = int(np.round(1/np.median(d['frameIntervals'][:])))
-            targetLen.textLine('Target Duration: ' + str(d['targetFrames'][0]*framerate) + ' ms')
-            c.drawText(targetLen)
-                    
-            Image(dataDir + '/Other plots/other/' + mouse_id + 
-                  ' target contrast response rate ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+            if d['probOpto'][()]==0:
             
-            # add text for counts at each side and length
+                targetLen = c.beginText()
+                targetLen.setTextOrigin(6.5*inch, 9.8*inch)
+                targetLen.setFont('Helvetica', 10)
+                qvioText.setLeading(12)
+                qvioText.setWordSpace(1) 
+                framerate = int(np.round(1/np.median(d['frameIntervals'][:])))
+                targetLen.textLine('Target Duration: ' + str(d['targetFrames'][0]*framerate) + ' ms')
+                c.drawText(targetLen)
+                        
+                Image(dataDir + '/Other plots/other/' + mouse_id + 
+                      ' target contrast response rate ' + date + '.png', 
+                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+                
+                # add text for counts at each side and length
+                
+                Image(dataDir + '/Other plots/other/' + mouse_id + 
+                      ' target contrast correct given response ' + date + '.png', 
+                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
             
-            Image(dataDir + '/Other plots/other/' + mouse_id + 
-                  ' target contrast correct given response ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
-        
                           
 # add masking plots         
         if len(d['maskOnset'][:])>1:
             param = 'soa'
             
+            if d['probOpto'][()]==0:
 #            maskText = 
             
-            Image(dataDir + '/Masking plots/' + mouse_id + 
-                  ' masking response rate ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+                Image(dataDir + '/Masking plots/' + mouse_id + 
+                      ' masking response rate ' + date + '.png', 
+                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+                
+                
+                Image(dataDir + '/Masking plots/' + mouse_id + 
+                      ' masking correct given response ' + date + '.png', 
+                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
             
-            
-            Image(dataDir + '/Masking plots/' + mouse_id + 
-                  ' masking correct given response ' + date + '.png', 
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
-        
-# complete page and break
-        c.showPage()
+    # complete page and break
+            c.showPage()
         
         if d['probOpto'][()]>0:
            
-            Image(dataDir + '/Opto plots/' + mouse_id + ' ' + param + ' ' + 'no opto' + 
+            path = os.path.join(os.path.join(dataDir, 'Opto plots'), date)
+            
+            Image(path +  '/' + mouse_id + ' ' + param + ' ' + 'no opto' + 
                   ' opto response rate ' + date + '.png',
                   width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
                 
-            Image(dataDir + '/Opto plots/' + mouse_id + ' ' + param + ' ' + 'no opto' +
+            Image(path +  '/' + mouse_id + ' ' + param + ' ' + 'no opto' +
                   ' opto correct given response ' + date + '.png',
                   width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
                 
             c.showPage()
             
             for i, val in enumerate(d['optoOnset'][:]):
-                Image(dataDir + '/Opto plots/' + mouse_id + ' ' + param + ' ' + str(val) + 
+                Image(path +  '/' + mouse_id + ' ' + param + ' ' + str(val) + 
                       ' opto response rate ' + date + '.png',
                       width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
                 
-                Image(dataDir + '/Opto plots/' + mouse_id + ' ' + param + ' ' + str(val) + 
+                Image(path +  '/' + mouse_id + ' ' + param + ' ' + str(val) + 
                       ' opto correct given response ' + date + '.png',
                         width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
                 
                 c.showPage()
                 
-            Image(dataDir + '/Opto plots/' + mouse_id + ' combined opto ' + date + '.png',
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+            Image(path +  '/' + mouse_id + ' combined opto response ' + date + '.png',
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+            
+            Image(path +  '/' + mouse_id + ' combined param response ' + date + '.png',
+                        width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
             
             c.showPage()
                 

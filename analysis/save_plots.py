@@ -167,21 +167,37 @@ def save_daily_plots(data):
 
     if d['probOpto'][()] > 0:
         
-        plot_opto_vs_param(d, param, plotType='optoByParam')
+        newFolder = date.replace('/','-')
+        path = os.path.join(os.path.join(dataDir, 'Opto plots'), newFolder)
+        if not os.path.exists(path):
+            os.mkdir(path)
         
-        plt.savefig(dataDir + '/Opto plots/' + mouse_id + ' combined opto ' + date + '.png', dpi=300)
+        plot_opto_vs_param(d, param, plotType='optoByParam')
+
+        plt.savefig(path + '/' + mouse_id + ' combined param correct ' + date + '.png', dpi=300)
         plt.close()
+        
+        plt.savefig(path + '/' + mouse_id + ' combined opto correct ' + date + '.png', dpi=300)
+        plt.close()
+        
+        plt.savefig(path +  '/' + mouse_id + ' combined param response ' + date + '.png', dpi=300)
+        plt.close()
+        
+        plt.savefig(path +  '/' + mouse_id + ' combined opto response ' + date + '.png', dpi=300)
+        plt.close()
+        
+        
         
         onset = d['optoOnset'][:]
         onset = np.insert(onset,0, -1)
         for i, val in enumerate(np.flip(onset)):
             if val==-1:
                 val='no opto'
-            plt.savefig(dataDir + '/Opto plots/' + mouse_id +
+            plt.savefig(path +  '/' + mouse_id +
                         ' ' + param + ' ' + str(val) + ' opto response rate ' + date + '.png', dpi=300)
             plt.close()
             
-            plt.savefig(dataDir + '/Opto plots/' + mouse_id + 
+            plt.savefig(path +  '/' + mouse_id + 
                         ' ' + param + ' ' + str(val) + ' opto correct given response ' + date + '.png', dpi=300)
             plt.close()
         
