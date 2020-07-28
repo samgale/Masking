@@ -144,25 +144,28 @@ class TaskControl():
     
     def showFrame(self):
         self._frameSignalOutput.write(True)
-        if self._tone:
-            self._toneOutput.write(True)
-        elif self._noise:
-            self._noiseOutput.write(True)
         
         # spacebar delivers reward
         # escape key ends session
         keys = event.getKeys()
-        if self.spacebarRewardsEnabled and 'space' in keys:
+        if self.spacebarRewardsEnabled and 'space' in keys and not self._reward:
             self._reward = True
             self.manualRewardFrames.append(self._sessionFrame)
         if 'escape' in keys:   
             self._continueSession = False
+            
+        if self._tone:
+            self._toneOutput.write(True)
+        elif self._noise:
+            self._noiseOutput.write(True)
         
         # show new frame
         if self.drawDiodeBox:
             self._diodeBox.fillColor = -self._diodeBox.fillColor
             self._diodeBox.draw()
         self._win.flip()
+        
+        self._frameSignalOutput.write(False)
         
         if self._opto:
             self.optoPulse(**self._opto)
@@ -182,8 +185,6 @@ class TaskControl():
             
         self._sessionFrame += 1
         self._trialFrame += 1
-        
-        self._frameSignalOutput.write(False)
                                                
     
     def completeSession(self):
