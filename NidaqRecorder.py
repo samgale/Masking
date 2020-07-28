@@ -41,7 +41,7 @@ class NidaqRecorder():
                                  'cam1Saving',
                                  'cam2Saving',
                                  'cam1Exposure',
-                                 'cam2Exposure'
+                                 'cam2Exposure',
                                  'led')
         self.analogInputSampleRate = 2000.0
         self.analogInputBufferSize = 500
