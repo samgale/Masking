@@ -46,7 +46,7 @@ def getPSTH(spikes,startTimes,windowDur,binSize=0.01,avg=True):
     if avg:
         counts = counts.mean(axis=0)
     counts /= binSize
-    t = bins[:-1]-binSize/2
+    t = bins[:-1]
     return counts,t
 
 
@@ -209,7 +209,7 @@ analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync
                                                                           'led'))}
 
 # get frame times and compare with psychopy frame intervals
-frameSamples = np.array(findSignalEdges(vsync,edgeType='falling',thresh=-5000,refractory=2))
+frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
 
 behavDataPath = fileIO.getFile('',fileType='*.hdf5')
 behavData = h5py.File(behavDataPath,'r')
@@ -275,15 +275,16 @@ preTime = 0.5
 postTime = 0.5
 trialTime = (openLoopFrames+responseWindowFrames)/frameRate
 windowDur = preTime+trialTime+postTime
+binSize = 0.005
 trials = opto
 for i,u in enumerate(goodUnits):
     spikeTimes = units[u]['samples']/sampleRate
     startTimes = frameSamples[stimStart[trials]]/sampleRate-preTime
-    p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=0.005,avg=True)
+    p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
     psth.append(p)
     peakBaseRate[i] = p[t<preTime].max()
     meanBaseRate[i] = p[t<preTime].mean()
-    transientOptoResp[i] = p[(t>preTime) & (t<preTime+trialTime)].max()-peakBaseRate[i]
+    transientOptoResp[i] = p[(t>=preTime-binSize) & (t<preTime+trialTime)].max()-peakBaseRate[i]
     sustainedOptoRate[i] = p[(t>preTime+trialTime-0.25) & (t<preTime+trialTime)].mean()
     sustainedOptoResp[i] = sustainedOptoRate[i]-meanBaseRate[i]
 psth = np.array(psth)
