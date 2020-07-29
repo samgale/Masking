@@ -172,7 +172,7 @@ def save_daily_plots(data):
         if not os.path.exists(path):
             os.mkdir(path)
         
-        plot_opto_vs_param(d, param, plotType='optoByParam')
+        plot_opto_vs_param(d, param, plotType='single')
 
         plt.savefig(path + '/' + mouse_id + ' combined param correct ' + date + '.png', dpi=300)
         plt.close()
@@ -186,19 +186,21 @@ def save_daily_plots(data):
         plt.savefig(path +  '/' + mouse_id + ' combined opto response ' + date + '.png', dpi=300)
         plt.close()
         
+        # combined plots 
+        plt.savefig(path +  '/' + mouse_id + ' ' + param + date + '.png', dpi=300)
+        plt.close()
         
-        
-        onset = d['optoOnset'][:]
-        onset = np.insert(onset,0, -1)
-        for i, val in enumerate(np.flip(onset)):
-            if val==-1:
-                val='no opto'
-            plt.savefig(path +  '/' + mouse_id +
-                        ' ' + param + ' ' + str(val) + ' opto response rate ' + date + '.png', dpi=300)
-            plt.close()
-            
-            plt.savefig(path +  '/' + mouse_id + 
-                        ' ' + param + ' ' + str(val) + ' opto correct given response ' + date + '.png', dpi=300)
-            plt.close()
+#        onset = d['optoOnset'][:]
+#        onset = np.insert(onset,0, -1)
+#        for i, val in enumerate(np.flip(onset)):
+#            if val==-1:
+#                val='no opto'
+#            plt.savefig(path +  '/' + mouse_id +
+#                        ' ' + param + ' ' + str(val) + ' opto response rate ' + date + '.png', dpi=300)
+#            plt.close()
+#            
+#            plt.savefig(path +  '/' + mouse_id + 
+#                        ' ' + param + ' ' + str(val) + ' opto correct given response ' + date + '.png', dpi=300)
+#            plt.close()
         
         

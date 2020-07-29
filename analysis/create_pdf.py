@@ -6,7 +6,8 @@ Created on Mon Jul 13 14:54:31 2020
 """
 
 import performanceBySOA
-import plotting_target_lengths
+import plotting_variable_params
+import plottingOptoAgainstParam
 from qualityControl import check_qviolations
 from percentCorrect import session_stats
 from catchTrials import catch_trials
@@ -243,27 +244,32 @@ def create_daily_summary(d):
            
             path = os.path.join(os.path.join(dataDir, 'Opto plots'), date)
             
-            Image(path +  '/' + mouse_id + ' ' + param + ' ' + 'no opto' + 
-                  ' opto response rate ' + date + '.png',
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
-                
-            Image(path +  '/' + mouse_id + ' ' + param + ' ' + 'no opto' +
-                  ' opto correct given response ' + date + '.png',
-                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
-                
+            Image(path +  '/' + mouse_id + ' ' + param + date + '.png',   # subplots
+                  width=8.5*inch, height=11*inch).drawOn(c, 0, 0)
+            
             c.showPage()
             
-            for i, val in enumerate(d['optoOnset'][:]):
-                Image(path +  '/' + mouse_id + ' ' + param + ' ' + str(val) + 
-                      ' opto response rate ' + date + '.png',
-                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
-                
-                Image(path +  '/' + mouse_id + ' ' + param + ' ' + str(val) + 
-                      ' opto correct given response ' + date + '.png',
-                        width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
-                
-                c.showPage()
-                
+#            Image(path +  '/' + mouse_id + ' ' + param + ' ' + 'no opto' + 
+#                  ' opto response rate ' + date + '.png',
+#                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+#                
+#            Image(path +  '/' + mouse_id + ' ' + param + ' ' + 'no opto' +
+#                  ' opto correct given response ' + date + '.png',
+#                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+#                
+#            c.showPage()
+#            
+#            for i, val in enumerate(d['optoOnset'][:]):
+#                Image(path +  '/' + mouse_id + ' ' + param + ' ' + str(val) + 
+#                      ' opto response rate ' + date + '.png',
+#                      width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+#                
+#                Image(path +  '/' + mouse_id + ' ' + param + ' ' + str(val) + 
+#                      ' opto correct given response ' + date + '.png',
+#                        width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+#                
+#                c.showPage()
+#                
             Image(path +  '/' + mouse_id + ' combined opto response ' + date + '.png',
                   width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
             
