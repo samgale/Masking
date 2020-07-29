@@ -109,6 +109,8 @@ class TaskControl():
                                   units='pix',
                                   color=self.monBackgroundColor)
         self._warper = Warper(self._win,warp=self.warp,warpfile=self.warpFile)
+        for _ in range(10):
+            self._win.flip()
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
         
         
