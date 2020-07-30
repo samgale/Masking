@@ -177,7 +177,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                 
                 onset_ms = np.round(int((on/framerate)*1000))    # onset expressed in ms
                 if on == noOpto:
-                    axs[i, ind].set_title('No Opto', fontsize=10, pad=20)
+                    axs[i, ind].set_title('No Opto', fontsize=10, pad=25)
                 else:
                     axs[i, ind].set_title((str(onset_ms) + 'ms onset'), fontsize=10, pad=25)
     
@@ -202,12 +202,6 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                 axs[i, ind].spines['right'].set_visible(False)
                 axs[i, ind].spines['top'].set_visible(False)
                     
-#                if i==1:
-#                    axs[i, ind].text(.91, 0.5*(bottom+top), str(onset_ms),
-#                    horizontalalignment='center',
-#                    verticalalignment='center',
-#                    rotation='vertical',
-#                    transform=ax.transAxes)
                  
         fig.text(.5, 0.02, pval, ha='center', fontsize=12)
         fig.text(.02, 0.5, 'Fraction of trials', va='center', rotation='vertical', fontsize=12)
@@ -235,10 +229,9 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                 fig, ax = plt.subplots()
     
                 Lpoint = [num/denom if denom!=0 else 0 for (num, denom) in zip(Lnum[i],Ldenom[i])]  
-                    # workaround for division by 0 error
-                ax.plot(paramVals, Lpoint , 'bo-', lw=3, alpha=.7, label='Left turning') 
-                
                 Rpoint = [num/denom if denom!=0 else 0 for (num, denom) in zip(Rnum[i],Rdenom[i])]
+                
+                ax.plot(paramVals, Lpoint , 'bo-', lw=3, alpha=.7, label='Left turning') 
                 ax.plot(paramVals, Rpoint, 'ro-', lw=3, alpha=.7, label='Right turning')
     
                 ax.plot(paramVals, (Lnum[i]+Rnum[i])/(Ldenom[i]+Rdenom[i]), 'ko--', alpha=.5, 
@@ -301,16 +294,13 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             else:
                 lbl = np.round(int((lbl/framerate)*1000))
                 label = lbl.astype(str) +  ' ms onset'
-            if lbl==0 or lbl==21:
-                ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
-            else:
-                pass
+            ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
         
- ## catch trials        
+        ## catch trials        
         if yLbl == 'Response Rate':
             total = (totalTrialsR) + (totalTrialsL)
-#            for tur, cat, al, clr in zip(catchTurn, catchCounts, alphas, colors):
-#                ax.plot(0, (tur/cat), 'o', alpha=al, color=clr)
+            for turn, cat, al, clr in zip(catchTurn, catchCounts, alphas, colors):
+                ax.plot(0, (turn/cat), 'o', alpha=al, color=clr)
         else:
             total = (hitsR + missesR) + (hitsL + missesL)
     
@@ -332,7 +322,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         formatFigure(fig, ax, xLabel=pval, yLabel=yLbl)
         
         paramList = [p for p in paramVals]
-        xticks = paramVals
+        xticks = paramList
         
         if yLbl == 'Response Rate':
             xticks = np.insert(xticks, 0, 0)
@@ -345,7 +335,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             ax.set_xlim([0, paramVals[-1]+1])
         elif param=='targetContrast':
             if yLbl == 'Response Rate':
-                ax.set_xlim([.1, 1.1])  #### need to make this flexible
+                ax.set_xlim([(xticks[0]-.1), 1.1])   # includes catch value 
             else:
                 ax.set_xlim([paramVals[0]-.2, 1.05])  
         
@@ -355,14 +345,17 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-        #  this has an issue when the catch counts are plotted - not enough space
-        plt.subplots_adjust(top=(.915 - (.025*opto_num)), bottom=0.108, left=0.1, right=0.945, hspace=0.2, wspace=0.2)
-        plt.legend(loc='best', fontsize='small', numpoints=1) 
-                
+        plt.subplots_adjust(top=(.9 - (.025*opto_num)), bottom=0.108, left=0.1, right=0.945, hspace=0.2, wspace=0.2)
 
+        handles, labels = plt.gca().get_legend_handles_labels()
+        order = [i for i in range(0, len(optoOn))]   # get legend to put no opto at top
+        order.insert(0, order.pop(-1))
+        plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
+                    loc='best', fontsize='small')                
+## while I Think this makes sense (logically and visually), it doesn't match up with the order of the counts at the top
 
     
-## plotting the contrast levels against the opto on the x-axis  ###################################################
+## plotting the combined contrast levels against the opto on the x-axis  ###################################################
 ## shades of black          
             
         fig, ax = plt.subplots()
@@ -390,6 +383,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                         
               
             if yLbl == 'Response Rate':
+                num = param_num + 1
                 ax.plot(optoOn, (np.array(catchTurn)/np.array(catchCounts)), 'mo-', lw=3, alpha=.3, 
                         label = 'Catch Trials' if 'Catch Trials' not in plt.gca().get_legend_handles_labels()[1] else '')
                 for x, trials in zip(optoList, catchCounts):
@@ -414,37 +408,11 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
-            plt.subplots_adjust(top=0.815, bottom=0.133, left=0.1, right=0.945, hspace=0.2, wspace=0.2)
-            plt.legend(loc='best', fontsize='small', numpoints=1) 
-                    
+            plt.subplots_adjust(top=.9 - (.025*num), bottom=0.133, left=0.1, right=0.945, hspace=0.2, wspace=0.2)
+            
+            handles, labels = plt.gca().get_legend_handles_labels()
+            order = [i for i in reversed(range(0, len(paramVals)))]   # get legend to put 100% contrast at top
+            plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
+                       loc='best', fontsize='small')                    
                 
  
-
-###########################################################################################           
-#    testR = [[] for i in range(opto_num)]
-#    for i, op in enumerate(optoOn):
-#        for j, (rew,resp) in enumerate(zip(trialRewardDirection, trialResponse)):
-#            if rew==1:
-#                if trialOptoOnset[j] == op:
-#                    testR[i].append(resp)
-#                    
-#    testL = [[] for i in range(opto_num)]
-#    for i, op in enumerate(optoOn):
-#        for j, (rew,resp) in enumerate(zip(trialRewardDirection, trialResponse)):
-#            if rew==-1:
-#                if trialOptoOnset[j] == op:
-#                    testL[i].append(resp)
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-for x,trials in zip(paramVals, (np.transpose(total[0]), np.transpose(total[-1]))):
-    for y, n, al, clr in zip([1.05, 1.15], trials, [.25,1], ['b','k']):
-        fig.text(x, y, str(n), transform= ax.transData,  color=clr, alpha=al, fontsize=10, 
-                 ha='center',va='bottom')
