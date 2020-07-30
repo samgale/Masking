@@ -20,6 +20,8 @@ class MaskingTask(TaskControl):
         # parameters that can vary across trials are lists
         # only one of targetPos and targetOri can be len() > 1
         
+        self.equalSampling = False # equal sampling of trial conditions
+        
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probCatch = 0 # fraction of catch trials with no target and no reward
         self.probNoGo = 0 # fraction of trials with no target, rewarded for no movement of wheel
@@ -328,55 +330,58 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
-                    showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
-                    maskCount = maskCount + 1 if showMask else 0
-                    if random.random() < max(self.probCatch,self.probNoGo) and consecutiveDir != 0:
-                        # only one of probCatch and probNoGo can be >0
-                        rewardDir = 0 if self.probNoGo > 0 else np.nan
-                        initTargetPos = (0,0)
-                        initTargetOri = 0
-                        targetContrast = 0
-                        targetFrames = 0
-                        maskOnset = 0
-                        if showMask:
-                            maskFrames = random.choice(self.maskFrames)
-                            maskContrast = random.choice(self.maskContrast)
-                        else:
-                            maskFrames = maskContrast = 0
+                    if self.equalSampling:
+                        pass
                     else:
-                        if showMask:
-                            maskOnset = random.choice(self.maskOnset)
-                            maskFrames = random.choice(self.maskFrames)
-                            maskContrast = random.choice(self.maskContrast)
-                        else:
-                            maskOnset = maskFrames = maskContrast = 0
-                        goRight = False if consecutiveDir == 1 else (True if consecutiveDir == -1 else random.random() < self.probGoRight)
-                        rewardDir = 1 if goRight else -1
-                        if len(targetPosPix) > 1:
-                            if goRight:
-                                initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] < 0])
+                        consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
+                        showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
+                        maskCount = maskCount + 1 if showMask else 0
+                        if random.random() < max(self.probCatch,self.probNoGo) and consecutiveDir != 0:
+                            # only one of probCatch and probNoGo can be >0
+                            rewardDir = 0 if self.probNoGo > 0 else np.nan
+                            initTargetPos = (0,0)
+                            initTargetOri = 0
+                            targetContrast = 0
+                            targetFrames = 0
+                            maskOnset = 0
+                            if showMask:
+                                maskFrames = random.choice(self.maskFrames)
+                                maskContrast = random.choice(self.maskContrast)
                             else:
-                                initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] > 0])
-                            initTargetOri = self.targetOri[0]
+                                maskFrames = maskContrast = 0
                         else:
-                            initTargetPos = targetPosPix[0]
-                            if (self.rotateTarget and goRight) or (not self.rotateTarget and not goRight):
-                                initTargetOri = random.choice([ori for ori in self.targetOri if ori < 0])
+                            if showMask:
+                                maskOnset = random.choice(self.maskOnset)
+                                maskFrames = random.choice(self.maskFrames)
+                                maskContrast = random.choice(self.maskContrast)
                             else:
-                                initTargetOri = random.choice([ori for ori in self.targetOri if ori > 0])
-                        if self.varyMaskedTargetParams or not showMask:
-                            targetContrast = random.choice(self.targetContrast)
-                            targetFrames = random.choice(self.targetFrames)
+                                maskOnset = maskFrames = maskContrast = 0
+                            goRight = False if consecutiveDir == 1 else (True if consecutiveDir == -1 else random.random() < self.probGoRight)
+                            rewardDir = 1 if goRight else -1
+                            if len(targetPosPix) > 1:
+                                if goRight:
+                                    initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] < 0])
+                                else:
+                                    initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] > 0])
+                                initTargetOri = self.targetOri[0]
+                            else:
+                                initTargetPos = targetPosPix[0]
+                                if (self.rotateTarget and goRight) or (not self.rotateTarget and not goRight):
+                                    initTargetOri = random.choice([ori for ori in self.targetOri if ori < 0])
+                                else:
+                                    initTargetOri = random.choice([ori for ori in self.targetOri if ori > 0])
+                            if self.varyMaskedTargetParams or not showMask:
+                                targetContrast = random.choice(self.targetContrast)
+                                targetFrames = random.choice(self.targetFrames)
+                            else:
+                                targetContrast = self.targetContrast[0]
+                                targetFrames = self.targetFrames[0]
+                        if len(self.trialResponse)>0 and optoCount < self.maxConsecutiveOptoTrials and random.random() < self.probOpto:
+                            optoOnset = random.choice(self.optoOnset)
+                            optoCount += 1
                         else:
-                            targetContrast = self.targetContrast[0]
-                            targetFrames = self.targetFrames[0]
-                    if len(self.trialResponse)>0 and optoCount < self.maxConsecutiveOptoTrials and random.random() < self.probOpto:
-                        optoOnset = random.choice(self.optoOnset)
-                        optoCount += 1
-                    else:
-                        optoOnset = np.nan
-                        optoCount = 0
+                            optoOnset = np.nan
+                            optoCount = 0
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
