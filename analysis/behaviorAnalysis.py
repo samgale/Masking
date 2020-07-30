@@ -37,7 +37,7 @@ mpl.style.use('classic')
     
 def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats=True,
                   ion = True, framesToShowBeforeStart=0, mask=False, maskOnly=False, 
-                  xlim='auto', ylim='auto', figsize=None, ignoreNoRespAfter=10):
+                  xlim='auto', ylim='auto', figsize=None, ignoreNoRespAfter=10, use_legend=True):
 
 
     #Clean up inputs if needed    
@@ -144,17 +144,23 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
                         trialreward = np.where((rewardFrames>trialStart)&(rewardFrames<=trialEnd))[0]
                         rewardFrame = rewardFrames[trialreward[0]]-trialStart+framesToShowBeforeStart if len(trialreward)>0 else None
                         if nogo[i]:
-                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.2)   # plotting no-go trials
+                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'g', alpha=0.2,
+                                    label = 'No go' if 'No go' not in
+                                    plt.gca().get_legend_handles_labels()[1] else '')   # plotting no-go trials
                             if rewardFrame is not None:
                                 ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'go')
                             nogoTrials.append(trialWheel)
                         elif rewardDirection>0:
-                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2)  #plotting right turning 
+                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'r', alpha=0.2,
+                                    label = 'Right Turning' if 'Right Turning' not in
+                                    plt.gca().get_legend_handles_labels()[1] else '' )  #plotting right turning 
                             if rewardFrame is not None:
                                 ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'ro')
                             turnRightTrials.append(trialWheel)
                         elif rewardDirection<0:
-                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2)   # plotting left turning 
+                            ax.plot(trialTime[:trialWheel.size], trialWheel, 'b', alpha=0.2,
+                                    label = 'Left Turning' if 'Left Turning' not in
+                                    plt.gca().get_legend_handles_labels()[1] else '')   # plotting left turning 
                             if rewardFrame is not None:
                                 ax.plot(trialTime[rewardFrame], trialWheel[rewardFrame], 'bo')
                             turnLeftTrials.append(trialWheel)
@@ -226,10 +232,11 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
                  yLabel=ylabel, title=name + ' ' + date + ' ' + subtitle)
     
-    if len(plt.gca().get_legend_handles_labels()[1])>0:
-        plt.legend(loc='best', fontsize='medium', numpoints=1)
-    else:
-        pass
+    if use_legend==True:
+        if len(plt.gca().get_legend_handles_labels()[1])>0:
+            plt.legend(loc='best', fontsize='small', numpoints=1)
+        else:
+            pass
     
     plt.tight_layout()
     

@@ -161,6 +161,11 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                                                          ['Fraction Correct Given Response', 'Response Rate'],
                                                          [1, 0]):
                 
+                if title == 'Fraction Correct Given Response':
+                    correctAverages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
+                elif title == 'Response Rate':
+                    respAverages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
+                
                 # workaround for division by 0 error
                 Lpoint = [num/denom if denom!=0 else 0 for (num, denom) in zip(Lnum[i],Ldenom[i])]  
                 Rpoint = [num/denom if denom!=0 else 0 for (num, denom) in zip(Rnum[i],Rdenom[i])]
@@ -174,15 +179,12 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                 if on == noOpto:
                     axs[i, ind].set_title('No Opto', fontsize=10, pad=20)
                 else:
-                    axs[i, ind].set_title((str(onset_ms) + 'ms onset'), fontsize=10, pad=20)
+                    axs[i, ind].set_title((str(onset_ms) + 'ms onset'), fontsize=10, pad=25)
     
-                if title == 'Fraction Correct Given Response':
-                    correctAverages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
-                elif title == 'Response Rate':
-                    respAverages.append((Rnum[i]+Lnum[i])/(Rdenom[i]+Ldenom[i]))
+               
                 
                 for x,Rtrials,Ltrials in zip(paramVals,Rdenom[i], Ldenom[i]):
-                    for y,n,clr in zip((1.05,1.12),[Rtrials, Ltrials],'rb'):
+                    for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
                         fig.text(x,y,str(n),transform=axs[i, ind].transData,color=clr,fontsize=8,
                                  ha='center',va='bottom')
                                                 
@@ -214,7 +216,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         fig.text(.65, .94, 'Fraction Correct', fontsize=12)
         fig.suptitle((mouse + '    ' + date), fontsize=10)
 
-        plt.subplots_adjust(top=0.89, bottom=0.073, left=0.09, right=0.935, hspace=0.2, wspace=0.2)
+        plt.subplots_adjust(top=0.85, bottom=0.073, left=0.09, right=0.935, hspace=0.2, wspace=0.2)
         plt.legend(loc='best', fontsize='small', numpoints=1) 
 
     
@@ -299,14 +301,16 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             else:
                 lbl = np.round(int((lbl/framerate)*1000))
                 label = lbl.astype(str) +  ' ms onset'
-                
-            ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
+            if lbl==0 or lbl==21:
+                ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
+            else:
+                pass
         
  ## catch trials        
         if yLbl == 'Response Rate':
             total = (totalTrialsR) + (totalTrialsL)
-            for tur, cat, al, clr in zip(catchTurn, catchCounts, alphas, colors):
-                ax.plot(0, (tur/cat), 'o', alpha=al, color=clr)
+#            for tur, cat, al, clr in zip(catchTurn, catchCounts, alphas, colors):
+#                ax.plot(0, (tur/cat), 'o', alpha=al, color=clr)
         else:
             total = (hitsR + missesR) + (hitsL + missesL)
     
@@ -341,7 +345,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             ax.set_xlim([0, paramVals[-1]+1])
         elif param=='targetContrast':
             if yLbl == 'Response Rate':
-                ax.set_xlim([-.2, 1.05])
+                ax.set_xlim([.1, 1.1])  #### need to make this flexible
             else:
                 ax.set_xlim([paramVals[0]-.2, 1.05])  
         
@@ -390,7 +394,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                         label = 'Catch Trials' if 'Catch Trials' not in plt.gca().get_legend_handles_labels()[1] else '')
                 for x, trials in zip(optoList, catchCounts):
                         fig.text(x,(text_spacing[-1] +.05), str(trials),transform=ax.transData,
-                                 color='m', alpha=.3, fontsize=10, ha='center',va='bottom')
+                                 color='m', alpha=.4, fontsize=10, ha='center',va='bottom')
                 
                 
             formatFigure(fig, ax, xLabel='Optogenetic Onset (ms)', yLabel=yLbl)
@@ -430,3 +434,17 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
 #            if rew==-1:
 #                if trialOptoOnset[j] == op:
 #                    testL[i].append(resp)
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+for x,trials in zip(paramVals, (np.transpose(total[0]), np.transpose(total[-1]))):
+    for y, n, al, clr in zip([1.05, 1.15], trials, [.25,1], ['b','k']):
+        fig.text(x, y, str(n), transform= ax.transData,  color=clr, alpha=al, fontsize=10, 
+                 ha='center',va='bottom')

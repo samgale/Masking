@@ -31,7 +31,7 @@ session_stats(d, returnAs = 'print')
 
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], ignoreRepeats=True, 
                                framesToShowBeforeStart=0, mask=False, maskOnly=False, 
-                               xlim=[0, .8], ylim='auto', ignoreNoRespAfter=10 )
+                               xlim=[0, .8], ylim='auto', ignoreNoRespAfter=10, use_legend=True )
 
 # plot no response trials only (with repeats)
 behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], ignoreRepeats=False, 
