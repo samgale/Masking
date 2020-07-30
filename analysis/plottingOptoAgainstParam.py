@@ -383,9 +383,11 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                     fig.text(x,(text_spacing[0]), str(trials),transform=ax.transData,
                              color='m', alpha=.4, fontsize=10, ha='center',va='bottom')
             del text_spacing[0]
+        else:
+            num = param_num
         
         for x,trials in zip(optoList, total):
-            for y, n, al in zip(text_spacing, trials, alphaLevels):
+            for y, n, al in zip(text_spacing[:param_num], trials, alphaLevels):
                 fig.text(x,y,str(n),transform=ax.transData, color='k', alpha=al, fontsize=10,
                          ha='center',va='bottom')
                 
@@ -413,7 +415,9 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         
         
         handles, labels = plt.gca().get_legend_handles_labels()
-        order = [i for i in reversed(range(0, num))]   # get legend to put 100% contrast at top
+        order = [i for i in reversed(range(0, num))]   # get legend to put 100% contrast at top, catch at bottom
+        order.insert(num, order.pop(0))
+
         plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
                    loc='best', fontsize='small')                    
                 
