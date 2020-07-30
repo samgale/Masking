@@ -296,7 +296,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                 label = lbl.astype(str) +  ' ms onset'
             ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
         
-        ## catch trials        
+        ## add catch trials        
         if yLbl == 'Response Rate':
             total = (totalTrialsR) + (totalTrialsL)
             for turn, cat, al, clr in zip(catchTurn, catchCounts, alphas, colors):
@@ -368,51 +368,53 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             label = lbl.astype(str) +  '% contrast'
             
             ax.plot(optoList, resp, 'ko-',  lw=3, alpha=al, label=label)
+ 
+        
+        
+        text_spacing = [1.05]
+        for _ in range(param_num):   #this is to allow catch counts to be at bottom
+            text_spacing.append(np.round(text_spacing[-1]+.05,3))
+            
+        if yLbl == 'Response Rate':  #addes count text for catch totals
+            num = param_num + 1
+            ax.plot(optoOn, (np.array(catchTurn)/np.array(catchCounts)), 'mo-', lw=3, alpha=.3, 
+                    label = 'Catch Trials' if 'Catch Trials' not in plt.gca().get_legend_handles_labels()[1] else '')
+            for x, trials in zip(optoList, catchCounts):
+                    fig.text(x,(text_spacing[0]), str(trials),transform=ax.transData,
+                             color='m', alpha=.4, fontsize=10, ha='center',va='bottom')
+            del text_spacing[0]
+        
+        for x,trials in zip(optoList, total):
+            for y, n, al in zip(text_spacing, trials, alphaLevels):
+                fig.text(x,y,str(n),transform=ax.transData, color='k', alpha=al, fontsize=10,
+                         ha='center',va='bottom')
+                
+        
+            
+            
+        formatFigure(fig, ax, xLabel='Optogenetic Onset (ms)', yLabel=yLbl)
+        
+        xlabls = [np.round(int((on/framerate)*1000)) for on in optoList]
+        
+        ax.set_xlim([optoList[0]-1, optoList[-1] + 1])  
+
+        xticks = optoList
+        ax.set_xticks(xticks)
+        xlabls[-1] = 'No\nopto'
+        ax.set_xticklabels(xlabls)
+
+        fig.suptitle('(' + mouse + ',   ' + date + ')      Combined Contrast vs Opto onset' , fontsize=13)
            
-            
-            showTrialN=True
-            if showTrialN==True:
-                text_spacing = [1.05]
-                for _ in range(param_num-1):
-                    text_spacing.append(np.round(text_spacing[-1]+.05,3))
-                
-                for x,trials in zip(optoList, total):
-                    for y, n, al in zip(text_spacing, trials, alphaLevels):
-                        fig.text(x,y,str(n),transform=ax.transData, color='k', alpha=al, fontsize=10,
-                                 ha='center',va='bottom')
-                        
-              
-            if yLbl == 'Response Rate':
-                num = param_num + 1
-                ax.plot(optoOn, (np.array(catchTurn)/np.array(catchCounts)), 'mo-', lw=3, alpha=.3, 
-                        label = 'Catch Trials' if 'Catch Trials' not in plt.gca().get_legend_handles_labels()[1] else '')
-                for x, trials in zip(optoList, catchCounts):
-                        fig.text(x,(text_spacing[-1] +.05), str(trials),transform=ax.transData,
-                                 color='m', alpha=.4, fontsize=10, ha='center',va='bottom')
-                
-                
-            formatFigure(fig, ax, xLabel='Optogenetic Onset (ms)', yLabel=yLbl)
-            
-            xlabls = [np.round(int((on/framerate)*1000)) for on in optoList]
-            
-            ax.set_xlim([optoList[0]-1, optoList[-1] + 1])  
-    
-            xticks = optoList
-            ax.set_xticks(xticks)
-            xlabls[-1] = 'No\nopto'
-            ax.set_xticklabels(xlabls)
-    
-            fig.suptitle('(' + mouse + ',   ' + date + ')      Combined Contrast vs Opto onset' , fontsize=13)
-               
-            ax.set_ylim([0,1.05])
-            ax.spines['right'].set_visible(False)
-            ax.spines['top'].set_visible(False)
-            ax.tick_params(direction='out',top=False,right=False)
-            plt.subplots_adjust(top=.9 - (.025*num), bottom=0.133, left=0.1, right=0.945, hspace=0.2, wspace=0.2)
-            
-            handles, labels = plt.gca().get_legend_handles_labels()
-            order = [i for i in reversed(range(0, len(paramVals)))]   # get legend to put 100% contrast at top
-            plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
-                       loc='best', fontsize='small')                    
+        ax.set_ylim([0,1.05])
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        plt.subplots_adjust(top=.9 - (.025*num), bottom=0.133, left=0.1, right=0.945, hspace=0.2, wspace=0.2)
+        
+        
+        handles, labels = plt.gca().get_legend_handles_labels()
+        order = [i for i in reversed(range(0, num))]   # get legend to put 100% contrast at top
+        plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
+                   loc='best', fontsize='small')                    
                 
  
