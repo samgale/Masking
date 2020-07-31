@@ -292,7 +292,8 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             if lbl==noOpto:
                 label = 'No Opto'
             else:
-                lbl = np.round(int((lbl/framerate)*1000))
+                lbl_pre = (lbl/framerate) - ((1/framerate)*2)
+                lbl = np.round(int((lbl_pre)*1000))
                 label = lbl.astype(str) +  ' ms onset'
             ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
         
@@ -396,7 +397,9 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             
         formatFigure(fig, ax, xLabel='Optogenetic Onset (ms)', yLabel=yLbl)
         
-        xlabls = [np.round(int((on/framerate)*1000)) for on in optoList]
+        
+        xlabls1 = [(on/framerate) - ((1/framerate)*2) for on in optoList]
+        xlabls = [np.round(int(x*1000)) for x in xlabls1]
         
         ax.set_xlim([optoList[0]-1, optoList[-1] + 1])  
 

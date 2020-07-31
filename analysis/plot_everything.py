@@ -11,7 +11,7 @@ from plotting_variable_params import plot_param
 from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param
 import dataAnalysis
-import QualityControl
+import qualityControl
 from percentCorrect import session_stats
 from catchTrials import catch_trials
 import matplotlib.pyplot as plt
