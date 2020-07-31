@@ -14,6 +14,8 @@ or right before the mask comes on, in masking sessions with dropped frames
 
 major dropped frames are occurring in a periodic fashion, ~120 ms every ~7 mins  
 
+push to git?
+
 """
 
 from dataAnalysis import create_df, get_dates
