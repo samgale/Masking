@@ -79,7 +79,10 @@ class MaskingTask(TaskControl):
         
         # opto params
         self.probOpto = 0 # fraction of trials with optogenetic stimulation
+        self.optoChanNames = ['left','right']
+        self.optoChan = [[0,1]] # list of lists of channels to activate
         self.optoAmp = 5 # V to led/laser driver
+        self.optoOffRamp = 0.1 # duration in sec of linear off ramp
         self.optoOnset = [0] # frames >=0 relative to target stimulus onset
         self.maxConsecutiveOptoTrials = 3
 
@@ -193,7 +196,7 @@ class MaskingTask(TaskControl):
         elif name == 'opto contrast':
             self.setDefaultParams('target contrast',taskVersion)
             self.probOpto = 0.5
-            self.optoOnset = [6,7,8,9,10,11]
+            self.optoOnset = [0,6,8,10]
             self.targetContrast = [0.4,1]
             
         elif name == 'opto masking':
@@ -377,6 +380,7 @@ class MaskingTask(TaskControl):
                                 targetContrast = self.targetContrast[0]
                                 targetFrames = self.targetFrames[0]
                         if len(self.trialResponse)>0 and optoCount < self.maxConsecutiveOptoTrials and random.random() < self.probOpto:
+                            optoChan = random.choice(self.optoChan)
                             optoOnset = random.choice(self.optoOnset)
                             optoCount += 1
                         else:
@@ -471,7 +475,7 @@ class MaskingTask(TaskControl):
                         target.draw()
                 
                 if self._trialFrame == self.trialPreStimFrames[-1] + optoOnset:
-                    self._opto = {'amp': self.optoAmp, 'lastVal': self.optoAmp}
+                    self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'lastVal': self.optoAmp}
                     
                 # define response if wheel moved past threshold (either side) or max trial duration reached
                 # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
@@ -517,7 +521,7 @@ class MaskingTask(TaskControl):
                     hasResponded = True
 
             if not np.isnan(optoOnset) and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
-                self._opto = {'amp': self.optoAmp, 'offRamp': 0.1}
+                self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'offRamp': self.optoOffRamp}
                 
             # show any post response stimuli or end trial
             if hasResponded:
