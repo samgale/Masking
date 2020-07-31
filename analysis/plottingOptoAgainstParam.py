@@ -418,8 +418,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         
         
         handles, labels = plt.gca().get_legend_handles_labels()
-        order = [i for i in reversed(range(0, num))]   # get legend to put 100% contrast at top, catch at bottom
-        order.insert(num, order.pop(0))
+        order = [i for i in reversed(range(0, opto_num))]   # get legend to put 100% contrast at top, catch at bottom
 
         plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
                    loc='best', fontsize='small')                    
