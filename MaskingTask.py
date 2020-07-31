@@ -418,7 +418,7 @@ class MaskingTask(TaskControl):
                     self.trialPreStimFrames[-1] += randomExponential(self.preStimFramesFixed,self.preStimFramesVariableMean,self.preStimFramesMax)
                     quiescentWheelMove = 0
             
-            # if gray screen period is complete, update target and mask stimuli
+            # if gray screen period is complete but before response
             if not hasResponded and self._trialFrame >= self.trialPreStimFrames[-1]:
                 if self._trialFrame == self.trialPreStimFrames[-1]:
                     self.trialStimStartFrame.append(self._sessionFrame)
@@ -474,6 +474,7 @@ class MaskingTask(TaskControl):
                     elif self._trialFrame < self.trialPreStimFrames[-1] + targetFrames:
                         target.draw()
                 
+                # turn on opto
                 if self._trialFrame == self.trialPreStimFrames[-1] + optoOnset:
                     self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'lastVal': self.optoAmp}
                     
@@ -519,7 +520,8 @@ class MaskingTask(TaskControl):
                     self.trialResponseFrame.append(self._sessionFrame)
                     self.trialResponseDir.append(np.nan)
                     hasResponded = True
-
+            
+            # turn off opto
             if not np.isnan(optoOnset) and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                 self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'offRamp': self.optoOffRamp}
                 
