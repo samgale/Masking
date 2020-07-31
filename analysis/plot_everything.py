@@ -13,7 +13,7 @@ from plotting_target_lengths import plot_flash
 from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param
 import dataAnalysis
-import qualityControl
+import QualityControl
 from percentCorrect import session_stats
 from catchTrials import catch_trials
 
