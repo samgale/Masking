@@ -16,14 +16,20 @@ Prints out all the information in the daily summary, including:
 
 
 import numpy as np
-from dataAnalysis import create_df
+from dataAnalysis import create_df, ignore_after
 
 
-def session_stats(d, nogo=False, returnAs='str_array'):    #returnAs 'str_array', 'num_array', or 'print'
+def session_stats(d, ignoreNoRespAfter=None, returnAs='str_array'):    #returnAs 'str_array', 'num_array', or 'print'
 
     print(str(d) + '\n')
     
     df = create_df(d)
+    
+    framerate=df.framerate
+    
+    if ignoreNoRespAfter is not None:
+        end = ignore_after(d, ignoreNoRespAfter)[0]
+        df = df[:end]
     
     sessionDuration = d['trialResponseFrame'][-1]   # in frames
     
@@ -50,6 +56,7 @@ def session_stats(d, nogo=False, returnAs='str_array'):    #returnAs 'str_array'
     leftNoResp = len(left[left['resp']==0])
     
     ignored = df.groupby(['rewDir'])['ignoreTrial'].sum(sorted=True) # num of ignore trials by side and total
+    
     repeats = df[(df['repeat']==True) & (df['catchTrial']==False) & (df['ignoreTrial']==False)]
     
     usableTrialTotal = (len(left) + len(right))   # no ignores, repeats, or catch
@@ -60,7 +67,7 @@ def session_stats(d, nogo=False, returnAs='str_array'):    #returnAs 'str_array'
              'Norm reward: ' + str(d['normRewardDistance'][()]),
              'Max wait frames: ' + str(d['maxResponseWaitFrames'][()]),
              'Prob go right: ' + str(d['probGoRight'][()]),
-             'Session duration (mins): ' + str(np.round(sessionDuration/df.framerate/60, 2)),
+             'Session duration (mins): ' + str(np.round(sessionDuration/framerate/60, 2)),
              ' ',
              'Repeats: ' + str(len(repeats)) + '/' + str(totalTrials),
              'Total Ignore: ' + str(ignored[1]+ignored[-1]),
@@ -92,7 +99,7 @@ def session_stats(d, nogo=False, returnAs='str_array'):    #returnAs 'str_array'
                   d['normRewardDistance'][()],
                   d['maxResponseWaitFrames'][()],
                   d['probGoRight'][()],
-                  np.round(sessionDuration/df.framerate/60, 2),
+                  np.round(sessionDuration/framerate/60, 2),
                   len(repeats)/(totalTrials),
                   ignored[1]+ignored[-1],
                   usableTrialTotal,
@@ -126,7 +133,7 @@ def session_stats(d, nogo=False, returnAs='str_array'):    #returnAs 'str_array'
     
 #######  make this a function? 
 #    
-#    if nogo==True :
+#    if d['probNoGo'][()]>0 :
 #        no_goTotal = len(trialTargetFrames[trialTargetFrames==0])
 #        no_goCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0)]) 
 #        print('No-go Correct:  ' + str(round(no_goCorrect/no_goTotal, 2)*100) + '% of ' + str(no_goTotal))

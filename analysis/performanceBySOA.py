@@ -81,14 +81,7 @@ def plot_soa(data,showTrialN=True,showNogo=True):
     
         ax.plot(maskOnset, num[0]/denom[0], 'ro-', lw=3, alpha=.7)  #here [0] is right turning trials and [1] is left turning
         ax.plot(maskOnset, num[1]/denom[1], 'bo-', lw=3, alpha=.7)
-        y=(num[0]/denom[0])
-        y2=(num[1]/denom[1])
-        if showTrialN:
-            for i, length in enumerate(maskOnset):
-                plt.annotate(str(denom[0][i]), xy=(length,y[i]), xytext=(0, 10), textcoords='offset points')  #adds total num of trials
-                plt.annotate(str(denom[1][i]), xy=(length,y2[i]), xytext=(0, -20), textcoords='offset points')
-            ax.plot(maskOnset, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5)  #plots the combined average  
-        
+
         if title=='Response Rate':
             ax.plot(0, (maskOnlyR/maskOnlyTotal), 'r>', ms=8)   #plot the side that was turned in no-go with an arrow in that direction
             ax.plot(0, (maskOnlyL/maskOnlyTotal), 'b<', ms=8)

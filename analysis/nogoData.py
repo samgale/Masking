@@ -23,6 +23,7 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
     trialMaskContrast = d['trialMaskContrast'][:end]
     trialStimStart = d['trialStimStartFrame'][:end]
     trialRespFrame = d['trialResponseFrame'][:]
+    trialRewardDir = d['trialRewardDir'][:end]
     deltaWheel = d['deltaWheelPos'][:]
     repeats = d['incorrectTrialRepeats'][()]
    
@@ -37,15 +38,17 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
         trialStimStart = trialStimStart[(prevTrialIncorrect==False)]
         trialRespFrame = trialRespFrame[prevTrialIncorrect==False]
         trialMaskContrast = trialMaskContrast[prevTrialIncorrect==False]  
+        trialRewardDir = trialRewardDir[prevTrialIncorrect==False]
     
     wheelMvmt = [[],[]]     # first is nogo, 2nd maskOnly
     ind = [[],[]]           # indices of above trials
 
-    # determines direction mouse turned during trials with no target
+# determines direction mouse turned during trials with no target
 
-    for i, (start, end, resp, target, mask) in enumerate(
-            zip(trialStimStart, trialRespFrame, trialResponse, trialTargetFrames, trialMaskContrast)):
-        if target==0 and resp==-1:
+    for i, (start, end, resp, target, rew, mask) in enumerate(
+            zip(trialStimStart, trialRespFrame, trialResponse, 
+                trialTargetFrames, trialRewardDir, trialMaskContrast)):
+        if target==0 and rew==0 and resp==-1:                      ### will mask Only have rewdir of 0 or nan?
             wheel = (np.cumsum(deltaWheel[start:end])[-1])
             if mask==0:             # nogos
                 ind[0].append(i)
@@ -54,6 +57,7 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
                 ind[1].append(i)
                 wheelMvmt[1].append((wheel/abs(wheel)).astype(int))
 
+# returns array of turning directions [-1,1, etc] for trial types and indices of those trials
     if returnArray==True:    
         return [wheelMvmt, ind]
 

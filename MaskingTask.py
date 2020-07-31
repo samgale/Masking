@@ -20,6 +20,8 @@ class MaskingTask(TaskControl):
         # parameters that can vary across trials are lists
         # only one of targetPos and targetOri can be len() > 1
         
+        self.equalSampling = False # equal sampling of trial conditions
+        
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probCatch = 0 # fraction of catch trials with no target and no reward
         self.probNoGo = 0 # fraction of trials with no target, rewarded for no movement of wheel
@@ -77,7 +79,10 @@ class MaskingTask(TaskControl):
         
         # opto params
         self.probOpto = 0 # fraction of trials with optogenetic stimulation
+        self.optoChanNames = ['left','right']
+        self.optoChan = [[0,1]] # list of lists of channels to activate
         self.optoAmp = 5 # V to led/laser driver
+        self.optoOffRamp = 0.1 # duration in sec of linear off ramp
         self.optoOnset = [0] # frames >=0 relative to target stimulus onset
         self.maxConsecutiveOptoTrials = 3
 
@@ -85,6 +90,7 @@ class MaskingTask(TaskControl):
     def setDefaultParams(self,name,taskVersion=None):
         if name == 'training1':
             # stim moves to reward automatically; wheel movement ignored
+            self.spacebarRewardsEnabled = False
             self.probGoRight = 0.5
             self.probCatch = 0
             self.probNoGo = 0
@@ -135,7 +141,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training2',taskVersion)
             self.wheelRewardDistance = 2.0
             self.quiescentFrames = 60
-            self.maxResponseWaitFrames = 1200 # manually adjust this 
+            self.maxResponseWaitFrames = 1200 # adjust this 
             self.useIncorrectNoise = True
             self.incorrectTimeoutFrames = 360
             self.incorrectTrialRepeats = 5 # will repeat for unanswered trials
@@ -160,7 +166,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training4',taskVersion)
             self.moveStim = False
             self.postRewardTargetFrames = 0
-            self.targetFrames = [24]
+            self.targetFrames = [24] # adjust this
             
         elif name == 'testing':
             self.setDefaultParams('training5',taskVersion)
@@ -175,7 +181,7 @@ class MaskingTask(TaskControl):
         
         elif name == 'target contrast':
             self.setDefaultParams('testing',taskVersion)
-            self.targetContrast = [0.2,0.4,0.6,0.8,1]
+            self.targetContrast = [0.2,0.4,0.6,1]
             
         elif name == 'masking':
             self.setDefaultParams('testing',taskVersion)
@@ -187,11 +193,17 @@ class MaskingTask(TaskControl):
             self.probMask = 0.6
             self.targetContrast = [0.5]
             
-        elif name == 'opto':
-            self.setDefaultParams('masking',taskVersion)
-            self.maskOnset = [2,4]
+        elif name == 'opto contrast':
+            self.setDefaultParams('target contrast',taskVersion)
             self.probOpto = 0.5
-            self.optoOnset = [0,4,8,12]
+            self.optoOnset = [0,6,8,10]
+            self.targetContrast = [0.4,1]
+            
+        elif name == 'opto masking':
+            self.setDefaultParams('masking',taskVersion)
+            self.probOpto = 0.5
+            self.optoOnset = [0,11,14]
+            self.maskOnset = [2,4]
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
@@ -321,55 +333,59 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
-                    showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
-                    maskCount = maskCount + 1 if showMask else 0
-                    if random.random() < max(self.probCatch,self.probNoGo) and consecutiveDir != 0:
-                        # only one of probCatch and probNoGo can be >0
-                        rewardDir = 0 if self.probNoGo > 0 else np.nan
-                        initTargetPos = (0,0)
-                        initTargetOri = 0
-                        targetContrast = 0
-                        targetFrames = 0
-                        maskOnset = 0
-                        if showMask:
-                            maskFrames = random.choice(self.maskFrames)
-                            maskContrast = random.choice(self.maskContrast)
-                        else:
-                            maskFrames = maskContrast = 0
+                    if self.equalSampling:
+                        pass
                     else:
-                        if showMask:
-                            maskOnset = random.choice(self.maskOnset)
-                            maskFrames = random.choice(self.maskFrames)
-                            maskContrast = random.choice(self.maskContrast)
-                        else:
-                            maskOnset = maskFrames = maskContrast = 0
-                        goRight = False if consecutiveDir == 1 else (True if consecutiveDir == -1 else random.random() < self.probGoRight)
-                        rewardDir = 1 if goRight else -1
-                        if len(targetPosPix) > 1:
-                            if goRight:
-                                initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] < 0])
+                        consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
+                        showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
+                        maskCount = maskCount + 1 if showMask else 0
+                        if random.random() < max(self.probCatch,self.probNoGo) and consecutiveDir != 0:
+                            # only one of probCatch and probNoGo can be >0
+                            rewardDir = 0 if self.probNoGo > 0 else np.nan
+                            initTargetPos = (0,0)
+                            initTargetOri = 0
+                            targetContrast = 0
+                            targetFrames = 0
+                            maskOnset = 0
+                            if showMask:
+                                maskFrames = random.choice(self.maskFrames)
+                                maskContrast = random.choice(self.maskContrast)
                             else:
-                                initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] > 0])
-                            initTargetOri = self.targetOri[0]
+                                maskFrames = maskContrast = 0
                         else:
-                            initTargetPos = targetPosPix[0]
-                            if (self.rotateTarget and goRight) or (not self.rotateTarget and not goRight):
-                                initTargetOri = random.choice([ori for ori in self.targetOri if ori < 0])
+                            if showMask:
+                                maskOnset = random.choice(self.maskOnset)
+                                maskFrames = random.choice(self.maskFrames)
+                                maskContrast = random.choice(self.maskContrast)
                             else:
-                                initTargetOri = random.choice([ori for ori in self.targetOri if ori > 0])
-                        if self.varyMaskedTargetParams or not showMask:
-                            targetContrast = random.choice(self.targetContrast)
-                            targetFrames = random.choice(self.targetFrames)
+                                maskOnset = maskFrames = maskContrast = 0
+                            goRight = False if consecutiveDir == 1 else (True if consecutiveDir == -1 else random.random() < self.probGoRight)
+                            rewardDir = 1 if goRight else -1
+                            if len(targetPosPix) > 1:
+                                if goRight:
+                                    initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] < 0])
+                                else:
+                                    initTargetPos = random.choice([pos for pos in targetPosPix if pos[0] > 0])
+                                initTargetOri = self.targetOri[0]
+                            else:
+                                initTargetPos = targetPosPix[0]
+                                if (self.rotateTarget and goRight) or (not self.rotateTarget and not goRight):
+                                    initTargetOri = random.choice([ori for ori in self.targetOri if ori < 0])
+                                else:
+                                    initTargetOri = random.choice([ori for ori in self.targetOri if ori > 0])
+                            if self.varyMaskedTargetParams or not showMask:
+                                targetContrast = random.choice(self.targetContrast)
+                                targetFrames = random.choice(self.targetFrames)
+                            else:
+                                targetContrast = self.targetContrast[0]
+                                targetFrames = self.targetFrames[0]
+                        if len(self.trialResponse)>0 and optoCount < self.maxConsecutiveOptoTrials and random.random() < self.probOpto:
+                            optoChan = random.choice(self.optoChan)
+                            optoOnset = random.choice(self.optoOnset)
+                            optoCount += 1
                         else:
-                            targetContrast = self.targetContrast[0]
-                            targetFrames = self.targetFrames[0]
-                    if len(self.trialResponse)>0 and optoCount < self.maxConsecutiveOptoTrials and random.random() < self.probOpto:
-                        optoOnset = random.choice(self.optoOnset)
-                        optoCount += 1
-                    else:
-                        optoOnset = np.nan
-                        optoCount = 0
+                            optoOnset = np.nan
+                            optoCount = 0
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
@@ -402,7 +418,7 @@ class MaskingTask(TaskControl):
                     self.trialPreStimFrames[-1] += randomExponential(self.preStimFramesFixed,self.preStimFramesVariableMean,self.preStimFramesMax)
                     quiescentWheelMove = 0
             
-            # if gray screen period is complete, update target and mask stimuli
+            # if gray screen period is complete but before response
             if not hasResponded and self._trialFrame >= self.trialPreStimFrames[-1]:
                 if self._trialFrame == self.trialPreStimFrames[-1]:
                     self.trialStimStartFrame.append(self._sessionFrame)
@@ -458,8 +474,9 @@ class MaskingTask(TaskControl):
                     elif self._trialFrame < self.trialPreStimFrames[-1] + targetFrames:
                         target.draw()
                 
+                # turn on opto
                 if self._trialFrame == self.trialPreStimFrames[-1] + optoOnset:
-                    self._opto = {'amp': self.optoAmp, 'lastVal': self.optoAmp}
+                    self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'lastVal': self.optoAmp}
                     
                 # define response if wheel moved past threshold (either side) or max trial duration reached
                 # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
@@ -503,9 +520,10 @@ class MaskingTask(TaskControl):
                     self.trialResponseFrame.append(self._sessionFrame)
                     self.trialResponseDir.append(np.nan)
                     hasResponded = True
-
+            
+            # turn off opto
             if not np.isnan(optoOnset) and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
-                self._opto = {'amp': self.optoAmp, 'offRamp': 0.1}
+                self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'offRamp': self.optoOffRamp}
                 
             # show any post response stimuli or end trial
             if hasResponded:

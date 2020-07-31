@@ -55,6 +55,29 @@ def combine_dfs(dict1):
     return df
 
 
+def ignore_after(data, lim):
+    d = data
+    count = 0
+    for i, resp in enumerate(d['trialResponse'][:]):
+        if resp==0:
+            count+=1
+        elif resp==-1 or resp==1:
+            count=0
+        else:
+            count+=0
+        
+        if count == lim:
+            trialNum=i-lim
+            break
+        else:
+            trialNum=i
+            
+    startFrame = d['trialStartFrame'][trialNum]
+    
+    return trialNum, startFrame-1
+
+
+
 
 def create_df(data):   
     
@@ -63,7 +86,7 @@ def create_df(data):
     d = data
     mouse, date = str(d).split('_')[-3:-1]
         
-    trialResponse = d['trialResponse'][:]
+    trialResponse = d['trialResponse'][:-1]
     end = len(trialResponse)
     trialRewardDirection = d['trialRewardDir'][:end]
     trialTargetFrames = d['trialTargetFrames'][:end]
@@ -196,7 +219,7 @@ def create_df(data):
                     df.at[i, col] = turn
         
 # if using optogenetics       
-    if d['probOpto'][()]>0:
+    if 'probOpto' in d and d['probOpto'][()]>0:
         df['optoOnset'] = convert_to_ms(d['trialOptoOnset'][:len(df)])
 
         
@@ -242,7 +265,7 @@ def get_dates(dataframe):
             date = '-'.join([dates[0], dates[-1]])
         else:
             date = datetime.strptime(df.date, '%Y%m%d').strftime('%m/%d/%Y')
-    elif type(df) is str:
+    elif type(df) is str:   #i.e. not a dataframe, a file
         date = datetime.strptime(df, '%Y%m%d').strftime('%m/%d/%Y')
     else:
         print('Wrong Format for date')
@@ -305,6 +328,7 @@ def rxnTimes(data, dataframe):
         f = fi[fiInd:(fiInd+(len(wheel)-stimInd-postReward))]   #from stim start frame to len of maxTrial
         wheel *= wheelRadius  #(180/np.pi * wheelRadius)   # in frames 
         fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   
+
         xp = np.cumsum(f)    
         x = np.arange(0, xp[-1], .001)   # in ms 
         interp = np.interp(x,xp,fp)

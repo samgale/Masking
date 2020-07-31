@@ -109,6 +109,8 @@ class TaskControl():
                                   units='pix',
                                   color=self.monBackgroundColor)
         self._warper = Warper(self._win,warp=self.warp,warpfile=self.warpFile)
+        for _ in range(10):
+            self._win.flip()
         self._win.setRecordFrameIntervals(self.saveFrameIntervals)
         
         
@@ -144,25 +146,28 @@ class TaskControl():
     
     def showFrame(self):
         self._frameSignalOutput.write(True)
-        if self._tone:
-            self._toneOutput.write(True)
-        elif self._noise:
-            self._noiseOutput.write(True)
         
         # spacebar delivers reward
         # escape key ends session
         keys = event.getKeys()
-        if self.spacebarRewardsEnabled and 'space' in keys:
+        if self.spacebarRewardsEnabled and 'space' in keys and not self._reward:
             self._reward = True
             self.manualRewardFrames.append(self._sessionFrame)
         if 'escape' in keys:   
             self._continueSession = False
+            
+        if self._tone:
+            self._toneOutput.write(True)
+        elif self._noise:
+            self._noiseOutput.write(True)
         
         # show new frame
         if self.drawDiodeBox:
             self._diodeBox.fillColor = -self._diodeBox.fillColor
             self._diodeBox.draw()
         self._win.flip()
+        
+        self._frameSignalOutput.write(False)
         
         if self._opto:
             self.optoPulse(**self._opto)
@@ -182,8 +187,6 @@ class TaskControl():
             
         self._sessionFrame += 1
         self._trialFrame += 1
-        
-        self._frameSignalOutput.write(False)
                                                
     
     def completeSession(self):
@@ -237,11 +240,12 @@ class TaskControl():
         self._nidaqTasks.append(self._rewardOutput)
         
         # Dev2 analog outputs
-        # AO0: led/laser
+        # AO0: led1
+        # AO1: led2
         if len(self.nidaqDevices)>1:
             self._optoOutput = nidaqmx.Task()
-            self._optoOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[1]+'/ao0',min_val=0,max_val=5)
-            self._optoOutput.write(0)
+            self._optoOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[1]+'/ao0:1',min_val=0,max_val=5)
+            self._optoOutput.write([0,0])
             self._optoAmp = 0
             self._optoOutput.timing.cfg_samp_clk_timing(aoSampleRate)
             self._nidaqTasks.append(self._optoOutput)
@@ -319,29 +323,29 @@ class TaskControl():
         self._rewardOutput.write(self._rewardSignal,auto_start=True)
         
         
-    def optoOn(self,amp=5,ramp=0):
-        self.optoPulse(amp,onRamp=ramp,lastVal=amp)
+    def optoOn(self,ch=[0,1],amp=5,ramp=0):
+        self.optoPulse(ch,amp,onRamp=ramp,lastVal=amp)
     
     
-    def optoOff(self,ramp=0):
+    def optoOff(self,ch=[0,1],ramp=0):
         amp = self._optoAmp if ramp > 0 else 0 
-        self.optoPulse(amp,offRamp=ramp)
+        self.optoPulse(ch,amp,offRamp=ramp)
     
     
-    def optoPulse(self,amp=5,dur=0,onRamp=0,offRamp=0,lastVal=0):
+    def optoPulse(self,ch=[0,1],amp=5,dur=0,onRamp=0,offRamp=0,lastVal=0):
         sampleRate = self._optoOutput.timing.samp_clk_rate
         nSamples = int((dur + onRamp + offRamp) * sampleRate) + 1
         if nSamples < 2:
             nSamples = 2
-        pulse = np.zeros(nSamples)
-        pulse[:-1] = amp
-        pulse[-1] = lastVal
+        pulse = np.zeros((2,nSamples))
+        pulse[ch,:-1] = amp
+        pulse[ch,-1] = lastVal
         if onRamp > 0:
             ramp = np.linspace(0,amp,int(onRamp * sampleRate))
-            pulse[:ramp.size] = ramp
+            pulse[ch,:ramp.size] = ramp
         if offRamp > 0:
             ramp = np.linspace(amp,0,int(offRamp * sampleRate))
-            pulse[-(ramp.size+1):-1] = ramp
+            pulse[ch,-(ramp.size+1):-1] = ramp
         self._optoOutput.stop()
         self._optoOutput.timing.samp_quant_samp_per_chan = nSamples
         self._optoOutput.write(pulse,auto_start=True)
