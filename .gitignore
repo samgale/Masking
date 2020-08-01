@@ -1,3 +1,2 @@
 *.pyc
-__pycache__/
-analysis/__pychache__/
+**/__pycache__/
