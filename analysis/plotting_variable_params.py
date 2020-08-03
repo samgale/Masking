@@ -60,13 +60,16 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     if 'trialRepeat' in d.keys():
         prevTrialIncorrect = d['trialRepeat'][:end]  #recommended, since keeps track of how many repeats occurred 
     else:
-        prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))
+        if d['incorrectTrialRepeats'][()] > 0:
+            prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))
+        else:
+            prevTrialIncorrect = np.full(end, False)
+            
 
 
 # remove ignore trials
     ignore = ignore_trials(d) 
-    ignoring = np.empty(end)
-    ignoring.fill(0)
+    ignoring = np.full(end, 0)
     
     for i,_ in enumerate(ignoring):
         if i in ignore:
@@ -75,10 +78,10 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     trialResponse2 = trialResponse[ignoring==0]                    
     trialParam = trialParam[ignoring==0]
     trialRewardDirection = trialRewardDirection[ignoring==0]   
-        
+    prevTrialIncorrect = prevTrialIncorrect[ignoring==0]
 
 # ignore repeats AND catch trials (no target)   
-    trialResponse2 = trialResponse[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]                    
+    trialResponse2 = trialResponse2[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]                    
     trialParam = trialParam[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]
     trialRewardDirection = trialRewardDirection[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]      
 
