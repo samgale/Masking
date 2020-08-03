@@ -17,9 +17,7 @@ class MaskingTask(TaskControl):
     def __init__(self,rigName):
         TaskControl.__init__(self,rigName)
         
-        # parameters that can vary across trials are lists
-        # only one of targetPos and targetOri can be len() > 1
-        
+        self.equalSampling = False # equal sampling of trial parameter combinations
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probCatch = 0 # fraction of catch trials with no target and no reward
         self.probMask = 0 # fraction of trials with mask
@@ -57,6 +55,8 @@ class MaskingTask(TaskControl):
         self.postRewardTargetFrames = 1 # frames to freeze target after reward
         
         # target stimulus params
+        # only one of targetPos and targetOri can be len() > 1
+        # parameters that can vary across trials are lists
         self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [1] # duration of target stimulus
         self.targetContrast = [1]
@@ -88,6 +88,7 @@ class MaskingTask(TaskControl):
         if name == 'training1':
             # stim moves to reward automatically; wheel movement ignored
             self.spacebarRewardsEnabled = False
+            self.equalSampling = False
             self.probGoRight = 0.5
             self.probCatch = 0
             self.rewardCatchNogo = False
@@ -143,7 +144,7 @@ class MaskingTask(TaskControl):
             self.useIncorrectNoise = True
             self.incorrectTimeoutFrames = 360
             self.incorrectTrialRepeats = 5 # will repeat for unanswered trials
-            self.solenoidOpenTime = 0.08
+            self.solenoidOpenTime = 0.07
             self.probCatch = 0.15
             
         elif name == 'training4':
@@ -168,6 +169,8 @@ class MaskingTask(TaskControl):
             
         elif name == 'testing':
             self.setDefaultParams('training5',taskVersion)
+            self.equalSampling = True
+            self.probGoRight = 0.5
             self.useIncorrectNoise = False
             self.incorrectTimeoutFrames = 0
             self.incorrectTrialRepeats = 0 
@@ -176,10 +179,12 @@ class MaskingTask(TaskControl):
         elif name == 'target duration':
             self.setDefaultParams('testing',taskVersion)
             self.targetFrames = [1,2,4,12]
+            self.probCatch = 1 / (1 + len(self.targetFrames))
         
         elif name == 'target contrast':
             self.setDefaultParams('testing',taskVersion)
             self.targetContrast = [0.2,0.4,0.6,1]
+            self.probCatch = 1 / (1 + len(self.targetContrast))
             
         elif name == 'masking':
             self.setDefaultParams('testing',taskVersion)
@@ -190,18 +195,21 @@ class MaskingTask(TaskControl):
             self.maskOnset = [2,3,4,6,12]
             self.probMask = 0.6
             self.targetContrast = [0.4]
+            self.probCatch = 1 / (1 + len(self.maskOnset))
             
         elif name == 'opto contrast':
             self.setDefaultParams('target contrast',taskVersion)
             self.probOpto = 0.5
             self.optoOnset = [0,6,8,10]
             self.targetContrast = [0.4,1]
+            self.probCatch = 1 / (1 + len(self.targetContrast))
             
         elif name == 'opto masking':
             self.setDefaultParams('masking',taskVersion)
             self.probOpto = 0.5
             self.optoOnset = [0,11,14]
             self.maskOnset = [2,4]
+            self.probCatch = 1 / (1 + len(self.maskOnset))
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
@@ -285,6 +293,92 @@ class MaskingTask(TaskControl):
                                    lineColor=0.5,
                                    fillColor=0.5)
                                    for pos in targetPosPix]
+        
+        # define parameters for each trial type
+        if len(targetPosPix) > 1:
+            goRightPos = [pos for pos in targetPosPix if pos[0] < 0]
+            goLeftPos = [pos for pos in targetPosPix if pos[0] > 0]
+            goRightOri = goLeftOri = [self.targetOri[0]]
+        else:
+            goRightPos = goLeftPos = [targetPosPix[0]]
+            goRightOri = [ori for ori in self.targetOri if ori < 0]
+            goLeftOri = [ori for ori in self.targetOri if ori > 0]
+            if not self.rotateTarget:
+                goRightOri,goLeftOri = goLeftOri,goRightOri
+                
+        trialParams = {}
+        rd = 0 if self.rewardCatchNogo > 0 else np.nan
+        trialParams['catch']['params'] = list(itertools.product(rd,
+                                             [0,0],     # pos
+                                             [0],       # ori
+                                             [0],       # target contrast
+                                             [0],       # target frames
+                                             [0],       # mask onset
+                                             [0],       # mask frames
+                                             [0],       # mask contrast
+                                             [np.nan],  # opto chan
+                                             [np.nan],  # opto onset
+                                            ))
+        trialParams['catch']['count'] = 0
+        
+        if self.probMask > 0:
+            trialParams['maskOnly']['params'] = list(itertools.product(rd,
+                                              [0,0],
+                                              [0],
+                                              [0],
+                                              [0],
+                                              [0],
+                                              self.maskFrames,
+                                              self.maskContrast,
+                                              [np.nan],
+                                              [np.nan],
+                                              ))
+            trialParams['maskOnly']['params'] = 0
+        
+        for side,rd,pos,ori in zip(('GoLeft','GoRight'),(-1,1),(goLeftPos,goRightPos),(goLeftPos,goRightPos)):
+            trialParams['mask'+side]['params'] = list(itertools.product(rd,
+                                                pos,
+                                                ori,
+                                                self.targetContrast,
+                                                self.targetFrames,
+                                                [0],
+                                                [0],
+                                                [0],
+                                                [np.nan],
+                                                [np.nan],
+                                                ))
+            trialParams['mask'+side]['count'] = 0
+        
+        if self.probMask > 0:
+            for side,rd,pos,ori in zip(('GoLeft','GoRight'),(-1,1),(goLeftPos,goRightPos),(goLeftPos,goRightPos)):
+                trialParams['mask'+side]['params'] = list(itertools.product(rd,
+                                                    pos,
+                                                    ori,
+                                                    self.targetContrast,
+                                                    self.targetFrames,
+                                                    self.maskOnset,
+                                                    self.maskFrames,
+                                                    self.maskContrast,
+                                                    [np.nan],
+                                                    [np.nan],
+                                                    ))
+                trialParams['mask'+side]['count'] = 0
+        
+        if self.equalSampling and self.probGoRight==0.5:
+            trialParams['targetOnly']['params'] = trialParams['targetOnlyGoLeft'] + trialParams['targetOnlyGoRight']
+            trialParams['targetOnly']['count'] = 0
+            if self.probMask > 0:
+                trialParams['mask']['params'] = trialParams['maskGoLeft'] + trialParams['maskGoRight']
+                trialParams['mask']['count'] = 0
+        
+        for trialType in trialParams:
+            random.shuffle(trialParams[trialType]['params'])
+            
+        if self.probOpto > 0:
+            optoParams = list(itertools.product(self.optoChan,self.optoOnset))
+            for trialType in trialParams:
+                trialParams[trialType+'Opto']['params'] = random.shuffle([prm[:8] + op for prm in trialParams[trialType]['params'] for op in optoParams])
+                trialParams[trialType+'Opto']['count'] = 0
             
         # calculate pixels to move or degrees to rotate stimulus per radian of wheel movement
         rewardMove = self.rewardRotation if self.rotateTarget else self.monSizePix[0] * self.normRewardDistance
@@ -315,19 +409,7 @@ class MaskingTask(TaskControl):
         incorrectRepeatCount = 0
         maskCount = 0
         optoCount = 0
-        
-        # other stuff
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
-        if len(targetPosPix) > 1:
-            goRightPos = [pos for pos in targetPosPix if pos[0] < 0]
-            goLeftPos = [pos for pos in targetPosPix if pos[0] > 0]
-            goRightOri = goLeftOri = [self.targetOri[0]]
-        else:
-            goRightPos = goLeftPos = [targetPosPix[0]]
-            goRightOri = [ori for ori in self.targetOri if ori < 0]
-            goLeftOri = [ori for ori in self.targetOri if ori > 0]
-            if not self.rotateTarget:
-                goRightOri,goLeftOri = goLeftOri,goRightOri
         
         # run loop for each frame presented on the monitor
         while self._continueSession:
@@ -343,99 +425,26 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    if self.equalSampling:
-                        trialParams = {}
-                        trialParams['catch'] = list(itertools.product(
-                                                             [0,0], # pos
-                                                             [0],   # ori
-                                                             [0],   # target contrast
-                                                             [0],   # target frames
-                                                             [0],   # mask onset
-                                                             [0],   # mask frames
-                                                             [0],   # mask contrast
-                                                            ))
-                        
-                        trialParams['mask only'] = list(itertools.product(
-                                                          [0,0],
-                                                          [0],
-                                                          [0],
-                                                          [0],
-                                                          [0],
-                                                          self.maskFrames,
-                                                          self.maskContrast,
-                                                          )) if self.probMask > 0 else []
-                        
-                        
-                        for side,pos,ori in zip(('go left','go right'),(goLeftPos,goRightPos),(goLeftPos,goRightPos)):
-                            trialParams['target only '+side] = list(itertools.product(
-                                                                pos,
-                                                                ori,
-                                                                self.targetContrast,
-                                                                self.targetFrames,
-                                                                [0],
-                                                                [0],
-                                                                [0],
-                                                                ))
-                        
-                        for side,pos,ori in zip(('go left','go right'),(goLeftPos,goRightPos),(goLeftPos,goRightPos)):
-                            trialParams['mask '+side] = list(itertools.product(
-                                                                pos,
-                                                                ori,
-                                                                self.targetContrast,
-                                                                self.targetFrames,
-                                                                self.maskOnset,
-                                                                self.maskFrames,
-                                                                self.maskContrast,
-                                                                ))
-                        
-                        for trialType in trialParams:
-                            random.shuffle(trialParams[trialType])
-                            
-                        if self.probOpto > 0:
-                            optoParams = list(itertools.product(self.optoChan,self.optoOnset))
-                            for trialType in trialParams:
-                                trialParams[trialType]['opto'] = random.shuffle([prm + op for prm in trialParams[trialType] for op in optoParams])
-                        
+                    consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
+                    showMask = True if random.random() < self.probMask and (self.equalSampling or maskCount < self.maxConsecutiveMaskTrials) else False
+                    maskCount = maskCount + 1 if showMask else 0
+                    if random.random() < self.probCatch and (self.equalSampling or consecutiveDir not in (0,np.nan)):
+                        trialType = 'maskOnly' if showMask else 'catch'
                     else:
-                        consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
-                        showMask = random.random() < self.probMask if len(self.trialResponse) > 0 and maskCount < self.maxConsecutiveMaskTrials else False
-                        maskCount = maskCount + 1 if showMask else 0
-                        if random.random() < self.probCatch and consecutiveDir != 0:
-                            rewardDir = 0 if self.rewardCatchNogo > 0 else np.nan
-                            initTargetPos = (0,0)
-                            initTargetOri = 0
-                            targetContrast = 0
-                            targetFrames = 0
-                            maskOnset = 0
-                            if showMask:
-                                maskFrames = random.choice(self.maskFrames)
-                                maskContrast = random.choice(self.maskContrast)
-                            else:
-                                maskFrames = maskContrast = 0
-                        else:
-                            if showMask:
-                                maskOnset = random.choice(self.maskOnset)
-                                maskFrames = random.choice(self.maskFrames)
-                                maskContrast = random.choice(self.maskContrast)
-                            else:
-                                maskOnset = maskFrames = maskContrast = 0
+                        trialType = 'mask' if showMask else 'targetOnly'
+                        if not (self.equalSampling and self.probGoRight==0.5):
                             goRight = False if consecutiveDir == 1 else (True if consecutiveDir == -1 else random.random() < self.probGoRight)
-                            rewardDir = 1 if goRight else -1
-                            if goRight:
-                                initTargetPos = random.choice(goRightPos)
-                                initTargetOri = random.choice(goRightOri)
-                            else:
-                                initTargetPos = random.choice(goLeftPos)
-                                initTargetOri = random.choice(goLeftOri)
-                            targetContrast = random.choice(self.targetContrast)
-                            targetFrames = random.choice(self.targetFrames)
-                        if len(self.trialResponse)>0 and optoCount < self.maxConsecutiveOptoTrials and random.random() < self.probOpto:
-                            optoChan = random.choice(self.optoChan)
-                            optoOnset = random.choice(self.optoOnset)
-                            optoCount += 1
-                        else:
-                            optoOnset = np.nan
-                            optoCount = 0
+                            trialType += 'GoRight' if goRight else 'GoLeft'
+                    if random.random() < self.probOpto and optoCount < self.maxConsecutiveOptoTrials:
+                        trialType += 'Opto'
+                        optoCount += 1
+                    else:
+                        optoCount = 0
+                    params,count = [trialParams[trialType][key] for key in ('params','count')]
+                    if count == len(params):
+                        random.shuffle(params)
+                        count = 0
+                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = params[count]
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
