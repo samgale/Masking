@@ -390,8 +390,8 @@ def rxnTimes(data, dataframe):
 
 ### ---- for ignoreTrials ----
     
-#for i in range(20):
-#    plt.figure()
+#for i in ignoreTrials:
+#    fig, ax = plt.subplots()
 #    plt.plot(interpWheel[i], color='k', alpha=.5)
 #    plt.suptitle(i)
 #    plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str))
@@ -400,5 +400,7 @@ def rxnTimes(data, dataframe):
 #    plt.vlines(significantMovement[i], -40, 40, ls='--', color='c', alpha=.4 , label='Q threshold')
 #    plt.vlines(outcomeTimes[i], -40, 40, ls='--', color='b', alpha=.3, label='Outcome Time')
 #    plt.vlines(df['trialLength_ms'][i], -50, 50, label='Trial Length')
+#    ax.set_xlim([0, closedLoop])
+#    ax.set_ylim([-6,6])
 #    plt.legend(loc='best')
 

@@ -41,7 +41,7 @@ def session_stats(d, ignoreNoRespAfter=None, returnAs='str_array'):    #returnAs
     totalTrials = notCatch
     
     rightTotal = df[(df['rewDir']==1) & (df['repeat']==False) & (df['catchTrial']==False)]  #ignored included
-    right = rightTotal[rightTotal['ignoreTrial']==False]
+    right = rightTotal[rightTotal['ignoreTrial']==False]   #ignore removed
     
     rightCorrect = len(right[right['resp']==1])
     rightIncorrect = len(right[right['resp']==-1])

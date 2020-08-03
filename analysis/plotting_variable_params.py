@@ -200,7 +200,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
              
                                 
             if showTrialN==True:
-                for x,Rtrials,Ltrials in zip(paramVals,denom[0], denom[1]):
+                for x,Ltrials,Rtrials in zip(paramVals,denom[0], denom[1]):   #deom[0]==L, denom[1]==R
                     for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
                         fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
         
