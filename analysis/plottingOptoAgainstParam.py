@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
+from ignoreTrials import ignore_trials
 from dataAnalysis import get_dates, import_data
 
 """ 
@@ -73,7 +74,17 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         
     param_num = len(np.unique(paramVals))
 
-
+    ignore = ignore_trials(d) 
+    ignoring = np.full(end, 0)
+    
+    for i,_ in enumerate(ignoring):
+        if i in ignore:
+            ignoring[i] = 1
+            
+    trialResponse = trialResponse[ignoring==0]                    
+    trialParam = trialParam[ignoring==0]
+    trialRewardDirection = trialRewardDirection[ignoring==0]   
+    trialOptoOnset = trialOptoOnset[ignoring==0]
 
     # each list is for an opto onset, and the values within are by paramValue  
     #  ex:  list1 = opto Onset 0, within are trials for each contrast level [0, .2, .4, 1]    
@@ -113,7 +124,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
     totalTrialsL = hitsL+missesL+noRespsL
     
 
-    trialTurn = d['trialResponseDir'][:]
+    trialTurn = d['trialResponseDir'][ignoring==0]
     for i, trial in enumerate(trialTurn):
         if ~np.isfinite(trial):
             trialTurn[i] = 0        # sam encoded these nan's as ints and they are a pain to deal with 
@@ -184,7 +195,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                
                 
                 for x,Rtrials,Ltrials in zip(paramVals,Rdenom[i], Ldenom[i]):
-                    for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
+                    for y,n,clr in zip((1.05,1.12),[Rtrials, Ltrials],'rb'):
                         fig.text(x,y,str(n),transform=axs[i, ind].transData,color=clr,fontsize=8,
                                  ha='center',va='bottom')
                                                 
@@ -418,7 +429,8 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         
         
         handles, labels = plt.gca().get_legend_handles_labels()
-        order = [i for i in reversed(range(0, opto_num))]   # get legend to put 100% contrast at top, catch at bottom
+        order = [i for i in reversed(range(0, param_num+1))]   # get legend to put 100% contrast at top, catch at bottom
+        order.insert(param_num, order.pop(0))
 
         plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
                    loc='best', fontsize='small')                    
