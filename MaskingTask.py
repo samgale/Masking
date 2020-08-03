@@ -308,8 +308,9 @@ class MaskingTask(TaskControl):
                 
         trialParams = {}
         rd = 0 if self.rewardCatchNogo > 0 else np.nan
-        trialParams['catch']['params'] = list(itertools.product(rd,
-                                             [0,0],     # pos
+        trialParams['catch'] = {}
+        trialParams['catch']['params'] = list(itertools.product([rd],
+                                             [(0,0)],     # pos
                                              [0],       # ori
                                              [0],       # target contrast
                                              [0],       # target frames
@@ -322,8 +323,9 @@ class MaskingTask(TaskControl):
         trialParams['catch']['count'] = 0
         
         if self.probMask > 0:
-            trialParams['maskOnly']['params'] = list(itertools.product(rd,
-                                              [0,0],
+            trialParams['maskOnly'] = {}
+            trialParams['maskOnly']['params'] = list(itertools.product([rd],
+                                              [(0,0)],
                                               [0],
                                               [0],
                                               [0],
@@ -333,10 +335,11 @@ class MaskingTask(TaskControl):
                                               [np.nan],
                                               [np.nan],
                                               ))
-            trialParams['maskOnly']['params'] = 0
+            trialParams['maskOnly']['count'] = 0
         
-        for side,rd,pos,ori in zip(('GoLeft','GoRight'),(-1,1),(goLeftPos,goRightPos),(goLeftPos,goRightPos)):
-            trialParams['mask'+side]['params'] = list(itertools.product(rd,
+        for side,rd,pos,ori in zip(('GoLeft','GoRight'),(-1,1),(goLeftPos,goRightPos),(goLeftOri,goRightOri)):
+            trialParams['targetOnly'+side] = {}
+            trialParams['targetOnly'+side]['params'] = list(itertools.product([rd],
                                                 pos,
                                                 ori,
                                                 self.targetContrast,
@@ -347,11 +350,12 @@ class MaskingTask(TaskControl):
                                                 [np.nan],
                                                 [np.nan],
                                                 ))
-            trialParams['mask'+side]['count'] = 0
+            trialParams['targetOnly'+side]['count'] = 0
         
         if self.probMask > 0:
-            for side,rd,pos,ori in zip(('GoLeft','GoRight'),(-1,1),(goLeftPos,goRightPos),(goLeftPos,goRightPos)):
-                trialParams['mask'+side]['params'] = list(itertools.product(rd,
+            for side,rd,pos,ori in zip(('GoLeft','GoRight'),(-1,1),(goLeftPos,goRightPos),(goLeftOri,goRightOri)):
+                trialParams['mask'+side] = {}
+                trialParams['mask'+side]['params'] = list(itertools.product([rd],
                                                     pos,
                                                     ori,
                                                     self.targetContrast,
@@ -365,19 +369,19 @@ class MaskingTask(TaskControl):
                 trialParams['mask'+side]['count'] = 0
         
         if self.equalSampling and self.probGoRight==0.5:
-            trialParams['targetOnly']['params'] = trialParams['targetOnlyGoLeft'] + trialParams['targetOnlyGoRight']
+            trialParams['targetOnly'] = {}
+            trialParams['targetOnly']['params'] = trialParams['targetOnlyGoLeft']['params'] + trialParams['targetOnlyGoRight']['params']
             trialParams['targetOnly']['count'] = 0
             if self.probMask > 0:
-                trialParams['mask']['params'] = trialParams['maskGoLeft'] + trialParams['maskGoRight']
+                trialParams['mask'] = {}
+                trialParams['mask']['params'] = trialParams['maskGoLeft']['params'] + trialParams['maskGoRight']['params']
                 trialParams['mask']['count'] = 0
-        
-        for trialType in trialParams:
-            random.shuffle(trialParams[trialType]['params'])
             
         if self.probOpto > 0:
             optoParams = list(itertools.product(self.optoChan,self.optoOnset))
-            for trialType in trialParams:
-                trialParams[trialType+'Opto']['params'] = random.shuffle([prm[:8] + op for prm in trialParams[trialType]['params'] for op in optoParams])
+            for trialType in list(trialParams.keys()):
+                trialParams[trialType+'Opto'] = {}
+                trialParams[trialType+'Opto']['params'] = [prm[:8] + op for prm in trialParams[trialType]['params'] for op in optoParams]
                 trialParams[trialType+'Opto']['count'] = 0
             
         # calculate pixels to move or degrees to rotate stimulus per radian of wheel movement
@@ -440,11 +444,11 @@ class MaskingTask(TaskControl):
                         optoCount += 1
                     else:
                         optoCount = 0
-                    params,count = [trialParams[trialType][key] for key in ('params','count')]
-                    if count == len(params):
-                        random.shuffle(params)
-                        count = 0
-                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = params[count]
+                    if trialParams[trialType]['count'] == len(trialParams[trialType]['params']):
+                        trialParams[trialType]['count'] = 0
+                    if trialParams[trialType]['count'] == 0:
+                        random.shuffle(trialParams[trialType]['params'])
+                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = trialParams[trialType]['params'][trialParams[trialType]['count']]
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
