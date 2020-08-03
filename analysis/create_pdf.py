@@ -207,7 +207,7 @@ def create_daily_summary(d):
                 qvioText.setLeading(12)
                 qvioText.setWordSpace(1) 
                 framerate = int(np.round(1/np.median(d['frameIntervals'][:])))
-                targetLen.textLine('Target Duration: ' + str(d['targetFrames'][0]*framerate) + ' ms')
+                targetLen.textLine('Target Duration: ' + str(np.round((d['targetFrames'][0]/framerate)*1000)) + ' ms')
                 c.drawText(targetLen)
                         
                 Image(dataDir + '/Other plots/other/' + mouse_id + 

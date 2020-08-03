@@ -277,7 +277,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
 
 # create combined average opto plot against contrast  ########################################################
 ## shades of blue
-                      
+    #for val in (optoOn, paramVals):                   
     for avgs, yLbl in zip([respAverages, correctAverages], ['Response Rate', 'Fraction Correct']):
     
         fig, ax = plt.subplots()
