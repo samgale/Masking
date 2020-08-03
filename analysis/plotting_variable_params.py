@@ -10,6 +10,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 from nogoData import nogo_turn
+from ignoreTrials import ignore_trials
 from dataAnalysis import ignore_after, get_dates
 
 
@@ -61,6 +62,20 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     else:
         prevTrialIncorrect = np.concatenate(([False],trialResponse[:-1]<1))
 
+
+# remove ignore trials
+    ignore = ignore_trials(d) 
+    ignoring = np.empty(end)
+    ignoring.fill(0)
+    
+    for i,_ in enumerate(ignoring):
+        if i in ignore:
+            ignoring[i] = 1
+            
+    trialResponse2 = trialResponse[ignoring==0]                    
+    trialParam = trialParam[ignoring==0]
+    trialRewardDirection = trialRewardDirection[ignoring==0]   
+        
 
 # ignore repeats AND catch trials (no target)   
     trialResponse2 = trialResponse[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]                    
