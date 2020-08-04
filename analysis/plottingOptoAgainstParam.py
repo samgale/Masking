@@ -360,8 +360,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         plt.subplots_adjust(top=(.9 - (.025*opto_num)), bottom=0.108, left=0.1, right=0.945, hspace=0.2, wspace=0.2)
 
         handles, labels = plt.gca().get_legend_handles_labels()
-        order = [i for i in range(0, len(optoOn))]   # get legend to put no opto at top
-        order.insert(0, order.pop(-1))
+        order = [i for i in reversed(range(0, len(optoOn)))]   # get legend to put no opto at top
         plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
                     loc='best', fontsize='small')                
 ## while I Think this makes sense (logically and visually), it doesn't match up with the order of the counts at the top
@@ -429,8 +428,9 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         
         
         handles, labels = plt.gca().get_legend_handles_labels()
-        order = [i for i in reversed(range(0, param_num+1))]   # get legend to put 100% contrast at top, catch at bottom
-        order.insert(param_num, order.pop(0))
+        order = [i for i in reversed(range(0, num))]   # get legend to put 100% contrast at top, catch at bottom
+        if yLbl=='Response Rate':
+            order.insert(num, order.pop(0))
 
         plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
                    loc='best', fontsize='small')                    

@@ -207,16 +207,16 @@ def create_df(data):
         #df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
 
 # if nogo trials
-    if d['probNoGo'][()]>0:
-        df['nogo'] = False
-        for i in nogos:
-            df.loc[i, 'nogo'] = True
-            df.loc[i, 'soa'] = -maskOnset[0]  # this helps for summary stats
-        df['nogoMove'] = fill()
-
-        for col in 'noGoMove':
-                for (i,turn) in zip(inds[0], turns[0]):
-                    df.at[i, col] = turn
+#    if d['probNoGo'][()]>0:
+#        df['nogo'] = False
+#        for i in nogos:
+#            df.loc[i, 'nogo'] = True
+#            df.loc[i, 'soa'] = -maskOnset[0]  # this helps for summary stats
+#        df['nogoMove'] = fill()
+#
+#        for col in 'noGoMove':
+#                for (i,turn) in zip(inds[0], turns[0]):
+#                    df.at[i, col] = turn
         
 # if using optogenetics       
     if 'probOpto' in d and d['probOpto'][()]>0:
