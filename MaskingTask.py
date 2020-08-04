@@ -21,9 +21,9 @@ class MaskingTask(TaskControl):
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probCatch = 0 # fraction of catch trials with no target and no reward
         self.probMask = 0 # fraction of trials with mask
-        self.maxConsecutiveSameDir = 3
-        self.maxConsecutiveMaskTrials = 3
-        self.maxConsecutiveOptoTrials = 3
+        self.maxConsecutiveSameDir = 4
+        self.maxConsecutiveMaskTrials = 4
+        self.maxConsecutiveOptoTrials = 4
         
         self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution

@@ -347,6 +347,8 @@ optoOnset = behavData['trialOptoOnset'][:ntrials]
 rewardDir = behavData['trialRewardDir'][:ntrials]
 resp = behavData['trialResponse'][:ntrials]
 
+behavData.close()
+
 goLeft = rewardDir==-1
 goRight = rewardDir==1
 catch = np.isnan(rewardDir)
