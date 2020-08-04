@@ -402,7 +402,7 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for side,clr,lbl in zip((np.nan,-1,1),'kbr',('no move','move left','move right')):
+for side,clr,lbl in zip((np.nan,-1,1),'kbr',('no response','move left','move right')):
     n = []
     y = []
     for opto in (noOpto,optoLeft,optoRight,optoBoth):
