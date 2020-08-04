@@ -346,6 +346,7 @@ optoChan = behavData['trialOptoChan'][:ntrials]
 optoOnset = behavData['trialOptoOnset'][:ntrials]
 rewardDir = behavData['trialRewardDir'][:ntrials]
 resp = behavData['trialResponse'][:ntrials]
+respDir = behavData['trialResponseDir'][:ntrials]
 
 behavData.close()
 
@@ -357,13 +358,38 @@ optoLeft = optoChan[:,0] & ~optoChan[:,1]
 optoRight = ~optoChan[:,0] & optoChan[:,1]
 optoBoth = optoChan[:,0] & optoChan[:,1]
 
-totalTrials = 0
-for trials,trialLabel in zip((catch,goLeft,goRight),('catch','go left','go right')):
-    for opto,optoLabel in zip((noOpto,optoLeft,optoRight,optoBoth),('no opto','opto left','opto right','opto both')):
-        n = np.sum(trials & opto)
-        totalTrials += n
-        print(trialLabel,optoLabel,n)
-        
+fig = plt.figure(figsize=(6,8))
+gs = matplotlib.gridspec.GridSpec(2,2)
+x = np.arange(4)
+for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
+    for i,ylbl in enumerate(('Response Rate','Fraction Correct')):
+        ax = fig.add_subplot(gs[i,j])
+        for trials,trialLabel,clr in zip((catch,goLeft,goRight),('catch','go left','go right'),'kbr'):
+            y = []
+            for opto in (noOpto,optoLeft,optoRight,optoBoth):
+                ind = trials & opto
+                if trialLabel != 'catch':
+                    ind = trials & opto & (targetContrast==contrast)
+                n = np.sum(ind)
+                r = respDir[ind]>0
+                if ylbl=='Response Rate':
+                    y.append(r.sum()/ind.sum())
+                else:
+                    y.append(np.sum(r & (resp[ind]==1))/r.sum())
+            ax.plot(x,y,clr,marker='o',mec=clr,mfc='none',label=trialLabel)
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        ax.set_xticks(x)
+        xticklabels = ('no\nopto','opto\nleft','opto\nright','opto\nboth') if i==1 else []
+        ax.set_xticklabels(xticklabels)
+        ax.set_xlim([-0.5,3.5])
+        ax.set_ylim([0,1])
+        if j==0:
+            ax.set_ylabel(ylbl)
+        if i==0 and j==1:
+            ax.legend()
+plt.tight_layout()       
 
 
   
