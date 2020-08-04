@@ -424,4 +424,5 @@ ax.set_xlim([-0.5,3.5])
 ax.set_ylim([0,1.05])
 ax.set_ylabel('Fraction of catch trials')
 ax.legend()
+fig.text(0.525,0.99,'Catch trial movements',va='top',ha='center')
 
