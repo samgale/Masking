@@ -402,24 +402,26 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ymax = 0.52
-for side,clr,lbl in zip((-1,1),'br',('move left','move right')):
+for side,clr,lbl in zip((np.nan,-1,1),'kbr',('no move','move left','move right')):
     n = []
     y = []
     for opto in (noOpto,optoLeft,optoRight,optoBoth):
         ind = catch & opto
         n.append(ind.sum())
-        y.append(np.sum(respDir[ind]==side)/n[-1])
-    ax.plot(x,y,clr,label=lbl)
+        if np.isnan(side):
+            y.append(np.sum(np.isnan(respDir[ind]))/n[-1])
+        else:
+            y.append(np.sum(respDir[ind]==side)/n[-1])
+    ax.plot(x,y,clr,marker='o',mec=clr,mfc='none',label=lbl)
 for tx,tn in zip(x,n):
-    fig.text(tx,ymax,str(tn),color='k',transform=ax.transData,va='bottom',ha='center',fontsize=8)
+    fig.text(tx,1.05,str(tn),color='k',transform=ax.transData,va='bottom',ha='center',fontsize=8)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
 ax.set_xticks(x)
 ax.set_xticklabels(('no\nopto','opto\nleft','opto\nright','opto\nboth'))
 ax.set_xlim([-0.5,3.5])
-ax.set_ylim([0,ymax])
+ax.set_ylim([0,1.05])
 ax.set_ylabel('Fraction of catch trials')
 ax.legend()
 
