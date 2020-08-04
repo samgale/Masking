@@ -77,7 +77,7 @@ class MaskingTask(TaskControl):
         # opto params
         self.probOpto = 0 # fraction of trials with optogenetic stimulation
         self.optoChanNames = ['left','right']
-        self.optoChan = [[True,True]] # list of len(optoChanNames) lists of channels to activate
+        self.optoChan = [(True,True)] # list of len(optoChanNames) lists of channels to activate
         self.optoAmp = 5 # V to led/laser driver
         self.optoOffRamp = 0.1 # duration in sec of linear off ramp
         self.optoOnset = [0] # frames >=0 relative to target stimulus onset
@@ -203,6 +203,11 @@ class MaskingTask(TaskControl):
             self.targetContrast = [0.4,1]
             self.probCatch = 1 / (1 + len(self.targetContrast))
             
+        elif name == 'opto unilateral':
+            self.setDefaultParams('opto contrast',taskVersion)
+            self.optoChan = [(True,True),(True,False),(False,True)]
+            self.optoOnset = [0]
+            
         elif name == 'opto masking':
             self.setDefaultParams('masking',taskVersion)
             self.probOpto = 0.5
@@ -308,16 +313,16 @@ class MaskingTask(TaskControl):
         trialParams = {}
         rd = 0 if self.rewardCatchNogo > 0 else np.nan
         trialParams['catch'] = {}
-        trialParams['catch']['params'] = list(itertools.product([rd],      # reward direction
-                                                                [(0,0)],   # pos
-                                                                [0],       # ori
-                                                                [0],       # target contrast
-                                                                [0],       # target frames
-                                                                [0],       # mask onset
-                                                                [0],       # mask frames
-                                                                [0],       # mask contrast
-                                                                [np.nan],  # opto chan
-                                                                [np.nan])) # opto onset
+        trialParams['catch']['params'] = [(rd,     # reward direction
+                                          (0,0),   # pos
+                                          0,       # ori
+                                          0,       # target contrast
+                                          0,       # target frames
+                                          0,       # mask onset
+                                          0,       # mask frames
+                                          0,       # mask contrast
+                                          (False,False),  # opto chan
+                                          np.nan)] # opto onset
         trialParams['catch']['count'] = 0
         
         if self.probMask > 0:
@@ -330,7 +335,7 @@ class MaskingTask(TaskControl):
                                                                        [0],
                                                                        self.maskFrames,
                                                                        self.maskContrast,
-                                                                       [np.nan],
+                                                                       [(False,False)],
                                                                        [np.nan]))
             trialParams['maskOnly']['count'] = 0
         
@@ -344,7 +349,7 @@ class MaskingTask(TaskControl):
                                                                               [0],
                                                                               [0],
                                                                               [0],
-                                                                              [np.nan],
+                                                                              [(False,False)],
                                                                               [np.nan]))
             trialParams['targetOnly'+side]['count'] = 0
         
@@ -359,7 +364,7 @@ class MaskingTask(TaskControl):
                                                                             self.maskOnset,
                                                                             self.maskFrames,
                                                                             self.maskContrast,
-                                                                            [np.nan],
+                                                                            [(False,False)],
                                                                             [np.nan]))
                 trialParams['mask'+side]['count'] = 0
         
@@ -442,11 +447,10 @@ class MaskingTask(TaskControl):
                         optoCount = 0
                     if trialParams[trialType]['count'] == len(trialParams[trialType]['params']):
                         trialParams[trialType]['count'] = 0
-                    else:
-                        trialParams[trialType]['count'] += 1
                     if trialParams[trialType]['count'] == 0:
                         random.shuffle(trialParams[trialType]['params'])
                     rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = trialParams[trialType]['params'][trialParams[trialType]['count']]
+                    trialParams[trialType]['count'] += 1
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
