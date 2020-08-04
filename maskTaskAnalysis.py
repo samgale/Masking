@@ -358,25 +358,31 @@ optoLeft = optoChan[:,0] & ~optoChan[:,1]
 optoRight = ~optoChan[:,0] & optoChan[:,1]
 optoBoth = optoChan[:,0] & optoChan[:,1]
 
-fig = plt.figure(figsize=(6,8))
+fig = plt.figure(figsize=(10,6))
 gs = matplotlib.gridspec.GridSpec(2,2)
 x = np.arange(4)
 for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
     for i,ylbl in enumerate(('Response Rate','Fraction Correct')):
         ax = fig.add_subplot(gs[i,j])
-        for trials,trialLabel,clr in zip((catch,goLeft,goRight),('catch','go left','go right'),'kbr'):
+        for trials,trialLabel,clr,ty in zip((catch,goLeft,goRight),('catch','stim right (go left)','stim left (go right)'),'kbr',(1.05,1.1,1.15)):
             y = []
+            n = []
             for opto in (noOpto,optoLeft,optoRight,optoBoth):
                 ind = trials & opto
                 if trialLabel != 'catch':
                     ind = trials & opto & (targetContrast==contrast)
-                n = np.sum(ind)
-                r = respDir[ind]>0
+                n.append(np.sum(ind))
+                r = ~np.isnan(respDir[ind])
                 if ylbl=='Response Rate':
-                    y.append(r.sum()/ind.sum())
+                    y.append(r.sum()/n[-1])
+                elif trialLabel=='catch':
+                    y.append(np.nan)
                 else:
                     y.append(np.sum(r & (resp[ind]==1))/r.sum())
             ax.plot(x,y,clr,marker='o',mec=clr,mfc='none',label=trialLabel)
+            if i==0:
+                for tx,tn in zip(x,n):
+                    fig.text(tx,ty,str(tn),color=clr,transform=ax.transData,va='bottom',ha='center',fontsize=8)
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
@@ -384,12 +390,14 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
         xticklabels = ('no\nopto','opto\nleft','opto\nright','opto\nboth') if i==1 else []
         ax.set_xticklabels(xticklabels)
         ax.set_xlim([-0.5,3.5])
-        ax.set_ylim([0,1])
+        ax.set_ylim([0,1.05])
         if j==0:
             ax.set_ylabel(ylbl)
-        if i==0 and j==1:
-            ax.legend()
-plt.tight_layout()       
+        if i==0:
+            tx = 0.3 if j==0 else 0.7
+            fig.text(tx,0.99,'contrast '+str(contrast),va='top',ha='center')
+        if i==1 and j==0:
+            ax.legend()      
 
 
   
