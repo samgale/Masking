@@ -430,7 +430,7 @@ class MaskingTask(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and (all(self.trialRewardDir[-self.maxConsecutiveSameDir:]==self.trialRewardDir[-1]) or all(np.isnan(self.trialRewardDir[-self.maxConsecutiveSameDir:]))) else None
+                    consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and (all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) or all(np.isnan(self.trialRewardDir[-self.maxConsecutiveSameDir:]))) else None
                     showMask = True if random.random() < self.probMask and maskCount < self.maxConsecutiveMaskTrials else False
                     maskCount = maskCount + 1 if showMask else 0
                     if random.random() < self.probCatch and consecutiveDir not in (0,np.nan):
