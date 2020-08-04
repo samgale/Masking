@@ -335,10 +335,35 @@ plt.tight_layout()
 
 
 
+# testing
+behavDataPath = fileIO.getFile('',fileType='*.hdf5')
+behavData = h5py.File(behavDataPath,'r')
 
+ntrials = behavData['trialEndFrame'].size
+trialType = behavData['trialType'][:ntrials]
+targetContrast = behavData['trialTargetContrast'][:ntrials]
+optoChan = behavData['trialOptoChan'][:ntrials]
+optoOnset = behavData['trialOptoOnset'][:ntrials]
+rewardDir = behavData['trialRewardDir'][:ntrials]
+resp = behavData['trialResponse'][:ntrials]
 
+behavData.close()
 
+goLeft = rewardDir==-1
+goRight = rewardDir==1
+catch = np.isnan(rewardDir)
+noOpto = np.isnan(optoOnset)
+optoLeft = optoChan[:,0] & ~optoChan[:,1]
+optoRight = ~optoChan[:,0] & optoChan[:,1]
+optoBoth = optoChan[:,0] & optoChan[:,1]
 
+totalTrials = 0
+for trials,trialLabel in zip((catch,goLeft,goRight),('catch','go left','go right')):
+    for opto,optoLabel in zip((noOpto,optoLeft,optoRight,optoBoth),('no opto','opto left','opto right','opto both')):
+        n = np.sum(trials & opto)
+        totalTrials += n
+        print(trialLabel,optoLabel,n)
+        
 
 
   
