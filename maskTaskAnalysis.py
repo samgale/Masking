@@ -335,6 +335,15 @@ plt.tight_layout()
 
 
 
+# testing
+behavDataPath = fileIO.getFile('',fileType='*.hdf5')
+behavData = h5py.File(behavDataPath,'r')
+
+ntrials = behavData['trialEndFrame'].size
+targetContrast = behavData['trialTargetContrast'][:ntrials]
+optoChan = behavData['trialOptoChan'][:ntrials]
+optoOnset = behavData['trialOptoOnset'][:ntrials]
+
 
 
 
