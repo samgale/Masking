@@ -23,6 +23,7 @@ class MaskingTask(TaskControl):
         self.probMask = 0 # fraction of trials with mask
         self.maxConsecutiveSameDir = 3
         self.maxConsecutiveMaskTrials = 3
+        self.maxConsecutiveOptoTrials = 3
         
         self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
@@ -81,7 +82,6 @@ class MaskingTask(TaskControl):
         self.optoAmp = 5 # V to led/laser driver
         self.optoOffRamp = 0.1 # duration in sec of linear off ramp
         self.optoOnset = [0] # frames >=0 relative to target stimulus onset
-        self.maxConsecutiveOptoTrials = 3
 
     
     def setDefaultParams(self,name,taskVersion=None):
@@ -311,7 +311,7 @@ class MaskingTask(TaskControl):
                 goRightOri,goLeftOri = goLeftOri,goRightOri
                 
         trialParams = {}
-        rd = 0 if self.rewardCatchNogo > 0 else np.nan
+        rd = 0 if self.rewardCatchNogo else np.nan
         trialParams['catch'] = {}
         trialParams['catch']['params'] = [(rd,     # reward direction
                                           (0,0),   # pos
@@ -431,9 +431,9 @@ class MaskingTask(TaskControl):
                 
                 if not self.trialRepeat[-1]:
                     consecutiveDir = self.trialRewardDir[-1] if len(self.trialRewardDir) >= self.maxConsecutiveSameDir and all(d==self.trialRewardDir[-1] for d in self.trialRewardDir[-self.maxConsecutiveSameDir:]) else None
-                    showMask = True if random.random() < self.probMask and (self.equalSampling or maskCount < self.maxConsecutiveMaskTrials) else False
+                    showMask = True if random.random() < self.probMask and maskCount < self.maxConsecutiveMaskTrials else False
                     maskCount = maskCount + 1 if showMask else 0
-                    if random.random() < self.probCatch and (self.equalSampling or consecutiveDir not in (0,np.nan)):
+                    if random.random() < self.probCatch and consecutiveDir not in (0,np.nan):
                         trialType = 'maskOnly' if showMask else 'catch'
                     else:
                         trialType = 'mask' if showMask else 'targetOnly'
@@ -445,11 +445,15 @@ class MaskingTask(TaskControl):
                         optoCount += 1
                     else:
                         optoCount = 0
-                    if trialParams[trialType]['count'] == len(trialParams[trialType]['params']):
-                        trialParams[trialType]['count'] = 0
-                    if trialParams[trialType]['count'] == 0:
-                        random.shuffle(trialParams[trialType]['params'])
-                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = trialParams[trialType]['params'][trialParams[trialType]['count']]
+                    if self.equalSampling:
+                        if trialParams[trialType]['count'] == len(trialParams[trialType]['params']):
+                            trialParams[trialType]['count'] = 0
+                        if trialParams[trialType]['count'] == 0:
+                            random.shuffle(trialParams[trialType]['params'])
+                        params = trialParams[trialType]['params'][trialParams[trialType]['count']]
+                    else:
+                        params = random.choice(trialParams[trialType]['params'])
+                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = params
                     trialParams[trialType]['count'] += 1
                 
                 targetPos = list(initTargetPos) # position of target on screen
