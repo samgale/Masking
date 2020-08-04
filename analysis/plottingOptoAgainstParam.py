@@ -63,6 +63,8 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         trialParam = d['trialTargetFrames'][:end]
     elif param == 'soa':
         trialParam = d['trialMaskOnset'][:end]
+    elif param == 'opto':
+        trialParam = d['trialOptoChan'][:end]  # unialteral opto silencing
         
 
 # list of unique paramter values, depending on what param was declared            
