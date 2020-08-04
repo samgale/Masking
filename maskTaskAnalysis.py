@@ -365,24 +365,25 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
     for i,ylbl in enumerate(('Response Rate','Fraction Correct')):
         ax = fig.add_subplot(gs[i,j])
         for trials,trialLabel,clr,ty in zip((catch,goLeft,goRight),('catch','stim right (go left)','stim left (go right)'),'kbr',(1.05,1.1,1.15)):
-            y = []
             n = []
+            y = []
             for opto in (noOpto,optoLeft,optoRight,optoBoth):
                 ind = trials & opto
                 if trialLabel != 'catch':
                     ind = trials & opto & (targetContrast==contrast)
-                n.append(np.sum(ind))
                 r = ~np.isnan(respDir[ind])
                 if ylbl=='Response Rate':
+                    n.append(np.sum(ind))
                     y.append(r.sum()/n[-1])
-                elif trialLabel=='catch':
-                    y.append(np.nan)
                 else:
-                    y.append(np.sum(r & (resp[ind]==1))/r.sum())
+                    n.append(r.sum())
+                    if trialLabel=='catch':
+                        y.append(np.nan)
+                    else:
+                        y.append(np.sum(r & (resp[ind]==1))/n[-1])
             ax.plot(x,y,clr,marker='o',mec=clr,mfc='none',label=trialLabel)
-            if i==0:
-                for tx,tn in zip(x,n):
-                    fig.text(tx,ty,str(tn),color=clr,transform=ax.transData,va='bottom',ha='center',fontsize=8)
+            for tx,tn in zip(x,n):
+                fig.text(tx,ty,str(tn),color=clr,transform=ax.transData,va='bottom',ha='center',fontsize=8)
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
@@ -399,6 +400,26 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
         if i==1 and j==0:
             ax.legend()      
 
-
-  
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ymax = 0.52
+for side,clr,lbl in zip((-1,1),'br',('move left','move right')):
+    n = []
+    y = []
+    for opto in (noOpto,optoLeft,optoRight,optoBoth):
+        ind = catch & opto
+        n.append(ind.sum())
+        y.append(np.sum(respDir[ind]==side)/n[-1])
+    ax.plot(x,y,clr,label=lbl)
+for tx,tn in zip(x,n):
+    fig.text(tx,ymax,str(tn),color='k',transform=ax.transData,va='bottom',ha='center',fontsize=8)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xticks(x)
+ax.set_xticklabels(('no\nopto','opto\nleft','opto\nright','opto\nboth'))
+ax.set_xlim([-0.5,3.5])
+ax.set_ylim([0,ymax])
+ax.set_ylabel('Fraction of catch trials')
+ax.legend()
 
