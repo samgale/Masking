@@ -200,7 +200,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('testing',taskVersion)
             self.probOpto = 0.5
             self.optoChan = [(True,True)]
-            self.optoOnset = [0,6,8,10]
+            self.optoOnset = [0,7,9,11]
             self.targetContrast = [0.4,1]
             self.probCatch = 1 / (1 + len(self.targetContrast))
             
@@ -213,7 +213,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('masking',taskVersion)
             self.probOpto = 0.5
             self.optoChan = [(True,True)]
-            self.optoOnset = [0,6,8,10]
+            self.optoOnset = [0,7,9,11]
             self.maskOnset = [2,4]
             self.probCatch = 1 / (1 + len(self.maskOnset))
             
