@@ -10,7 +10,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 from ignoreTrials import ignore_trials
-from dataAnalysis import get_dates, import_data
+from dataAnalysis import get_dates
 
 """ 
 After you get that working, the next thing is to take the combined right/left curve 
