@@ -173,6 +173,8 @@ def create_daily_summary(d):
 
 # complete page and break
     c.showPage()
+    
+    
 
 # if not a normal training day
     if d['moveStim'][()]==False:
