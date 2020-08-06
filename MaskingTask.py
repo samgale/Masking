@@ -191,14 +191,15 @@ class MaskingTask(TaskControl):
             self.maskShape = 'target'
             self.maskFrames = [24]
             self.maskContrast = [1]
-            self.maskOnset = [2,3,4,6,12]
+            self.maskOnset = [2,3,4,6]
             self.probMask = 0.6
             self.targetContrast = [0.4]
             self.probCatch = 1 / (1 + len(self.maskOnset))
             
         elif name == 'opto contrast':
-            self.setDefaultParams('target contrast',taskVersion)
+            self.setDefaultParams('testing',taskVersion)
             self.probOpto = 0.5
+            self.optoChan = [(True,True)]
             self.optoOnset = [0,6,8,10]
             self.targetContrast = [0.4,1]
             self.probCatch = 1 / (1 + len(self.targetContrast))
@@ -211,7 +212,8 @@ class MaskingTask(TaskControl):
         elif name == 'opto masking':
             self.setDefaultParams('masking',taskVersion)
             self.probOpto = 0.5
-            self.optoOnset = [0,11,14]
+            self.optoChan = [(True,True)]
+            self.optoOnset = [0,6,8,10]
             self.maskOnset = [2,4]
             self.probCatch = 1 / (1 + len(self.maskOnset))
             
@@ -451,10 +453,10 @@ class MaskingTask(TaskControl):
                         if trialParams[trialType]['count'] == 0:
                             random.shuffle(trialParams[trialType]['params'])
                         params = trialParams[trialType]['params'][trialParams[trialType]['count']]
+                        trialParams[trialType]['count'] += 1
                     else:
                         params = random.choice(trialParams[trialType]['params'])
                     rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = params
-                    trialParams[trialType]['count'] += 1
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
