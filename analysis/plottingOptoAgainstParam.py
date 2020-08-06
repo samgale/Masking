@@ -269,7 +269,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
                 if on == noOpto:
                     fig.suptitle(('(' + mouse + ',   ' + date + ')     ' + 'No opto'), fontsize=13)
                 else:
-                    fig.suptitle(('(' + mouse + ',   ' + date + ')    opto onset = ' + str(value)) + 'ms', fontsize=13)
+                    fig.suptitle(('(' + mouse + ',   ' + date + ')    opto onset = ' + str(value-17)) + 'ms', fontsize=13)  #to account for 17 ms latency
                  
                 xticks = paramVals
                 ax.set_xticks(xticks)
@@ -305,16 +305,18 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             if lbl==noOpto:
                 label = 'No Opto'
             else:
-                lbl_pre = (lbl/framerate) - ((1/framerate)*2)
+                print(lbl)
+                lbl_pre = (lbl/framerate) - np.round((1/framerate)*2, 3)
                 lbl = np.round(int((lbl_pre)*1000))
                 label = lbl.astype(str) +  ' ms onset'
+                print((lbl_pre, lbl, label))
             ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
         
         ## add catch trials        
         if yLbl == 'Response Rate':
             total = (totalTrialsR) + (totalTrialsL)
             for turn, cat, al, clr in zip(catchTurn, catchCounts, alphas, colors):
-                ax.plot(0, (turn/cat), 'o', alpha=al, color=clr)
+                ax.plot(paramVals[0]-.1, (turn/cat), 'o', alpha=al, color=clr)
         else:
             total = (hitsR + missesR) + (hitsL + missesL)
     
@@ -339,7 +341,8 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
         xticks = paramList
         
         if yLbl == 'Response Rate':
-            xticks = np.insert(xticks, 0, 0)
+            catch_xval = paramList[0]-.1
+            xticks = np.insert(xticks, 0, catch_xval)
             paramList.insert(0, 'Catch')
             
         ax.set_xticks(xticks)
@@ -349,7 +352,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             ax.set_xlim([0, paramVals[-1]+1])
         elif param=='targetContrast':
             if yLbl == 'Response Rate':
-                ax.set_xlim([(xticks[0]-.1), 1.1])   # includes catch value 
+                ax.set_xlim([(xticks[0]-.1), 1.05])   # includes catch value 
             else:
                 ax.set_xlim([paramVals[0]-.2, 1.05])  
         
