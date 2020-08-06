@@ -273,7 +273,15 @@ def create_daily_summary(d):
             Image(path +  '/' + mouse_id + ' combined opto response ' + date + '.png',
                   width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
             
+            Image(path +  '/' + mouse_id + ' combined opto correct ' + date + '.png',
+                        width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+            
+            c.showPage()
+            
             Image(path +  '/' + mouse_id + ' combined param response ' + date + '.png',
+                  width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
+            
+            Image(path +  '/' + mouse_id + ' combined param correct ' + date + '.png',
                         width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
             
             c.showPage()
