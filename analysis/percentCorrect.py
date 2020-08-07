@@ -62,10 +62,13 @@ def session_stats(d, ignoreNoRespAfter=None, returnAs='str_array'):    #returnAs
     usableTrialTotal = (len(left) + len(right))   # no ignores, repeats, or catch
     respTotal = usableTrialTotal - (rightNoResp + leftNoResp)
     totalCorrect = (rightCorrect + leftCorrect)
+    
+    respTime = d['maxResponseWaitFrames'][()]/framerate 
+    
  
     array = ['Wheel Reward Dist: ' + str(d['wheelRewardDistance'][()]),
              'Norm reward: ' + str(d['normRewardDistance'][()]),
-             'Max wait frames: ' + str(d['maxResponseWaitFrames'][()]),
+             'Response Window: ' + str(respTime) + ' sec',
              'Prob go right: ' + str(d['probGoRight'][()]),
              'Session duration (mins): ' + str(np.round(sessionDuration/framerate/60, 2)),
              ' ',

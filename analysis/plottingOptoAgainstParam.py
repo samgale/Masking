@@ -10,7 +10,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 from ignoreTrials import ignore_trials
-from dataAnalysis import get_dates, import_data
+from dataAnalysis import get_dates
 
 """ 
 After you get that working, the next thing is to take the combined right/left curve 
@@ -305,11 +305,9 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
             if lbl==noOpto:
                 label = 'No Opto'
             else:
-                print(lbl)
                 lbl_pre = (lbl/framerate) - np.round((1/framerate)*2, 3)
                 lbl = np.round(int((lbl_pre)*1000))
                 label = lbl.astype(str) +  ' ms onset'
-                print((lbl_pre, lbl, label))
             ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
         
         ## add catch trials        
