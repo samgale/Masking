@@ -173,7 +173,7 @@ def save_daily_plots(data):
         if not os.path.exists(path):
             os.mkdir(path)
         
-        plot_opto_vs_param(d, param, plotType='single')
+        plot_opto_vs_param(d, param, ignoreNoRespAfter=10, plotType='single')
 
         plt.savefig(path + '/' + mouse_id + ' combined param correct ' + date + '.png', dpi=300)
         plt.close()

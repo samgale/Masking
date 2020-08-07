@@ -10,7 +10,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 from ignoreTrials import ignore_trials
-from dataAnalysis import get_dates
+from dataAnalysis import get_dates, ignore_after
 
 """ 
 After you get that working, the next thing is to take the combined right/left curve 
@@ -21,7 +21,7 @@ Do this for both of the plots: fraction of trials with response and fraction cor
 """   
 
 
-def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
+def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  plotType = None ):
     
     '''
     plotting optogenetic onset to other variable parameter in session
@@ -44,9 +44,10 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
     framerate = int(np.round(1/np.median(fi)))
     
     
-    trialResponse = d['trialResponse'][:]
-    end = len(trialResponse)
+   
+    end = ignore_after(d, ignoreNoRespAfter)[0] if ignoreNoRespAfter is not None else len(d['trialResponse'][:])
     
+    trialResponse = d['trialResponse'][:end]
     trialRewardDirection = d['trialRewardDir'][:end]
     optoOnset = d['optoOnset'][:]   # original opto onsets 
     trialOptoOnset = d['trialOptoOnset'][:end]
@@ -77,6 +78,8 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
     param_num = len(np.unique(paramVals))
 
     ignore = ignore_trials(d) 
+    ignore = [i for i in ignore if i<end]
+    
     ignoring = np.full(end, 0)
     
     for i,_ in enumerate(ignoring):
@@ -126,7 +129,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', plotType = None ):
     totalTrialsL = hitsL+missesL+noRespsL
     
 
-    trialTurn = d['trialResponseDir'][ignoring==0]
+    trialTurn = d['trialResponseDir'][:end][ignoring==0]
     for i, trial in enumerate(trialTurn):
         if ~np.isfinite(trial):
             trialTurn[i] = 0        # sam encoded these nan's as ints and they are a pain to deal with 
