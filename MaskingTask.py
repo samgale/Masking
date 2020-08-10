@@ -165,7 +165,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training4',taskVersion)
             self.moveStim = False
             self.postRewardTargetFrames = 0
-            self.targetFrames = [24] # adjust this
+            self.targetFrames = [12] # adjust this
             
         elif name == 'testing':
             self.setDefaultParams('training5',taskVersion)
@@ -200,7 +200,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('testing',taskVersion)
             self.probOpto = 0.6
             self.optoChan = [(True,True)]
-            self.optoOnset = [0,6,8,10]
+            self.optoOnset = [2,4,6,8,10]
             self.targetContrast = [0.4,1]
             self.probCatch = 1 / (1 + len(self.targetContrast))
             
