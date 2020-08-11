@@ -80,6 +80,7 @@ vsync = syncData[:,channelNames=='vsync'][:,0]
 photodiode = syncData[:,channelNames=='photodiode'][:,0]
 led = syncData[:,channelNames=='led'][:,0]
 syncTime = np.arange(1/syncSampleRate,(syncData.shape[0]+1)/syncSampleRate,1/syncSampleRate)
+
 syncFile.close()
 
 frameSamples = np.array(findSignalEdges(vsync,edgeType='falling',thresh=-0.5,refractory=2))
@@ -103,11 +104,10 @@ targetFrames = behavData['trialTargetFrames'][:ntrials]
 maskFrames = behavData['trialMaskFrames'][:ntrials]
 maskOnset = behavData['trialMaskOnset'][:ntrials]
 
-optoOnsetToPlot = 0
-optoOnsetTime = optoOnsetToPlot/frameRate
-control = np.isnan(optoOnset)
+behavData.close()
+
+optoOnsetToPlot = 2
 opto = optoOnset==optoOnsetToPlot
-targetOnly = (targetFrames>0) & (maskFrames==0)
 
 
 fig = plt.figure()
