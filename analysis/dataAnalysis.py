@@ -21,7 +21,7 @@ from collections import defaultdict
 
 def import_data():
     f = fileIO.getFile(rootDir=r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking')
-    d = h5py.File(f)
+    d = h5py.File(f,'r')
     return d
 
 
