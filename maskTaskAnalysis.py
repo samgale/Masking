@@ -106,8 +106,13 @@ maskOnset = behavData['trialMaskOnset'][:ntrials]
 
 behavData.close()
 
-optoOnsetToPlot = 2
+optoOnsetToPlot = 0
 opto = optoOnset==optoOnsetToPlot
+
+stimDur = []
+for st in stimStart:
+    stimDur.append(psychopyFrameIntervals[st+1:st+3].sum())
+stimDur = np.array(stimDur)
 
 
 fig = plt.figure()
@@ -135,6 +140,7 @@ ax.plot(t,led[samples],color='b',label='led')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlim([-0.005,0.01])
 ax.set_xlabel('Time from trial start (s)')
 ax.legend()
 plt.tight_layout()
@@ -460,7 +466,29 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
                 ax.legend()
 
 
+# cam sync test
+syncPath = fileIO.getFile('Select sync file',fileType='*.hdf5')
+syncFile = h5py.File(syncPath,'r')
+syncData = syncFile['AnalogInput']
+syncSampleRate = syncData.attrs.get('sampleRate')
+channelNames = syncData.attrs.get('channelNames')
+cam1Saving = syncData[:,channelNames=='cam1Saving'][:,0]
+cam1Exposure = syncData[:,channelNames=='cam1Exposure'][:,0]
+syncFile.close()
 
+saveFrameSamples = np.array(findSignalEdges(cam1Saving,edgeType='rising',thresh=0.5,refractory=2))
+
+exposeFrameSamples = np.array(findSignalEdges(cam1Exposure,edgeType='rising',thresh=0.5,refractory=2))
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(cam1Saving,color='k',label='saving')
+ax.plot(cam1Exposure,color='0.5',label='exposure')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.legend()
+plt.tight_layout()
 
 
 
