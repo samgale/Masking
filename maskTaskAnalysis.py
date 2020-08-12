@@ -480,6 +480,8 @@ saveFrameSamples = np.array(findSignalEdges(cam1Saving,edgeType='rising',thresh=
 
 exposeFrameSamples = np.array(findSignalEdges(cam1Exposure,edgeType='rising',thresh=0.5,refractory=2))
 
+print(saveFrameSamples.size,exposeFrameSamples.size)
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(cam1Saving,color='k',label='saving')
