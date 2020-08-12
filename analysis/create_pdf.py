@@ -34,6 +34,7 @@ def create_daily_summary(d):
     fullDate = d['startTime'][()][:8]
     titleDate = datetime.strptime(fullDate, '%Y%m%d').strftime('%A %B %d, %Y')
     
+    subtitle = None
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
             subtitle = '- Target Duration exp -'
@@ -41,8 +42,6 @@ def create_daily_summary(d):
             subtitle = '- Target Contrast exp -'
         elif len(d['maskOnset'][:])>1:
             subtitle = '- Masking exp -'
-    else:
-        subtitle = None
     
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'Plots/') 
