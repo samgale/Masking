@@ -83,7 +83,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
 # ignore repeats AND catch trials (no target)   
     trialResponse2 = trialResponse2[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]                    
     trialParam = trialParam[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]
-    trialRewardDirection = trialRewardDirection[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]      
+    trialRewardDir = trialRewardDirection[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]      
 
 
 # for session with opotgenetics, selects only those trials with the optogenetics
@@ -106,12 +106,16 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     if param == 'soa':   
         noMaskVal = paramVals[-1] + round(np.mean(np.diff(paramVals)))  # assigns noMask condition an evenly-spaced value from soas
         paramVals = np.append(paramVals, noMaskVal)              # makes final value the no-mask condition
+        trialTargetFrames = d['trialTargetFrames'][:end]      
+        trialTargetFrames = trialTargetFrames[ignoring==0] 
+        trialTargetFrames = trialTargetFrames[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]
         
     # filters target-Only trials
-        for i, (mask, trial) in enumerate(zip(trialParam, 
-               d['trialTargetFrames'][:end][(prevTrialIncorrect==False) & (np.isfinite(d['trialRewardDir'][:]))])):    
+        for i, (mask, trial) in enumerate(zip(trialParam, trialTargetFrames)):    
             if trial>0 and mask==0:
                 trialParam[i]=noMaskVal
+                
+                #what about mask-only condition? -- trialParam of 0
  
 
     
@@ -121,7 +125,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     noResps = [[],[]]
     
     for i, direction in enumerate([-1,1]):
-        directionResponses = [trialResponse2[(trialRewardDirection==direction) & 
+        directionResponses = [trialResponse2[(trialRewardDir==direction) & 
                                              (trialParam == tf)] for tf in paramVals]
         hits[i].append([np.sum(drs==1) for drs in directionResponses])
         misses[i].append([np.sum(drs==-1) for drs in directionResponses])
@@ -133,7 +137,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     totalTrials = hits+misses+noResps
     
     
-    if 0 in trialRewardDirection:        # this already excludes repeats 
+    if 0 in trialRewardDir:        # this already excludes repeats 
     
         nogoTotal = len(trialParam[trialParam==0])
         nogoCorrect = len(trialResponse2[(trialResponse2==1) & (trialParam==0)])
@@ -180,8 +184,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                 x,lbl = ([0],['no\nopto'])
                 xticks = np.concatenate((x,xticks))
                 xticklabels = lbl+xticklabels
-                ax.xaxis.set_label_coords(0.5,-0.08)
-                
+                ax.xaxis.set_label_coords(0.5,-0.08)  
             elif param=='soa':
                 xlab = 'Mask Onset From Target Onset (ms)'
                 if title=='Response Rate':
@@ -191,7 +194,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                     ax.xaxis.set_label_coords(0.5,-0.08)
                 
             if title=='Response Rate':   #no go
-                if 0 in trialRewardDirection:
+                if 0 in trialRewardDir:
                     ax.plot(0, nogoCorrect/nogoTotal, 'ko', ms=8)
                     ax.plot(0, nogoR/nogoMove, 'r>', ms=8)  #plot the side that was turned in no-go with an arrow in that direction
                     ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
