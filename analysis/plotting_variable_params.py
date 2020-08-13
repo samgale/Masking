@@ -43,6 +43,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     trialRewardDirection = d['trialRewardDir'][:end]   
     fi = d['frameIntervals'][:]
     framerate = int(np.round(1/np.median(fi)))
+    trialType = d['trialType'][:end]
 
 
 # determine parameter to analyze    
@@ -79,11 +80,12 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     trialParam = trialParam[ignoring==0]
     trialRewardDirection = trialRewardDirection[ignoring==0]   
     prevTrialIncorrect = prevTrialIncorrect[ignoring==0]
+    trialType = trialType[ignoring==0]
 
-# ignore repeats AND catch trials (no target)   
-    trialResponse2 = trialResponse2[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]                    
-    trialParam = trialParam[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]
-    trialRewardDir = trialRewardDirection[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]      
+# ignore repeats AND catch trials (no target)
+    trialResponse2 = trialResponse2[(prevTrialIncorrect==False) & (trialType!='catch')]                    
+    trialParam = trialParam[(prevTrialIncorrect==False) & (trialType!='catch')]
+    trialRewardDir = trialRewardDirection[(prevTrialIncorrect==False) & (trialType!='catch')]      
 
 
 # for session with opotgenetics, selects only those trials with the optogenetics
@@ -103,16 +105,18 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
 
 
 #handling mask only vs no mask (both onset == 0)    
-    if param == 'soa':   
+    if param == 'soa':  
+        paramVals = paramVals[paramVals>0]
         noMaskVal = paramVals[-1] + round(np.mean(np.diff(paramVals)))  # assigns noMask condition an evenly-spaced value from soas
         paramVals = np.append(paramVals, noMaskVal)              # makes final value the no-mask condition
-        trialTargetFrames = d['trialTargetFrames'][:end]      
-        trialTargetFrames = trialTargetFrames[ignoring==0] 
-        trialTargetFrames = trialTargetFrames[(prevTrialIncorrect==False) & (np.isfinite(trialRewardDirection))]
+        
+        trialMaskFrames = d['trialMaskFrames'][:end][ignoring==0][prevTrialIncorrect==False]    
+        trialResponseDir = d['trialResponseDir'][:end][ignoring==0][prevTrialIncorrect==False]
+        trialMaskContrast = d['trialMaskContrast'][:end][ignoring==0][prevTrialIncorrect==False] 
         
     # filters target-Only trials
-        for i, (mask, trial) in enumerate(zip(trialParam, trialTargetFrames)):    
-            if trial>0 and mask==0:
+        for i, (mask, frames) in enumerate(zip(trialParam, trialMaskFrames)):    
+            if frames==0 and mask==0:
                 trialParam[i]=noMaskVal
                 
                 #what about mask-only condition? -- trialParam of 0
@@ -135,6 +139,23 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     misses = np.squeeze(np.array(misses))
     noResps = np.squeeze(np.array(noResps))
     totalTrials = hits+misses+noResps
+    
+    if param=='soa':
+        maskOnlyTotal = np.sum(trialType=='maskOnly')
+        maskOnly = [[], [], []]
+        for typ, resp, mask in zip(trialType, trialResponseDir, trialMaskFrames):
+            if typ == 'maskOnly' and mask>0:
+                if np.isfinite(resp):
+                    if resp==1:
+                        maskOnly[0].append(resp)
+                    elif resp==-1:
+                        maskOnly[1].append(resp)
+                else:
+                    maskOnly[2].append(1)
+                    
+        maskOnly[0] = np.sum(maskOnly[0])
+        maskOnly[1] = np.sum(maskOnly[1])*-1
+    
     
     
     if 0 in trialRewardDir:        # this already excludes repeats 
@@ -168,8 +189,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
             ax.plot(paramVals, num[0]/denom[0], 'bo-', lw=3, alpha=.7, label='Left turning')  #here [0] is right trials and [1] is left
             ax.plot(paramVals, num[1]/denom[1], 'ro-', lw=3, alpha=.7, label='Right turning')
             ax.plot(paramVals, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
-           
-
+            
                         
             xticks = paramVals
             xticklabels = list(paramVals)
@@ -186,12 +206,19 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                 xticklabels = lbl+xticklabels
                 ax.xaxis.set_label_coords(0.5,-0.08)  
             elif param=='soa':
+                xticklabels = [np.round(tick/framerate)*1000 for tick in xticklabels]
+                
                 xlab = 'Mask Onset From Target Onset (ms)'
-                if title=='Response Rate':
-                    x,lbl = ([0],['mask\nonly'])
-                    xticks = np.concatenate((x,xticks))
-                    xticklabels = lbl+xticklabels
-                    ax.xaxis.set_label_coords(0.5,-0.08)
+                lbl = ['mask\nonly', 'no mask']
+                del xticklabels[-1]
+                xticklabels.append(lbl[1])
+                if title=='Response Rate':  # show mask-only resps 
+                    xticks = np.insert(xticks, 0, 1)
+                    xticklabels = np.insert(xticklabels, 0, lbl[0])
+                    ax.plot(1, maskOnly[0]/maskOnlyTotal, 'ro')
+                    ax.plot(1, maskOnly[1]/maskOnlyTotal, 'bo')
+                    fig.text(1,1.05,str(maskOnlyTotal),transform=ax.transData,color='k',fontsize=10,ha='center',va='bottom')
+                ax.xaxis.set_label_coords(0.5,-0.08)
                 
             if title=='Response Rate':   #no go
                 if 0 in trialRewardDir:
@@ -217,6 +244,8 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                 ax.set_xlim([-5, paramVals[-1]+1])
             elif param=='targetContrast':
                 ax.set_xlim([0, 1.05])
+            elif param=='soa':
+                ax.set_xlim([0, max(paramVals)+1])
             else:
                 ax.set_xlim([-.5, max(paramVals)+1])
                 

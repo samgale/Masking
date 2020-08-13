@@ -17,6 +17,18 @@ from catchTrials import catch_trials
 import matplotlib.pyplot as plt
 
 
+
+
+d = import_data()
+save_daily_plots(d)
+create_daily_summary(d)
+d.close()
+
+
+
+
+
+
 # choose mouse file
 d = dataAnalysis.import_data()
 
