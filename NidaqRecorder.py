@@ -38,11 +38,10 @@ class NidaqRecorder():
         self.analogInputNames = ('vsync',
                                  'photodiode',
                                  'rotaryEncoder',
-                                 'cam1Saving',
-                                 'cam2Saving',
                                  'cam1Exposure',
                                  'cam2Exposure',
-                                 'led')
+                                 'led1',
+                                 'led2')
         self.analogInputSampleRate = 2000.0
         self.analogInputBufferSize = 500
         self.analogInputMin = -10.0
