@@ -190,18 +190,18 @@ class MaskingTask(TaskControl):
             self.maskType = 'plaid'
             self.maskShape = 'target'
             self.maskFrames = [24]
-            self.maskContrast = [1]
             self.maskOnset = [2,3,4,6]
-            self.probMask = 0.6
+            self.maskContrast = [0.4]
             self.targetContrast = [0.4]
+            self.probMask = 0.6
             self.probCatch = 1 / (1 + len(self.maskOnset))
             
         elif name == 'opto contrast':
             self.setDefaultParams('testing',taskVersion)
             self.probOpto = 0.6
             self.optoChan = [(True,True)]
-            self.optoOnset = [2,4,6,8,10]
-            self.targetContrast = [0.4,1]
+            self.optoOnset = [4,6,8,10,12]
+            self.targetContrast = [0.4]
             self.probCatch = 1 / (1 + len(self.targetContrast))
             
         elif name == 'opto unilateral':
@@ -213,8 +213,9 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('masking',taskVersion)
             self.probOpto = 0.6
             self.optoChan = [(True,True)]
-            self.optoOnset = [0,6,8,10]
-            self.maskOnset = [2,4]
+            self.optoOnset = [4,6,8,10,12]
+            self.maskOnset = [2]
+            self.probMask = 0.5
             self.probCatch = 1 / (1 + len(self.maskOnset))
             
         else:
