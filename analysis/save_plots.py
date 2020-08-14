@@ -153,7 +153,7 @@ def save_daily_plots(data):
             
             if d['probOpto'][()]==0:
 
-                performanceBySOA.plot_soa(d)   # creates 3 plots
+                plot_param(d, param='soa', ignoreNoRespAfter=10)   # creates 3 plots
         
                 plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
                             ' masking response rate ' + date + '.png', dpi=300, bbox_inches='tight')

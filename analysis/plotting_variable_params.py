@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from behaviorAnalysis import formatFigure
 from nogoData import nogo_turn
 from ignoreTrials import ignore_trials
-from dataAnalysis import ignore_after, get_dates
+from dataAnalysis import ignore_after, get_dates, import_data
 
 
 def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=None, returnArray=False):
@@ -110,9 +110,9 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         noMaskVal = paramVals[-1] + round(np.mean(np.diff(paramVals)))  # assigns noMask condition an evenly-spaced value from soas
         paramVals = np.append(paramVals, noMaskVal)              # makes final value the no-mask condition
         
-        trialMaskFrames = d['trialMaskFrames'][:end][ignoring==0][prevTrialIncorrect==False]    
-        trialResponseDir = d['trialResponseDir'][:end][ignoring==0][prevTrialIncorrect==False]
-        trialMaskContrast = d['trialMaskContrast'][:end][ignoring==0][prevTrialIncorrect==False] 
+        trialMaskFrames = d['trialMaskFrames'][:end][ignoring==0][(prevTrialIncorrect==False) & (trialType!='catch')]    
+        trialResponseDir = d['trialResponseDir'][:end][ignoring==0][(prevTrialIncorrect==False) & (trialType!='catch')] 
+        trialMaskContrast = d['trialMaskContrast'][:end][ignoring==0][(prevTrialIncorrect==False) & (trialType!='catch')] 
         
     # filters target-Only trials
         for i, (mask, frames) in enumerate(zip(trialParam, trialMaskFrames)):    
@@ -124,37 +124,38 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
 
     
 # separate trials into [[turn l] , [turn R]] and parameter value
-    hits = [[],[]]
-    misses = [[], []]
-    noResps = [[],[]]
-    
-    for i, direction in enumerate([-1,1]):
-        directionResponses = [trialResponse2[(trialRewardDir==direction) & 
-                                             (trialParam == tf)] for tf in paramVals]
-        hits[i].append([np.sum(drs==1) for drs in directionResponses])
-        misses[i].append([np.sum(drs==-1) for drs in directionResponses])
-        noResps[i].append([np.sum(drs==0) for drs in directionResponses])
-    
-    hits = np.squeeze(np.array(hits))
-    misses = np.squeeze(np.array(misses))
-    noResps = np.squeeze(np.array(noResps))
-    totalTrials = hits+misses+noResps
-    
-    if param=='soa':
-        maskOnlyTotal = np.sum(trialType=='maskOnly')
-        maskOnly = [[], [], []]
-        for typ, resp, mask in zip(trialType, trialResponseDir, trialMaskFrames):
-            if typ == 'maskOnly' and mask>0:
-                if np.isfinite(resp):
-                    if resp==1:
-                        maskOnly[0].append(resp)
-                    elif resp==-1:
-                        maskOnly[1].append(resp)
-                else:
-                    maskOnly[2].append(1)
-                    
-        maskOnly[0] = np.sum(maskOnly[0])
-        maskOnly[1] = np.sum(maskOnly[1])*-1
+     
+        hits = [[],[]]
+        misses = [[], []]
+        noResps = [[],[]]
+        
+        for i, direction in enumerate([-1,1]):
+            directionResponses = [trialResponse2[(trialRewardDir==direction) & (trialMaskContrast==1) &
+                                                 (trialParam == tf)] for tf in paramVals]
+            hits[i].append([np.sum(drs==1) for drs in directionResponses])
+            misses[i].append([np.sum(drs==-1) for drs in directionResponses])
+            noResps[i].append([np.sum(drs==0) for drs in directionResponses])
+        
+        hits = np.squeeze(np.array(hits))
+        misses = np.squeeze(np.array(misses))
+        noResps = np.squeeze(np.array(noResps))
+        totalTrials = hits+misses+noResps
+        
+        if param=='soa':
+            maskOnlyTotal = np.sum(trialType=='maskOnly')
+            maskOnly = [[], [], []]
+            for typ, resp, mask in zip(trialType, trialResponseDir, trialMaskContrast):
+                if typ == 'maskOnly' and mask==1:
+                    if np.isfinite(resp):
+                        if resp==1:
+                            maskOnly[0].append(resp)
+                        elif resp==-1:
+                            maskOnly[1].append(resp)
+                    else:
+                        maskOnly[2].append(1)
+                        
+            maskOnly[0] = np.sum(maskOnly[0])
+            maskOnly[1] = np.sum(maskOnly[1])*-1
     
     
     
@@ -206,7 +207,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                 xticklabels = lbl+xticklabels
                 ax.xaxis.set_label_coords(0.5,-0.08)  
             elif param=='soa':
-                xticklabels = [np.round(tick/framerate)*1000 for tick in xticklabels]
+                xticklabels = [int(np.round((tick/framerate)*1000)) for tick in xticklabels]
                 
                 xlab = 'Mask Onset From Target Onset (ms)'
                 lbl = ['mask\nonly', 'no mask']

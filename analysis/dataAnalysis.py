@@ -183,6 +183,9 @@ def create_df(data):
                       index=index, 
                       columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame', 'openLoopFrames'])
     
+    if 'trialType' in d.keys():
+        df['trialType'] = d['trialType'][:end] 
+
     df['trialLength_ms'] = convert_to_ms(trialLength)
     df['closedLoopFramesTotal'] = trialResponseFrame-trialStimStartFrame-trialOpenLoopFrames
     

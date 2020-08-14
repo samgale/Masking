@@ -33,7 +33,7 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
     closedLoop = d['openLoopFramesFixed'][()]
     framerate = df.framerate
     
-    catchTrials = df[df['rewDir'].isnull()==True]
+    catchTrials = df[df['trialType']=='catch'] if 'trialType' in d.keys() else df[df['rewDir'].isnull()==True]
     catch = list(catchTrials.index)
     catchMove = [i for i in catch if catchTrials.loc[i, 'trialLength_ms'] < np.max(catchTrials['trialLength_ms'])]
     
