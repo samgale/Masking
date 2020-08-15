@@ -223,7 +223,7 @@ def create_df(data):
         
 # if using optogenetics       
     if 'probOpto' in d and d['probOpto'][()]>0:
-        df['optoOnset'] = convert_to_ms(d['trialOptoOnset'][:len(df)])
+        df['optoOnset'] = d['trialOptoOnset'][:len(df)]
 
         
     df['repeat'] = repeats    
