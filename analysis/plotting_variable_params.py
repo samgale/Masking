@@ -125,37 +125,37 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     
 # separate trials into [[turn l] , [turn R]] and parameter value
      
-        hits = [[],[]]
-        misses = [[], []]
-        noResps = [[],[]]
+    hits = [[],[]]
+    misses = [[], []]
+    noResps = [[],[]]
+    
+    for i, direction in enumerate([-1,1]):
+        directionResponses = [trialResponse2[(trialRewardDir==direction) & 
+                                             (trialParam == tf)] for tf in paramVals]
+        hits[i].append([np.sum(drs==1) for drs in directionResponses])
+        misses[i].append([np.sum(drs==-1) for drs in directionResponses])
+        noResps[i].append([np.sum(drs==0) for drs in directionResponses])
+    
+    hits = np.squeeze(np.array(hits))
+    misses = np.squeeze(np.array(misses))
+    noResps = np.squeeze(np.array(noResps))
+    totalTrials = hits+misses+noResps
         
-        for i, direction in enumerate([-1,1]):
-            directionResponses = [trialResponse2[(trialRewardDir==direction) & (trialMaskContrast==1) &
-                                                 (trialParam == tf)] for tf in paramVals]
-            hits[i].append([np.sum(drs==1) for drs in directionResponses])
-            misses[i].append([np.sum(drs==-1) for drs in directionResponses])
-            noResps[i].append([np.sum(drs==0) for drs in directionResponses])
-        
-        hits = np.squeeze(np.array(hits))
-        misses = np.squeeze(np.array(misses))
-        noResps = np.squeeze(np.array(noResps))
-        totalTrials = hits+misses+noResps
-        
-        if param=='soa':
-            maskOnlyTotal = np.sum(trialType=='maskOnly')
-            maskOnly = [[], [], []]
-            for typ, resp, mask in zip(trialType, trialResponseDir, trialMaskContrast):
-                if typ == 'maskOnly' and mask==1:
-                    if np.isfinite(resp):
-                        if resp==1:
-                            maskOnly[0].append(resp)
-                        elif resp==-1:
-                            maskOnly[1].append(resp)
-                    else:
-                        maskOnly[2].append(1)
-                        
-            maskOnly[0] = np.sum(maskOnly[0])
-            maskOnly[1] = np.sum(maskOnly[1])*-1
+    if param=='soa':
+        maskOnlyTotal = np.sum(trialType=='maskOnly')
+        maskOnly = [[], [], []]
+        for typ, resp, mask in zip(trialType, trialResponseDir, trialMaskContrast):
+            if typ == 'maskOnly' and mask==1:
+                if np.isfinite(resp):
+                    if resp==1:
+                        maskOnly[0].append(resp)
+                    elif resp==-1:
+                        maskOnly[1].append(resp)
+                else:
+                    maskOnly[2].append(1)
+                    
+        maskOnly[0] = np.sum(maskOnly[0])
+        maskOnly[1] = np.sum(maskOnly[1])*-1
     
     
     

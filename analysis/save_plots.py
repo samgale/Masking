@@ -108,6 +108,7 @@ def save_daily_plots(data):
 
 ## additional plots 
     if d['moveStim'][()]==False:
+        
         if len(d['targetFrames'][:])>1:
             param = 'targetLength'
             
