@@ -33,7 +33,7 @@ def session_stats(d, ignoreNoRespAfter=None, returnAs='str_array'):    #returnAs
     
     sessionDuration = d['trialResponseFrame'][-1]   # in frames
     
-    catchTrials = df['catchTrial'].value_counts()[1]
+    catchTrials = df['catchTrial'].value_counts()[1] if d['probCatch'][()]>0 else 0
     notCatch = df['catchTrial'].value_counts()[0]
     
     assert (len(df) - catchTrials) == (notCatch), "catch trial issue"
