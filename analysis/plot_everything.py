@@ -17,7 +17,9 @@ from catchTrials import catch_trials
 import matplotlib.pyplot as plt
 
 
-
+from save_plots import save_daily_plots
+from create_pdf import create_daily_summary
+from dataAnalysis import import_data
 
 d = import_data()
 save_daily_plots(d)
