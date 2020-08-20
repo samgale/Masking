@@ -138,7 +138,7 @@ class MaskingTask(TaskControl):
         elif name == 'training3':
             # introduce quiescent period, shorter response window, incorrect penalty, and catch trials
             self.setDefaultParams('training2',taskVersion)
-            self.wheelRewardDistance = 2.0
+            self.wheelRewardDistance = 3.0
             self.quiescentFrames = 60
             self.maxResponseWaitFrames = 1200 # adjust this 
             self.useIncorrectNoise = True
@@ -154,6 +154,7 @@ class MaskingTask(TaskControl):
             self.incorrectTimeoutFrames = 720
             self.solenoidOpenTime = 0.05
             
+            
         elif name == 'nogo':
             self.setDefaultParams('training4',taskVersion)
             self.probCatch = 0.33
@@ -165,6 +166,7 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training4',taskVersion)
             self.moveStim = False
             self.postRewardTargetFrames = 0
+            
             self.targetFrames = [12] # adjust this
             
         elif name == 'testing':
