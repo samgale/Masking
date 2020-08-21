@@ -297,12 +297,3 @@ def create_daily_summary(d):
 # save 
     c.save()
 
-
-
-
-
-
-
-
-
-

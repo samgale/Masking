@@ -81,11 +81,13 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     trialRewardDirection = trialRewardDirection[ignoring==0]   
     prevTrialIncorrect = prevTrialIncorrect[ignoring==0]
     trialType = trialType[ignoring==0]
+    trialTargetContrast = d['trialTargetContrast'][:end][ignoring==0]
 
 # ignore repeats AND catch trials (no target)
     trialResponse2 = trialResponse2[(prevTrialIncorrect==False) & (trialType!='catch')]                    
     trialParam = trialParam[(prevTrialIncorrect==False) & (trialType!='catch')]
-    trialRewardDir = trialRewardDirection[(prevTrialIncorrect==False) & (trialType!='catch')]      
+    trialRewardDir = trialRewardDirection[(prevTrialIncorrect==False) & (trialType!='catch')]    
+    trialTargetContrast = trialTargetContrast[(prevTrialIncorrect==False) & (trialType!='catch')]
 
 
 # for session with opotgenetics, selects only those trials with the optogenetics
@@ -142,20 +144,21 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     totalTrials = hits+misses+noResps
         
     if param=='soa':
-        maskOnlyTotal = np.sum(trialType=='maskOnly')
+        maskOnlyTotal = np.sum(trialType=='maskOnly')  # ignores are already excluded
         maskOnly = [[], [], []]
         for typ, resp, mask in zip(trialType, trialResponseDir, trialMaskContrast):
-            if typ == 'maskOnly' and mask==1:
+            if typ == 'maskOnly' and mask>0:
                 if np.isfinite(resp):
                     if resp==1:
-                        maskOnly[0].append(resp)
+                        maskOnly[0].append(resp)   # turned right 
                     elif resp==-1:
-                        maskOnly[1].append(resp)
+                        maskOnly[1].append(resp)  # turned left
                 else:
-                    maskOnly[2].append(1)
+                    maskOnly[2].append(1)  # no response
                     
-        maskOnly[0] = np.sum(maskOnly[0])
-        maskOnly[1] = np.sum(maskOnly[1])*-1
+        maskOnly[0] = np.sum(maskOnly[0])  # turn R 
+        maskOnly[1] = np.sum(maskOnly[1])*-1  # turn L
+        maskOnly[2] = np.sum(maskOnly[2])  # no resp
     
     
     

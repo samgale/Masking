@@ -54,8 +54,8 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
     
     for i, trial in enumerate(trialOptoOnset):  # replace nans (no opto) with -1
         if ~np.isfinite(trial):
-             noOpto = optoOnset[-1] + np.median(np.round(np.diff(optoOnset)))
-             trialOptoOnset[i] = noOpto
+            noOpto = optoOnset[-1] + np.median(np.round(np.diff(optoOnset))) if len(optoOnset)>1 else optoOnset[0]+1
+            trialOptoOnset[i] = noOpto
 
 # select paramter to evaluate 
     if param == 'targetContrast':
@@ -313,11 +313,13 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
                 label = lbl.astype(str) +  ' ms onset'
             ax.plot(paramVals, resp, (color+'o-'),  lw=3, alpha=al, label=label)
         
+        catch_xval = paramVals[0]-.1
+        
         ## add catch trials        
         if yLbl == 'Response Rate':
             total = (totalTrialsR) + (totalTrialsL)
             for turn, cat, al, clr in zip(catchTurn, catchCounts, alphas, colors):
-                ax.plot(paramVals[0]-.1, (turn/cat), 'o', alpha=al, color=clr)
+                ax.plot(catch_xval, (turn/cat), 'o', alpha=al, color=clr)
         else:
             total = (hitsR + missesR) + (hitsL + missesL)
     
@@ -332,7 +334,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
                          ha='center',va='bottom')
         if yLbl=='Response Rate':
              for y, n, al, clr in zip(text_spacing, catchCounts, alphas, colors):
-                 fig.text(0, y, str(n), transform= ax.transData,  color=clr, alpha=al, fontsize=10, 
+                 fig.text(catch_xval, y, str(n), transform= ax.transData,  color=clr, alpha=al, fontsize=10, 
                           ha='center',va='bottom')
     
         
@@ -342,7 +344,6 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
         xticks = paramList
         
         if yLbl == 'Response Rate':
-            catch_xval = paramList[0]-.1
             xticks = np.insert(xticks, 0, catch_xval)
             paramList.insert(0, 'Catch')
             
