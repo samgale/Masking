@@ -239,7 +239,7 @@ ax.set_xlabel('Time from first frame (s)')
 ax.legend()
 plt.tight_layout()
 
-frameDisplayLag = 4
+frameDisplayLag = 2
 
 
 #
@@ -298,8 +298,8 @@ t -= preTime
 
 
 fig = plt.figure(figsize=(8,8))
-excit = sustainedOptoResp>0
-inhib = ((sustainedOptoResp<0) & (transientOptoResp<0))
+excit = sustainedOptoResp>0.5
+inhib = ((sustainedOptoResp<0.1) & (transientOptoResp<0.5))
 other = ~(excit | inhib)
 gs = matplotlib.gridspec.GridSpec(3,2)
 for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,other),('FS','RS','Excited','Inhibited','Other')):
@@ -308,7 +308,8 @@ for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,o
     ylim = plt.get(ax,'ylim')
     poly = np.array([(optoOnsetTime,0),(trialTime+0.1,0),(trialTime,ylim[1]),(optoOnsetTime,ylim[1])])
     ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
-    ax.text(1,1,lbl+' (n='+str(np.sum(ind))+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
+    n = str(np.sum(ind)) if j==0 else str(np.sum(ind & fs))+' FS, '+str(np.sum(ind & ~fs))+' RS'
+    ax.text(1,1,lbl+' (n = '+n+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
