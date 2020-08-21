@@ -239,7 +239,7 @@ ax.set_xlabel('Time from first frame (s)')
 ax.legend()
 plt.tight_layout()
 
-frameDisplayLag = 4
+frameDisplayLag = 2
 
 
 #
@@ -298,8 +298,8 @@ t -= preTime
 
 
 fig = plt.figure(figsize=(8,8))
-excit = sustainedOptoResp>0
-inhib = ((sustainedOptoResp<0) & (transientOptoResp<0))
+excit = sustainedOptoResp>0.5
+inhib = ((sustainedOptoResp<0.1) & (transientOptoResp<0.5))
 other = ~(excit | inhib)
 gs = matplotlib.gridspec.GridSpec(3,2)
 for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,other),('FS','RS','Excited','Inhibited','Other')):
@@ -308,7 +308,8 @@ for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,o
     ylim = plt.get(ax,'ylim')
     poly = np.array([(optoOnsetTime,0),(trialTime+0.1,0),(trialTime,ylim[1]),(optoOnsetTime,ylim[1])])
     ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
-    ax.text(1,1,lbl+' (n='+str(np.sum(ind))+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
+    n = str(np.sum(ind)) if j==0 else str(np.sum(ind & fs))+' FS, '+str(np.sum(ind & ~fs))+' RS'
+    ax.text(1,1,lbl+' (n = '+n+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
@@ -435,8 +436,8 @@ fig = plt.figure(figsize=(10,10))
 gs = matplotlib.gridspec.GridSpec(8,2)
 x = np.arange(4)
 for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
-    for i,(trials,trialLabel) in enumerate(zip((catch,goLeft,goRight),('No Stimulus','Right Stimulus','Left Stimulus'))):
-        if i>0 or j==0:
+    for i,(trials,trialLabel) in enumerate(zip((goLeft,goRight,catch),('Right Stimulus','Left Stimulus','No Stimulus'))):
+        if i<2 or j==0:
             ax = fig.add_subplot(gs[i*3:i*3+2,j])
             for resp,respLabel,clr,ty in zip((-1,1),('move left','move right'),'br',(1.05,1.1)):
                 n = []
@@ -448,22 +449,22 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
                     n.append(ind.sum())
                     y.append(np.sum(responseDir[ind]==resp)/n[-1])
                 ax.plot(x,y,clr,marker='o',mec=clr,mfc='none',label=respLabel)
-                for tx,tn in zip(x,n):
-                    fig.text(tx,ty,str(tn),color=clr,transform=ax.transData,va='bottom',ha='center',fontsize=8)
+            for tx,tn in zip(x,n):
+                fig.text(tx,ty,str(tn),color='k',transform=ax.transData,va='bottom',ha='center',fontsize=8)
             title = trialLabel if trialLabel=='No Stimulus' else trialLabel+', Contrast '+str(contrast)
             fig.text(1.5,1.25,title,transform=ax.transData,va='bottom',ha='center',fontsize=10)
             for side in ('right','top'):
                 ax.spines[side].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
             ax.set_xticks(x)
-            xticklabels = ('no\nopto','opto\nleft','opto\nright','opto\nboth') if i==2 else []
+            xticklabels = ('no\nopto','opto\nleft','opto\nright','opto\nboth')# if i==2 else []
             ax.set_xticklabels(xticklabels)
             ax.set_xlim([-0.5,3.5])
             ax.set_ylim([0,1.05])
             if j==0:
                 ax.set_ylabel('Fraction of trials')
             if i==0 and j==0:
-                ax.legend()
+                ax.legend(loc=(0.71,0.71))
 
 
 # cam sync test
