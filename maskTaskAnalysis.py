@@ -435,8 +435,8 @@ fig = plt.figure(figsize=(10,10))
 gs = matplotlib.gridspec.GridSpec(8,2)
 x = np.arange(4)
 for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
-    for i,(trials,trialLabel) in enumerate(zip((catch,goLeft,goRight),('No Stimulus','Right Stimulus','Left Stimulus'))):
-        if i>0 or j==0:
+    for i,(trials,trialLabel) in enumerate(zip((goLeft,goRight,catch),('Right Stimulus','Left Stimulus','No Stimulus'))):
+        if i<2 or j==0:
             ax = fig.add_subplot(gs[i*3:i*3+2,j])
             for resp,respLabel,clr,ty in zip((-1,1),('move left','move right'),'br',(1.05,1.1)):
                 n = []
@@ -456,14 +456,14 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
                 ax.spines[side].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
             ax.set_xticks(x)
-            xticklabels = ('no\nopto','opto\nleft','opto\nright','opto\nboth') if i==2 else []
+            xticklabels = ('no\nopto','opto\nleft','opto\nright','opto\nboth')# if i==2 else []
             ax.set_xticklabels(xticklabels)
             ax.set_xlim([-0.5,3.5])
             ax.set_ylim([0,1.05])
             if j==0:
                 ax.set_ylabel('Fraction of trials')
             if i==0 and j==0:
-                ax.legend()
+                ax.legend(loc=(0.71,0.71))
 
 
 # cam sync test
