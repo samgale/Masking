@@ -48,12 +48,13 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
     else:
         time = np.arange(xlim[1]*framerate)/framerate
     
-    ignored_counts = df['rewDir'].isnull().groupby(df['ignoreTrial']).sum()   #counting ignore trials for catch trials
+    ignored_counts = df['rewDir'].isnull().groupby(df['ignoreTrial']).sum()  #counting ignore trials for catch trials
+    print_ignore = ignored_counts[1] if ignored_counts[0]==True else 0  
 
     array = ['Prob catch trial: ' + str(d['probCatch'][()]),
              ' ',
              'Total catch: ' + str(len(catchTrials)),
-             'Ignored (early move): ' + str(int(ignored_counts[1])),
+             'Ignored (early move): ' + str(int(print_ignore)),
              'Turn R: ' + str(len([i for i in moveR if i not in ignore])),
              'Turn L: ' + str(len([j for j in moveL if j not in ignore])),
              'No response: ' + str(len([k for k in noRew if k not in ignore]))] 

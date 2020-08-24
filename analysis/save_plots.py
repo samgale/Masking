@@ -56,6 +56,7 @@ def save_daily_plots(data):
     
     
 # plots catch trial wheel traces 
+   
     catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False, ion=False) 
     
     plt.savefig(wheelDir+'/Catch/' + mouse_id + ' catch ' + date + '.png', dpi=300, bbox_inches='tight')
