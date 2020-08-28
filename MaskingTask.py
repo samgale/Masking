@@ -176,6 +176,7 @@ class MaskingTask(TaskControl):
             self.incorrectTimeoutFrames = 0
             self.incorrectTrialRepeats = 0 
             self.targetFrames = [2]
+            self.wheelRewardDistance = 2.0
             
         elif name == 'target duration':
             self.setDefaultParams('testing',taskVersion)
