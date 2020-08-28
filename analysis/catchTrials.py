@@ -21,7 +21,11 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
 ### figure out how to add ignoreNoRespAfter to work with this code
         
     df = create_df(d)
+    framerate = df.framerate
+    date = get_dates(df)
+    mouse = df.mouse
     
+    df = df[:-1]  # remove final trial
     monitorSize = d['monSizePix'][0] 
     normRewardDist = d['wheelRewardDistance'][()] if 'wheelRewardDistance' in d.keys() else d['normRewardDistance'][()]
 
@@ -31,7 +35,7 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
     maxResp = d['maxResponseWaitFrames'][()]
     trialResp = d['trialResponseDir'][:]
     closedLoop = d['openLoopFramesFixed'][()]
-    framerate = df.framerate
+   
     
     catchTrials = df[df['trialType']=='catch'] if 'trialType' in d.keys() else df[df['rewDir'].isnull()==True]
     catch = list(catchTrials.index)
@@ -85,8 +89,8 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
                pass
             
             elif i in catchMove and i not in ignore:   # moved past reward threshold within the trial time
-                ax.plot(time, wheel, c='c', alpha=.6, label="Reward Trial" if "Reward Trial"\
-                        not in plt.gca().get_legend_handles_labels()[1] else '')  
+                ax.plot(time, wheel, c='c', alpha=.6, 
+                        label="Reward Trial" if "Reward Trial" not in plt.gca().get_legend_handles_labels()[1] else '')  
                 
             else:   # no response trials
                 ax.plot(time, wheel, c='k', alpha=.2)
@@ -105,9 +109,9 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
         
         formatFigure(fig, ax, title="Catch Trial Wheel Traces", xLabel="Trial Length (s)", yLabel=ylabel) 
         
-        date = get_dates(df)
+       
         
-        plt.suptitle(df.mouse + '  ' + date)
+        plt.suptitle(mouse + '  ' + date)
         plt.legend(loc='best', fontsize='small', numpoints=1) 
         plt.tight_layout()
         plt.subplots_adjust(top=.9)
