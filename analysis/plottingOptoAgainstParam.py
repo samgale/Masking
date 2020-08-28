@@ -408,11 +408,9 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
             for y, n, al in zip(text_spacing[:param_num], trials, alphaLevels):
                 fig.text(x,y,str(n),transform=ax.transData, color='k', alpha=al, fontsize=10,
                          ha='center',va='bottom')
-                
-        
+
             
-            
-        formatFigure(fig, ax, xLabel='Optogenetic Onset (ms)', yLabel=yLbl)
+        formatFigure(fig, ax, xLabel='Optogenetic light onset relative to target onset (ms)', yLabel=yLbl)
         
         
         xlabls1 = [(on/framerate) - ((1/framerate)*2) for on in optoList]
