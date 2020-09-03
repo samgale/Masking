@@ -15,7 +15,6 @@ from catchTrials import catch_trials
 import matplotlib.pyplot as plt
 import os
 from plottingOptoAgainstParam import plot_opto_vs_param
-import numpy as np
 
 
 
