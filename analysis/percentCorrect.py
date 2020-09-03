@@ -33,7 +33,10 @@ def session_stats(d, ignoreNoRespAfter=None, returnAs='str_array'):    #returnAs
     
     sessionDuration = d['trialResponseFrame'][-1]   # in frames
     
-    catchTrials = df['catchTrial'].value_counts()[1] if d['probCatch'][()]>0 else 0
+    if d['probCatch'][()]>0:
+        catchTrials = df['catchTrial'].value_counts()[1] 
+    else:
+        catchTrials=0
     notCatch = df['catchTrial'].value_counts()[0]
     
     assert (len(df) - catchTrials) == (notCatch), "catch trial issue"
@@ -130,72 +133,6 @@ def session_stats(d, ignoreNoRespAfter=None, returnAs='str_array'):    #returnAs
             print(a)
         
         
-    
-    
-    
-    
-#######  make this a function? 
-#    
-#    if d['probNoGo'][()]>0 :
-#        no_goTotal = len(trialTargetFrames[trialTargetFrames==0])
-#        no_goCorrect = len(trialResponse[(trialResponse==1) & (trialTargetFrames==0)]) 
-#        print('No-go Correct:  ' + str(round(no_goCorrect/no_goTotal, 2)*100) + '% of ' + str(no_goTotal))
-#        
-#    #returns an array of values that show the direction turned for ALL no-go trials, then returns % per direction  
-#        no_goTurnDir = []
-#    
-#        stimStart = d['trialStimStartFrame'][:-1] 
-#                                                        # this accounts for those trials where the trial started then the session ended
-#        if len(stimStart)==len(prevTrialIncorrect):     # otherwise the arrays are different lengths and can't be indexed
-#            pass
-#        else:
-#            stimStart= d['trialStimStartFrame'][:]
-#            trialRespFrames = d['trialResponseFrame'][:]
-#            trialOpenLoop = d['trialOpenLoopFrames'][:len(stimStart)] 
-#            deltaWheel = d['deltaWheelPos'][:]
-#    
-#        if ignore.upper()== 'YES': 
-#           stimStart = stimStart[prevTrialIncorrect==False]
-#           trialRespFrames = trialRespFrames[prevTrialIncorrect==False]
-#           trialOpenLoop = trialOpenLoop[prevTrialIncorrect==False]
-#    
-#        stimStart = stimStart[trialTargetFrames==0]
-#        trialRespFrames = trialRespFrames[trialTargetFrames==0]
-#        trialOpenLoop = trialOpenLoop[trialTargetFrames==0]
-#        deltaWheel = d['deltaWheelPos'][:]
-#        no_goResp = trialResponse[trialTargetFrames==0]
-#        
-#        stimStart += trialOpenLoop
-#        
-#        startWheelPos = []
-#        endWheelPos = []
-#        
-#        for (start, end, resp) in zip(stimStart, trialRespFrames, no_goResp):
-#            if resp==-1:
-#                endWheelPos.append(deltaWheel[end])
-#                startWheelPos.append(deltaWheel[start])
-#            
-#        endWheelPos = np.array(endWheelPos)
-#        startWheelPos = np.array(startWheelPos)   
-#        wheelPos = endWheelPos - startWheelPos
-#        
-#        for i in wheelPos:
-#            if i >0:
-#                no_goTurnDir.append(1)
-#            else:
-#                no_goTurnDir.append(-1)
-#        
-#        no_goTurnDir = np.array(no_goTurnDir)
-#        print('no-go turn R:  ' + str(sum(no_goTurnDir==1)))
-#        print('no-go turn L:  ' + str(sum(no_goTurnDir==-1)))
-#    else:
-#        print('*There were no nogos')
-#        
-#########        
 
-    
-    
-
-    
     
     

@@ -384,9 +384,17 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
         optoList = list(map(int, optoOn))   
         
         for resp, al, lbl in zip(np.transpose(avgs), alphaLevels, paramVals):   #shades of gray
+            if pval=='SOA':
+                if lbl==0:
+                    label = 'Mask Only'
+                else:
+                    label = str(np.round((lbl/framerate)*1000)) + ' ms onset mask'
+            elif pval=='Target Contrast':
+                lbl = np.round(int(lbl*100))
+                label = lbl.astype(str) +  '% contrast'  # this only works with contrast....
+            elif pval=='Target Length':
+                label = str(np.round((lbl/framerate)*1000)) + ' ms target'
             
-            lbl = np.round(int(lbl*100))
-            label = lbl.astype(str) +  '% contrast'
             
             ax.plot(optoList, resp, 'ko-',  lw=3, alpha=al, label=label)
  
