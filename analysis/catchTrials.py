@@ -7,8 +7,8 @@ Created on Wed Jun 17 18:24:30 2020
 Process catch trials from df 
 """
 
-from dataAnalysis import create_df, get_dates
-from behaviorAnalysis import formatFigure
+from dataAnalysis import create_df, get_dates, ignore_after
+from behaviorAnalysis import formatFigure 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -25,9 +25,15 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
     date = get_dates(df)
     mouse = df.mouse
     
-    df = df[:-1]  # remove final trial
-    monitorSize = d['monSizePix'][0] 
-    normRewardDist = d['wheelRewardDistance'][()] if 'wheelRewardDistance' in d.keys() else d['normRewardDistance'][()]
+    if ignoreNoRespAfter is not None:
+        end = ignore_after(d, ignoreNoRespAfter)[0]
+        df = df[:end]
+    else:
+        df = df[:-1]  # remove final trial
+        
+        
+#    monitorSize = d['monSizePix'][0] 
+#    normRewardDist = d['wheelRewardDistance'][()] if 'wheelRewardDistance' in d.keys() else d['normRewardDistance'][()]
 
     ylabel = 'Wheel Distance Turned (mm)' if 'wheelRewardDistance' in d.keys() else 'Wheel Position'
     wheelRad = d['wheelRadius'][()]
@@ -99,8 +105,10 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
         ylim = ax.get_ylim() if ylim=='auto' else ylim
         
         
-        ax.vlines((closedLoop/framerate), ylim[0], ylim[1], ls='--', color='g', lw=3, label='Start Closed Loop')
-        ax.vlines((maxResp + closedLoop)/framerate, ylim[0], ylim[1], ls='--', color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
+        ax.vlines((closedLoop/framerate), ylim[0], ylim[1], ls='--', color='g', 
+                  lw=3, label='Start Closed Loop')
+        ax.vlines((maxResp + closedLoop)/framerate, ylim[0], ylim[1], ls='--', 
+                  color='b', alpha=.5, lw=2, label='Max Response Wait Frame')
     
         if xlim=='auto':
             ax.set_xlim(0, ((maxResp+(closedLoop*2))/framerate))
@@ -146,7 +154,8 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
             else:
                 ax.set_xlim(xlim[0], xlim[1])
             
-            formatFigure(fig, ax, title="Ignored Catch Trial Wheel Traces", xLabel="Trial Length (s)", yLabel=ylabel) 
+            formatFigure(fig, ax, title="Ignored Catch Trial Wheel Traces", 
+                         xLabel="Trial Length (s)", yLabel=ylabel) 
             
             plt.suptitle(df.mouse + '  ' + date)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
