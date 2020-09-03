@@ -48,7 +48,6 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
     catchMove = [i for i in catch if catchTrials.loc[i, 'trialLength_ms'] < np.max(catchTrials['trialLength_ms'])]
     
     noRew = [i for i in catch if i not in catchMove]
-    
     moveR = [i for i in catch if trialResp[i]==1]
     moveL = [i for i in catch if trialResp[i]==-1]
     ignore = [i for i in catch if df.loc[i, 'ignoreTrial']==True]
@@ -58,13 +57,13 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
     else:
         time = np.arange(xlim[1]*framerate)/framerate
     
-    ignored_counts = df['rewDir'].isnull().groupby(df['ignoreTrial']).sum()  #counting ignore trials for catch trials
-    print_ignore = ignored_counts[1] if ignored_counts[0]==True else 0  
+#    ignored_counts = df['rewDir'].isnull().groupby(df['ignoreTrial']).sum()  #counting ignore trials for catch trials
+#    print_ignore = ignored_counts[1] if ignored_counts[0]==True else 0  
 
     array = ['Prob catch trial: ' + str(d['probCatch'][()]),
              ' ',
-             'Total catch: ' + str(len(catchTrials)),
-             'Ignored (early move): ' + str(int(print_ignore)),
+             'Total catch: ' + str(len(catch)),
+             'Ignored (early move): ' + str(len(ignore)),
              'Turn R: ' + str(len([i for i in moveR if i not in ignore])),
              'Turn L: ' + str(len([j for j in moveL if j not in ignore])),
              'No response: ' + str(len([k for k in noRew if k not in ignore]))] 
