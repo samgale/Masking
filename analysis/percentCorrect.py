@@ -24,8 +24,8 @@ def session_stats(d, ignoreNoRespAfter=None, returnAs='str_array'):    #returnAs
     print(str(d) + '\n')
     
     df = create_df(d)
-    
-    framerate=df.framerate
+
+    framerate = df.framerate
     
     if ignoreNoRespAfter is not None:
         end = ignore_after(d, ignoreNoRespAfter)[0]
