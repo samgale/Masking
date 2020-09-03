@@ -30,9 +30,11 @@ def save_daily_plots(data):
     
     date = date if date[:2] in ['10','11','12'] else date[-4:]
     
-    ignoreNoResp = 10
+    ignoreNoResp = 10   # change this if necessary
     
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'
+#    directory = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice'
+
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'Plots') 
     wheelDir = os.path.join(dataDir, 'Wheel plots')
     

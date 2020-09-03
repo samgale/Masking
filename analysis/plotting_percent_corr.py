@@ -14,6 +14,7 @@ from behaviorAnalysis import formatFigure
 
 def get_files(mouse_id):
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking'
+#   directory = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice'
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'training_to_analyze')
     files = os.listdir(dataDir)
     files.sort(key=lambda f: datetime.datetime.strptime(f.split('_')[2],'%Y%m%d'))

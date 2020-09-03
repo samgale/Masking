@@ -21,6 +21,7 @@ from collections import defaultdict
 
 def import_data():
     f = fileIO.getFile(rootDir=r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking')
+#    f = fileIO.getFile(rootDir=r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice')
     d = h5py.File(f,'r')
     return d
 
