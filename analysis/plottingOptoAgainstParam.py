@@ -351,8 +351,9 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
         xticks = paramList
         
         if yLbl == 'Response Rate':
-            xticks = np.insert(xticks, 0, catch_xval)
-            paramList.insert(0, 'Catch')
+            xCatch = paramVals[0]-.5
+            xticks = np.insert(xticks, xCatch, catch_xval)
+            paramList.insert(xCatch, 'Catch')
             
         ax.set_xticks(xticks)
         ax.set_xticklabels(paramList)
