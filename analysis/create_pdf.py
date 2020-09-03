@@ -5,13 +5,9 @@ Created on Mon Jul 13 14:54:31 2020
 @author: chelsea.strawder
 """
 
-import performanceBySOA
-import plotting_variable_params
-import plottingOptoAgainstParam
 from qualityControl import check_qviolations
 from percentCorrect import session_stats
 from catchTrials import catch_trials
-import matplotlib.pyplot as plt
 import os
 import numpy as np
 import reportlab.platypus 
