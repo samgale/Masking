@@ -150,7 +150,7 @@ def save_daily_plots(data):
                 plt.close()
             
         
-        if len(d['maskOnset'][:])>1:
+        if len(d['maskOnset'][:])>1 or d['probMask'][()] > 0:
             param = 'soa'
             
             if d['probOpto'][()]==0:
