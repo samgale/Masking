@@ -39,7 +39,8 @@ def plot_session(data, ion=True, ignoreNoRespAfter=10):
     for i in range(len(df)) :
         if ~np.isfinite(df.loc[i, 'resp']):
             print(i)
-            df.loc[i, 'resp']=0
+            df.loc[i, 'resp']=0   # this helps with plotting cumsum
+            
     df['CumPercentCorrect'] = df['resp'].cumsum()
     
     endAnalysis = ignore_after(d, ignoreNoRespAfter)
