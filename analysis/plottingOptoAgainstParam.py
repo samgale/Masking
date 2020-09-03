@@ -51,6 +51,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
     trialRewardDirection = d['trialRewardDir'][:end]
     optoOnset = d['optoOnset'][:]   # original opto onsets 
     trialOptoOnset = d['trialOptoOnset'][:end]
+    trialType = d['trialType'][:end]
     
     for i, trial in enumerate(trialOptoOnset):  # replace nans (no opto) with -1
         if ~np.isfinite(trial):
@@ -71,7 +72,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
 # list of unique paramter values, depending on what param was declared            
     paramVals = np.unique(trialParam)    
     opto_num = len(np.unique(trialOptoOnset))
-    optoOn = np.unique(trialOptoOnset)   # opto onsets with no opto encoded as max(opto) + avg opto diff
+    optoOn = np.unique(trialOptoOnset)   # opto onsets with NoOpto encoded as max(opto) + avg opto diff
     if param == 'targetLength' or param == 'targetContrast':
         paramVals = paramVals[paramVals>0]
         
@@ -90,6 +91,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
     trialParam = trialParam[ignoring==0]
     trialRewardDirection = trialRewardDirection[ignoring==0]   
     trialOptoOnset = trialOptoOnset[ignoring==0]
+    trialType = trialType[ignoring==0]
 
     # each list is for an opto onset, and the values within are by paramValue  
     #  ex:  list1 = opto Onset 0, within are trials for each contrast level [0, .2, .4, 1]    
@@ -132,13 +134,14 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
     trialTurn = d['trialResponseDir'][:end][ignoring==0]
     for i, trial in enumerate(trialTurn):
         if ~np.isfinite(trial):
-            trialTurn[i] = 0        # sam encoded these nan's as ints and they are a pain to deal with 
+            trialTurn[i] = 0        # these are easier as 0s, rather than nans 
     
     catch = [[] for i in range(opto_num)]
     
     for i, o in enumerate(optoOn):
-        for trial, opto, turn in zip(trialParam, trialOptoOnset, trialTurn):
+        for trial, opto, turn, typ in zip(trialParam, trialOptoOnset, trialTurn, trialType):
             if trial==0 and opto==o:
+                if typ=='catch' or typ=='catchOpto':
                     catch[i].append(abs(int(turn)))  # this removes the side turned but I dont know how to handle better
                                  
     catchCounts = list(map(len, [c for c in catch]))
