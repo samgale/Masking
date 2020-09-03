@@ -30,6 +30,8 @@ def save_daily_plots(data):
     
     date = date if date[:2] in ['10','11','12'] else date[-4:]
     
+    ignoreNoResp = 10
+    
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'Plots') 
     wheelDir = os.path.join(dataDir, 'Wheel plots')
@@ -38,7 +40,7 @@ def save_daily_plots(data):
 # daily wheel plot
     behaviorAnalysis.makeWheelPlot(d, responseFilter=[-1,0,1], ignoreRepeats=True, 
                                    ion=False, framesToShowBeforeStart=0, mask=False, 
-                                   maskOnly=False, xlim='auto', ylim='auto', ignoreNoRespAfter=10)
+                                   maskOnly=False, xlim='auto', ylim='auto', ignoreNoRespAfter=ignoreNoResp)
     
     plt.savefig(wheelDir+'/Daily Wheel/' + mouse_id + ' ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -48,7 +50,7 @@ def save_daily_plots(data):
 # plot no response trials only (with repeats)
     behaviorAnalysis.makeWheelPlot(d, responseFilter=[0], ignoreRepeats=False, ion=False, 
                                    framesToShowBeforeStart=0, mask=False, maskOnly=False,  
-                                   xlim='auto', ylim=[-8,8], ignoreNoRespAfter=10 )
+                                   xlim='auto', ylim=[-8,8], ignoreNoRespAfter=ignoreNoResp )
         
     plt.savefig(wheelDir+'/No Resp Wheel/' + mouse_id + ' ' + date + ' no resp.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -65,7 +67,7 @@ def save_daily_plots(data):
     
     
 # plot activity over entire session, trial-by-trial - 1 plot
-    plot_session(d, ion=False, ignoreNoRespAfter=10)
+    plot_session(d, ion=False, ignoreNoRespAfter=ignoreNoResp)
     plt.savefig(dataDir + '/Session plots/' + mouse_id + ' session ' + date + '.png', dpi=300, bbox_inches='tight')
     plt.close()
     
@@ -115,7 +117,7 @@ def save_daily_plots(data):
             
             if d['probOpto'][()]==0:
             
-                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
+                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=ignoreNoResp)  # creates 3 plots
                 
                 plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
                             ' target duration response rate ' + date + '.png', dpi=300, bbox_inches='tight')
@@ -135,7 +137,7 @@ def save_daily_plots(data):
             
             if d['probOpto'][()]==0:
 
-                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=10)  # creates 3 plots
+                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=ignoreNoResp)  # creates 3 plots
                 
                 plt.savefig(dataDir + '/Other plots/other/' + mouse_id + 
                             ' target contrast response rate ' + date + '.png', dpi=300, bbox_inches='tight')
@@ -155,7 +157,7 @@ def save_daily_plots(data):
             
             if d['probOpto'][()]==0:
 
-                plot_param(d, param='soa', ignoreNoRespAfter=10)   # creates 3 plots
+                plot_param(d, param='soa', ignoreNoRespAfter=ignoreNoResp)   # creates 3 plots
         
                 plt.savefig(dataDir + '/Masking plots/' + mouse_id + 
                             ' masking response rate ' + date + '.png', dpi=300, bbox_inches='tight')
@@ -176,7 +178,7 @@ def save_daily_plots(data):
         if not os.path.exists(path):
             os.mkdir(path)
         
-        plot_opto_vs_param(d, param, ignoreNoRespAfter=10, plotType='single')
+        plot_opto_vs_param(d, param, ignoreNoRespAfter=ignoreNoResp, plotType='single')
 
         plt.savefig(path + '/' + mouse_id + ' combined param correct ' + date + '.png', dpi=300)
         plt.close()
