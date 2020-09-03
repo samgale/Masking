@@ -167,7 +167,10 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
     respAverages = []
     correctAverages = []
     
-    if plotType == 'single':    # subplots on single figure
+    
+    
+# subplots on single figure    
+    if plotType == 'single':    
     
         fig, axs = plt.subplots(opto_num, 2, sharex='col', sharey='row', facecolor='white',
                                 gridspec_kw={'hspace': .4, 'wspace': .1}, figsize=[8.5, 11])
@@ -233,8 +236,8 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
         plt.legend(loc='best', fontsize='small', numpoints=1) 
 
     
-    
-    else:  # plots (number of opto onsets) separate plots
+# plots (number of opto onsets) separate plots    
+    else:  
         
         for i, on in enumerate(optoOn):
             for Rnum, Lnum, Rdenom, Ldenom, title in zip([hitsR, hitsR+missesR], 
@@ -242,8 +245,6 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
                                                          [hitsR+missesR, totalTrialsR],
                                                          [hitsL+missesL, totalTrialsL],
                                                          ['Fraction Correct Given Response', 'Response Rate']):
-                
-                
                 
                 fig, ax = plt.subplots()
     
@@ -294,9 +295,12 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
                 plt.legend(loc='best', fontsize='small', numpoints=1) 
                 
 
-# create combined average opto plot against contrast  ########################################################
+
+## create combined average opto plot against specified paramVal  ########################################################
 ## shades of blue
-    #for val in (optoOn, paramVals):                   
+                
+                ## rethink these 2 plotting sequences below to be combined, since they share so many components
+
     for avgs, yLbl in zip([respAverages, correctAverages], ['Response Rate', 'Fraction Correct']):
     
         fig, ax = plt.subplots()
@@ -373,10 +377,9 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
         order = [i for i in reversed(range(0, len(optoOn)))]   # get legend to put no opto at top
         plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], 
                     loc='best', fontsize='small')                
-## while I Think this makes sense (logically and visually), it doesn't match up with the order of the counts at the top
 
     
-## plotting the combined contrast levels against the opto on the x-axis  ###################################################
+## plotting the combined param vals against the opto on the x-axis  ###################################################
 ## shades of black          
             
         fig, ax = plt.subplots()
@@ -391,20 +394,19 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
                     label = str(np.round((lbl/framerate)*1000)) + ' ms onset mask'
             elif pval=='Target Contrast':
                 lbl = np.round(int(lbl*100))
-                label = lbl.astype(str) +  '% contrast'  # this only works with contrast....
+                label = lbl.astype(str) +  '% contrast'  
             elif pval=='Target Length':
                 label = str(np.round((lbl/framerate)*1000)) + ' ms target'
-            
-            
+                
+         # plotting           
             ax.plot(optoList, resp, 'ko-',  lw=3, alpha=al, label=label)
  
-        
         
         text_spacing = [1.05]
         for _ in range(param_num):   #this is to allow catch counts to be at bottom
             text_spacing.append(np.round(text_spacing[-1]+.05,3))
             
-        if yLbl == 'Response Rate':  #addes count text for catch totals
+        if yLbl == 'Response Rate':  #adds count text for catch totals
             num = param_num + 1
             ax.plot(optoOn, (np.array(catchTurn)/np.array(catchCounts)), 'mo-', lw=3, alpha=.3, 
                     label = 'Catch Trials' if 'Catch Trials' not in plt.gca().get_legend_handles_labels()[1] else '')
@@ -415,7 +417,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
         else:
             num = param_num
         
-        for x,trials in zip(optoList, total):
+        for x,trials in zip(optoList, total):  # this total is called in plotting seq above
             for y, n, al in zip(text_spacing[:param_num], trials, alphaLevels):
                 fig.text(x,y,str(n),transform=ax.transData, color='k', alpha=al, fontsize=10,
                          ha='center',va='bottom')
@@ -434,7 +436,7 @@ def plot_opto_vs_param(data, param = 'targetContrast', ignoreNoRespAfter=None,  
         xlabls[-1] = 'No\nopto'
         ax.set_xticklabels(xlabls)
 
-        fig.suptitle('(' + mouse + ',   ' + date + ')      Combined Contrast vs Opto onset' , fontsize=13)
+        fig.suptitle('(' + mouse + ',   ' + date + ')      Combined' + pval + 'vs Opto onset' , fontsize=13)
            
         ax.set_ylim([0,1.05])
         ax.spines['right'].set_visible(False)
