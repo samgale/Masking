@@ -44,6 +44,7 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
    
     
     catchTrials = df[df['trialType']=='catch'] if 'trialType' in d.keys() else df[df['rewDir'].isnull()==True]
+    # this could include maskOnly if trialType doesn't work
     catch = list(catchTrials.index)
     catchMove = [i for i in catch if catchTrials.loc[i, 'trialLength_ms'] < np.max(catchTrials['trialLength_ms'])]
     
