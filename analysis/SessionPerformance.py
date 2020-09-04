@@ -38,13 +38,13 @@ def plot_session(data, ion=True, ignoreNoRespAfter=10):
     
     for i in range(len(df)) :
         if ~np.isfinite(df.loc[i, 'resp']):
-            print(i)
             df.loc[i, 'resp']=0   # this helps with plotting cumsum
             
     df['CumPercentCorrect'] = df['resp'].cumsum()
     
     endAnalysis = ignore_after(d, ignoreNoRespAfter)
     
+    df.index = df['respFrame']
     
     rightCorr = df[(df['resp']==1) & (df['rewDir']==1)]
     rightMiss = df[(df['resp']==-1) & (df['rewDir']==1)]
@@ -70,7 +70,6 @@ def plot_session(data, ion=True, ignoreNoRespAfter=10):
     ax.plot(catchTrials['CumPercentCorrect'], '|', color='k', ms=10)
     
     
-
 #    for mask,i,corr in zip(df['mask'], df.index, df['CumPercentCorrect']):
 #        if mask>0:
 #            print(mask, i, corr)
@@ -81,7 +80,7 @@ def plot_session(data, ion=True, ignoreNoRespAfter=10):
         plt.vlines(endAnalysis[1], ax.get_ylim()[0], ax.get_ylim()[1], 'k', ls='--', 
                    label='End Analysis' if 'End Analysis' not in plt.gca().get_legend_handles_labels()[1] else '')
             
-    plt.suptitle(mouse + date)
+    plt.suptitle(mouse + '    ' + date)
     plt.title('Choices over the Session')
     plt.ylabel('Cumulative Rewards')
     plt.xlabel('Time in session (min)')
@@ -90,8 +89,8 @@ def plot_session(data, ion=True, ignoreNoRespAfter=10):
     
     plt.legend(loc="best", fontsize='medium', numpoints=1)
     plt.tight_layout()
-    plt.subplots_adjust(top=0.91, bottom=0.1, left=0.075, right=0.985, hspace=0.2, wspace=0.2)
+    plt.subplots_adjust(top=0.91, bottom=0.09, left=0.075, right=0.985, hspace=0.2, wspace=0.2)
     ax.margins(x=0.01, y=.01)
+    
     labels = [str(np.round(int((ind/framerate)/60))) for ind in ax.get_xticks()]
     ax.set_xticklabels(labels)
-
