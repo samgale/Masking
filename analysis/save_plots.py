@@ -31,8 +31,7 @@ def save_daily_plots(data):
     
     ignoreNoResp = 10   # change this if necessary
     
-    directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'
-#    directory = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice'
+    directory = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice'
 
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'Plots') 
     wheelDir = os.path.join(dataDir, 'Wheel plots')

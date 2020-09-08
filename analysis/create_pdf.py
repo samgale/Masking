@@ -39,7 +39,7 @@ def create_daily_summary(d):
         elif len(d['maskOnset'][:])>1:
             subtitle = '- Masking exp -'
     
-    directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'
+    directory = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice'
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'Plots/') 
     
     outfileDir = ('/' + mouse_id + '/Daily Summary/')
