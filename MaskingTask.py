@@ -194,7 +194,7 @@ class MaskingTask(TaskControl):
             self.maskShape = 'target'
             self.maskFrames = [24]
             self.maskOnset = [2,3,4,6]
-            self.maskContrast = [0.4]
+            self.maskContrast = [1]
             self.targetContrast = [0.4]
             self.probMask = 0.6
             self.probCatch = 1 / (1 + len(self.maskOnset))
