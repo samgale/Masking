@@ -26,9 +26,8 @@ def plot_session(data, ion=True, ignoreNoRespAfter = None):
         plt.ioff()
     else:
         plt.ion()
-  
-    d = import_data()
-    
+      
+    d = data
     
     df = create_df(d)
     framerate = df.framerate
