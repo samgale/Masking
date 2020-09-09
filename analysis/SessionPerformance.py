@@ -13,7 +13,6 @@ from dataAnalysis import ignore_after, get_dates, create_df, import_data
 """
 plots the choices (in order) over the length of a session
 
-change this to create a df using dataAnalysis and the column of nogo turning?
 
 """
 
