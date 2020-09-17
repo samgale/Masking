@@ -15,6 +15,7 @@ from catchTrials import catch_trials
 import matplotlib.pyplot as plt
 import os
 from plottingOptoAgainstParam import plot_opto_vs_param
+from opto_masking import plot_opto_masking
 
 
 
@@ -178,7 +179,21 @@ def save_daily_plots(data):
         if not os.path.exists(path):
             os.mkdir(path)
         
-        plot_opto_vs_param(d, param, ignoreNoRespAfter=ignoreNoResp, plotType='single')
+        if param=='targetContrast' or param=='targetLength':
+            plot_opto_vs_param(d, param, ignoreNoRespAfter=ignoreNoResp, plotType='single')
+            file_names = [' combined param correct ', ' combined opto correct ', 
+                          ' combined param response ', ' combined opto response ']
+            
+        elif param=='soa':
+            plot_opto_masking(d)
+            
+        else:
+            param=='opto'
+            plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=None, returnArray=False)
+
+
+
+
 
         plt.savefig(path + '/' + mouse_id + ' combined param correct ' + date + '.png', dpi=300)
         plt.close()

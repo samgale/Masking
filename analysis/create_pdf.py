@@ -38,19 +38,20 @@ def create_daily_summary(d):
             subtitle = '- Target Contrast exp -'
         elif len(d['maskOnset'][:])>1:
             subtitle = '- Masking exp -'
+        elif len(d['optoOnset'][:])>1:
+            subtitle = '- Optogenetic exp -'
     
     directory = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice'
     dataDir = os.path.join(os.path.join(directory, mouse_id), 'Plots/') 
     
     outfileDir = ('/' + mouse_id + '/Daily Summary/')
     outfileName = (mouse_id + ' Daily Summary ' + date + '.pdf')
-#    outfileName= (mouse_id + ' testing ' + ' .pdf')
     outfilePath = os.path.join(outfileDir, outfileName)
     
-    c = canvas.Canvas(directory + outfilePath, pagesize=letter)
+    c = canvas.Canvas(directory + outfilePath, pagesize=letter)  # create the canvas 
 
 
-# page 1    
+## page 1    
 # insert "Daily Summary" at top bold, mouse id, and date
     if subtitle is None:
         loc1 = 2
@@ -79,7 +80,7 @@ def create_daily_summary(d):
     
 # insert textbox with daily summary to right of plot - use textObject 
 # set text origin 6.25 from left, .9 from top (inches)
-# use textLines and moveCursor
+
     sessionText = c.beginText()
     sessionText.setTextOrigin(6.2*inch, 9.8*inch)
     sessionText.setFont('Helvetica', 9)
@@ -101,7 +102,7 @@ def create_daily_summary(d):
  
     
     
-# page 2    
+## page 2    
 # insert catch trial wheel trace plot top left 
     Image(dataDir + '/Wheel Plots/Catch/' + mouse_id + ' catch ' + date + '.png',
                              width=6*inch, height=4.5*inch).drawOn(c, .2*inch, 6*inch)
@@ -126,7 +127,7 @@ def create_daily_summary(d):
     
     
     
-# page 3
+## page 3
 # insert frame dist plot in upper left 1/6 
     Image(dataDir + '/Other plots/frame dist/' + 'frame dist ' + date + '.png',
                              width=4*inch, height=3*inch).drawOn(c, .2*inch, 7.5*inch)
@@ -143,7 +144,7 @@ def create_daily_summary(d):
     
     
     
-# page 4    
+## page 4    
 # insert qVio sum plot top left 2/3s
     
     Image(dataDir + '/Other plots/quiescent violations/' + 'Qvio ' + date + '.png',
@@ -174,18 +175,18 @@ def create_daily_summary(d):
 # if not a normal training day
     if d['moveStim'][()]==False:
         
+## page 5
         
 # add flash plots         
         if len(d['targetFrames'][:])>1:
             
             param = 'targetLength'
+            
             if d['probOpto'][()]==0:
             
                 Image(dataDir + '/Other plots/other/' + mouse_id + 
                       ' target duration response rate ' + date + '.png', 
                       width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
-                
-                # add text for counts at each side and length
                 
                 Image(dataDir + '/Other plots/other/' + mouse_id + 
                       ' target duration correct given response ' + date + '.png', 
@@ -194,6 +195,7 @@ def create_daily_summary(d):
     
 # add target contrast plots     
         if len(d['targetContrast'][:])>1:
+            
             param = 'targetContrast'
             
             if d['probOpto'][()]==0:
@@ -210,8 +212,6 @@ def create_daily_summary(d):
                 Image(dataDir + '/Other plots/other/' + mouse_id + 
                       ' target contrast response rate ' + date + '.png', 
                       width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
-                
-                # add text for counts at each side and length
                 
                 Image(dataDir + '/Other plots/other/' + mouse_id + 
                       ' target contrast correct given response ' + date + '.png', 
@@ -236,10 +236,14 @@ def create_daily_summary(d):
             
     # complete page and break
             c.showPage()
-        
+
+# add opto plots 
+            
         if d['probOpto'][()]>0:
            
             path = os.path.join(os.path.join(dataDir, 'Opto plots'), date)
+            
+            param='opto'
             
             Image(path +  '/' + mouse_id + ' ' + param + date + '.png',   # subplots
                   width=8.5*inch, height=11*inch).drawOn(c, 0, 0)
