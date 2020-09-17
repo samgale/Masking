@@ -186,30 +186,21 @@ def save_daily_plots(data):
             
         elif param=='soa':
             plot_opto_masking(d)
+            file_names = [' combined param correct ', ' combined opto correct ', 
+                          ' combined param response ', ' combined opto response ']
             
         else:
             param=='opto'
             plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=None, returnArray=False)
+            
+file_names = [' combined param correct ', ' combined opto correct ', 
+                          ' combined param response ', ' combined opto response ']
 
+        for f in file_names:
 
-
-
-
-        plt.savefig(path + '/' + mouse_id + ' combined param correct ' + date + '.png', dpi=300)
-        plt.close()
-        
-        plt.savefig(path + '/' + mouse_id + ' combined opto correct ' + date + '.png', dpi=300)
-        plt.close()
-        
-        plt.savefig(path +  '/' + mouse_id + ' combined param response ' + date + '.png', dpi=300)
-        plt.close()
-        
-        plt.savefig(path +  '/' + mouse_id + ' combined opto response ' + date + '.png', dpi=300)
-        plt.close()
-        
-        # combined plots 
-        plt.savefig(path +  '/' + mouse_id + ' ' + param + date + '.png', dpi=300)
-        plt.close()
+            plt.savefig(path + '/' + mouse_id + f + date + '.png', dpi=300)
+            plt.close()
+            
         
 #        onset = d['optoOnset'][:]
 #        onset = np.insert(onset,0, -1)
