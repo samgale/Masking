@@ -465,6 +465,21 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
                 ax.set_ylabel('Fraction of trials')
             if i==0 and j==0:
                 ax.legend(loc=(0.71,0.71))
+                
+                
+# masking opto
+behavDataPath = fileIO.getFile('',fileType='*.hdf5')
+behavData = h5py.File(behavDataPath,'r')
+
+ntrials = behavData['trialEndFrame'].size
+trialType = behavData['trialType'][:ntrials]
+optoOnset = behavData['trialOptoOnset'][:ntrials]
+rewardDir = behavData['trialRewardDir'][:ntrials]
+response = behavData['trialResponse'][:ntrials]
+responseDir = behavData['trialResponseDir'][:ntrials]
+
+behavData.close()
+
 
 
 # cam sync test

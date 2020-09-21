@@ -81,6 +81,8 @@ savePath = fileIO.saveFile('Save movie as',rootDir=dirPath,fileType='*.mp4')
 inputParams = {'-r': str(behavCamFile.attrs.get('frameRate'))}
 outputParams = {'-r': '30', '-vcodec': 'libx264', '-crf': '23', '-preset': 'slow'}
 
+# '-pix_fmt': 'yuv420p' number of pixels needs to be even
+
 v = skvideo.io.FFmpegWriter(savePath,inputdict=inputParams,outputdict=outputParams)
 mergedFrame = np.zeros(mergedFrameShape,dtype=np.uint8)
 for i in range(alignedScreenCamFrames.size):

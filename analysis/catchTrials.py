@@ -155,7 +155,7 @@ def catch_trials(d, xlim='auto', ylim='auto', plot_ignore=False, arrayOnly=False
             formatFigure(fig, ax, title="Ignored Catch Trial Wheel Traces", 
                          xLabel="Trial Length (s)", yLabel=ylabel) 
             
-            plt.suptitle(df.mouse + '  ' + date)
+            plt.suptitle(mouse + '  ' + date)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
             plt.tight_layout()
             plt.subplots_adjust(top=.9)

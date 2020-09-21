@@ -92,9 +92,11 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
 
 # for session with opotgenetics, selects only those trials with the optogenetics
     if param=='opto':
+        optoOnset = d['optoOnset'][:]
         for i, trial in enumerate(trialParam):  # replace nans (no opto) with -1
             if ~np.isfinite(trial):
-                trialParam[i] = -1
+                noOpto = optoOnset[-1] + np.median(np.round(np.diff(optoOnset))) if len(optoOnset)>1 else optoOnset[0]+1
+                trialParam[i] = noOpto
 
 
 # now that repeats and catch have been removed, identify parameter values
@@ -190,6 +192,9 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
             
             
             fig, ax = plt.subplots()
+            
+            
+            
             ax.plot(paramVals, num[0]/denom[0], 'bo-', lw=3, alpha=.7, label='Left turning')  #here [0] is right trials and [1] is left
             ax.plot(paramVals, num[1]/denom[1], 'ro-', lw=3, alpha=.7, label='Right turning')
             ax.plot(paramVals, (num[0]+num[1])/(denom[0]+denom[1]), 'ko--', alpha=.5, label='Combined average')  #plots the combined average 
@@ -201,14 +206,20 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
             if param=='targetLength':
                 xticklabels = list(np.round(xticks).astype(int))
                 xlab = 'Target Duration (ms)'
+                
             elif param=='targetContrast':
                 xlab = 'Target Contrast'
+                
             elif param=='opto':
-                xlab = 'Opto Onset'
-                x,lbl = ([0],['no\nopto'])
-                xticks = np.concatenate((x,xticks))
-                xticklabels = lbl+xticklabels
+                
+                xlabls1 = [(on/framerate) - ((1/framerate)*2) for on in list(paramVals)]
+                xticklabels = [np.round(int(x*1000)) for x in xlabls1]
+                
+                xticklabels[-1] = 'no opto'
                 ax.xaxis.set_label_coords(0.5,-0.08)  
+                xlab = 'Optogenetic light onset relative to target onset (ms)'
+                
+                
             elif param=='soa':
                 xticklabels = [int(np.round((tick/framerate)*1000)) for tick in xticklabels]
                 
@@ -230,7 +241,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                     ax.plot(0, nogoR/nogoMove, 'r>', ms=8)  #plot the side that was turned in no-go with an arrow in that direction
                     ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
                     xticks = np.concatenate(([0],xticks))
-                    xticklabels = ['no go']+xticklabels
+                    xticklabels = ['no go'] + xticklabels
              
                                 
             if showTrialN==True:
@@ -250,6 +261,8 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                 ax.set_xlim([0, 1.05])
             elif param=='soa':
                 ax.set_xlim([0, max(paramVals)+1])
+            elif param=='opto':
+                ax.set_xlim([optoOnset[0]-1, max(paramVals)+1])
             else:
                 ax.set_xlim([-.5, max(paramVals)+1])
                 
