@@ -284,7 +284,6 @@ class TaskControl():
         if getattr(self,'_optoAmp',0):
             self.optoOff()
         for task in self._nidaqTasks:
-            task.stop() # waits for task to finish
             task.close()
             
             
