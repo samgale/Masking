@@ -24,10 +24,8 @@ from dataAnalysis import import_data
 d = import_data()
 save_daily_plots(d)
 create_daily_summary(d)
+
 d.close()
-
-
-
 
 
 
