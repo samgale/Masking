@@ -272,7 +272,7 @@ preTime = 0.5
 postTime = 0.5
 trialTime = (openLoopFrames+responseWindowFrames)/frameRate
 windowDur = preTime+trialTime+postTime
-binSize = 0.01
+binSize = 1/frameRate
 optoOnsetToPlot = np.nanmin(optoOnset)
 for i,u in enumerate(goodUnits):
     spikeTimes = units[u]['samples']/sampleRate
@@ -340,7 +340,7 @@ stimLabels = ('targetOnly','maskOnly','mask')
 preTime = 0.5
 postTime = 0.5
 windowDur = preTime+trialTime+postTime
-binSize = 0.01
+binSize = 1/frameRate
 peakResp = {cellType: {stim:[] for stim in stimLabels} for cellType in ('FS','RS')}
 for ct,cellType in zip((fs,~fs),('FS','RS')):
     fig = plt.figure(figsize=(10,5))
@@ -438,7 +438,7 @@ plt.tight_layout()
 preTime = 0.5
 postTime = 0.5
 windowDur = preTime+trialTime+postTime
-binSize = 0.01
+binSize = 1/frameRate
 optOn = list(np.unique(optoOnset[~np.isnan(optoOnset)]))+[np.nan]
 cmap = np.zeros((len(optOn),3))
 cint = 1/(len(optOn)-1)
