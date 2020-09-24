@@ -152,36 +152,50 @@ plt.tight_layout()
 probeDataDir = fileIO.getDir()
 
 sampleRate = 30000
+totalChannels = 136
+probeChannels = 128      
 
-spikeData = {key: np.load(os.path.join(probeDataDir,'kilosort',key+'.npy')) for key in ('spike_clusters',
-                                                                                        'spike_times',
-                                                                                        'templates',
-                                                                                        'spike_templates',
-                                                                                        'channel_positions',
-                                                                                        'amplitudes')}
+rawData = np.memmap(os.path.join(probeDataDir,'continuous.dat'),dtype='int16',mode='r')    
+rawData = np.reshape(rawData,(int(rawData.size/totalChannels),-1)).T
+totalSamples = rawData.shape[1]
+
+analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync',
+                                                                          'photodiode',
+                                                                          'rotaryEncoder',
+                                                                          'cam1Exposure',
+                                                                          'cam2Exposure',
+                                                                          'led1',
+                                                                          'led2'))}
+
+kilosortData = {key: np.load(os.path.join(probeDataDir,'kilosort',key+'.npy')) for key in ('spike_clusters',
+                                                                                           'spike_times',
+                                                                                           'templates',
+                                                                                           'spike_templates',
+                                                                                           'channel_positions',
+                                                                                           'amplitudes')}
 
 clusterIDs = pd.read_csv(os.path.join(probeDataDir,'kilosort','cluster_KSLabel.tsv'),sep='\t')
 
-unitIDs = np.unique(spikeData['spike_clusters'])
+unitIDs = np.unique(kilosortData['spike_clusters'])
 
 units = {}
 for u in unitIDs:
     units[u] = {}
     units[u]['label'] = clusterIDs[clusterIDs['cluster_id']==u]['KSLabel'].tolist()[0]
     
-    uind = np.where(spikeData['spike_clusters']==u)[0]
+    uind = np.where(kilosortData['spike_clusters']==u)[0]
     
-    units[u]['samples'] = spikeData['spike_times'][uind]
+    units[u]['samples'] = kilosortData['spike_times'][uind]
     
     #choose 1000 spikes with replacement, then average their templates together
     chosen_spikes = np.random.choice(uind,1000)
-    chosen_templates = spikeData['spike_templates'][chosen_spikes].flatten()
-    units[u]['template'] = np.mean(spikeData['templates'][chosen_templates],axis=0)
+    chosen_templates = kilosortData['spike_templates'][chosen_spikes].flatten()
+    units[u]['template'] = np.mean(kilosortData['templates'][chosen_templates],axis=0)
     
     peakChan = np.unravel_index(np.argmin(units[u]['template']),units[u]['template'].shape)[1]
     units[u]['peakChan'] = peakChan
-    units[u]['position'] = spikeData['channel_positions'][peakChan]
-    units[u]['amplitudes'] = spikeData['amplitudes'][uind]
+    units[u]['position'] = kilosortData['channel_positions'][peakChan]
+    units[u]['amplitudes'] = kilosortData['amplitudes'][uind]
     
     template = units[u]['template'][:,peakChan]
     if any(np.isnan(template)):
@@ -195,30 +209,35 @@ for u in unitIDs:
     units[u]['normTempIntegral'] = tempNorm.sum()
     if abs(tempNorm.sum())>4:
         units[u]['label'] = 'noise'
+        
+goodUnits = np.array([u for u in units if units[u]['label']=='good'])
+hasSpikes = np.array([units[u]['samples'].size/totalSamples*sampleRate for u in goodUnits]) > 0.1
+goodUnits = goodUnits[hasSpikes]
+goodUnits = goodUnits[np.argsort([units[u]['peakChan'] for u in goodUnits])]
+
+peakToTrough = np.array([units[u]['peakToTrough'] for u in goodUnits])
+fs = peakToTrough<=0.5
+unitPos = np.array([units[u]['position'][1]/1000 for u in goodUnits])
 
 
-totalChannels = 136
-probeChannels = 128      
+# get behavior data    
+behavDataPath = fileIO.getFile('',fileType='*.hdf5')
+behavData = h5py.File(behavDataPath,'r')
+ntrials = behavData['trialEndFrame'].size
+stimStart = behavData['trialStimStartFrame'][:ntrials]
+trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:ntrials]
+assert(np.unique(trialOpenLoopFrames).size==1)
+openLoopFrames = trialOpenLoopFrames[0]
+responseWindowFrames = behavData['maxResponseWaitFrames'][()]
+optoOnset = behavData['trialOptoOnset'][:ntrials]
+targetFrames = behavData['trialTargetFrames'][:ntrials]
+maskFrames = behavData['trialMaskFrames'][:ntrials]
+maskOnset = behavData['trialMaskOnset'][:ntrials]
+trialType = behavData['trialType'][:ntrials]
 
-rawData = np.memmap(os.path.join(probeDataDir,'continuous.dat'),dtype='int16',mode='r')    
-rawData = np.reshape(rawData,(int(rawData.size/totalChannels),-1)).T
-totalSamples = rawData.shape[1]
-
-
-analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync',
-                                                                          'photodiode',
-                                                                          'rotaryEncoder',
-                                                                          'cam1Saving',
-                                                                          'cam2Saving',
-                                                                          'cam1Exposure',
-                                                                          'cam2Exposure',
-                                                                          'led'))}
 
 # get frame times and compare with psychopy frame intervals
 frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
-
-behavDataPath = fileIO.getFile('',fileType='*.hdf5')
-behavData = h5py.File(behavDataPath,'r')
 
 psychopyFrameIntervals = behavData['frameIntervals'][:]
 frameRate = round(1/np.median(psychopyFrameIntervals))
@@ -242,35 +261,7 @@ plt.tight_layout()
 frameDisplayLag = 2
 
 
-#
-goodUnits = np.array([u for u in units if units[u]['label']=='good'])
-hasSpikes = np.array([units[u]['samples'].size/totalSamples*sampleRate for u in goodUnits]) > 0.1
-goodUnits = goodUnits[hasSpikes]
-goodUnits = goodUnits[np.argsort([units[u]['peakChan'] for u in goodUnits])]
-
-peakToTrough = np.array([units[u]['peakToTrough'] for u in goodUnits])
-fs = peakToTrough<=0.5
-unitPos = np.array([units[u]['position'][1]/1000 for u in goodUnits])
-
-
-ntrials = behavData['trialEndFrame'].size
-stimStart = behavData['trialStimStartFrame'][:ntrials]
-trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:ntrials]
-assert(np.unique(trialOpenLoopFrames).size==1)
-openLoopFrames = trialOpenLoopFrames[0]
-responseWindowFrames = behavData['maxResponseWaitFrames'][()]
-optoOnset = behavData['trialOptoOnset'][:ntrials]
-targetFrames = behavData['trialTargetFrames'][:ntrials]
-maskFrames = behavData['trialMaskFrames'][:ntrials]
-maskOnset = behavData['trialMaskOnset'][:ntrials]
-
-optoOnsetToPlot = 0
-optoOnsetTime = optoOnsetToPlot/frameRate
-control = np.isnan(optoOnset)
-opto = optoOnset==optoOnsetToPlot
-targetOnly = (targetFrames>0) & (maskFrames==0)
-
-
+# plot response to optogenetic stimuluation during catch trials
 psth = []
 peakBaseRate = np.full(goodUnits.size,np.full)
 meanBaseRate = peakBaseRate.copy()
@@ -282,20 +273,23 @@ postTime = 0.5
 trialTime = (openLoopFrames+responseWindowFrames)/frameRate
 windowDur = preTime+trialTime+postTime
 binSize = 0.005
-trials = opto
 for i,u in enumerate(goodUnits):
     spikeTimes = units[u]['samples']/sampleRate
-    startTimes = frameSamples[stimStart[trials]]/sampleRate-preTime
-    p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+    p = []
+    for onset in np.unique(optoOnset[~np.isnan(optoOnset)]):
+        trials = (trialType=='catchOpto') & (optoOnset==onset)
+        startTimes = frameSamples[stimStart[trials]+int(onset)]/sampleRate-preTime
+        s,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
+        p.append(s)
+    p = np.mean(np.concatenate(p),axis=0)
     psth.append(p)
     peakBaseRate[i] = p[t<preTime].max()
     meanBaseRate[i] = p[t<preTime].mean()
-    transientOptoResp[i] = p[(t>=preTime-binSize) & (t<preTime+trialTime)].max()-peakBaseRate[i]
-    sustainedOptoRate[i] = p[(t>preTime+trialTime-0.25) & (t<preTime+trialTime)].mean()
+    transientOptoResp[i] = p[(t>=preTime) & (t<preTime+0.25)].max()-peakBaseRate[i]
+    sustainedOptoRate[i] = p[(t>preTime+trialTime-0.35) & (t<preTime+trialTime-0.25)].mean()
     sustainedOptoResp[i] = sustainedOptoRate[i]-meanBaseRate[i]
-psth = np.array(psth)
 t -= preTime
-
+psth = np.array(psth)
 
 fig = plt.figure(figsize=(8,8))
 excit = sustainedOptoResp>0.5
@@ -306,8 +300,8 @@ for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,o
     ax = fig.add_subplot(gs[i,j])
     ax.plot(t,psth[ind].mean(axis=0),clr)
     ylim = plt.get(ax,'ylim')
-    poly = np.array([(optoOnsetTime,0),(trialTime+0.1,0),(trialTime,ylim[1]),(optoOnsetTime,ylim[1])])
-    ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
+#    poly = np.array([(optoOnsetTime,0),(trialTime+0.1,0),(trialTime,ylim[1]),(optoOnsetTime,ylim[1])])
+#    ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
     n = str(np.sum(ind)) if j==0 else str(np.sum(ind & fs))+' FS, '+str(np.sum(ind & ~fs))+' RS'
     ax.text(1,1,lbl+' (n = '+n+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
     for side in ('right','top'):
@@ -317,7 +311,6 @@ for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,o
         ax.set_xlabel('Time from LED onset (s)')
     ax.set_ylabel('Spikes/s')
 plt.tight_layout()
-
 
 fig = plt.figure(figsize=(8,8))
 gs = matplotlib.gridspec.GridSpec(4,2)
@@ -341,8 +334,82 @@ for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to troug
 plt.tight_layout()
 
 
+# plot response to visual stimuli without opto
+preTime = 0.5
+postTime = 0.5
+windowDur = preTime+trialTime+postTime
+binSize = 0.01
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for stim,clr in zip(('targetOnly','maskOnly','mask'),'krr'):
+    stimTrials = trialType==stim
+    mskOn = np.unique(maskOnset[stimTrials])
+    if stim=='mask':
+        cmap = np.ones((len(mskOn),3))
+        i = 1/(len(mskOn)+1)
+        cmap[:,1:] = np.arange(i,1.01-i,i)[:,None]
+    else:
+        cmap = [clr]
+    for mo,c in zip(mskOn,cmap):
+        moTrials = maskOnset==mo
+        trials = stimTrials & (maskOnset==mo)
+        startTimes = frameSamples[stimStart[trials]+frameDisplayLag]/sampleRate-preTime
+        psth = []
+        for i,u in enumerate(goodUnits[~fs]):
+            spikeTimes = units[u]['samples']/sampleRate
+            p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+            psth.append(p)
+        lbl = 'SOA '+str(int(round(1000*mo/frameRate)))+' ms' if stim=='mask' else stim
+        ax.plot(t-preTime,np.mean(psth,axis=0),color=c,label=lbl)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlabel('Time from stimulus onset (s)')
+ax.set_ylabel('Spikes/s')
+ax.legend()
 
-# testing
+
+# plot response to visual stimuli with opto
+preTime = 0.5
+postTime = 0.5
+windowDur = preTime+trialTime+postTime
+binSize = 0.01
+optOn = list(np.unique(optoOnset[~np.isnan(optoOnset)]))+[np.nan]
+nonsets = len(optOn)
+cmap = np.zeros((len(optOn),3))
+cmap[:-1,:2] = np.arange(0,1.01-1/(nonsets-1),1/(nonsets-1))[:,None]
+cmap[:-1,2] = 1
+for stim in ('targetOnly','maskOnly','mask'):
+    stimTrials = np.in1d(trialType,(stim,stim+'Opto'))
+    for mo in np.unique(maskOnset[stimTrials]):
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        moTrials = maskOnset==mo
+        for onset,clr in zip(optOn,cmap):
+            trials = np.isnan(optoOnset) if np.isnan(onset) else optoOnset==onset
+            trials = trials & stimTrials & moTrials
+            startTimes = frameSamples[stimStart[trials]+frameDisplayLag]/sampleRate-preTime
+            psth = []
+            for i,u in enumerate(goodUnits[~fs]):
+                spikeTimes = units[u]['samples']/sampleRate
+                p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+                psth.append(p)
+            lbl = 'no opto' if np.isnan(onset) else str(int(round(1000*(onset-frameDisplayLag)/frameRate)))+' ms'
+            ax.plot(t-preTime,np.mean(psth,axis=0),color=clr,label=lbl)
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        ax.set_xlabel('Time from LED onset (s)')
+        ax.set_ylabel('Spikes/s')
+        title = 'SOA '+str(int(round(1000*mo/frameRate)))+' ms' if stim=='mask' else stim
+        ax.set_title(title)
+        ax.legend()
+        
+
+
+
+
+# bilateral opto
 behavDataPath = fileIO.getFile('',fileType='*.hdf5')
 behavData = h5py.File(behavDataPath,'r')
 
@@ -467,47 +534,5 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
                 ax.legend(loc=(0.71,0.71))
                 
                 
-# masking opto
-behavDataPath = fileIO.getFile('',fileType='*.hdf5')
-behavData = h5py.File(behavDataPath,'r')
-
-ntrials = behavData['trialEndFrame'].size
-trialType = behavData['trialType'][:ntrials]
-optoOnset = behavData['trialOptoOnset'][:ntrials]
-rewardDir = behavData['trialRewardDir'][:ntrials]
-response = behavData['trialResponse'][:ntrials]
-responseDir = behavData['trialResponseDir'][:ntrials]
-
-behavData.close()
-
-
-
-# cam sync test
-syncPath = fileIO.getFile('Select sync file',fileType='*.hdf5')
-syncFile = h5py.File(syncPath,'r')
-syncData = syncFile['AnalogInput']
-syncSampleRate = syncData.attrs.get('sampleRate')
-channelNames = syncData.attrs.get('channelNames')
-cam1Saving = syncData[:,channelNames=='cam1Saving'][:,0]
-cam1Exposure = syncData[:,channelNames=='cam1Exposure'][:,0]
-syncFile.close()
-
-saveFrameSamples = np.array(findSignalEdges(cam1Saving,edgeType='rising',thresh=0.5,refractory=2))
-
-exposeFrameSamples = np.array(findSignalEdges(cam1Exposure,edgeType='rising',thresh=0.5,refractory=2))
-
-print(saveFrameSamples.size,exposeFrameSamples.size)
-
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-ax.plot(cam1Saving,color='k',label='saving')
-ax.plot(cam1Exposure,color='0.5',label='exposure')
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.legend()
-plt.tight_layout()
-
-
 
 
