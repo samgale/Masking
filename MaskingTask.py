@@ -132,7 +132,7 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 3600
             self.useIncorrectNoise = False
             self.incorrectTimeoutFrames = 0
-            self.incorrectTrialRepeats = 0
+            self.incorrectTrialRepeats = 25   #avoid early bias formation
             self.solenoidOpenTime = 0.1
             
         elif name == 'training3':
