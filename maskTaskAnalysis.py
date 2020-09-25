@@ -210,7 +210,11 @@ for u in unitIDs:
         units[u]['label'] = 'noise'
         
 goodUnits = np.array([u for u in units if units[u]['label']=='good'])
-hasSpikes = np.array([units[u]['samples'].size/totalSamples*sampleRate for u in goodUnits]) > 0.1
+epochs = 4
+epochSamples = totalSamples/epochs
+hasSpikes = np.ones(len(goodUnits),dtype=bool)
+for i in range(epochs):
+    hasSpikes = hasSpikes & (np.array([np.sum((units[u]['samples']>=i*epochSamples) & (units[u]['samples']<i*epochSamples+epochSamples))/epochSamples*sampleRate for u in goodUnits]) > 0.1)
 goodUnits = goodUnits[hasSpikes]
 goodUnits = goodUnits[np.argsort([units[u]['peakChan'] for u in goodUnits])]
 
@@ -263,7 +267,7 @@ frameDisplayLag = 2
 
 # plot response to optogenetic stimuluation during catch trials
 psth = []
-peakBaseRate = np.full(goodUnits.size,np.full)
+peakBaseRate = np.full(goodUnits.size,np.nan)
 meanBaseRate = peakBaseRate.copy()
 transientOptoResp = peakBaseRate.copy()
 sustainedOptoResp = peakBaseRate.copy()
@@ -293,11 +297,12 @@ t -= preTime
 psth = np.array(psth)
 
 fig = plt.figure(figsize=(8,8))
-excit = sustainedOptoResp>0.5
-inhib = ((sustainedOptoResp<0.1) & (transientOptoResp<0.5))
-other = ~(excit | inhib)
-gs = matplotlib.gridspec.GridSpec(3,2)
-for i,j,clr,ind,lbl in zip((0,1,0,1,2),(0,0,1,1,1),'rbkkk',(fs,~fs,excit,inhib,other),('FS','RS','Excited','Inhibited','Other')):
+excit = sustainedOptoResp>1
+inhib = ((sustainedOptoResp<0) & (transientOptoResp<1))
+transient = ~(excit | inhib) & (transientOptoResp>1)
+noResp = ~(excit | inhib | transient)
+gs = matplotlib.gridspec.GridSpec(4,2)
+for i,j,clr,ind,lbl in zip((0,1,0,1,2,3),(0,0,1,1,1,1),'mgkkkk',(fs,~fs,excit,inhib,transient,noResp),('FS','RS','Excited','Inhibited','Transient','No Response')):
     ax = fig.add_subplot(gs[i,j])
     ax.plot(t,psth[ind].mean(axis=0),clr)
     ylim = plt.get(ax,'ylim')
