@@ -184,7 +184,7 @@ for u in unitIDs:
     
     uind = np.where(kilosortData['spike_clusters']==u)[0]
     
-    units[u]['samples'] = kilosortData['spike_times'][uind]
+    units[u]['samples'] = kilosortData['spike_times'][uind].flatten()
     
     #choose 1000 spikes with replacement, then average their templates together
     chosen_spikes = np.random.choice(uind,1000)
@@ -347,6 +347,8 @@ postTime = 0.5
 windowDur = preTime+trialTime+postTime
 binSize = 1/frameRate
 peakResp = {cellType: {stim:[] for stim in stimLabels} for cellType in ('FS','RS')}
+timeToPeak = {cellType: {stim:[] for stim in stimLabels} for cellType in ('FS','RS')}
+timeToFirstSpike = {cellType: {stim:[] for stim in stimLabels} for cellType in ('FS','RS')}
 for ct,cellType in zip((fs,~fs),('FS','RS')):
     fig = plt.figure(figsize=(10,5))
     fig.text(0.5,0.99,cellType,ha='left',va='top',fontsize=12)
@@ -368,19 +370,32 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
                 trials = stimTrials & (maskOnset==mo)
                 startTimes = frameSamples[stimStart[trials]+frameDisplayLag]/sampleRate-preTime
                 psth = []
+                if rd==-1:
+                    timeToFirstSpike[cellType][stim].append([])
                 for u in goodUnits[ct]:
                     spikeTimes = units[u]['samples']/sampleRate
                     p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
-                    p -= p[t<preTime].mean()
+                    t -= preTime
+                    p -= p[t<0].mean()
                     psth.append(p)
-                t -= preTime
+                    if rd==-1:
+                        lat = []
+                        for st in startTimes:
+                            firstSpike = np.where((spikeTimes > st+0.03) & (spikeTimes < st+0.15))[0]
+                            if len(firstSpike)>0:
+                                lat.append(spikeTimes[firstSpike[0]]-st)
+                            else:
+                                lat.append(np.nan)
+                        timeToFirstSpike[cellType][stim][-1].append(np.nanmedian(lat))
                 psth = np.array(psth)
-                psth -= psth[:,t<0].mean(axis=1)[:,None]
                 if rd==-1:
-                    peakResp[cellType][stim].append(psth[:,(t>0) & (t<0.15)].max(axis=1))
+                    analysisWindow = (t>0.03) & (t<0.15)
+                    peakResp[cellType][stim].append(psth[:,analysisWindow].max(axis=1))
+                    timeToPeak[cellType][stim].append(t[np.argmax(psth[:,analysisWindow],axis=1)+np.where(analysisWindow)[0][0]])
                 m = np.mean(psth,axis=0)
                 s = np.std(psth,axis=0)/(len(psth)**0.5)
-                lbl = 'SOA '+str(int(round(1000*mo/frameRate)))+' ms' if stim=='mask' else stim
+                lbl = 'SOA '+str(round(1000*mo/frameRate,1))+' ms' if stim=='mask' else stim
+                lbl += '; time to peak '+str(round(1000*t[np.argmax(m)],1)) + ' ms'
                 ax.plot(t,m,color=c,label=lbl)
     #            ax.fill_between(t,m+s,m-s,color=c,alpha=0.25)
         for side in ('right','top'):
@@ -391,8 +406,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
         ax.set_xlabel('Time from stimulus onset (s)')
         if i==0:
             ax.set_ylabel('Response (spikes/s)')
-        else:
-            ax.legend()
+        ax.legend(fontsize=6,loc='upper left',frameon=False)
         title = 'target left' if rd==1 else 'target right'
         ax.set_title(title)
     ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
@@ -439,6 +453,27 @@ ax.legend()
 plt.tight_layout()
 
 
+fig = plt.figure()
+gs = matplotlib.gridspec.GridSpec(2,2)
+for j,cellType in enumerate(('FS','RS')):
+    for i,ydata in enumerate((timeToPeak,timeToFirstSpike)):
+        ax = fig.add_subplot(gs[i,j])
+        for x,stim in enumerate(stimLabels):
+            y = ydata[cellType][stim][0]
+            ax.plot(x+np.zeros(len(y)),y,'o',mec='0.5',mfc='none')
+            m = np.nanmean(y)
+            s = np.nanstd(y)/(np.sum(~np.isnan(y))**0.5)
+            ax.plot(x,m,'ko')
+            ax.plot([x,x],[m-s,m+s],'k')
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        ax.set_xticks(np.arange(len(stimLabels)))
+        ax.set_xticklabels(stimLabels)
+        ax.set_ylim([0.025,0.155])
+
+
+
 # plot response to visual stimuli with opto
 preTime = 0.5
 postTime = 0.5
@@ -478,15 +513,15 @@ for stim in stimLabels:
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-        ax.set_xticks(np.arange(0,0.151,0.05))
-        ax.set_xlim([-0.025,0.175])
+        ax.set_xticks(np.arange(-0.05,0.21,0.05))
+        ax.set_xlim([-0.05,0.2])
         ax.set_ylabel('Spikes/s')
         title = 'SOA '+str(int(round(1000*mo/frameRate)))+' ms' if stim=='mask' else stim
         ax.set_title(title)
         if len(axs)==1:
             ax.legend(loc='upper right',title='opto onset')
         elif len(axs)==naxs:
-            ax.set_xlabel('Time from LED onset (s)')
+            ax.set_xlabel('Time from stimulus onset (s)')
 ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
 ymax = max(plt.get(ax,'ylim')[1] for ax in axs)
 for ax in axs:
