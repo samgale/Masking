@@ -224,7 +224,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                 xticklabels = [int(np.round((tick/framerate)*1000)) for tick in xticklabels]
                 
                 xlab = 'Mask Onset From Target Onset (ms)'
-                lbl = ['mask\nonly', 'no mask']
+                lbl = ['mask\nonly', 'target only']
                 del xticklabels[-1]
                 xticklabels.append(lbl[1])
                 if title=='Response Rate':  # show mask-only resps 
