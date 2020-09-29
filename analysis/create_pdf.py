@@ -215,6 +215,8 @@ def create_daily_summary(d):
                 Image(dataDir + '/Contrast plots/' + date.replace('/','-') + '/' + mouse_id + 
                       ' target contrast correct given response ' + date + '.png', 
                       width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
+                
+                c.showPage()
             
                           
 # add masking plots         
@@ -233,7 +235,7 @@ def create_daily_summary(d):
                       width=6*inch, height=4.5*inch).drawOn(c, .5*inch, .4*inch)
             
     # complete page and break
-            c.showPage()
+                c.showPage()
 
 # add opto plots 
             
@@ -258,10 +260,10 @@ def create_daily_summary(d):
                               ' combined param response ', ' combined opto response ']
 
             elif param=='soa':
-                file_names = [' opto masking fraction correct ', ' opto masking response rate ']
+                file_names = [' opto masking response rate ', ' opto masking fraction correct ']
                   
-            else:
-                param='opto'                
+            elif param=='opto':
+                                
                 file_names = [' opto response rate  ', ' opto correct ']
             
             for (f, loc) in zip(file_names[:2], placement):
