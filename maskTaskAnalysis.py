@@ -5,6 +5,7 @@ Created on Mon Mar 11 12:34:44 2019
 @author: svc_ccg
 """
 
+import copy
 import os
 import h5py
 import numpy as np
@@ -346,14 +347,50 @@ preTime = 0.5
 postTime = 0.5
 windowDur = preTime+trialTime+postTime
 binSize = 1/frameRate
-peakResp = {cellType: {stim:[] for stim in stimLabels} for cellType in ('FS','RS')}
-timeToPeak = {cellType: {stim:[] for stim in stimLabels} for cellType in ('FS','RS')}
-timeToFirstSpike = {cellType: {stim:[] for stim in stimLabels} for cellType in ('FS','RS')}
+psth = {cellType: {stim: {side: [] for side in ('left','right')} for stim in stimLabels} for cellType in ('FS','RS')}
+hasResp = copy.deepcopy(psth)
+peakResp = copy.deepcopy(psth)
+timeToPeak = copy.deepcopy(psth)
+timeToFirstSpike = copy.deepcopy(psth)
 for ct,cellType in zip((fs,~fs),('FS','RS')):
+    for rd,side in zip((1,-1),('left','right')):
+        for stim in stimLabels:
+            stimTrials = trialType==stim if stim=='maskOnly' else (trialType==stim) & (rewardDir==rd)
+            for mo in np.unique(maskOnset[stimTrials]):
+                moTrials = maskOnset==mo
+                trials = stimTrials & (maskOnset==mo)
+                startTimes = frameSamples[stimStart[trials]+frameDisplayLag]/sampleRate-preTime
+                p = []
+                timeToFirstSpike[cellType][stim][side].append([])
+                for u in goodUnits[ct]:
+                    spikeTimes = units[u]['samples']/sampleRate
+                    d,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+                    t -= preTime
+                    d -= d[t<0].mean()
+                    p.append(d)
+                    lat = []
+                    for st in startTimes:
+                        firstSpike = np.where((spikeTimes > st+0.03) & (spikeTimes < st+0.15))[0]
+                        if len(firstSpike)>0:
+                            lat.append(spikeTimes[firstSpike[0]]-st)
+                        else:
+                            lat.append(np.nan)
+                    timeToFirstSpike[cellType][stim][side][-1].append(np.nanmedian(lat))
+                p = np.array(p)
+                psth[cellType][stim][side].append(p)
+                analysisWindow = (t>0.03) & (t<0.15)
+                hasResp[cellType][stim][side].append(p[:,analysisWindow].max(axis=1) > 3*p[:,t<0].std())
+                peakResp[cellType][stim][side].append(p[:,analysisWindow].max(axis=1))
+                timeToPeak[cellType][stim][side].append(t[np.argmax(p[:,analysisWindow],axis=1)+np.where(analysisWindow)[0][0]])
+
+respCells = {cellType: hasResp[cellType]['targetOnly']['right'][0] | hasResp[cellType]['maskOnly']['right'][0] for cellType in ('FS','RS')}
+
+ 
+for ct,cellType in zip((fs,~fs),('FS','RS')):  
     fig = plt.figure(figsize=(10,5))
-    fig.text(0.5,0.99,cellType,ha='left',va='top',fontsize=12)
+    fig.text(0.5,0.99,cellType+' (n='+str(respCells[cellType].sum())+'/'+str(len(respCells[cellType]))+')',ha='center',va='top',fontsize=12)
     axs = []
-    for i,rd in enumerate((1,-1)):
+    for i,(rd,side) in enumerate(zip((1,-1),('left','right'))):
         ax = fig.add_subplot(1,2,i+1)
         axs.append(ax)
         for stim,clr in zip(stimLabels,('k','0.5','r')):
@@ -365,41 +402,16 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
                 cmap[:,1:] = np.arange(0,1.01-cint,cint)[:,None]
             else:
                 cmap = [clr]
-            for mo,c in zip(mskOn,cmap):
-                moTrials = maskOnset==mo
-                trials = stimTrials & (maskOnset==mo)
-                startTimes = frameSamples[stimStart[trials]+frameDisplayLag]/sampleRate-preTime
-                psth = []
-                if rd==-1:
-                    timeToFirstSpike[cellType][stim].append([])
-                for u in goodUnits[ct]:
-                    spikeTimes = units[u]['samples']/sampleRate
-                    p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
-                    t -= preTime
-                    p -= p[t<0].mean()
-                    psth.append(p)
-                    if rd==-1:
-                        lat = []
-                        for st in startTimes:
-                            firstSpike = np.where((spikeTimes > st+0.03) & (spikeTimes < st+0.15))[0]
-                            if len(firstSpike)>0:
-                                lat.append(spikeTimes[firstSpike[0]]-st)
-                            else:
-                                lat.append(np.nan)
-                        timeToFirstSpike[cellType][stim][-1].append(np.nanmedian(lat))
-                psth = np.array(psth)
-                if rd==-1:
-                    analysisWindow = (t>0.03) & (t<0.15)
-                    peakResp[cellType][stim].append(psth[:,analysisWindow].max(axis=1))
-                    timeToPeak[cellType][stim].append(t[np.argmax(psth[:,analysisWindow],axis=1)+np.where(analysisWindow)[0][0]])
-                m = np.mean(psth,axis=0)
-                s = np.std(psth,axis=0)/(len(psth)**0.5)
+            for moInd,(mo,c) in enumerate(zip(mskOn,cmap)):
+                p = psth[cellType][stim][side][moInd][respCells[cellType]]
+                m = np.mean(p,axis=0)
+                s = np.std(p,axis=0)/(len(p)**0.5)
                 lbl = 'SOA '+str(round(1000*mo/frameRate,1))+' ms' if stim=='mask' else stim
                 lbl += '; time to peak '+str(round(1000*t[np.argmax(m)],1)) + ' ms'
                 ax.plot(t,m,color=c,label=lbl)
     #            ax.fill_between(t,m+s,m-s,color=c,alpha=0.25)
-        for side in ('right','top'):
-            ax.spines[side].set_visible(False)
+        for s in ('right','top'):
+            ax.spines[s].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
         ax.set_xticks(np.arange(0,0.151,0.05))
         ax.set_xlim([0,0.15])
@@ -407,8 +419,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
         if i==0:
             ax.set_ylabel('Response (spikes/s)')
         ax.legend(fontsize=6,loc='upper left',frameon=False)
-        title = 'target left' if rd==1 else 'target right'
-        ax.set_title(title)
+        ax.set_title('target '+side)
     ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
     ymax = max(plt.get(ax,'ylim')[1] for ax in axs)
     for ax in axs:
@@ -418,11 +429,12 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
 
 fig = plt.figure(figsize=(10,6))
 gs = matplotlib.gridspec.GridSpec(2,2)
-for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to trough (ms)','Distance from tip (mm)'))):
+for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to trough (ms)','Distance from probe tip (mm)'))):
     for i,stim in enumerate(stimLabels[:2]):
         ax = fig.add_subplot(gs[i,j])
         for ct,cellType,clr in zip((fs,~fs),('FS','RS'),'mg'):
-            ax.plot(xdata[ct],peakResp[cellType][stim][0],'o',mec=clr,mfc='none')
+            for r,mfc in zip((~respCells[cellType],respCells[cellType]),('none',clr)):
+                ax.plot(xdata[ct][r],peakResp[cellType][stim]['right'][0][r],'o',mec=clr,mfc=mfc)
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
@@ -438,9 +450,10 @@ ax = fig.add_subplot(1,1,1)
 ax.plot([0,200],[0,200],'--',color='0.5')
 amax = 0
 for cellType,clr in zip(('FS','RS'),'mg'):
-    x,y = [peakResp[cellType][stim][0] for stim in stimLabels[:2]]
-    amax = max(amax,x.max(),y.max())
-    ax.plot(x,y,'o',mec=clr,mfc='none',label=cellType)
+    for r,mfc in zip((~respCells[cellType],respCells[cellType]),('none',clr)):
+        x,y = [peakResp[cellType][stim]['right'][0][r] for stim in stimLabels[:2]]
+        amax = max(amax,x.max(),y.max())
+        ax.plot(x,y,'o',mec=clr,mfc=mfc,label=cellType)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
@@ -453,25 +466,33 @@ ax.legend()
 plt.tight_layout()
 
 
-fig = plt.figure()
+fig = plt.figure(figsize=(8,6))
 gs = matplotlib.gridspec.GridSpec(2,2)
 for j,cellType in enumerate(('FS','RS')):
-    for i,ydata in enumerate((timeToPeak,timeToFirstSpike)):
+    for i,(ydata,ylbl) in enumerate(zip((timeToPeak,timeToFirstSpike),('Time to peak (ms)','Time to first spike (ms)'))):
         ax = fig.add_subplot(gs[i,j])
         for x,stim in enumerate(stimLabels):
-            y = ydata[cellType][stim][0]
+            y = 1000*np.array(ydata[cellType][stim]['right'][0])[respCells[cellType]]
             ax.plot(x+np.zeros(len(y)),y,'o',mec='0.5',mfc='none')
             m = np.nanmean(y)
             s = np.nanstd(y)/(np.sum(~np.isnan(y))**0.5)
             ax.plot(x,m,'ko')
             ax.plot([x,x],[m-s,m+s],'k')
+            ax.text(x+0.1,m,str(round(m,1)),transform=ax.transData,ha='left',va='center')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
         ax.set_xticks(np.arange(len(stimLabels)))
-        ax.set_xticklabels(stimLabels)
-        ax.set_ylim([0.025,0.155])
-
+        if i==0:
+            ax.set_xticklabels([])
+            ax.set_title(cellType)
+        else:
+            ax.set_xticklabels(('target only','mask only','SOA 16.7 ms'))
+        ax.set_xlim([-0.5,2.5])
+        ax.set_ylim([30,150])
+        if j==0:
+            ax.set_ylabel(ylbl)
+plt.tight_layout()
 
 
 # plot response to visual stimuli with opto
