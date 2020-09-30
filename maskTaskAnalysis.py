@@ -17,6 +17,7 @@ matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 from numba import njit
 import fileIO
+from dataAnalysis import ignore_after
 
 
 @njit
@@ -92,6 +93,9 @@ psychopyFrameIntervals = behavData['frameIntervals'][:]
 frameRate = round(1/np.median(psychopyFrameIntervals))
 
 assert(frameSamples.size==psychopyFrameIntervals.size+1)
+
+
+#ntrials = ignore_after(behavData, 10)[0]   # file, no response limit
 
 ntrials = behavData['trialEndFrame'].size
 stimStart = behavData['trialStimStartFrame'][:ntrials]
@@ -612,9 +616,10 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
         if j==0:
             ax.set_ylabel(ylbl)
         if i==1 and j==0:
-            ax.legend()
+            ax.legend(fontsize='small', loc='best')
     tx = 0.3 if j==0 else 0.7
     fig.text(tx,0.99,'contrast '+str(contrast),va='top',ha='center')
+
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
@@ -641,6 +646,7 @@ ax.set_ylim([0,1.05])
 ax.set_ylabel('Fraction of catch trials')
 ax.legend()
 fig.text(0.525,0.99,'Catch trial movements',va='top',ha='center')
+
 
 fig = plt.figure(figsize=(10,10))
 gs = matplotlib.gridspec.GridSpec(8,2)
@@ -674,7 +680,7 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
             if j==0:
                 ax.set_ylabel('Fraction of trials')
             if i==0 and j==0:
-                ax.legend(loc=(0.71,0.71))
+                ax.legend(fontsize='small', loc=(0.71,0.71))
                 
                 
 
