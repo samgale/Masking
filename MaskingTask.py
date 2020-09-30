@@ -138,7 +138,7 @@ class MaskingTask(TaskControl):
         elif name == 'training3':
             # introduce quiescent period, shorter response window, incorrect penalty, and catch trials
             self.setDefaultParams('training2',taskVersion)
-            self.wheelRewardDistance = 3.0  # increase 
+            self.wheelRewardDistance = 3.0  # increase   
             self.quiescentFrames = 60
             self.maxResponseWaitFrames = 1200 # adjust this 
             self.useIncorrectNoise = True
@@ -194,7 +194,7 @@ class MaskingTask(TaskControl):
             self.maskShape = 'target'
             self.maskFrames = [24]
             self.maskOnset = [2,3,4,6]
-            self.maskContrast = [1]
+            self.maskContrast = [0.4]
             self.targetContrast = [0.4]
             self.probMask = 0.6
             self.probCatch = 1 / (1 + len(self.maskOnset))
