@@ -552,7 +552,7 @@ plt.tight_layout()
 
 
 
-# bilateral opto
+# unilateral opto
 behavDataPath = fileIO.getFile('',fileType='*.hdf5')
 behavData = h5py.File(behavDataPath,'r')
 
