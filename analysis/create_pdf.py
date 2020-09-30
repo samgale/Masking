@@ -61,12 +61,12 @@ def create_daily_summary(d):
     else:
         loc1 = 1
         loc2 = 2.3
-        loc3 = 6
+        loc3 = 5.8
         
     c.setFont('Helvetica-Bold', 12)
     c.drawString(loc1*inch, 10.5*inch, 'Daily Summary:   ')
     c.setFont('Helvetica', 12)
-    c.drawString(loc2*inch, 10.5*inch, mouse_id + '              ' + subtitle)
+    c.drawString(loc2*inch, 10.5*inch, mouse_id + '         ' + subtitle)
     c.drawString(loc3*inch, 10.5*inch, titleDate)
 
     
@@ -224,7 +224,21 @@ def create_daily_summary(d):
             param = 'soa'
             
             if d['probOpto'][()]==0:
-
+            
+                maskInfo = c.beginText()
+                maskInfo.setTextOrigin(6.5*inch, 9.8*inch)
+                maskInfo.setFont('Helvetica', 10)
+                maskInfo.setLeading(12)
+                maskInfo.setWordSpace(1) 
+                tarCon = int(d['targetContrast'][0] * 100)
+                maskCon = int(d['maskContrast'][0] * 100)
+                texts = [str(tarCon) + '% Target Contrast', str(maskCon) + '% Mask Contrast']
+                
+                for t in texts:
+                    maskInfo.textLine(t)
+                c.drawText(maskInfo)
+          
+                
                 Image(dataDir + '/Masking plots/' + date.replace('/','-') + '/' + mouse_id + 
                       ' masking response rate ' + date + '.png', 
                       width=6*inch, height=4.5*inch).drawOn(c, .5*inch, 5.5*inch)
@@ -261,6 +275,8 @@ def create_daily_summary(d):
 
             elif param=='soa':
                 file_names = [' opto masking response rate ', ' opto masking fraction correct ']
+                #  add soa as text
+                
                   
             elif param=='opto':
                                 
