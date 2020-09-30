@@ -371,12 +371,12 @@ def rxnTimes(data, dataframe):
     return np.array([initiateMovement, outcomeTimes, ignoreTrials])
 
 
-## code to plot the above wheel traces, to visually inspect for accuracy
-#test = [i for i, e in enumerate(interpWheel) if type(e)!=int]
-    
+# code to plot the above wheel traces, to visually inspect for accuracy
+#test = [i for i, e in enumerate(interpWheel[:100]) if type(e)!=int]
+#    
 ## --- for catch trials ---
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
-
+#
 #plt.figure()
 #for i in catchTrials:
 #    
@@ -390,9 +390,9 @@ def rxnTimes(data, dataframe):
 ##plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3, label='Outcome Time')
 ##plt.vlines(df['trialLength_ms'][i], -500, 500, label='Trial Length')
 #plt.legend(loc='best')
-
+#
 ### ---- for ignoreTrials ----
-    
+#    
 #for i in ignoreTrials:
 #    fig, ax = plt.subplots()
 #    plt.plot(interpWheel[i], color='k', alpha=.5)
