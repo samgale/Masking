@@ -18,7 +18,7 @@ from reportlab.lib.pagesizes import letter
 from datetime import datetime
 
 
-def create_daily_summary(d):
+def create_daily_summary(d, INR):
 
 
     mouse_id=d['subjectName'][()]
@@ -29,6 +29,8 @@ def create_daily_summary(d):
     
     fullDate = d['startTime'][()][:8]
     titleDate = datetime.strptime(fullDate, '%Y%m%d').strftime('%A %B %d, %Y')
+    
+    ignoreNoResp = INR
     
     subtitle = None
     if d['moveStim'][()]==False:
@@ -86,7 +88,7 @@ def create_daily_summary(d):
     sessionText.setFont('Helvetica', 9)
     sessionText.setLeading(12)
     sessionText.setWordSpace(1)
-    session = session_stats(d, ignoreNoRespAfter=10, returnAs='str_array')
+    session = session_stats(d, ignoreNoRespAfter=INR, returnAs='str_array')
     for stat in session:
         sessionText.textLine(stat)
     c.drawText(sessionText)
