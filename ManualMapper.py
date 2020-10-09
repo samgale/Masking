@@ -55,26 +55,11 @@ class ManualMapper(TaskControl):
     
     
     def showFrame(self):
-        self._frameSignalOutput.write(True)
-        
-        # show new frame
-        if self.drawDiodeBox:
-            self._diodeBox.fillColor = -self._diodeBox.fillColor
-            self._diodeBox.draw()
-        self._win.flip()
-        
-        self._sessionFrame += 1
-        self._trialFrame += 1
-        
-        keys = event.getKeys()
-        if 'escape' in keys:   
-            self._continueSession = False
-        elif 'space' in keys:
+        if 't' in event.getKeys(keyList=['t']):
             self._toggle = not self._toggle
             self._trialFrame = 0
         
-        self._frameSignalOutput.write(False)
-
+        TaskControl.showFrame(self)
 
 
 if __name__ == "__main__":
