@@ -129,7 +129,7 @@ def save_daily_plots(data, INR):
         
         if len(d['targetFrames'][:])>1:
             
-            param = 'targetLength'
+            param = 'targetLength'   # target duration exps
             
             if d['probOpto'][()]==0:   #defining param first allows us to select which opto plotting to use later
                 
@@ -144,7 +144,7 @@ def save_daily_plots(data, INR):
         
         if len(d['targetContrast'][:])>1:
             
-            param = 'targetContrast'
+            param = 'targetContrast'   # target contrast exps
             
             if d['probOpto'][()]==0:
 
@@ -159,7 +159,9 @@ def save_daily_plots(data, INR):
             
         
         if len(d['maskOnset'][:])>1 or d['probMask'][()] > 0:
-            param = 'soa'
+          
+            param = 'soa'   # masking exps
+        
             
             if d['probOpto'][()]==0:
                 
@@ -173,22 +175,29 @@ def save_daily_plots(data, INR):
 
   
     if d['probOpto'][()] > 0:
-        try: param
-        except NameError: param = 'opto'  # if param not defined by above conditional, must be opto
-        
-        if param=='targetContrast' or param=='targetLength':
-            plot_opto_vs_param(d, param, ignoreNoRespAfter=ignoreNoResp, plotType='single')
-            file_names = [' combined param correct ', ' combined opto correct ', 
-                          ' combined param response ', ' combined opto response ']
-            
-        elif param=='soa':
-            plot_opto_masking(d)
-            file_names = [' opto masking fraction correct ', ' opto masking response rate ']
-            
+         if len(d['optoChan'][:]) > 1:
+             
+             #plot unilateral opto
         else:
-            plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=None, returnArray=False)
+        
+            try: param
+            except NameError: param = 'opto'  # if param not defined by above conditional, must be opto
             
-            file_names = [' opto response rate  ', ' opto correct ']
+            if param=='targetContrast' or param=='targetLength':    # opto contrast exps
+                
+                plot_opto_vs_param(d, param, ignoreNoRespAfter=ignoreNoResp, plotType='single')
+                file_names = [' combined param correct ', ' combined opto correct ', 
+                              ' combined param response ', ' combined opto response ']
+                
+            elif param=='soa':  # opto masking exps
+                
+                plot_opto_masking(d)    
+                file_names = [' opto masking fraction correct ', ' opto masking response rate ']
+                
+            else:   # opto 
+                
+                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=None, returnArray=False)
+                file_names = [' opto response rate  ', ' opto correct ']
 
 
         save_new_plots(file_names, add_folder('Opto plots'))
