@@ -16,7 +16,8 @@ from dataAnalysis import ignore_after, get_dates, import_data
 
 def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=None, returnArray=False):
     '''
-    plots the percent correct or response for a variable target duration session
+    plots the percent correct or response for a variable target duration session,
+    variable contrast session, opto contrast session, or masking session
     
     param is variable parameter that you want to visualize - targetLength, targetContrast, opto, soa
     showTrialN=True will add the total counts into the plots 
@@ -144,6 +145,24 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     misses = np.squeeze(np.array(misses))
     noResps = np.squeeze(np.array(noResps))
     totalTrials = hits+misses+noResps
+    
+    trialType = d['trialType'][:end][ignoring==0]
+    trialTurn = d['trialResponseDir'][:end][ignoring==0]
+    optoOnset = d['trialOptoOnset'][:end][ignoring==0]
+    for i, trial in enumerate(trialTurn):
+        if ~np.isfinite(trial):
+            trialTurn[i] = 0    
+       
+    catch = [[] for i in range(len(paramVals))]    # separate catch trials by opto onset
+    
+    for i, o in enumerate(paramVals):
+        for opto, turn, typ in zip(optoOnset, trialTurn, trialType):
+            if typ == 'catchOpto' and opto==0:
+                catch[i].append(abs(int(turn)))
+                
+                        
+    catchTurn = np.array(list(map(sum, [c for c in catch])))
+    catchCounts = np.array(list(map(len, [c for c in catch])))
         
     if param=='soa':
         maskOnlyTotal = np.sum(trialType=='maskOnly')  # ignores are already excluded
@@ -212,6 +231,11 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                 
             elif param=='opto':
                 
+                if title == 'Response Rate':
+                    ax.plot(paramVals, catchTurn/catchCounts, 'mo-', alpha=.5, lw=3, label='Catch Trials') # plot catch trials
+                    for p, c in zip(paramVals, catchCounts):
+                        fig.text(p, 1.05, str(c), transform=ax.transData, color='m', alpha=.5, fontsize=10,ha='center',va='bottom')
+                
                 xlabls1 = [(on/framerate) - ((1/framerate)*2) for on in list(paramVals)]
                 xticklabels = [np.round(int(x*1000)) for x in xlabls1]
                 
@@ -234,7 +258,8 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                     ax.plot(1, maskOnly[1]/maskOnlyTotal, 'bo')
                     fig.text(1,1.05,str(maskOnlyTotal),transform=ax.transData,color='k',fontsize=10,ha='center',va='bottom')
                 ax.xaxis.set_label_coords(0.5,-0.08)
-                
+
+            
             if title=='Response Rate':   #no go
                 if 0 in trialRewardDir:
                     ax.plot(0, nogoCorrect/nogoTotal, 'ko', ms=8)
@@ -242,11 +267,10 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                     ax.plot(0, nogoL/nogoMove, 'b<', ms=8)
                     xticks = np.concatenate(([0],xticks))
                     xticklabels = ['no go'] + xticklabels
-             
                                 
             if showTrialN==True:
                 for x,Ltrials,Rtrials in zip(paramVals,denom[0], denom[1]):   #deom[0]==L, denom[1]==R
-                    for y,n,clr in zip((1.05,1.1),[Rtrials, Ltrials],'rb'):
+                    for y,n,clr in zip((1.1,1.15),[Rtrials, Ltrials],'rb'):
                         fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
         
 
@@ -270,7 +294,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
-            plt.subplots_adjust(top=0.86, bottom=0.105, left=0.095, right=0.92, hspace=0.2, wspace=0.2)
+            plt.subplots_adjust(top=0.84, bottom=0.105, left=0.095, right=0.92, hspace=0.2, wspace=0.2)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
             
             
