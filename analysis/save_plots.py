@@ -175,8 +175,8 @@ def save_daily_plots(data, INR):
 
   
     if d['probOpto'][()] > 0:
-         if len(d['optoChan'][:]) > 1:
-             
+        if len(d['optoChan'][:]) > 1:
+           pass  
              #plot unilateral opto
         else:
         
