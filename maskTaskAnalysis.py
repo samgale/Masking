@@ -648,8 +648,8 @@ ax.legend()
 fig.text(0.525,0.99,'Catch trial movements',va='top',ha='center')
 
 
-fig = plt.figure(figsize=(10,10))
-gs = matplotlib.gridspec.GridSpec(8,2)
+fig = plt.figure()
+gs = matplotlib.gridspec.GridSpec(8,1)
 x = np.arange(4)
 for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
     for i,(trials,trialLabel) in enumerate(zip((goLeft,goRight,catch),('Right Stimulus','Left Stimulus','No Stimulus'))):
