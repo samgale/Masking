@@ -181,12 +181,12 @@ class MaskingTask(TaskControl):
         elif name == 'target duration':
             self.setDefaultParams('testing',taskVersion)
             self.targetFrames = [1,2,4,12]
-            self.probCatch = 1 / (1 + len(self.targetFrames))
+            self.probCatch = 1 / (1 + 2*len(self.targetFrames))
         
         elif name == 'target contrast':
             self.setDefaultParams('testing',taskVersion)
             self.targetContrast = [0.2,0.4,0.6,1]
-            self.probCatch = 1 / (1 + len(self.targetContrast))
+            self.probCatch = 1 / (1 + 2*len(self.targetContrast))
             
         elif name == 'masking':
             self.setDefaultParams('testing',taskVersion)
@@ -197,7 +197,7 @@ class MaskingTask(TaskControl):
             self.maskContrast = [0.4]
             self.targetContrast = [0.4]
             self.probMask = 0.6
-            self.probCatch = 1 / (1 + len(self.maskOnset))
+            self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
         elif name == 'opto contrast':
             self.setDefaultParams('testing',taskVersion)
@@ -205,7 +205,7 @@ class MaskingTask(TaskControl):
             self.optoChan = [(True,True)]
             self.optoOnset = [4,6,8,10,12]
             self.targetContrast = [0.4]
-            self.probCatch = 1 / (1 + len(self.targetContrast))
+            self.probCatch = 1 / (1 + 2*len(self.targetContrast))
             
         elif name == 'opto unilateral':
             self.setDefaultParams('opto contrast',taskVersion)
@@ -219,7 +219,7 @@ class MaskingTask(TaskControl):
             self.optoOnset = [4,6,8,10,12]
             self.maskOnset = [2]
             self.probMask = 0.5
-            self.probCatch = 1 / (1 + len(self.maskOnset))
+            self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
