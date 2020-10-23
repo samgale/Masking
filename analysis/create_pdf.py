@@ -30,8 +30,6 @@ def create_daily_summary(d, INR):
     fullDate = d['startTime'][()][:8]
     titleDate = datetime.strptime(fullDate, '%Y%m%d').strftime('%A %B %d, %Y')
     
-    ignoreNoResp = INR
-    
     subtitle = None
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
