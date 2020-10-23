@@ -288,7 +288,7 @@ def create_daily_summary(d, INR):
             c.showPage()
             
             
-            if param=='targetContrast' or param=='targetLength':  # add 3 & 4 plots while preserving above loop
+            if param=='targetContrast' or param=='targetLength':  # add 3rd & 4th plots while preserving above loop
                 
                 for (f, loc) in zip(file_names[2:], placement):
                     Image(dataDir + '/Opto plots/' + date.replace('/','-') + '/' + mouse_id + f + date + '.png', 
