@@ -30,8 +30,6 @@ def create_daily_summary(d, INR):
     fullDate = d['startTime'][()][:8]
     titleDate = datetime.strptime(fullDate, '%Y%m%d').strftime('%A %B %d, %Y')
     
-    ignoreNoResp = INR
-    
     subtitle = None
     if d['moveStim'][()]==False:
         if len(d['targetFrames'][:])>1:
@@ -290,7 +288,7 @@ def create_daily_summary(d, INR):
             c.showPage()
             
             
-            if param=='targetContrast' or param=='targetLength':  # add 3 & 4 plots while preserving above loop
+            if param=='targetContrast' or param=='targetLength':  # add 3rd & 4th plots while preserving above loop
                 
                 for (f, loc) in zip(file_names[2:], placement):
                     Image(dataDir + '/Opto plots/' + date.replace('/','-') + '/' + mouse_id + f + date + '.png', 
