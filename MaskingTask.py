@@ -145,7 +145,7 @@ class MaskingTask(TaskControl):
             self.incorrectTimeoutFrames = 360
             self.incorrectTrialRepeats = 5 # will repeat for unanswered trials
             self.solenoidOpenTime = 0.07
-            self.probCatch = 0.15
+            self.probCatch = 0
             
         elif name == 'training4':
             # more stringent parameters
@@ -153,6 +153,8 @@ class MaskingTask(TaskControl):
             self.maxResponseWaitFrames = 60
             self.incorrectTimeoutFrames = 720
             self.solenoidOpenTime = 0.05
+            self.probCatch = .15
+
             
             
         elif name == 'nogo':
