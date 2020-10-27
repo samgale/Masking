@@ -13,9 +13,10 @@ from dataAnalysis import get_dates, ignore_after, create_df, import_data
 
 
 
-def plot_opto_masking(d):
+def plot_opto_masking(d, array_only=False):
     matplotlib.rcParams['pdf.fonttype'] = 42
-        
+    
+    
 # create dataframe of session
     df = create_df(d)
     mouse = df.mouse
@@ -46,9 +47,9 @@ def plot_opto_masking(d):
     
     totalTrialsNoOpto = np.array([len(frame) for frame in [maskOnly, targetOnly, masking, catch]])
     
-    hitsNoOpto = np.squeeze(np.array(hitsNoOpto))
-    respsNoOpto = np.squeeze(np.array(respsNoOpto))
-    totalsNoOpto = np.squeeze(np.array(totalsNoOpto))
+    hitsNoOpto = np.squeeze(np.array(hitsNoOpto))       ### 
+    respsNoOpto = np.squeeze(np.array(respsNoOpto))     # !!!
+    totalsNoOpto = np.squeeze(np.array(totalsNoOpto))   #!!!
 
 # opto trials 
 
@@ -73,12 +74,22 @@ def plot_opto_masking(d):
     
     totalTrialsOpto = np.array([len(frame) for frame in [maskOnlyOpto, targetOnlyOpto, maskingOpto, catchOpto]])
     
-    hits = np.squeeze(np.array(hits))
-    resps = np.squeeze(np.array(resps))
-    totals = np.squeeze(np.array(totals))
-
+    hits = np.squeeze(np.array(hits))   #!!!
+    resps = np.squeeze(np.array(resps))     #!!!
+    totals = np.squeeze(np.array(totals))   # !!!
+    
+    if array_only==True:
+        respsnoOp = respsNoOpto/totalsNoOpto  
+        hitsnoOp = hitsNoOpto/respsNoOpto     
+        respsOp = resps/totals
+        hitsOp = hits/resps
+        
+        return(respsnoOp, hitsnoOp, totalTrialsNoOpto)
+        return(respsOp, hitsOp, totalTrialsOpto)
    
 # plot the percent correct against the opto onset on the xaxis
+    
+    combo = []
     
     xNoOpto = max(optoOnset)+1
     yText = [1.2,1.15,1.1,1.05]
@@ -88,6 +99,8 @@ def plot_opto_masking(d):
     for num, denom, title in zip([resps, hits], 
                                  [totals, resps],
                                  ['Response Rate', 'Fraction Correct Given Response']):
+        
+        
             
             
         fig, ax = plt.subplots()
@@ -103,10 +116,11 @@ def plot_opto_masking(d):
                 ax.plot(optoOnset, num[i]/denom[i], 'o-', color = c, lw=3, alpha=al, label=lbl)
                 ax.plot(xNoOpto, noOptoResp, 'o', color=c, alpha=al)
                 
+              #  combo.append(num[i]/denom[i])
+                
                 for x, n in zip(optoOnset, np.transpose(denom[i])):  
                     fig.text(x,text,str(n),transform=ax.transData,color=c, alpha=al, fontsize=10,ha='center',va='bottom')
                 
-        
 
             else:
                 if lbl=='Mask only' or lbl=='Catch':
@@ -134,6 +148,7 @@ def plot_opto_masking(d):
         formatFigure(fig, ax, xLabel='Optogenetic light onset from target onset (ms)', yLabel=title)
             
         fig.suptitle((mouse + ',  ' + date + '       ' + 'Masking with optogenetic silencing of V1'), fontsize=13)
+       # fig.suptitle(('Combined data, Masking with optogenetic silencing of V1'), fontsize=13)
         
         xticks = list(optoOnset)
             
