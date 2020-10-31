@@ -263,37 +263,49 @@ def create_daily_summary(d, INR):
 #                  width=8.5*inch, height=11*inch).drawOn(c, 0, 0)
 #            
 #            c.showPage()
-#           
-            placement = [(.5, 5.5), (.5, .4)]
             
-            try: param
-            except NameError:  param = 'opto'
-            
-            if param=='targetContrast' or param=='targetLength':
-                file_names = [' combined param correct ', ' combined opto correct ', 
-                              ' combined param response ', ' combined opto response ']
-
-            elif param=='soa':
-                file_names = [' opto masking response rate ', ' opto masking fraction correct ']
-                #  add soa as text
+            if len(d['optoChan'][:]) > 1:
+                file_names = [' unilateral opto ', ' catch trials ']
                 
-                  
-            elif param=='opto':
-                                
-                file_names = [' opto response rate  ', ' opto correct ']
-            
-            for (f, loc) in zip(file_names[:2], placement):
-                Image(dataDir + '/Opto plots/' + date.replace('/','-') + '/' + mouse_id + f + date + '.png', 
-                        width=6*inch, height=4.5*inch).drawOn(c, loc[0]*inch, loc[1]*inch)
-            c.showPage()
-            
-            
-            if param=='targetContrast' or param=='targetLength':  # add 3rd & 4th plots while preserving above loop
+                loc = dataDir + '/Opto plots/' + date.replace('/','-') + '/' + mouse_id  
                 
-                for (f, loc) in zip(file_names[2:], placement):
+                Image(loc + file_names[0] + date + '.png', width=8*inch, height=9*inch).drawOn(c, .5*inch, 1*inch)
+                c.showPage()
+                
+                Image(loc + file_names[1] + date + '.png', width=7*inch, height=5*inch).drawOn(c, .5*inch, 5.5*inch)
+                c.showPage()
+            
+            else:
+                placement = [(.5, 5.5), (.5, .4)]
+                
+                try: param
+                except NameError:  param = 'opto'
+                
+                if param=='targetContrast' or param=='targetLength':
+                    file_names = [' combined param correct ', ' combined opto correct ', 
+                                  ' combined param response ', ' combined opto response ']
+    
+                elif param=='soa':
+                    file_names = [' opto masking response rate ', ' opto masking fraction correct ']
+                    #  add soa as text
+                    
+                      
+                elif param=='opto':
+                                    
+                    file_names = [' opto response rate  ', ' opto correct ']
+                
+                for (f, loc) in zip(file_names[:2], placement):
                     Image(dataDir + '/Opto plots/' + date.replace('/','-') + '/' + mouse_id + f + date + '.png', 
                             width=6*inch, height=4.5*inch).drawOn(c, loc[0]*inch, loc[1]*inch)
                 c.showPage()
+                
+                
+                if param=='targetContrast' or param=='targetLength':  # add 3rd & 4th plots while preserving above loop
+                    
+                    for (f, loc) in zip(file_names[2:], placement):
+                        Image(dataDir + '/Opto plots/' + date.replace('/','-') + '/' + mouse_id + f + date + '.png', 
+                                width=6*inch, height=4.5*inch).drawOn(c, loc[0]*inch, loc[1]*inch)
+                    c.showPage()
             
 
 

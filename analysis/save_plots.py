@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import os
 from plottingOptoAgainstParam import plot_opto_vs_param
 from opto_masking import plot_opto_masking
-
+from plotting_opto_unilateral import plot_opto_uni
 
 
 def save_daily_plots(data, INR):
@@ -176,8 +176,9 @@ def save_daily_plots(data, INR):
   
     if d['probOpto'][()] > 0:
         if len(d['optoChan'][:]) > 1:
-           pass  
-             #plot unilateral opto
+            
+             plot_opto_uni(d, ignoreNoResp)
+             file_names = [' unilateral opto ', ' catch trials ']
         else:
         
             try: param
