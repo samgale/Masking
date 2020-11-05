@@ -163,7 +163,7 @@ class MaskingEphys():
         totalChannels = 136
         probeChannels = 128      
 
-        rawData = np.memmap(datFile,dtype='int16',mode='r')    
+        rawData = np.memmap(self.datFilePath,dtype='int16',mode='r')    
         rawData = np.reshape(rawData,(int(rawData.size/totalChannels),-1)).T
         totalSamples = rawData.shape[1]
         
@@ -234,7 +234,6 @@ class MaskingEphys():
         
         self.unitPos = np.array([self.units[u]['position'][1]/1000 for u in self.goodUnits])
 
-
         # get behavior data    
         self.behavDataPath = fileIO.getFile('Select behavior data file',fileType='*.hdf5')
         behavData = h5py.File(self.behavDataPath,'r')
@@ -245,19 +244,20 @@ class MaskingEphys():
         self.psychopyFrameIntervals = behavData['frameIntervals'][:]
         self.frameRate = round(1/np.median(self.psychopyFrameIntervals))
         
-        assert(self.frameSamples.size==self.psychopyFrameIntervals.size+1)
+        print(str(self.frameSamples.size)+' frame signals')
+        print(str(self.psychopyFrameIntervals.size)+' psychopy frame intervals')
         
-        
-        # correct for ephys ending before psychopy 
+        # correct for ephys ending before psychopy
         if self.psychopyFrameIntervals.size+1>self.frameSamples.size:
-            self.ntrials = np.sum(behavData['trialEndFrame'][:]<frameSamples.size)
+            self.ntrials = np.sum(behavData['trialEndFrame'][:]<self.frameSamples.size)
         else:
             self.ntrials = behavData['trialEndFrame'].size
             
         
         self.stimStart = behavData['trialStimStartFrame'][:self.ntrials]
         self.trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:self.ntrials]
-        assert(np.unique(self.trialOpenLoopFrames).size==1)
+        if np.unique(self.trialOpenLoopFrames).size>1:
+            print('multiple values of open loop frames')
         self.openLoopFrames = self.trialOpenLoopFrames[0]
         self.responseWindowFrames = behavData['maxResponseWaitFrames'][()]
         self.trialType = behavData['trialType'][:self.ntrials]
@@ -266,7 +266,6 @@ class MaskingEphys():
         self.maskOnset = behavData['trialMaskOnset'][:self.ntrials]
         self.optoOnset = behavData['trialOptoOnset'][:self.ntrials]
         self.rewardDir = behavData['trialRewardDir'][:self.ntrials]
-        
         
         # check frame display lag
         fig = plt.figure()
