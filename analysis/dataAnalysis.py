@@ -15,6 +15,7 @@ OR --> df = create_df(import_data())
 import fileIO, h5py
 import numpy as np
 import pandas as pd
+import os
 from nogoData import nogo_turn
 from collections import defaultdict
 
@@ -23,6 +24,27 @@ def import_data():
     f = fileIO.getFile(rootDir=r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice')
     d = h5py.File(f,'r')
     return d
+
+def import_data_multi(mice, fold):
+    '''mice is a dict of mice and dates you want to average
+    fold is the folder it's in, ex='exp_opto' or 'training_to_analyze'
+    ex = {'525455':'1122', '525458':'1024'}
+    returns list of hd5 files ready for indexing, analyzing, etc'''
+    
+    
+    directory = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\active_mice'
+    files = []
+    
+    for m in mice:
+        dataDir = os.path.join(os.path.join(directory, m), fold + '/')   
+        all_files = os.listdir(dataDir)
+        for f in all_files:
+            if mice[m] in f:
+                files.append(dataDir+f)
+                
+    hd5files = [h5py.File(i, 'r') for i in files]
+    
+    return hd5files
 
 
 
@@ -57,22 +79,28 @@ def combine_dfs(dict1):
 
 def ignore_after(data, lim):
     d = data
-    count = 0
-    for i, resp in enumerate(d['trialResponse'][:]):
-        if resp==0:
-            count+=1
-        elif resp==-1 or resp==1:
-            count=0
-        else:
-            count+=0  # ignore catch
-        
-        if count == lim:
-            trialNum=i-lim
-            break
-        else:
-            trialNum=i
+    if type(lim) == int:      # how many consecutive trials to stop after
+        count = 0
+        for i, resp in enumerate(d['trialResponse'][:]):
+            if resp==0:
+                count+=1
+            elif resp==-1 or resp==1:
+                count=0
+            else:
+                count+=0  # ignore catch
             
-    startFrame = d['trialStartFrame'][trialNum]
+            if count == lim:
+                trialNum=i-lim
+                break
+            else:
+                trialNum=i
+                
+        startFrame = d['trialStartFrame'][trialNum]
+        
+    elif lim == list:       # to ignore after a certain time or a selection of session - use minutes
+        start, end  = lim[0], lim[1]
+        # convert minutes into frames;  match frames to trial num;  index by trial num
+        # need to finish this
     
     return trialNum, startFrame-1
 

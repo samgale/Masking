@@ -14,7 +14,7 @@ from ignoreTrials import ignore_trials
 from dataAnalysis import ignore_after, get_dates, import_data
 
 
-def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=None, returnArray=False):
+def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=None, returnCounts=False, array_only=False):
     '''
     plots the percent correct or response for a variable target duration session,
     variable contrast session, opto contrast session, or masking session
@@ -144,7 +144,8 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     hits = np.squeeze(np.array(hits))
     misses = np.squeeze(np.array(misses))
     noResps = np.squeeze(np.array(noResps))
-    totalTrials = hits+misses+noResps
+    resps = hits+misses
+    totalTrials = resps+noResps
     
     
     if param=='opto':
@@ -205,16 +206,18 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         pass
     
     
-    if returnArray==True:
+    if returnCounts==True:
         array_counts = {str(param): paramVals, 'total trials': totalTrials, 
                         'hits': hits, 'misses': misses, 'no response': noResps}
-        return array_counts
+        return (mouse, array_counts)
     
+    elif array_only==True:
+        return (mouse, {str(param):np.round(paramVals, 2), 'Response Rate':(resps[0]+resps[1])/(totalTrials[0]+totalTrials[1]), 
+                        'Fraction Correct':(hits[0]+hits[1])/(resps[0]+resps[1])})
     
-    
-    elif returnArray==False:   
-        for num, denom, title in zip([hits, hits, hits+misses], 
-                                     [totalTrials, hits+misses, totalTrials],
+    else:   
+        for num, denom, title in zip([hits, hits, resps], 
+                                     [totalTrials,resps, totalTrials],
                                      ['Fraction Correct', 'Fraction Correct Given Response', 'Response Rate']):
             
             

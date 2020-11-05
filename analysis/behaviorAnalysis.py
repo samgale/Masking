@@ -323,6 +323,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
 def get_files(mouse_id, task):
     '''
     task is either 'training_' or 'masking_'
+    gets all files from folder
     '''
     task += 'to_analyze'
     directory = r'\\allen\programs\braintv\workgroups\nc-ophys\corbettb\Masking\active_mice'

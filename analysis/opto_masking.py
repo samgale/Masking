@@ -13,7 +13,7 @@ from dataAnalysis import get_dates, ignore_after, create_df, import_data
 
 
 
-def plot_opto_masking(d, array_only=False):
+def plot_opto_masking(d, task=None, array_only=False):
     matplotlib.rcParams['pdf.fonttype'] = 42
     
     
@@ -84,12 +84,13 @@ def plot_opto_masking(d, array_only=False):
         respsOp = resps/totals
         hitsOp = hits/resps
         
-        return(respsnoOp, hitsnoOp, totalTrialsNoOpto)
-        return(respsOp, hitsOp, totalTrialsOpto)
+        return(mouse, {'respsnoOpto':respsnoOp, 'hitsnoOpto':hitsnoOp, 'totalTrialsNoOpto':totalTrialsNoOpto},
+               {'respsOpto':respsOp, 'hitsOpto': hitsOp, 'totalTrialsOpto':totalTrialsOpto}, 
+               ['maskOnly', 'targetOnly', 'masking', 'catch'])
    
 # plot the percent correct against the opto onset on the xaxis
     
-    combo = []
+
     
     xNoOpto = max(optoOnset)+1
     yText = [1.2,1.15,1.1,1.05]
