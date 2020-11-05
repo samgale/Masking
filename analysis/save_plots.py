@@ -197,7 +197,7 @@ def save_daily_plots(data, INR):
                 
             else:   # opto 
                 
-                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=None, returnArray=False)
+                plot_param(d, param=param, showTrialN=True, ignoreNoRespAfter=None)
                 file_names = [' opto response rate  ', ' opto correct ']
 
 
