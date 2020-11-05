@@ -381,7 +381,7 @@ stimLabels = ('targetOnly','maskOnly','mask')
 preTime = 0.5
 postTime = 0.5
 windowDur = preTime+trialTime+postTime
-binSize = 1/frameRate
+binSize = 1/obj.frameRate
 psth = {cellType: {stim: {side: [] for side in ('left','right')} for stim in stimLabels} for cellType in ('FS','RS')}
 hasResp = copy.deepcopy(psth)
 peakResp = copy.deepcopy(psth)
@@ -392,7 +392,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
         for stim in stimLabels:
             stimTrials = obj.trialType==stim if stim=='maskOnly' else (obj.trialType==stim) & (obj.rewardDir==rd)
             for mo in np.unique(obj.maskOnset[stimTrials]):
-                moTrials = maskOnset==mo
+                moTrials = obj.maskOnset==mo
                 trials = stimTrials & (obj.maskOnset==mo)
                 startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                 p = []
@@ -430,7 +430,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
         axs.append(ax)
         for stim,clr in zip(stimLabels,('k','0.5','r')):
             stimTrials = obj.trialType==stim if stim=='maskOnly' else (obj.trialType==stim) & (obj.rewardDir==rd)
-            mskOn = np.unique(maskOnset[stimTrials])
+            mskOn = np.unique(obj.maskOnset[stimTrials])
             if stim=='mask' and len(mskOn)>1:
                 cmap = np.ones((len(mskOn),3))
                 cint = 1/len(mskOn)
@@ -441,7 +441,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
                 p = psth[cellType][stim][side][moInd][respCells[cellType]]
                 m = np.mean(p,axis=0)
                 s = np.std(p,axis=0)/(len(p)**0.5)
-                lbl = 'SOA '+str(round(1000*mo/frameRate,1))+' ms' if stim=='mask' else stim
+                lbl = 'SOA '+str(round(1000*mo/obj.frameRate,1))+' ms' if stim=='mask' else stim
                 lbl += '; time to peak '+str(round(1000*t[np.argmax(m)],1)) + ' ms'
                 ax.plot(t,m,color=c,label=lbl)
     #            ax.fill_between(t,m+s,m-s,color=c,alpha=0.25)
@@ -535,24 +535,24 @@ preTime = 0.5
 postTime = 0.5
 windowDur = preTime+trialTime+postTime
 binSize = 1/obj.frameRate
-optOn = list(np.unique(optoOnset[~np.isnan(optoOnset)]))+[np.nan]
+optOn = list(np.unique(obj.optoOnset[~np.isnan(obj.optoOnset)]))+[np.nan]
 cmap = np.zeros((len(optOn),3))
 cint = 1/(len(optOn)-1)
 cmap[:-1,:2] = np.arange(0,1.01-cint,cint)[:,None]
 cmap[:-1,2] = 1
 fig = plt.figure(figsize=(6,10))
 axs = []
-naxs = 2+np.sum(np.unique(maskOnset>0))
+naxs = 2+np.sum(np.unique(obj.maskOnset>0))
 for stim in stimLabels:
     stimTrials = np.in1d(obj.trialType,(stim,stim+'Opto'))
     if stim!='maskOnly':
         stimTrials = stimTrials & (obj.rewardDir==-1)
-    for mo in np.unique(maskOnset[stimTrials]):
+    for mo in np.unique(obj.maskOnset[stimTrials]):
         ax = fig.add_subplot(naxs,1,len(axs)+1)
         axs.append(ax)
-        moTrials = maskOnset==mo
+        moTrials = obj.maskOnset==mo
         for onset,clr in zip(optOn,cmap):
-            trials = np.isnan(optoOnset) if np.isnan(onset) else optoOnset==onset
+            trials = np.isnan(obj.optoOnset) if np.isnan(onset) else obj.optoOnset==onset
             trials = trials & stimTrials & moTrials
             startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
             psth = []
