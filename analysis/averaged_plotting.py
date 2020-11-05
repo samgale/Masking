@@ -15,6 +15,7 @@ import matplotlib
 from plotting_variable_params import plot_param
 from opto_masking import plot_opto_masking
 from types import SimpleNamespace    
+from dataAnalysis import import_data_multi
 
 
 def plot_average_beh(task=None, mice, info):
@@ -33,17 +34,19 @@ def plot_average_beh(task=None, mice, info):
         if task == 'opto masking':
             func = plot_opto_masking
             
-        elif task == 'opto unilateral':
+        elif task == 'opto unilateral' or task='opto contrast':
             func = plot_param          # this returns counts not percents 
+            
+        task == None
             
     else:
         
-        func = plot_by_param
+        func = plot_param
         
-        if task == 'opto unilateral':
+        if task == 'opto unilateral':   #will have 4 lines 
             folder = 'exp_opto'
         
-        if task == 'target duration':
+        if task == 'target duration':  # 2 plots of a single percent
             task = 'targetLength'
             folder = 'exp_duration'
     
@@ -59,36 +62,38 @@ def plot_average_beh(task=None, mice, info):
 
     f = import_data_multi(mice, folder)  # list of the hdf5 files for each mouse 
     
-    array = []
+    percents = []   #each item in percents has mouseID, dict of param vals, then dicts of vals to plot
     
     for i in f:
-        array.append(func(i, param=task, array_only=True))  # calls function appropriate to params and returns array of %s
+        percents.append(func(i, param=task, array_only=True))  # calls function appropriate to params and returns array of %s
         
             ## need to think about mask only 
         
-    for e, x in enumerate(array):
-        for key, val in array[e].items:
-           print(key, val)
+#    for e, x in enumerate(percents[1:]):
+#        for key, val in percents[e].items:
+#           print(key, val)
     # in each dict only the 1st 2 keys are averages 
     
-    for key, val in array[0][1].items():
-        print(key, val)
+    for i in range(len(mice)):
+        for key, val in percents[i][1].items():
+            if key == 'Fraction Correct' or key=='Response Rate':
+                print(key, val)
      
-        print(np.nanmean([array[1][1][key], array[0][1][key]], axis=0))
+        print(np.nanmean([percents[1][1][key], percents[0][1][key]], axis=0))  #averaged over mice for eac hkey (resp and corr)
         
-    # so then - you have a dict for each animal, with all percents
-    # you can then plot those individual percents and the average
-    # how to best do the plotting??
-        
-        
-        
-        
-       
-    d = {'a': 1, 'b': 2}
-    n = SimpleNamespace(**d)
-    n.a
+
 
         
+        
+    for i in range(len(mice)):
+        for key, val in percents[i][1].items():
+            
+            if key == 'Fraction Correct' or key=='Response Rate':
+            
+                fig, ax = plt.subplots()
+                ax.plot(val)
+                plt.title(key)
+            
         
         
         
