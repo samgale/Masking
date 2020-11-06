@@ -377,11 +377,13 @@ plt.tight_layout()
 
 
 # plot response to visual stimuli without opto
+respThresh = 0 # stdev
 stimLabels = ('targetOnly','maskOnly','mask')
 preTime = 0.5
 postTime = 0.5
 windowDur = preTime+trialTime+postTime
 binSize = 1/obj.frameRate
+ntrials = {stim: {side: [] for side in ('left','right')} for stim in stimLabels}
 psth = {cellType: {stim: {side: [] for side in ('left','right')} for stim in stimLabels} for cellType in ('FS','RS')}
 hasResp = copy.deepcopy(psth)
 peakResp = copy.deepcopy(psth)
@@ -394,6 +396,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
             for mo in np.unique(obj.maskOnset[stimTrials]):
                 moTrials = obj.maskOnset==mo
                 trials = stimTrials & (obj.maskOnset==mo)
+                ntrials[stim][side].append(trials.sum())
                 startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                 p = []
                 timeToFirstSpike[cellType][stim][side].append([])
@@ -414,7 +417,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
                 p = np.array(p)
                 psth[cellType][stim][side].append(p)
                 analysisWindow = (t>0.03) & (t<0.15)
-                hasResp[cellType][stim][side].append(p[:,analysisWindow].max(axis=1) > 3*p[:,t<0].std())
+                hasResp[cellType][stim][side].append(p[:,analysisWindow].max(axis=1) > respThresh*p[:,t<0].std())
                 peakResp[cellType][stim][side].append(p[:,analysisWindow].max(axis=1))
                 timeToPeak[cellType][stim][side].append(t[np.argmax(p[:,analysisWindow],axis=1)+np.where(analysisWindow)[0][0]])
 
@@ -423,7 +426,7 @@ respCells = {cellType: hasResp[cellType]['targetOnly']['right'][0] | hasResp[cel
  
 for ct,cellType in zip((fs,~fs),('FS','RS')):  
     fig = plt.figure(figsize=(10,5))
-    fig.text(0.5,0.99,cellType+' (n='+str(respCells[cellType].sum())+'/'+str(len(respCells[cellType]))+')',ha='center',va='top',fontsize=12)
+    fig.text(0.5,0.99,cellType+' (n='+str(respCells[cellType].sum())+' cells)',ha='center',va='top',fontsize=12)
     axs = []
     for i,(rd,side) in enumerate(zip((1,-1),('left','right'))):
         ax = fig.add_subplot(1,2,i+1)
@@ -431,6 +434,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
         for stim,clr in zip(stimLabels,('k','0.5','r')):
             stimTrials = obj.trialType==stim if stim=='maskOnly' else (obj.trialType==stim) & (obj.rewardDir==rd)
             mskOn = np.unique(obj.maskOnset[stimTrials])
+            mskOn = [mskOn[0]]
             if stim=='mask' and len(mskOn)>1:
                 cmap = np.ones((len(mskOn),3))
                 cint = 1/len(mskOn)
@@ -442,7 +446,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
                 m = np.mean(p,axis=0)
                 s = np.std(p,axis=0)/(len(p)**0.5)
                 lbl = 'SOA '+str(round(1000*mo/obj.frameRate,1))+' ms' if stim=='mask' else stim
-                lbl += '; time to peak '+str(round(1000*t[np.argmax(m)],1)) + ' ms'
+                lbl += ' ('+str(ntrials[stim][side][moInd])+' trials)'
                 ax.plot(t,m,color=c,label=lbl)
     #            ax.fill_between(t,m+s,m-s,color=c,alpha=0.25)
         for s in ('right','top'):
@@ -453,7 +457,7 @@ for ct,cellType in zip((fs,~fs),('FS','RS')):
         ax.set_xlabel('Time from stimulus onset (s)')
         if i==0:
             ax.set_ylabel('Response (spikes/s)')
-        ax.legend(fontsize=6,loc='upper left',frameon=False)
+        ax.legend(loc='upper left',frameon=False)
         ax.set_title('target '+side)
     ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
     ymax = max(plt.get(ax,'ylim')[1] for ax in axs)
