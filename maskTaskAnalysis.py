@@ -303,7 +303,7 @@ obj.saveToHdf5()
 obj.loadFromHdf5()    
 
 
-fs = obj.peakToTrough<=0.6
+fs = obj.peakToTrough<=0.5
 
 
 # plot response to optogenetic stimuluation during catch trials
@@ -480,7 +480,6 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
             ax.set_title('target '+side)
     for ax in axs:
         ax.set_ylim([1.05*ymin,1.05*ymax])
-    plt.tight_layout()
     
 
 fig = plt.figure(figsize=(10,6))
@@ -577,7 +576,7 @@ for stim in stimLabels:
             trials = trials & stimTrials & moTrials
             startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
             psth = []
-            for u in obj.goodUnits[~fs]:
+            for u in obj.goodUnits[~fs & inhib]:
                 spikeTimes = obj.units[u]['samples']/obj.sampleRate
                 p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                 psth.append(p)
