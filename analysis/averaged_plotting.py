@@ -121,12 +121,11 @@ def plot_average_beh(task=None):   # call with dates_to_dict(task==task)
         responseRate = [[val for key, val in percents[i][1].items() if key=='Response Rate'] for i in rn]
         fractionCorr = [[val for key, val in percents[i][1].items() if key=='Fraction Correct'] for i in rn]
         maskOnly = [[val for key, val in percents[i][1].items() if key=='maskOnly'] for i in rn]
-        catchTurn = [[val for key, val in percents[i][1].items() if key=='Catch Trials'] for i in rn]
+        catchTrials = [[val for key, val in percents[i][1].items() if key=='Catch Trials'] for i in rn]
                 
         if 'opto' in task:
             responseRateNoOpto = [[val for key, val in percents[i][1].items() if key=='Response Rate No Opto'] for i in rn]
             fractionCorrNoOpto = [[val for key, val in percents[i][1].items() if key=='Fraction Correct No Opto'] for i in rn]
-            catchTrials = [[val for key, val in percents[i][1].items() if key=='Catch Trials'] for i in rn]
 
         xticks = paramVals[0][0].copy()
         xticklabels = list(paramVals[0][0])
