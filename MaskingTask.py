@@ -34,6 +34,7 @@ class MaskingTask(TaskControl):
         self.openLoopFramesMax = 120 # max total openLoopFrames
         self.maxResponseWaitFrames = 120 # max frames between end of openLoopFrames and end of go trial
         
+        self.rewardSizeLeft = self.rewardSizeRight = None # set solenoid open time in seconds; otherwise defaults to self.solenoidOpenTime
         self.wheelRewardDistance = 8.0 # mm of wheel movement to achieve reward
         self.maxQuiescentMoveDist = 1.0 # max allowed mm of wheel movement during quiescent period
         self.normRewardDistance = 0.25 # distance (normalized to screen width) target moves for reward
@@ -463,6 +464,12 @@ class MaskingTask(TaskControl):
                     else:
                         params = random.choice(trialParams[trialType]['params'])
                     rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = params
+                    if rewardDir == 1:
+                        rewardSize = self.rewardSizeRight
+                    elif rewardDir == -1:
+                        rewardSize = self.rewardSizeLeft
+                    else:
+                        rewardSize = self.solenoidOpenTime
                 
                 targetPos = list(initTargetPos) # position of target on screen
                 targetOri = initTargetOri # orientation of target on screen
@@ -568,7 +575,7 @@ class MaskingTask(TaskControl):
                             self._noise = True
                     elif rewardDir == 0:
                         self.trialResponse.append(1) # no response on no-go trial
-                        self._reward = True
+                        self._reward = rewardSize
                     else:
                         self.trialResponse.append(np.nan) # no response on catch trial
                     self.trialResponseFrame.append(self._sessionFrame)
@@ -581,7 +588,7 @@ class MaskingTask(TaskControl):
                             self.trialResponse.append(np.nan) # movement on catch trial
                         elif moveDir == rewardDir:
                             self.trialResponse.append(1) # correct movement on go trial
-                            self._reward = True
+                            self._reward = rewardSize
                         else:
                             if rewardDir == 0:
                                 self.trialResponse.append(-1) # movement during no-go
