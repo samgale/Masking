@@ -90,6 +90,7 @@ class TaskControl():
         self._reward = False # reward delivered at next frame flip if True
         self.rewardFrames = [] # index of frames at which reward delivered
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
+        self.rewardSize = [] # size (solenoid open time) of each reward
         self._tone = False # tone triggered at next frame flip if True
         self._noise = False # noise triggered at next frame flip if True
         self._opto = False # False or dictionary of params for optoPulse at next frame flip
@@ -150,8 +151,8 @@ class TaskControl():
         # spacebar delivers reward
         # escape key ends session
         keys = event.getKeys()
-        if self.spacebarRewardsEnabled and 'space' in keys and self._reward is not False:
-            self._reward = True
+        if self.spacebarRewardsEnabled and 'space' in keys and not self._reward:
+            self._reward = self.solenoidOpenTime
             self.manualRewardFrames.append(self._sessionFrame)
         if 'escape' in keys:   
             self._continueSession = False
@@ -176,6 +177,7 @@ class TaskControl():
         if self._reward:
             self.triggerReward(self._reward)
             self.rewardFrames.append(self._sessionFrame)
+            self.rewardSize.append(self._reward)
             self._reward = False
         
         if self._tone:
@@ -314,11 +316,9 @@ class TaskControl():
             self.completeSession()
         
         
-    def triggerReward(self,openTime=None):
-        if not isinstance(openTime,float):
-            openTime = self.solenoidOpenTime
+    def triggerReward(self,openTime):
         sampleRate = self._optoOutput.timing.samp_clk_rate
-        nSamples = int(self.solenoidOpenTime * sampleRate) + 1
+        nSamples = int(openTime * sampleRate) + 1
         s = np.zeros(nSamples)
         s[:-1] = 5
         self._rewardOutput.stop()

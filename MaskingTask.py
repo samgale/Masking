@@ -464,9 +464,9 @@ class MaskingTask(TaskControl):
                     else:
                         params = random.choice(trialParams[trialType]['params'])
                     rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = params
-                    if rewardDir == 1:
+                    if rewardDir == 1 and self.rewardSizeRight is not None:
                         rewardSize = self.rewardSizeRight
-                    elif rewardDir == -1:
+                    elif rewardDir == -1 and self.rewardSizeLeft is not None:
                         rewardSize = self.rewardSizeLeft
                     else:
                         rewardSize = self.solenoidOpenTime
