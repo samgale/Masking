@@ -106,6 +106,23 @@ def ignore_after(data, lim):
 
 
 
+def dates_to_dict(task=None):  #use with combined plotting
+
+
+    df = pd.read_excel(r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\Masking training notes new.xlsx', 
+                   sheet_name='Task_vals')
+
+    df.index = df['mouse_id']
+
+    d = df.to_dict()   # turn df into dict by task type, {mouse:date}
+    
+    selection = d[task]
+    
+    new_d = {str(key): str(value) for key, value in selection.items()}
+    
+    return new_d
+
+
 
 def create_df(data):   
     
@@ -235,7 +252,7 @@ def create_df(data):
                 df.at[i, col] = turn
                 
         df['soa'] = trialMaskOnset
-        #df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
+        df['soa_frames'] = d['trialMaskOnset'][:len(df)]  
 
 # if nogo trials
 #    if d['probNoGo'][()]>0:

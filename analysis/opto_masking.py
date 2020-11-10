@@ -13,7 +13,8 @@ from dataAnalysis import get_dates, ignore_after, create_df, import_data
 
 
 
-def plot_opto_masking(d, task=None, array_only=False):
+def plot_opto_masking(d, param=None, ignoreNoRespAfter = None, array_only=False):
+    
     matplotlib.rcParams['pdf.fonttype'] = 42
     
     
@@ -23,6 +24,10 @@ def plot_opto_masking(d, task=None, array_only=False):
     framerate = df.framerate
     date = get_dates(df.date)
     df['respDir'] = d['trialResponseDir'][:len(df)]
+    
+    end = ignore_after(d, ignoreNoRespAfter)[0] if ignoreNoRespAfter is not None else len(df)
+
+    df = df[:end]
     
 # separate out the target only, mask only, catch only, and masking trials
 # (we are using the averages of these, not left/right)
@@ -78,15 +83,20 @@ def plot_opto_masking(d, task=None, array_only=False):
     resps = np.squeeze(np.array(resps))     #!!!
     totals = np.squeeze(np.array(totals))   # !!!
     
+    xlabls1 = [(on/framerate) - ((1/framerate)*2) for on in list(optoOnset)]
+    xticklabels = [int(np.round(x*1000)) for x in xlabls1]
+    paramVals = xticklabels
+
+    
     if array_only==True:
-        respsnoOp = respsNoOpto/totalsNoOpto  
-        hitsnoOp = hitsNoOpto/respsNoOpto     
-        respsOp = resps/totals
-        hitsOp = hits/resps
-        
-        return(mouse, {'respsnoOpto':respsnoOp, 'hitsnoOpto':hitsnoOp, 'totalTrialsNoOpto':totalTrialsNoOpto},
-               {'respsOpto':respsOp, 'hitsOpto': hitsOp, 'totalTrialsOpto':totalTrialsOpto}, 
-               ['maskOnly', 'targetOnly', 'masking', 'catch'])
+
+        return(mouse, {str(param):paramVals, 
+                       'Response Rate':(resps/totals), 
+                       'Fraction Correct': (hits/resps), 
+                       'Response Rate No Opto' : (respsNoOpto/totalsNoOpto),
+                       'Fraction Correct No Opto' : (hitsNoOpto/respsNoOpto),
+                       'Trials' : ['Mask only', 'Target only', 'Masked trials', 'Catch']})
+    
    
 # plot the percent correct against the opto onset on the xaxis
     
@@ -154,7 +164,7 @@ def plot_opto_masking(d, task=None, array_only=False):
         xticks = list(optoOnset)
             
        
-        xticklabels = [int(np.round((tick/framerate)*1000))-17 for tick in optoOnset]  # remove 17 ms of latency
+        xticklabels = [param+1 for param in paramVals]  # removed 17 ms of latency
         x,lbl = ([xNoOpto],['no\nopto'])
         xticks = np.concatenate((xticks,x))
         xticklabels = xticklabels+lbl

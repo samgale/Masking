@@ -54,7 +54,8 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         trialParam = d['trialTargetContrast'][:end]
     elif param =='opto':
         trialParam = d['trialOptoOnset'][:end]
-    elif param == 'soa':
+    elif param == 'soa' or param=='masking':
+        param='soa'
         trialParam = d['trialMaskOnset'][:end]
     
     
@@ -173,6 +174,10 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         catchTurn = np.array(list(map(sum, [c for c in catch])))
         catchCounts = np.array(list(map(len, [c for c in catch])))
         
+        xlabls1 = [(on/framerate) - ((1/framerate)*2) for on in list(paramVals)]
+        xticklabels = [int(np.round(x*1000)) for x in xlabls1]
+        paramVals = xticklabels
+        
     if param=='soa':
         maskOnlyTotal = np.sum(trialType=='maskOnly')  # ignores are already excluded
         maskOnly = [[], [], []]
@@ -212,8 +217,15 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         return (mouse, array_counts)
     
     elif array_only==True:
-        return (mouse, {str(param):np.round(paramVals, 2), 'Response Rate':(resps[0]+resps[1])/(totalTrials[0]+totalTrials[1]), 
-                        'Fraction Correct':(hits[0]+hits[1])/(resps[0]+resps[1])})
+        
+        mask =  (maskOnly[0]+maskOnly[1])/maskOnlyTotal if param=='soa' else None
+        avg_catch = (catchTurn/catchCounts) if param=='opto' else None
+        
+        return (mouse, {str(param):np.round(paramVals, 2), 
+                        'Response Rate':(resps[0]+resps[1])/(totalTrials[0]+totalTrials[1]), 
+                        'Fraction Correct':(hits[0]+hits[1])/(resps[0]+resps[1]), 
+                        'Catch Trials':avg_catch,
+                        'maskOnly': mask})
     
     else:   
         for num, denom, title in zip([hits, hits, resps], 
@@ -247,8 +259,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                     for p, c in zip(xticks, catchCounts):
                         fig.text(p, 1.05, str(c), transform=ax.transData, color='m', alpha=.5, fontsize=10,ha='center',va='bottom')
                 
-                xlabls1 = [(on/framerate) - ((1/framerate)*2) for on in list(paramVals)]
-                xticklabels = [np.round(int(x*1000)) for x in xlabls1]
+                
                 
                 xticklabels[-1] = 'no opto'
                 ax.xaxis.set_label_coords(0.5,-0.08)  

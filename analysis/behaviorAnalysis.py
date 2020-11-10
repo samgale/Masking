@@ -290,25 +290,6 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
         ax.plot([trialTime[framesToShowBeforeStart+openLoopFrames]]*2, ax.get_ylim(), 'k--')
         
         
-# trying to add table to plot with all response stats
-#    if table==True:
-#            cell_texts = session(d,ignoreRepeats=True, printValues=False)
-#            plt.figure()
-#            for i, (key, val) in enumerate(cell_texts.items()):
-#                plt.text(i,i, (key, val))
-#            plt.set_ylim
-#            columns = ('Trials', 'Correct', 'Incorrect', 'No Resp')
-#            rows = ('Total', 'Left', 'Right', 'No Go')
-#            table = ax.table(cellText=cell_texts,
-#                      rowLabels=rows,
-#                      colLabels=columns,
-#                      colWidths=[.2,.2,.2,.2],
-#                      loc='bottom',
-#                      bbox=[0, -0.5, 1, 0.275]
-#                      )
-#            plt.subplots_adjust(left=.2, bottom=0.2)
-#        
-        
         formatFigure(fig, ax, xLabel='Time from stimulus onset (s)', 
                      yLabel=ylabel, title=name_date[-3:-1] + [ 'Mask Trials'])
         plt.tight_layout()
