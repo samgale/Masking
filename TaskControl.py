@@ -90,6 +90,7 @@ class TaskControl():
         self._reward = False # reward delivered at next frame flip if True
         self.rewardFrames = [] # index of frames at which reward delivered
         self.manualRewardFrames = [] # index of frames at which reward manually delivered
+        self.rewardSize = [] # size (solenoid open time) of each reward
         self._tone = False # tone triggered at next frame flip if True
         self._noise = False # noise triggered at next frame flip if True
         self._opto = False # False or dictionary of params for optoPulse at next frame flip
@@ -151,7 +152,7 @@ class TaskControl():
         # escape key ends session
         keys = event.getKeys()
         if self.spacebarRewardsEnabled and 'space' in keys and not self._reward:
-            self._reward = True
+            self._reward = self.solenoidOpenTime
             self.manualRewardFrames.append(self._sessionFrame)
         if 'escape' in keys:   
             self._continueSession = False
@@ -174,8 +175,9 @@ class TaskControl():
             self._opto = False
         
         if self._reward:
-            self.triggerReward()
+            self.triggerReward(self._reward)
             self.rewardFrames.append(self._sessionFrame)
+            self.rewardSize.append(self._reward)
             self._reward = False
         
         if self._tone:
@@ -230,13 +232,10 @@ class TaskControl():
         # Dev1 analog outputs
         # AO0: water reward solenoid
         aoSampleRate = 1000
-        nSamples = int(self.solenoidOpenTime * aoSampleRate) + 1
-        self._rewardSignal = np.zeros(nSamples)
-        self._rewardSignal[:-1] = 5
         self._rewardOutput = nidaqmx.Task()
         self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[0]+'/ao0',min_val=0,max_val=5)
         self._rewardOutput.write(0)
-        self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate,samps_per_chan=nSamples)
+        self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate)
         self._nidaqTasks.append(self._rewardOutput)
         
         # Dev2 analog outputs
@@ -317,9 +316,14 @@ class TaskControl():
             self.completeSession()
         
         
-    def triggerReward(self):
+    def triggerReward(self,openTime):
+        sampleRate = self._optoOutput.timing.samp_clk_rate
+        nSamples = int(openTime * sampleRate) + 1
+        s = np.zeros(nSamples)
+        s[:-1] = 5
         self._rewardOutput.stop()
-        self._rewardOutput.write(self._rewardSignal,auto_start=True)
+        self._rewardOutput.timing.samp_quant_samp_per_chan = nSamples
+        self._rewardOutput.write(s,auto_start=True)
         
         
     def optoOn(self,ch=[0,1],amp=5,ramp=0):
