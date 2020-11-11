@@ -82,6 +82,7 @@ def plot_average_beh(task=None):   # call with dates_to_dict(task==task)
         
     rn = range(len(mice))
 
+
     if task == 'opto unilateral':
         paramVals = [1,2,3,4]
         y = np.array([p[5] for p in percents])
@@ -128,11 +129,11 @@ def plot_average_beh(task=None):   # call with dates_to_dict(task==task)
             fractionCorrNoOpto = [[val for key, val in percents[i][1].items() if key=='Fraction Correct No Opto'] for i in rn]
 
         xticks = paramVals[0][0].copy()
-        xticklabels = list(paramVals[0][0])
+        xticklabels = list(xticks)
        
       
       
-#response rate plotting      
+# response rate plotting      
     
         if task == 'opto masking':
             colors = ['k', 'c', 'b', 'm']
@@ -201,21 +202,29 @@ def plot_average_beh(task=None):   # call with dates_to_dict(task==task)
                              color='m', alpha=.6, lw=3, label='Catch Trials')
                 ax.set_xlim([10,105])
             
+            
+            if task=='targetContrast':
+                ax.set_xlim([.1,1.1])
+                
+            if task == 'targetDuration':
+                ax.set_xlim([0, 105])
+            
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
         
         plt.title('Average Response Rate across mice')
-        #   
         ax.set_ylim([0,1.05])
+        
         formatFigure(fig, ax, xLabel=lbl, yLabel='Response Rate')  
         plt.subplots_adjust(top=0.9, bottom=0.15, left=0.12, right=0.92, hspace=0.2, wspace=0.2)
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
-        plt.legend(by_label.values(), by_label.keys(), loc='best', fontsize='small')
+        if len(by_label)>1:
+            plt.legend(by_label.values(), by_label.keys(), loc='best', fontsize='small')
     
         
         
-     # fraction correct plotting
+# fraction correct plotting
         if task == 'opto masking':
            
             fig, ax = plt.subplots()
@@ -268,9 +277,7 @@ def plot_average_beh(task=None):   # call with dates_to_dict(task==task)
             
             
             ax.set_xticks(paramVals[0][0])   
-    
-           # ax.set_xticklabels(list(paramVals[0][0]))
-            
+                
             if task == 'masking':
                 ax.set_xticklabels(xlabels)
                 ax.set_xlim([1, 8])
@@ -279,7 +286,13 @@ def plot_average_beh(task=None):   # call with dates_to_dict(task==task)
             if task == 'opto contrast':
                 ax.set_xticklabels(xticklabels)
                 ax.set_xlim([10,105])
-               
+                 
+            if task == 'targetContrast':
+                ax.set_xlim([.1,1.1])
+            
+            if task == 'targetDuration':
+                ax.set_xlim([0, 105])
+                    
         plt.title('Average Fraction Correct Given Response across mice')
         ax.set_ylim([.4,1.02])
     
