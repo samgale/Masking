@@ -317,7 +317,7 @@ class TaskControl():
         
         
     def triggerReward(self,openTime):
-        sampleRate = self._optoOutput.timing.samp_clk_rate
+        sampleRate = self._rewardOutput.timing.samp_clk_rate
         nSamples = int(openTime * sampleRate) + 1
         s = np.zeros(nSamples)
         s[:-1] = 5
