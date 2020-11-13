@@ -234,7 +234,7 @@ def create_df(data):
     df['trialLength_ms'] = convert_to_ms(trialLength)
     df['closedLoopFramesTotal'] = trialResponseFrame-trialStimStartFrame-trialOpenLoopFrames
     
-    df['targetDuration_ms'] = convert_to_ms(trialTargetFrames)
+    df['targetDuration'] = convert_to_ms(trialTargetFrames)
     df['targetContrast'] = trialTargetContrast
     
     

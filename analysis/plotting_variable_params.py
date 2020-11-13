@@ -213,7 +213,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     
     if returnCounts==True:
         array_counts = {str(param): paramVals, 'total trials': totalTrials, 
-                        'hits': hits, 'misses': misses, 'no response': noResps}
+                        'hits': hits, 'misses': misses, 'resps': resps, 'no response': noResps}
         return (mouse, array_counts)
     
     elif array_only==True:
