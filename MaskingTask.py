@@ -71,6 +71,7 @@ class MaskingTask(TaskControl):
         
         # mask params
         self.maskType = None # None, 'plaid', or 'noise'
+        self.normMaskPos = [[(0,0)]]
         self.maskShape = 'target' # 'target', 'surround', 'full'
         self.maskOnset = [15] # frames >0 relative to target stimulus onset
         self.maskFrames = [12] # duration of mask
@@ -155,9 +156,7 @@ class MaskingTask(TaskControl):
             self.incorrectTimeoutFrames = 720
             self.solenoidOpenTime = 0.05
             self.probCatch = .15
-
-            
-            
+  
         elif name == 'nogo':
             self.setDefaultParams('training4',taskVersion)
             self.probCatch = 0.33
@@ -195,12 +194,17 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('testing',taskVersion)
             self.maskType = 'plaid'
             self.maskShape = 'target'
+            self.normMaskPos = [self.normTargetPos]
             self.maskFrames = [24]
             self.maskOnset = [2,3,4,6]
             self.maskContrast = [0.4]
             self.targetContrast = [0.4]
             self.probMask = 0.6
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
+            
+        elif name == 'mask pos':
+            self.setDefaultParams('masking',taskVersion)
+            self.normMaskPos += [(0,-0.25),(0,0.25)]
             
         elif name == 'opto contrast':
             self.setDefaultParams('testing',taskVersion)
@@ -259,53 +263,52 @@ class MaskingTask(TaskControl):
         # 'surround' mask surrounds but does not overlap target
         # 'full' mask surrounds and overlaps target
         if self.maskShape=='target':
-            maskPos = targetPosPix
-            maskSize = targetSizePix
+            maskPosPix = [[tuple(p[i] * self.monSizePix[i] for i in (0,1)) for p in m] for m in self.normMaskPos]
+            maskSizePix = targetSizePix
             maskEdgeBlur = self.gratingEdge
             maskEdgeBlurWidth = edgeBlurWidth
         else:
-            maskPos = [(0,0)]
-            maskSize = max(self.monSizePix)
+            maskPosPix = [[(0,0)]]
+            maskSizePix = max(self.monSizePix)
             maskEdgeBlur = None
             maskEdgeBlurWidth = None
-        
-        if self.maskType=='noise':
-            maskSize = 2**math.ceil(math.log(maskSize,2))
+        nMasks = len(maskPosPix[0])
         
         if self.maskType=='plaid':
             maskOri = (0,90) if len(self.normTargetPos)>1 else (-45,45)
-            mask = [visual.GratingStim(win=self._win,
-                                       units='pix',
-                                       mask=maskEdgeBlur,
-                                       maskParams=maskEdgeBlurWidth,
-                                       tex=self.gratingType,
-                                       size=maskSize,
-                                       sf=sf,
-                                       ori=ori,
-                                       opacity=opa,
-                                       pos=pos) 
-                                       for pos in maskPos
-                                       for ori,opa in zip(maskOri,(1.0,0.5))]
+            mask = [[visual.GratingStim(win=self._win,
+                                        units='pix',
+                                        mask=maskEdgeBlur,
+                                        maskParams=maskEdgeBlurWidth,
+                                        tex=self.gratingType,
+                                        size=maskSizePix,
+                                        sf=sf,
+                                        ori=ori,
+                                        opacity=opa)
+                                        for ori,opa in zip(maskOri,(1.0,0.5))]
+                                        for _ in range(nMasks)]
+                                       
         elif self.maskType=='noise':
-            mask = [visual.NoiseStim(win=self._win,
-                                     units='pix',
-                                     mask=maskEdgeBlur,
-                                     maskParams=maskEdgeBlurWidth,
-                                     noiseType='Filtered',
-                                     noiseFractalPower = 0,
-                                     noiseFilterOrder = 1,
-                                     noiseFilterLower = 0.5*sf,
-                                     noiseFilterUpper = 2*sf,
-                                     size=maskSize)
-                                     for pos in maskPos]
+            maskSizePix = 2**math.ceil(math.log(maskSizePix,2))
+            mask = [[visual.NoiseStim(win=self._win,
+                                      units='pix',
+                                      mask=maskEdgeBlur,
+                                      maskParams=maskEdgeBlurWidth,
+                                      noiseType='Filtered',
+                                      noiseFractalPower = 0,
+                                      noiseFilterOrder = 1,
+                                      noiseFilterLower = 0.5*sf,
+                                      noiseFilterUpper = 2*sf,
+                                      size=maskSizePix)]
+                                      for _ in range(nMasks)]
         
         if self.maskShape=='surround':
-            mask += [visual.Circle(win=self._win,
+            mask += [[visual.Circle(win=self._win,
                                    units='pix',
                                    radius=0.5*targetSizePix,
                                    lineColor=0.5,
                                    fillColor=0.5)
-                                   for pos in targetPosPix]
+                                   for pos in targetPosPix]]
         
         # define parameters for each trial type
         if len(targetPosPix) > 1:
@@ -323,11 +326,12 @@ class MaskingTask(TaskControl):
         rd = 0 if self.rewardCatchNogo else np.nan
         trialParams['catch'] = {}
         trialParams['catch']['params'] = [(rd,     # reward direction
-                                          (0,0),   # pos
-                                          0,       # ori
+                                          (0,0),   # target pos
+                                          0,       # target ori
                                           0,       # target contrast
                                           0,       # target frames
                                           0,       # mask onset
+                                          (0,0),   # mask pos
                                           0,       # mask frames
                                           0,       # mask contrast
                                           (False,False),  # opto chan
@@ -342,6 +346,7 @@ class MaskingTask(TaskControl):
                                                                        [0],
                                                                        [0],
                                                                        [0],
+                                                                       maskPosPix,
                                                                        self.maskFrames,
                                                                        self.maskContrast,
                                                                        [(False,False)],
@@ -356,6 +361,7 @@ class MaskingTask(TaskControl):
                                                                               self.targetContrast,
                                                                               self.targetFrames,
                                                                               [0],
+                                                                              [(0,0)],
                                                                               [0],
                                                                               [0],
                                                                               [(False,False)],
@@ -371,6 +377,7 @@ class MaskingTask(TaskControl):
                                                                             self.targetContrast,
                                                                             self.targetFrames,
                                                                             self.maskOnset,
+                                                                            maskPosPix,
                                                                             self.maskFrames,
                                                                             self.maskContrast,
                                                                             [(False,False)],
@@ -410,6 +417,7 @@ class MaskingTask(TaskControl):
         self.trialTargetContrast = []
         self.trialTargetFrames = []
         self.trialMaskOnset = []
+        self.trialMaskPos = []
         self.trialMaskFrames = []
         self.trialMaskContrast = []
         self.trialRewardDir = []
@@ -463,7 +471,7 @@ class MaskingTask(TaskControl):
                         trialParams[trialType]['count'] += 1
                     else:
                         params = random.choice(trialParams[trialType]['params'])
-                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskFrames,maskContrast,optoChan,optoOnset = params
+                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskPos,maskFrames,maskContrast,optoChan,optoOnset = params
                     if rewardDir == 1 and self.rewardSizeRight is not None:
                         rewardSize = self.rewardSizeRight
                     elif rewardDir == -1 and self.rewardSizeLeft is not None:
@@ -478,10 +486,12 @@ class MaskingTask(TaskControl):
                 target.contrast = targetContrast
                 target.phase = (0,0)
                 if self.maskType is not None:
-                    for m in mask:
-                        m.contrast = maskContrast
-                        if self.maskType == 'noise' and isinstance(m,visual.NoiseStim):
-                            m.updateNoise()
+                    for msk,p in zip(mask,maskPos):
+                        for m in msk:
+                            m.pos = p
+                            m.contrast = maskContrast
+                            if self.maskType == 'noise' and isinstance(m,visual.NoiseStim):
+                                m.updateNoise()
                 self.trialType.append(trialType)
                 self.trialStartFrame.append(self._sessionFrame)
                 self.trialTargetPos.append(initTargetPos)
@@ -489,6 +499,7 @@ class MaskingTask(TaskControl):
                 self.trialTargetContrast.append(targetContrast)
                 self.trialTargetFrames.append(targetFrames)
                 self.trialMaskOnset.append(maskOnset)
+                self.trialMaskPos.append(maskPos)
                 self.trialMaskFrames.append(maskFrames)
                 self.trialMaskContrast.append(maskContrast)
                 self.trialRewardDir.append(rewardDir)
@@ -555,8 +566,9 @@ class MaskingTask(TaskControl):
                     if (self.maskType is not None and maskFrames > 0 and
                         (self.trialPreStimFrames[-1] + maskOnset <= self._trialFrame < 
                          self.trialPreStimFrames[-1] + maskOnset + maskFrames)):
-                        for m in mask:
-                            m.draw()
+                        for msk in mask:
+                            for m in msk:
+                                m.draw()
                     elif self._trialFrame < self.trialPreStimFrames[-1] + targetFrames:
                         target.draw()
                 
