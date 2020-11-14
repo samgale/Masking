@@ -204,7 +204,9 @@ class MaskingTask(TaskControl):
             
         elif name == 'mask pos':
             self.setDefaultParams('masking',taskVersion)
-            self.normMaskPos += [(0,-0.25),(0,0.25)]
+            self.normMaskPos += [[(0,-0.25),(0,0.25)]]
+            self.maskOnset = [2,4,6]
+            self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
         elif name == 'opto contrast':
             self.setDefaultParams('testing',taskVersion)
@@ -331,7 +333,7 @@ class MaskingTask(TaskControl):
                                           0,       # target contrast
                                           0,       # target frames
                                           0,       # mask onset
-                                          (0,0),   # mask pos
+                                          [(0,0)],   # mask pos
                                           0,       # mask frames
                                           0,       # mask contrast
                                           (False,False),  # opto chan
@@ -361,7 +363,7 @@ class MaskingTask(TaskControl):
                                                                               self.targetContrast,
                                                                               self.targetFrames,
                                                                               [0],
-                                                                              [(0,0)],
+                                                                              [[(0,0)]],
                                                                               [0],
                                                                               [0],
                                                                               [(False,False)],
