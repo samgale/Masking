@@ -50,17 +50,7 @@ def plot_separate_sides(task=None):
         
         func = plot_param
         
-        if task == 'targetDuration':  # 2 plots of a single percent  #^^
-            param = 'targetLength'
-            folder = 'exp_duration'
-            lbl = 'Target Duration (ms)'
-    
-        elif task == 'targetContrast':  # ^^
-            param='targetContrast'
-            folder = 'exp_contrast'
-            lbl = 'Target Contrast'
-        
-        elif task == 'masking':  # ^^
+        if task == 'masking':  # ^^
             param = 'soa'
             folder = 'exp_masking'
     
