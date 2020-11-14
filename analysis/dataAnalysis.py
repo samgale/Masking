@@ -403,18 +403,18 @@ def rxnTimes(data, dataframe):
      ## intitiation times   
         if (rew==0) and (resp==1):
             init = 0 
-            print(i, init, 'rew=0')
+            
         else:
             init = np.argmax(abs(interp)>initiationThresh)
-            print(i, init) 
+             
             
         if (0<init<100) and sigMove>150:
             init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
-            print(i, init, 'step 2')
+            
         
         elif (init==0) and (resp==1):
             init = np.argmax(np.round(abs(interp[0:outcome]),3)>.5)
-            print(i, init, 'step 3')
+           
             
         initiateMovement.append(init)
         
