@@ -387,20 +387,7 @@ def rxnTimes(data, dataframe):
         if 0<sigMove<150:
             ignoreTrials.append(i)
         
-        
-        if (rew==0) and (resp==1):
-            init = 0 
-        else:
-            init = np.argmax(abs(interp)>initiationThresh)
-
-        if (0<init<100) and sigMove>150:
-            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
-        # does this handle turning the opposite direction ?
-        
-        initiateMovement.append(init)
-        
-        # also want time from start of choice til choice  (using modified version of sam's method)
-                 
+    ## outcome times
         if rew>0:
              outcome = np.argmax(interp[closedLoop:] >= rewThreshold + interp[closedLoop]) + closedLoop
         elif rew<0:  
@@ -412,6 +399,28 @@ def rxnTimes(data, dataframe):
             outcomeTimes.append(0)
         else:
             outcomeTimes.append(outcome)
+        
+     ## intitiation times   
+        if (rew==0) and (resp==1):
+            init = 0 
+            print(i, init, 'rew=0')
+        else:
+            init = np.argmax(abs(interp)>initiationThresh)
+            print(i, init) 
+            
+        if (0<init<100) and sigMove>150:
+            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
+            print(i, init, 'step 2')
+        
+        elif (init==0) and (resp==1):
+            init = np.argmax(np.round(abs(interp[0:outcome]),3)>.5)
+            print(i, init, 'step 3')
+            
+        initiateMovement.append(init)
+        
+        # also want time from start of choice til choice  (using modified version of sam's method)
+                 
+       
 
     return np.array([initiateMovement, outcomeTimes, ignoreTrials])
 
@@ -422,19 +431,17 @@ def rxnTimes(data, dataframe):
 ## --- for catch trials ---
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
 #
-#plt.figure()
-#for i in catchTrials:
-#    
-#    plt.plot(interpWheel[i], color='k', alpha=.5)
-#    plt.suptitle('From Stim start to max trial len')
-#    plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str))
-#    
-#plt.vlines(200, -1000, 1000, color='g', ls ='--', label='Closed Loop', lw=2)
-##plt.vlines(initiateMovement[i], -400, 400, ls='--', color='m', alpha=.4, label='Initiation')
-##plt.vlines(significantMovement[i], -400, 400, ls='--', color='c', alpha=.4 , label='Q threshold')
-##plt.vlines(outcomeTimes[i], -400, 400, ls='--', color='b', alpha=.3, label='Outcome Time')
-##plt.vlines(df['trialLength_ms'][i], -500, 500, label='Trial Length')
-#plt.legend(loc='best')
+#for i, x in enumerate(initiateMovement):
+#    if (x==0) and (i not in ignoreTrials) and (df.iloc[i]['resp']==1):
+#        plt.figure()
+#        plt.plot(interpWheel[i])
+#        plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str) + '     ' + str(i))
+#        plt.vlines(closedLoop, -40, 40, color='g', ls ='--', label='Closed Loop', lw=2)
+#        plt.vlines(initiateMovement[i], -40, 40, ls='--', color='m', alpha=.4, label='Initiation')
+#        plt.vlines(significantMovement[i], -40, 40, ls='--', color='c', alpha=.4 , label='Q threshold')
+#        plt.vlines(outcomeTimes[i], -40, 40, ls='--', color='b', alpha=.3, label='Outcome Time')
+#        plt.vlines(df['trialLength_ms'][i], -50, 50, label='Trial Length')
+#        plt.legend(loc='best', fontsize=10)
 #
 ### ---- for ignoreTrials ----
 #    
