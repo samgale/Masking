@@ -176,7 +176,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         
         xlabls1 = [(on/framerate) - ((1/framerate)*2) for on in list(paramVals)]
         xticklabels = [int(np.round(x*1000)) for x in xlabls1]
-        paramVals = xticklabels
+        
         
     if param=='soa':
         maskOnlyTotal = np.sum(trialType=='maskOnly')  # ignores are already excluded
@@ -211,6 +211,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         pass
     
     
+    
     if returnCounts==True:
         array_counts = {str(param): paramVals, 'total trials': totalTrials, 
                         'hits': hits, 'misses': misses, 'resps': resps, 'no response': noResps}
@@ -221,11 +222,12 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         mask =  (maskOnly[0]+maskOnly[1])/maskOnlyTotal if param=='soa' else None
         avg_catch = (catchTurn/catchCounts) if param=='opto' else None
         
-        return (mouse, {str(param):np.round(paramVals, 2), 
+        return (mouse, {str(param):np.round(xticklabels, 2), 
                         'Response Rate':(resps[0]+resps[1])/(totalTrials[0]+totalTrials[1]), 
                         'Fraction Correct':(hits[0]+hits[1])/(resps[0]+resps[1]), 
                         'Catch Trials':avg_catch,
                         'maskOnly': mask})
+    
     
     else:   
         for num, denom, title in zip([hits, hits, resps], 
