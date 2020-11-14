@@ -121,9 +121,6 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
             plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=.3, hspace=.5)
       
             
-            
-            
-    
         else:
             paramVals = [[val for key, val in percents[i][1].items() if key==param] for i in rn]
         
@@ -317,17 +314,24 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
          
         if 'opto' in task:
             param='optoOnset'
-           
+        
+        if task=='targetDuration':
+            param='targetDuration'
+        
+        
+        times = [[] for i in range(len(paramVals))]
+
         for df in dict1.items():
             
             paramVals = np.unique(df[1][param])
             
-            times = [[] for i in range(len(paramVals))]
             filtered_df = df[1][(df[1]['ignoreTrial']==False) & (df[1]['resp']==1)]
             
             for i, p in enumerate(paramVals):
-                times[i].append(filtered_df['initiationTime_ms'])
-                
+                for j in range(len(filtered_df)):
+                    if np.round(filtered_df.iloc[j][param], 2)==np.round(p,2):
+                        times[i].append(filtered_df.iloc[j]['initiationTime_ms'])
+                    
             
             if kind == 'initiation':
           
