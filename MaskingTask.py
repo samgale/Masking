@@ -333,7 +333,7 @@ class MaskingTask(TaskControl):
                                           0,       # target contrast
                                           0,       # target frames
                                           0,       # mask onset
-                                          [(0,0)],   # mask pos
+                                          [(0,0)]*len(maskPosPix[0]), # mask pos
                                           0,       # mask frames
                                           0,       # mask contrast
                                           (False,False),  # opto chan
@@ -363,7 +363,7 @@ class MaskingTask(TaskControl):
                                                                               self.targetContrast,
                                                                               self.targetFrames,
                                                                               [0],
-                                                                              [[(0,0)]],
+                                                                              [[(0,0)]*len(maskPosPix[0])],
                                                                               [0],
                                                                               [0],
                                                                               [(False,False)],
