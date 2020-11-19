@@ -42,7 +42,7 @@ class ManualMapper(TaskControl):
                                      contrast=self.targetContrast,
                                      sf=self.targetSF/self.pixelsPerDeg,
                                      ori=ori,
-                                     opaacity=opa)
+                                     opacity=opa)
                                      for ori,opa in zip(orientation,opacity)]
         
         mouse = event.Mouse(win=self._win)
@@ -51,8 +51,9 @@ class ManualMapper(TaskControl):
         self._toggle = False
         
         while self._continueSession:
+            pos = mouse.getRel()
             for s in target:
-                s.pos += mouse.getRel()
+                s.pos += pos
             
             if self._trialFrame == self.toggleInterval:
                 self._trialFrame = 0
