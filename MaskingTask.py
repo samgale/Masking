@@ -204,7 +204,7 @@ class MaskingTask(TaskControl):
             
         elif name == 'mask pos':
             self.setDefaultParams('masking',taskVersion)
-            self.normMaskPos += [[(0,-0.25),(0,0.25)]]
+            self.normMaskPos.append([(0,-0.25),(0,0.25)])
             self.maskOnset = [2,4,6]
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
@@ -277,7 +277,7 @@ class MaskingTask(TaskControl):
         nMasks = len(maskPosPix[0])
         
         if self.maskType=='plaid':
-            maskOri = (0,90) if len(self.normTargetPos)>1 else (-45,45)
+            maskOri = (self.targetOri[0],self.targetOri[0]+90)
             mask = [[visual.GratingStim(win=self._win,
                                         units='pix',
                                         mask=maskEdgeBlur,
