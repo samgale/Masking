@@ -399,7 +399,7 @@ class MaskingTask(TaskControl):
             optoParams = list(itertools.product(self.optoChan,self.optoOnset))
             for trialType in list(trialParams.keys()):
                 trialParams[trialType+'Opto'] = {}
-                trialParams[trialType+'Opto']['params'] = [prm[:8] + op for prm in trialParams[trialType]['params'] for op in optoParams]
+                trialParams[trialType+'Opto']['params'] = [prm[:9] + op for prm in trialParams[trialType]['params'] for op in optoParams]
                 trialParams[trialType+'Opto']['count'] = 0
             
         # calculate pixels to move or degrees to rotate stimulus per radian of wheel movement
