@@ -306,7 +306,7 @@ class TaskControl():
             while self._continueSession:
                 if self._sessionFrame > 0 and not self._sessionFrame % pulseInterval:
                     if len(self.rewardFrames) < numPulses:
-                        self._reward = True
+                        self._reward = self.solenoidOpenTime
                     else:
                         self._continueSession = False
                 self.showFrame()    
