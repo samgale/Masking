@@ -305,6 +305,8 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
             formatFigure(fig, ax, xLabel=lbl, yLabel='Fraction Correct')   
             plt.subplots_adjust(top=0.9, bottom=0.15, left=0.12, right=0.92, hspace=0.2, wspace=0.2)
         
+      
+        
         
     elif plot_type=='rxnTime':  # creates plots of reaction Times
         

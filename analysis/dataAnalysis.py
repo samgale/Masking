@@ -343,7 +343,8 @@ def rxnTimes(data, dataframe):
     wheelRadius = d['wheelRadius'][()]
     
     if 'wheelRewardDistance' in d.keys():
-        initiationThresh = rewardDist/wheelRadius
+        #initiationThresh = rewardDist/wheelRadius
+        initiationThresh = .2
     else:
         initiationThreshDeg = 0.5 
         initiationThresh= initiationThreshDeg*np.pi/180*maxQuiescentMove  
@@ -365,6 +366,8 @@ def rxnTimes(data, dataframe):
     ignoreTrials = []  # old ignore_trials func actually calls current func and returns this list
     outcomeTimes = []
     
+    check =[]
+    
     ## use below code to determine wheel direction changes during trial 
     # during just trial time (ie in nogos before trial ends) or over entire potential time? both?
 
@@ -373,6 +376,7 @@ def rxnTimes(data, dataframe):
             df['resp'], df['rewDir'], df['stimStart'], stimInds, df['openLoopFrames'])):
 
         wheel = df.loc[i, 'deltaWheel'].copy()
+        
         f = fi[fiInd:(fiInd+(len(wheel)-stimInd-postReward))]   #from stim start frame to len of maxTrial
         wheel *= wheelRadius  #(180/np.pi * wheelRadius)   # in frames 
         fp = np.cumsum(wheel[stimInd:stimInd+len(f)])   
@@ -384,7 +388,7 @@ def rxnTimes(data, dataframe):
       
         sigMove = np.argmax(abs(interp)>=sigThreshold)   
         significantMovement.append(sigMove)
-        if 0<sigMove<150:
+        if 0<sigMove<100:
             ignoreTrials.append(i)
         
     ## outcome times
@@ -399,23 +403,33 @@ def rxnTimes(data, dataframe):
             outcomeTimes.append(0)
         else:
             outcomeTimes.append(outcome)
+     
+    
+        
         
      ## intitiation times   
-        if (rew==0) and (resp==1):
+        if (rew==0) and (resp==1):   #catch/nogo trials 
             init = 0 
             
         else:
             init = np.argmax(abs(interp)>initiationThresh)
              
-            
-        if (0<init<100) and sigMove>150:
-            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
-            
         
-        elif (init==0) and (resp==1):
-            init = np.argmax(np.round(abs(interp[0:outcome]),3)>.5)
+#        if (0<init<150) and sigMove>150:
+#            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
+            # maybe change this to just send to ignore - right now ignoring early move
+        if sigMove-init>100:
+            check.append(i)
+            init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
+        
+        if (init==0) and (resp==1):
+            init = np.argmax(np.round(abs(interp[0:outcome]),3)>.25)
            
-            
+        elif init<100 and sigMove>1:
+            init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
+            if init<100:
+                ignoreTrials.append(i)
+                
         initiateMovement.append(init)
         
         # also want time from start of choice til choice  (using modified version of sam's method)
@@ -432,16 +446,18 @@ def rxnTimes(data, dataframe):
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
 #
 #for i, x in enumerate(initiateMovement):
-#    if (x==0) and (i not in ignoreTrials) and (df.iloc[i]['resp']==1):
+#    if (x>0) and (i not in ignoreTrials): #and (df.iloc[i]['resp']==1):
 #        plt.figure()
 #        plt.plot(interpWheel[i])
 #        plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str) + '     ' + str(i))
-#        plt.vlines(closedLoop, -40, 40, color='g', ls ='--', label='Closed Loop', lw=2)
-#        plt.vlines(initiateMovement[i], -40, 40, ls='--', color='m', alpha=.4, label='Initiation')
-#        plt.vlines(significantMovement[i], -40, 40, ls='--', color='c', alpha=.4 , label='Q threshold')
-#        plt.vlines(outcomeTimes[i], -40, 40, ls='--', color='b', alpha=.3, label='Outcome Time')
-#        plt.vlines(df['trialLength_ms'][i], -50, 50, label='Trial Length')
+#        plt.vlines(closedLoop, -10, 10, color='g', ls ='--', label='Closed Loop', lw=2)
+#        plt.vlines(initiateMovement[i], -10, 10, ls='--', color='m', alpha=.4, label='Initiation')
+#        plt.vlines(significantMovement[i], -10, 10, ls='--', color='c', alpha=.4 , label='Q threshold')
+#        plt.vlines(outcomeTimes[i], -10, 10, ls='--', color='b', alpha=.3, label='Outcome Time')
+#        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
+#        plt.ylim([-10,10])
 #        plt.legend(loc='best', fontsize=10)
+#        
 #
 ### ---- for ignoreTrials ----
 #    
