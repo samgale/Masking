@@ -320,13 +320,16 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
         if task=='targetDuration':
             param='targetDuration'
         
+        compiledTimes = []
         
-        times = [[] for i in range(6)]
-        fig, ax = plt.subplots()
+#        times = [[] for i in range(len(paramVals))]
+#        fig, ax = plt.subplots()
         
         for df in dict1.items():
             
+            
             paramVals = np.unique(df[1][param])
+            times = [[] for i in range(len(paramVals))]
             
             filtered_df = df[1][(df[1]['ignoreTrial']==False) & (df[1]['resp']==1)]
             
@@ -335,8 +338,9 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
                     if np.round(filtered_df.iloc[j][param], 2)==np.round(p,2):
                         times[i].append(filtered_df.iloc[j]['initiationTime_ms'])
                 
-                plt.hist(times)
-         
+#                plt.hist(times)
+            compiledTimes.append(times)
+            
             if kind == 'initiation':
  
                 ax.plot(paramVals[1:], [np.mean(t) for t in times[1:]])
