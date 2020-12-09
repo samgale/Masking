@@ -323,7 +323,7 @@ def get_dates(dataframe):
 
 
 
-def rxnTimes(data, dataframe):
+def rxnTimes(data, dataframe, version=None):
     
     d = data
     df = dataframe
@@ -390,47 +390,55 @@ def rxnTimes(data, dataframe):
         significantMovement.append(sigMove)
         if 0<sigMove<100:
             ignoreTrials.append(i)
+       
+## outcome times
+#        if rew>0:
+        outcome = np.argmax(abs(interp[closedLoop:]) >= (rewThreshold + abs(interp[closedLoop]))) + closedLoop
         
-    ## outcome times
-        if rew>0:
-             outcome = np.argmax(interp[closedLoop:] >= rewThreshold + interp[closedLoop]) + closedLoop
-        elif rew<0:  
-            outcome = np.argmax(interp[closedLoop:] <= (rew*rewThreshold) + interp[closedLoop]) + closedLoop
-        else:
-            outcome = np.argmax(abs(interp[closedLoop:]) >= (abs(rewThreshold) + interp[closedLoop])) + closedLoop
-  
         if outcome==closedLoop:
-            outcomeTimes.append(0)
-        else:
-            outcomeTimes.append(outcome)
-     
-    
+            outcome = 0
+        outcomeTimes.append(outcome)
+
         
-        
-     ## intitiation times   
-        if (rew==0) and (resp==1):   #catch/nogo trials 
-            init = 0 
+        if version=='sam':
+            if outcome > 0:
+                trace = interp[:outcome:-1]
+                
+            
+        elif version=='corbett':
+            q = d['quiescentFrames'][()]
+            qperiod = np.cumsum(wheel[stimInd-q:stimInd])
+            mvmt = np.percentile(abs(qperiod), 99)
+            init = np.argmax(abs(interp)>(mvmt))
+            initiateMovement.append(init)
+            print(i, mvmt, init)
             
         else:
-            init = np.argmax(abs(interp)>initiationThresh)
-             
-        
-#        if (0<init<150) and sigMove>150:
-#            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
-            # maybe change this to just send to ignore - right now ignoring early move
-        if sigMove-init>100:
-            check.append(i)
-            init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
-        
-        if (init==0) and (resp==1):
-            init = np.argmax(np.round(abs(interp[0:outcome]),3)>.25)
-           
-        elif init<100 and sigMove>1:
-            init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
-            if init<100:
-                ignoreTrials.append(i)
+     
+         ## intitiation times   
+            if (rew==0) and (resp==1):   #catch/nogo trials 
+                init = 0 
                 
-        initiateMovement.append(init)
+            else:
+                init = np.argmax(abs(interp)>initiationThresh)
+                 
+            
+    #        if (0<init<150) and sigMove>150:
+    #            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
+                # maybe change this to just send to ignore - right now ignoring early move
+            if sigMove-init>100:
+                check.append(i)
+                init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
+            
+            if (init==0) and (resp==1):
+                init = np.argmax(np.round(abs(interp[0:outcome]),3)>.25)
+               
+            elif init<100 and sigMove>1:
+                init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
+                if init<100:
+                    ignoreTrials.append(i)
+                    
+            initiateMovement.append(init)
         
         # also want time from start of choice til choice  (using modified version of sam's method)
                  
@@ -445,18 +453,18 @@ def rxnTimes(data, dataframe):
 ## --- for catch trials ---
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
 #
-#for i, x in enumerate(initiateMovement):
-#    if (x>0) and (i not in ignoreTrials): #and (df.iloc[i]['resp']==1):
-#        plt.figure()
-#        plt.plot(interpWheel[i])
-#        plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str) + '     ' + str(i))
-#        plt.vlines(closedLoop, -10, 10, color='g', ls ='--', label='Closed Loop', lw=2)
-#        plt.vlines(initiateMovement[i], -10, 10, ls='--', color='m', alpha=.4, label='Initiation')
-#        plt.vlines(significantMovement[i], -10, 10, ls='--', color='c', alpha=.4 , label='Q threshold')
-#        plt.vlines(outcomeTimes[i], -10, 10, ls='--', color='b', alpha=.3, label='Outcome Time')
-#        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
-#        plt.ylim([-10,10])
-#        plt.legend(loc='best', fontsize=10)
+for i, x in enumerate(initiateMovement[:20]):
+    if (x>0) and (i not in ignoreTrials): #and (df.iloc[i]['resp']==1):
+        plt.figure()
+        plt.plot(interpWheel[i])
+        plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str) + '     ' + str(i))
+        plt.vlines(closedLoop, -10, 10, color='g', ls ='--', label='Closed Loop', lw=2)
+        plt.vlines(initiateMovement[i], -10, 10, ls='--', color='m', alpha=.4, label='Initiation')
+        plt.vlines(significantMovement[i], -10, 10, ls='--', color='c', alpha=.4 , label='Q threshold')
+        plt.vlines(outcomeTimes[i], -10, 10, ls='--', color='b', alpha=.3, label='Outcome Time')
+        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
+        plt.ylim([-10,10])
+        plt.legend(loc='best', fontsize=10)
 #        
 #
 ### ---- for ignoreTrials ----
