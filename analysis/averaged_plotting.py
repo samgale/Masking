@@ -318,36 +318,83 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
         if task=='targetDuration':
             param='targetDuration'
         
+        compiledTimes = []
+        targetOnlyTimes = [[] for i in range(len(mice))]
         
-        times = [[] for i in range(len(paramVals))]
-
-        for df in dict1.items():
+        for k, df in enumerate(dict1.items()):
             
             paramVals = np.unique(df[1][param])
+            paramVals = paramVals[:5]
+            times = [[] for i in range(len(paramVals))]
             
             filtered_df = df[1][(df[1]['ignoreTrial']==False) & (df[1]['resp']==1)]
             
             for i, p in enumerate(paramVals):
                 for j in range(len(filtered_df)):
                     if np.round(filtered_df.iloc[j][param], 2)==np.round(p,2):
-                        times[i].append(filtered_df.iloc[j]['initiationTime_ms'])
-                    
+                        times[i].append(filtered_df.iloc[j]['trialLength_ms'])
+            
+            xlist = filtered_df['trialLength_ms'][filtered_df['trialType']=='targetOnly']
+            targetOnlyTimes[k].append(xlist.values)
+            
+            compiledTimes.append(times)
             
             if kind == 'initiation':
-          
+                pass
                 
                 
                 
             elif kind == 'outcome':
-                pass
+                
+                paramVals = paramVals[1::]
+                tarOnly = paramVals[-1] + 5
+                
+                
+                fig, ax = plt.subplots()
+                for i in compiledTimes:
+                    ax.plot(paramVals, [np.mean(t) for t in i][1::], c='k', alpha=.4)
+                for l, _ in enumerate(mice):
+                    plt.plot(tarOnly, np.mean(targetOnlyTimes[l]), 'ko', alpha=.4)
+                
+                xticks = list(np.round(paramVals))
+                xticks.append(tarOnly)
+                ax.set_xticks(xticks)
+                xticks[-1] = 'Target\n Only'
+                ax.set_xticklabels(xticks)
+                lbl = 'Mask Onset from Target Onset (ms)'
+                formatFigure(fig, ax, xLabel=lbl, yLabel='Time (ms)')   
+                
+                            
+                l1 = [[] for i in compiledTimes[0]]
+                errlist = [[] for i in compiledTimes[0]]
+                for i, _ in enumerate(compiledTimes):
+                    for j, _ in enumerate(compiledTimes[0]):
+                        l1[j].append(np.nanmean(compiledTimes[i][j]))
+                        for x in compiledTimes[i][j]:
+                            errlist[j].append(x)
+                
+                err = [scipy.stats.sem(errlist[i]) for i,_ in enumerate(errlist)]
+                avg = [np.mean(errlist[i]) for i, _ in enumerate(errlist)]
+                
+                p=[]
+                for i in targetOnlyTimes:
+                    for j in i:
+                        for x in j:
+                            p.append(x)
+                
+                
+                plt.errorbar(paramVals, avg[1::], 
+                             yerr=err[1::], 
+                             color='k', alpha=.6, lw=3, label='Average')
+                plt.errorbar(tarOnly, np.mean(p), yerr=scipy.stats.sem(p), color='k', alpha=.6, lw=3)
+
+
             elif kind == 'turning time':
                 pass
             
-            
 
-
-
-
+corr avg
+[354.6433335369827, 344.8650784725346, 336.3205280609224, 325.6390884952466]
 
 
 
