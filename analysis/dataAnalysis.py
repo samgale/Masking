@@ -453,18 +453,18 @@ def rxnTimes(data, dataframe, version=None):
 ## --- for catch trials ---
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
 #
-for i, x in enumerate(initiateMovement[:20]):
-    if (x>0) and (i not in ignoreTrials): #and (df.iloc[i]['resp']==1):
-        plt.figure()
-        plt.plot(interpWheel[i])
-        plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str) + '     ' + str(i))
-        plt.vlines(closedLoop, -10, 10, color='g', ls ='--', label='Closed Loop', lw=2)
-        plt.vlines(initiateMovement[i], -10, 10, ls='--', color='m', alpha=.4, label='Initiation')
-        plt.vlines(significantMovement[i], -10, 10, ls='--', color='c', alpha=.4 , label='Q threshold')
-        plt.vlines(outcomeTimes[i], -10, 10, ls='--', color='b', alpha=.3, label='Outcome Time')
-        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
-        plt.ylim([-10,10])
-        plt.legend(loc='best', fontsize=10)
+#for i, x in enumerate(initiateMovement[:20]):
+#    if (x>0) and (i not in ignoreTrials): #and (df.iloc[i]['resp']==1):
+#        plt.figure()
+#        plt.plot(interpWheel[i])
+#        plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str) + '     ' + str(i))
+#        plt.vlines(closedLoop, -10, 10, color='g', ls ='--', label='Closed Loop', lw=2)
+#        plt.vlines(initiateMovement[i], -10, 10, ls='--', color='m', alpha=.4, label='Initiation')
+#        plt.vlines(significantMovement[i], -10, 10, ls='--', color='c', alpha=.4 , label='Q threshold')
+#        plt.vlines(outcomeTimes[i], -10, 10, ls='--', color='b', alpha=.3, label='Outcome Time')
+#        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
+#        plt.ylim([-10,10])
+#        plt.legend(loc='best', fontsize=10)
 #        
 #
 ### ---- for ignoreTrials ----
