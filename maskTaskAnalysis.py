@@ -17,7 +17,6 @@ matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 from numba import njit
 import fileIO
-from dataAnalysis import ignore_after
 
 
 @njit

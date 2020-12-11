@@ -305,6 +305,8 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
             formatFigure(fig, ax, xLabel=lbl, yLabel='Fraction Correct')   
             plt.subplots_adjust(top=0.9, bottom=0.15, left=0.12, right=0.92, hspace=0.2, wspace=0.2)
         
+      
+        
         
     elif plot_type=='rxnTime':  # creates plots of reaction Times
         
@@ -322,6 +324,7 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
         targetOnlyTimes = [[] for i in range(len(mice))]
         
         for k, df in enumerate(dict1.items()):
+            
             
             paramVals = np.unique(df[1][param])
             paramVals = paramVals[:5]
@@ -343,6 +346,13 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
                 pass
                 
                 
+                
+                ## last soa is target only
+
+                ax.set_xticks(list(paramVals[1:]))
+                xticklabels = list(np.round(list(paramVals[1:-1]),2))
+                xticklabels.append('Target Only')
+                ax.set_xticklabels(xticklabels)
                 
             elif kind == 'outcome':
                 

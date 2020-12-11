@@ -14,6 +14,7 @@ class ManualMapper(TaskControl):
     def __init__(self,rigName):
         TaskControl.__init__(self,rigName)
         self.saveParams = False
+        self.targetType = 'plaid' # 'grating' or 'plaid'
         self.targetContrast = 1
         self.targetSize = 25 # degrees
         self.targetSF = 0.08 # cycles/deg
@@ -26,16 +27,23 @@ class ManualMapper(TaskControl):
         
 
     def taskFlow(self):
+        orientation = [self.targetOri]
+        opacity = [1.0]
+        if self.targetType == 'plaid':
+            orientation.append(self.targetOri+90)
+            opacity.append(0.5)
         edgeBlurWidth = {'fringeWidth':self.gratingEdgeBlurWidth} if self.gratingEdge=='raisedCos' else None
-        target = visual.GratingStim(win=self._win,
-                                    units='pix',
-                                    mask=self.gratingEdge,
-                                    maskParams=edgeBlurWidth,
-                                    tex=self.gratingType,
-                                    size=int(self.targetSize*self.pixelsPerDeg),
-                                    contrast=self.targetContrast,
-                                    sf=self.targetSF/self.pixelsPerDeg,
-                                    ori=self.targetOri)
+        target = [visual.GratingStim(win=self._win,
+                                     units='pix',
+                                     mask=self.gratingEdge,
+                                     maskParams=edgeBlurWidth,
+                                     tex=self.gratingType,
+                                     size=int(self.targetSize*self.pixelsPerDeg),
+                                     contrast=self.targetContrast,
+                                     sf=self.targetSF/self.pixelsPerDeg,
+                                     ori=ori,
+                                     opacity=opa)
+                                     for ori,opa in zip(orientation,opacity)]
         
         mouse = event.Mouse(win=self._win)
         mouse.setVisible(0)
@@ -43,13 +51,16 @@ class ManualMapper(TaskControl):
         self._toggle = False
         
         while self._continueSession:
-            target.pos += mouse.getRel()
+            pos = mouse.getRel()
+            for s in target:
+                s.pos += pos
             
             if self._trialFrame == self.toggleInterval:
                 self._trialFrame = 0
             
             if not self._toggle or self._trialFrame < self.toggleOnFrames:
-                target.draw()
+                for s in target:
+                    s.draw()
                 
             self.showFrame()
     

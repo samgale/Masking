@@ -306,7 +306,7 @@ class TaskControl():
             while self._continueSession:
                 if self._sessionFrame > 0 and not self._sessionFrame % pulseInterval:
                     if len(self.rewardFrames) < numPulses:
-                        self._reward = True
+                        self._reward = self.solenoidOpenTime
                     else:
                         self._continueSession = False
                 self.showFrame()    
@@ -399,22 +399,18 @@ def saveParameters(fileOut,paramDict,dictName=None):
             if isinstance(val,dict):
                 saveParameters(fileOut,val,paramName)
             else:
+                if val is None:
+                    val = np.nan
                 try:
                     if isinstance(val,(list,tuple)) and all(isinstance(v,str) for v in val):
                         fileOut.create_dataset(paramName,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=str))
                     else:
-                        if val is None:
-                            val = np.nan
-                        elif (isinstance(val,(list,tuple)) and len(val) > 1 and 
-                              all(isinstance(v,(list,tuple)) for v in val) and [len(v) for v in val].count(len(val[0])) < len(val)):
-                            # convert list of lists of unequal len to nan padded array
-                            valArray = np.full((len(val),max(len(v) for v in val)),np.nan)
-                            for i,v in enumerate(val):
-                                valArray[i,:len(v)] = v
-                            val = valArray
-                        fileOut.create_dataset(paramName,data=val)
+                        try:
+                            fileOut.create_dataset(paramName,data=val)
+                        except:
+                            fileOut.create_dataset(paramName,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=float))
                 except:
-                    print('could not save ' + key)
+                    print('\n' + 'could not save ' + key)
                     
 
 if __name__ == "__main__":

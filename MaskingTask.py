@@ -204,7 +204,7 @@ class MaskingTask(TaskControl):
             
         elif name == 'mask pos':
             self.setDefaultParams('masking',taskVersion)
-            self.normMaskPos += [[(0,-0.25),(0,0.25)]]
+            self.normMaskPos.append([(0,-0.25),(0,0.25)])
             self.maskOnset = [2,4,6]
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
@@ -277,7 +277,7 @@ class MaskingTask(TaskControl):
         nMasks = len(maskPosPix[0])
         
         if self.maskType=='plaid':
-            maskOri = (0,90) if len(self.normTargetPos)>1 else (-45,45)
+            maskOri = (self.targetOri[0],self.targetOri[0]+90)
             mask = [[visual.GratingStim(win=self._win,
                                         units='pix',
                                         mask=maskEdgeBlur,
@@ -333,7 +333,7 @@ class MaskingTask(TaskControl):
                                           0,       # target contrast
                                           0,       # target frames
                                           0,       # mask onset
-                                          [(0,0)],   # mask pos
+                                          [(0,0)]*len(maskPosPix[0]), # mask pos
                                           0,       # mask frames
                                           0,       # mask contrast
                                           (False,False),  # opto chan
@@ -363,7 +363,7 @@ class MaskingTask(TaskControl):
                                                                               self.targetContrast,
                                                                               self.targetFrames,
                                                                               [0],
-                                                                              [[(0,0)]],
+                                                                              [[(0,0)]*len(maskPosPix[0])],
                                                                               [0],
                                                                               [0],
                                                                               [(False,False)],
@@ -399,7 +399,7 @@ class MaskingTask(TaskControl):
             optoParams = list(itertools.product(self.optoChan,self.optoOnset))
             for trialType in list(trialParams.keys()):
                 trialParams[trialType+'Opto'] = {}
-                trialParams[trialType+'Opto']['params'] = [prm[:8] + op for prm in trialParams[trialType]['params'] for op in optoParams]
+                trialParams[trialType+'Opto']['params'] = [prm[:9] + op for prm in trialParams[trialType]['params'] for op in optoParams]
                 trialParams[trialType+'Opto']['count'] = 0
             
         # calculate pixels to move or degrees to rotate stimulus per radian of wheel movement
