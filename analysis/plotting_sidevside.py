@@ -19,7 +19,7 @@ import seaborn as sns
 
 def plot_separate_sides(task=None):
     
-########## THIS ONLY WORKS WITH MASKING
+########## THIS ONLY WORKS WITH MASKING and multiple mice
     
     matplotlib.rcParams['pdf.fonttype'] = 42
     sns.set_style('white')
@@ -67,7 +67,7 @@ def plot_separate_sides(task=None):
     percents = []   #each item in percents has mouseID, dict of param vals, then dicts of vals to plot
     
     for f in files:    # calls function appropriate to params and returns array of %s  
-        percents.append(func(f, param=param, ignoreNoRespAfter=15, returnCounts=True)) 
+        percents.append(func(f, param=param, ignoreNoRespAfter=15, array_only=False))
         
     rn = range(len(mice))        
 
