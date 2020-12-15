@@ -431,7 +431,10 @@ def rxnTimes(data, dataframe, version=None):
                 init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
             
             if (init==0) and (resp==1):
-                init = np.argmax(np.round(abs(interp[0:outcome]),3)>.25)
+                if outcome>0:
+                    init = np.argmax(np.round(abs(interp[0:outcome]),3)>.25)
+                else:
+                    init = np.argmax(np.round(abs(interp),3)>.25)
                
             elif init<100 and sigMove>1:
                 init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
