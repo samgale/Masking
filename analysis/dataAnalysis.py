@@ -326,7 +326,10 @@ def get_dates(dataframe):
 def rxnTimes(data, dataframe, version=None):
     
     d = data
-    df = dataframe
+    
+    framerate  = dataframe.framerate
+    df = dataframe[:-1]
+    
             
     monitorSize = d['monSizePix'][0] 
     maxResp = d['maxResponseWaitFrames'][()]
@@ -354,9 +357,9 @@ def rxnTimes(data, dataframe, version=None):
 
     fi = d['frameIntervals'][:]
     if len(np.unique(df['openLoopFrames'])) == 1:
-        closedLoop = int(np.unique(df['openLoopFrames'])*(1000/df.framerate))
+        closedLoop = int(np.unique(df['openLoopFrames'])*(1000/framerate))
     else:
-        closedLoop = df['openLoopFrames']/df.framerate
+        closedLoop = df['openLoopFrames']/framerate
     
     stimInds = df['stimStart'] - df['trialStart']
 
@@ -402,23 +405,26 @@ def rxnTimes(data, dataframe, version=None):
         
         if version=='sam':
             if outcome > 0:
-                trace = interp[:outcome:-1]
+                trace = interp[outcome::-1]
+                reverse = np.argmax(abs(trace)<initiationThresh)
+                init = outcome - reverse
+            else:
+                init = np.argmax(abs(interp)>initiationThresh)
                 
             
         elif version=='corbett':
             q = d['quiescentFrames'][()]
             qperiod = np.cumsum(wheel[stimInd-q:stimInd])
             mvmt = np.percentile(abs(qperiod), 99)
-            init = np.argmax(abs(interp)>(mvmt))
-            initiateMovement.append(init)
-            print(i, mvmt, init)
+            init = np.argmax(abs(interp)>(mvmt*1.5))
+           
             
         else:
      
          ## intitiation times   
             if (rew==0) and (resp==1):   #catch/nogo trials 
                 init = 0 
-                
+            
             else:
                 init = np.argmax(abs(interp)>initiationThresh)
                  
@@ -426,6 +432,7 @@ def rxnTimes(data, dataframe, version=None):
     #        if (0<init<150) and sigMove>150:
     #            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
                 # maybe change this to just send to ignore - right now ignoring early move
+<<<<<<< Updated upstream
             if sigMove-init>100:
                 check.append(i)
                 init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
@@ -440,8 +447,21 @@ def rxnTimes(data, dataframe, version=None):
                 init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
                 if init<100:
                     ignoreTrials.append(i)
+=======
+                if sigMove-init>100:
+                    check.append(i)
+                    init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
+                
+                if (init==0) and (resp==1):
+                    init = np.argmax(np.round(abs(interp[0:outcome]),3)>.25)
+                   
+                elif init<100 and sigMove>1:
+                    init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
+                    if init<100:
+                        ignoreTrials.append(i)
+>>>>>>> Stashed changes
                     
-            initiateMovement.append(init)
+        initiateMovement.append(init)
         
         # also want time from start of choice til choice  (using modified version of sam's method)
                  
@@ -456,8 +476,13 @@ def rxnTimes(data, dataframe, version=None):
 ## --- for catch trials ---
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
 #
+<<<<<<< Updated upstream
 #for i, x in enumerate(initiateMovement[:20]):
 #    if (x>0) and (i not in ignoreTrials): #and (df.iloc[i]['resp']==1):
+=======
+#for i in random.sample(range(0,len(df)), 20):
+#    if (initiateMovement[i]>0) and (i not in ignoreTrials): 
+>>>>>>> Stashed changes
 #        plt.figure()
 #        plt.plot(interpWheel[i])
 #        plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str) + '     ' + str(i))
@@ -468,7 +493,12 @@ def rxnTimes(data, dataframe, version=None):
 #        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
 #        plt.ylim([-10,10])
 #        plt.legend(loc='best', fontsize=10)
+<<<<<<< Updated upstream
 #        
+=======
+
+        
+>>>>>>> Stashed changes
 #
 ### ---- for ignoreTrials ----
 #    
