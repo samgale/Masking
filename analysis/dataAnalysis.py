@@ -416,8 +416,14 @@ def rxnTimes(data, dataframe, version=None):
             q = d['quiescentFrames'][()]
             qperiod = np.cumsum(wheel[stimInd-q:stimInd])
             mvmt = np.percentile(abs(qperiod), 99)
-            init = np.argmax(abs(interp)>(mvmt*1.5))
-           
+            print(mvmt)
+            if mvmt < initiationThresh:
+                init = np.argmax(abs(interp)>initiationThresh)
+            else:
+                init = np.argmax(abs(interp)>(mvmt))
+           ## i want it to be the place where the trace passes the thresh (to avoid noise if mvmt val is low)
+           # and also passes the mvmt val (if it's high)
+           # so far this version stillhas issues; init is too late or incorrectly 0
             
         else:
      
@@ -432,7 +438,6 @@ def rxnTimes(data, dataframe, version=None):
     #        if (0<init<150) and sigMove>150:
     #            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
                 # maybe change this to just send to ignore - right now ignoring early move
-<<<<<<< Updated upstream
             if sigMove-init>100:
                 check.append(i)
                 init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
@@ -447,7 +452,7 @@ def rxnTimes(data, dataframe, version=None):
                 init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
                 if init<100:
                     ignoreTrials.append(i)
-=======
+
                 if sigMove-init>100:
                     check.append(i)
                     init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
@@ -459,7 +464,6 @@ def rxnTimes(data, dataframe, version=None):
                     init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
                     if init<100:
                         ignoreTrials.append(i)
->>>>>>> Stashed changes
                     
         initiateMovement.append(init)
         
@@ -476,13 +480,12 @@ def rxnTimes(data, dataframe, version=None):
 ## --- for catch trials ---
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
 #
-<<<<<<< Updated upstream
 #for i, x in enumerate(initiateMovement[:20]):
 #    if (x>0) and (i not in ignoreTrials): #and (df.iloc[i]['resp']==1):
-=======
+
+#import random
 #for i in random.sample(range(0,len(df)), 20):
 #    if (initiateMovement[i]>0) and (i not in ignoreTrials): 
->>>>>>> Stashed changes
 #        plt.figure()
 #        plt.plot(interpWheel[i])
 #        plt.title('Reward ' + df.loc[i, 'rewDir'].astype(str) + '  , Response ' + df.loc[i, 'resp'].astype(str) + '     ' + str(i))
@@ -493,12 +496,9 @@ def rxnTimes(data, dataframe, version=None):
 #        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
 #        plt.ylim([-10,10])
 #        plt.legend(loc='best', fontsize=10)
-<<<<<<< Updated upstream
 #        
-=======
 
         
->>>>>>> Stashed changes
 #
 ### ---- for ignoreTrials ----
 #    
