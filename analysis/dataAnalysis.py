@@ -131,7 +131,7 @@ def create_df(data):
     d = data
     mouse, date = str(d).split('_')[-3:-1]
         
-    trialResponse = d['trialResponse'][:-1]
+    trialResponse = d['trialResponse'][:-1]  #leave off last trial
     end = len(trialResponse)
     trialRewardDirection = d['trialRewardDir'][:end]
     trialTargetFrames = d['trialTargetFrames'][:end]
@@ -328,7 +328,7 @@ def rxnTimes(data, dataframe, version=None):
     d = data
     
     framerate  = dataframe.framerate
-    df = dataframe[:-1]
+    df = dataframe
     
             
     monitorSize = d['monSizePix'][0] 
