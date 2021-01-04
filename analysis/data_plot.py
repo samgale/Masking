@@ -32,7 +32,7 @@ def trials(data):
     return percentCorrect
 
 
-mice = ['486634', '495786', '495787']
+mice = ['486634', '495786', '495787']  ## manually edit mouse ids
 
 fig, axes = plt.subplots(len(mice),1, facecolor='white')
 if len(mice)==1:
