@@ -250,6 +250,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
             if param=='targetLength':
                 xticklabels = list(np.round(xticks).astype(int))
                 xlab = 'Target Duration (ms)'
+                xticklabels = [(np.round((x/framerate)*1000, 2)) for x in xticklabels]
                 
             elif param=='targetContrast':
                 xlab = 'Target Contrast'
