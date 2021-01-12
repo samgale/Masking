@@ -15,7 +15,7 @@ class RFMapping(TaskControl):
     
     def __init__(self,rigName):
         TaskControl.__init__(self,rigName)
-        self.gratingCenter = [(0,0),(0,250),(-250,0)]
+        self.gratingCenter = [(0,0)]
         self.gratingContrast = [0.4,1]
         self.gratingOri = [(0,np.nan),(90,np.nan),(-45,np.nan),(45,np.nan),(0,90)] # clockwise degrees from vertical
         self.gratingSize = 25 # degrees
@@ -23,10 +23,20 @@ class RFMapping(TaskControl):
         self.gratingType = 'sqr' # 'sqr' or 'sin'
         self.gratingEdge= 'raisedCos' # 'circle' or 'raisedCos'
         self.gratingEdgeBlurWidth = 0.1 # only applies to raisedCos
-        self.preFrames = 30
+        self.preFrames = 60
         self.stimFrames = [2,6]
-        self.postFrames = 30
+        self.postFrames = 60
         
+    
+    def setDefaultParams(self,name):
+        if name=='masking':
+            r = 0.5*self.gratingSize*self.pixelsPerDeg
+            w,h = self.monSizePix
+            self.gratingCenter = []
+            for x in (r,0.25*w,0.5*w-r):
+                for y in (0.5*h-r,0,-0.5*h+r)):
+                    self.gratingCenter.append((x,y))
+
 
     def taskFlow(self):
         edgeBlurWidth = {'fringeWidth':self.gratingEdgeBlurWidth} if self.gratingEdge=='raisedCos' else None
@@ -45,8 +55,6 @@ class RFMapping(TaskControl):
         random.shuffle(params)
         
         trialIndex = 0
-        
-        trialFrames = self.preFrames + max(self.stimFrames) + self.postFrames
         
         self.trialGratingCenter = []
         self.trialGratingContrast = []
@@ -73,7 +81,7 @@ class RFMapping(TaskControl):
                 
             self.showFrame()
             
-            if self._trialFrame == trialFrames:
+            if self._trialFrame == self.preFrames + self.trialStimFrames[-1] + self.postFrames:
                 self._trialFrame = 0
                 trialIndex += 1
                 if trialIndex == len(params):
