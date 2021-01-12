@@ -5,7 +5,8 @@ Created on Wed Feb 20 15:41:48 2019
 @author: SVC_CCG
 """
 
-import itertools
+import itertools, random
+import numpy as np
 from psychopy import visual  
 from TaskControl import TaskControl
 
@@ -14,9 +15,9 @@ class RFMapping(TaskControl):
     
     def __init__(self,rigName):
         TaskControl.__init__(self,rigName)
-        self.gratingCenter = []
+        self.gratingCenter = [(0,0),(0,250),(-250,0)]
         self.gratingContrast = [0.4,1]
-        self.gratingOri = [(0,),(90,),(-45,),(45,),(0,90)] # clockwise degrees from vertical
+        self.gratingOri = [(0,np.nan),(90,np.nan),(-45,np.nan),(45,np.nan),(0,90)] # clockwise degrees from vertical
         self.gratingSize = 25 # degrees
         self.gratingSF = 0.08 # cycles/deg
         self.gratingType = 'sqr' # 'sqr' or 'sin'
@@ -35,14 +36,15 @@ class RFMapping(TaskControl):
                                        mask=self.gratingEdge,
                                        maskParams=edgeBlurWidth,
                                        tex=self.gratingType,
-                                       size=int(self.targetSize*self.pixelsPerDeg),
-                                       sf=self.targetSF/self.pixelsPerDeg,
+                                       size=int(self.gratingSize*self.pixelsPerDeg),
+                                       sf=self.gratingSF/self.pixelsPerDeg,
                                        opacity=opa)
                                        for opa in (1.0,0.5)]
         
-        params = itertools.product(self.gratingCenter,self.gratingContrast,self.gratingOri,self.stimFrames)
+        params = list(itertools.product(self.gratingCenter,self.gratingContrast,self.gratingOri,self.stimFrames))
+        random.shuffle(params)
         
-        trialCount = 0
+        trialIndex = 0
         
         trialFrames = self.preFrames + max(self.stimFrames) + self.postFrames
         
@@ -52,25 +54,31 @@ class RFMapping(TaskControl):
         self.trialStimFrames = []
         
         while self._continueSession:
-            self.trialGratingCenter.append(params[trialCount][0])
-            self.trialGratingContrast.append(params[trialCount][1])
-            self.trialGratingOri.append(params[trialCount][2])
-            self.trialStimFrames.append(params[trialCount][3])
-            
-            for g,ori in zip(gratings[:len(self.trialGratingOri[-1])],self.trialGratingOri[-1]):
-                g.pos = self.trialGratingCenter[-1]
-                g.contrast = self.trialGratingContrast[-1]
-                g.ori = ori
+            if self._trialFrame == 0:
+                self.trialGratingCenter.append(params[trialIndex][0])
+                self.trialGratingContrast.append(params[trialIndex][1])
+                self.trialGratingOri.append(params[trialIndex][2])
+                self.trialStimFrames.append(params[trialIndex][3])
+                
+                for g,ori in zip(gratings,self.trialGratingOri[-1]):
+                    if not np.isnan(ori):
+                        g.pos = self.trialGratingCenter[-1]
+                        g.contrast = self.trialGratingContrast[-1]
+                        g.ori = ori
                 
             if self.preFrames <= self._trialFrame < self.preFrames + self.trialStimFrames[-1]:
-                for _,i in enumerate(self.trialGratingOri):
-                    gratings[i].draw()
+                for g,ori in zip(gratings,self.trialGratingOri[-1]):
+                    if not np.isnan(ori):
+                        g.draw()
                 
             self.showFrame()
             
             if self._trialFrame == trialFrames:
                 self._trialFrame = 0
-                trialCount += 1
+                trialIndex += 1
+                if trialIndex == len(params):
+                    trialIndex = 0
+                    random.shuffle(params)
 
 
 if __name__ == "__main__":
