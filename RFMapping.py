@@ -34,7 +34,7 @@ class RFMapping(TaskControl):
             w,h = self.monSizePix
             self.gratingCenter = []
             for x in (r,0.25*w,0.5*w-r):
-                for y in (0.5*h-r,0,-0.5*h+r)):
+                for y in (0.5*h-r,0,-0.5*h+r):
                     self.gratingCenter.append((x,y))
 
 
@@ -54,12 +54,13 @@ class RFMapping(TaskControl):
         params = list(itertools.product(self.gratingCenter,self.gratingContrast,self.gratingOri,self.stimFrames))
         random.shuffle(params)
         
-        trialIndex = 0
-        
         self.trialGratingCenter = []
         self.trialGratingContrast = []
         self.trialGratingOri = []
         self.trialStimFrames = []
+        
+        trialIndex = 0
+        loopCount = 0
         
         while self._continueSession:
             if self._trialFrame == 0:
@@ -85,6 +86,8 @@ class RFMapping(TaskControl):
                 self._trialFrame = 0
                 trialIndex += 1
                 if trialIndex == len(params):
+                    loopCount += 1
+                    print('completed loop '+str(loopCount))
                     trialIndex = 0
                     random.shuffle(params)
 
