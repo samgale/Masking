@@ -210,10 +210,10 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
     else:
         pass
     
-    
+
     
     if returnCounts==True:
-        array_counts = {str(param): paramVals, 'total trials': totalTrials, 
+        array_counts = {str(param): list(paramVals), 'total trials': totalTrials, 
                         'hits': hits, 'misses': misses, 'resps': resps, 'no response': noResps}
         return (mouse, array_counts)
     
@@ -222,7 +222,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
         mask =  (maskOnly[0]+maskOnly[1])/maskOnlyTotal if param=='soa' else None
         avg_catch = (catchTurn/catchCounts) if param=='opto' else None
         
-        return (mouse, {str(param):np.round(xticklabels, 2), 
+        return (mouse, {str(param):np.round(paramVals, 2), 
                         'Response Rate':(resps[0]+resps[1])/(totalTrials[0]+totalTrials[1]), 
                         'Fraction Correct':(hits[0]+hits[1])/(resps[0]+resps[1]), 
                         'Catch Trials':avg_catch,
