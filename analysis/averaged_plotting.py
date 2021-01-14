@@ -21,7 +21,7 @@ from plotting_opto_unilateral import plot_opto_uni
 import scipy.stats
 
 
-def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_to_dict(task==task)
+def plot_avg_beh(task=None, plot_type=None, kind=None):   # call with dates_to_dict(task==task)
     '''
     mice is a dict of mouse_ids and dates - ex: {'525458':'1022', '516686':'1015'}
     task is the task type you want to average (e.g., 'opto masking')
@@ -51,7 +51,7 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
             func = plot_opto_uni
             param = None
         
-        elif task=='opto contrast':
+        elif task=='opto timing':
             func = plot_param          
             param='opto'
             
@@ -83,25 +83,27 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
     mice = dates_to_dict(task=task)
     files = import_data_multi(mice, folder)  # list of the hdf5 files for each mouse 
     
+    assert len(mice)==len(files), 'issue with files'
     
     if plot_type=='beh':  # creates combined performance plots
     
         percents = []   #each item in percents has mouseID, dict of param vals, then dicts of vals to plot
         
         for f in files:    # calls function appropriate to params and returns array of %s  
-            percents.append(func(f, param=param, ignoreNoRespAfter=15, array_only=True)) 
+            percents.append(func(f, param=param, ignoreNoRespAfter=None, array_only=True)) 
             
         rn = range(len(mice))
     
     
-        if task == 'opto unilateral':
-            paramVals = [1,2,3,4]
+        if task == 'opto unilateral': ## still not plotting average
+            
+            paramVals = list(range(len(mice)))
             y = np.array([p[5] for p in percents])
             yavg = y.mean(axis=0)
             yerr = y.std(axis=0)/(4**0.5)
             
             fig, ax = plt.subplots(3,1, figsize=(8,9), facecolor='white')
-            x = np.arange(4)
+            x = np.arange(len(mice))
             
             for i, y in enumerate(yavg):
                 ax[i].errorbar(x, yavg[i][0], yerr=yerr[i][0], label='Move Left', color='b', lw=2)
@@ -187,7 +189,7 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
         #        ax.plot(paramVals[0][0], np.nanmean(responseRate, axis=0)[0], 'k-', alpha=1, lw=3)
                 plt.errorbar(paramVals[0][0], np.nanmean(responseRate, axis=0)[0], 
                              yerr=scipy.stats.sem(responseRate, axis=0, nan_policy='omit')[0], 
-                             color='k', alpha=1, lw=3, label='Target Only' if task=='opto contrast' else None)
+                             color='k', alpha=1, lw=3, label='Target Only' if task=='opto timing' else None)
                 
                 
                 if task == 'masking':
@@ -199,21 +201,28 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
                     lbl = 'Mask Onset from Target Onset (ms)'
                     ax.set_xlim([.5,8])
                 
-                if task == 'opto contrast':
+                
+                if task == 'opto timing':
+
+                    xticklabels = [int(np.round(((tick-2)/120)*1000)) for tick in xticklabels]
                     xticklabels[-1] =  'no opto'
+                    
                     for x in catchTrials:
                         ax.plot(paramVals[0][0], x[0], color='m', alpha=.3, lw=1)
                     plt.errorbar(paramVals[0][0], np.nanmean(catchTrials, axis=0)[0], 
                                  yerr=scipy.stats.sem(catchTrials, axis=0, nan_policy='omit')[0], 
                                  color='m', alpha=.6, lw=3, label='Catch Trials')
-                    ax.set_xlim([10,105])
+                    ax.set_xlim([3, 15])
+                   
                 
                 
                 if task=='targetContrast':
                     ax.set_xlim([.1,1.1])
                     
+                    
                 if task == 'targetDuration':
                     ax.set_xlim([0, 105])
+                
                 
             ax.set_xticks(xticks)
             ax.set_xticklabels(xticklabels)
@@ -289,9 +298,9 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
                     ax.set_xlim([1, 8])
                     lbl = 'Mask Onset from Target Onset (ms)'
                 
-                if task == 'opto contrast':
+                if task == 'opto timing':
                     ax.set_xticklabels(xticklabels)
-                    ax.set_xlim([10,105])
+                    ax.set_xlim([3,15])
                      
                 if task == 'targetContrast':
                     ax.set_xlim([.1,1.1])
@@ -301,6 +310,9 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
                         
             plt.title('Average Fraction Correct Given Response across mice')
             ax.set_ylim([.4,1.02])
+        
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xticklabels)
         
             formatFigure(fig, ax, xLabel=lbl, yLabel='Fraction Correct')   
             plt.subplots_adjust(top=0.9, bottom=0.15, left=0.12, right=0.92, hspace=0.2, wspace=0.2)
@@ -403,9 +415,9 @@ def plot_average_beh(task=None, plot_type=None, kind=None):   # call with dates_
                 pass
             
 
-corr avg
-[354.6433335369827, 344.8650784725346, 336.3205280609224, 325.6390884952466]
-
+#corr avg
+#[354.6433335369827, 344.8650784725346, 336.3205280609224, 325.6390884952466]
+#
 
 
 
