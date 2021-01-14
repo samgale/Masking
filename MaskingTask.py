@@ -208,7 +208,7 @@ class MaskingTask(TaskControl):
             self.maskOnset = [2,4,6]
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
-        elif name == 'opto contrast':
+        elif name == 'opto timing':
             self.setDefaultParams('testing',taskVersion)
             self.probOpto = 0.6
             self.optoChan = [(True,True)]
@@ -217,7 +217,7 @@ class MaskingTask(TaskControl):
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
             
         elif name == 'opto unilateral':
-            self.setDefaultParams('opto contrast',taskVersion)
+            self.setDefaultParams('opto timing',taskVersion)
             self.optoChan = [(True,True),(True,False),(False,True)]
             self.optoOnset = [0]
             
@@ -229,6 +229,11 @@ class MaskingTask(TaskControl):
             self.maskOnset = [2]
             self.probMask = 0.5
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
+            
+        elif name == 'opto masking unilateral':
+            self.setDefaultParams('opto masking',taskVersion)
+            self.optoChan = [(True,True),(True,False),(False,True)]
+            self.optoOnset = [0]
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
