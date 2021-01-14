@@ -15,6 +15,7 @@ class RFMapping(TaskControl):
     
     def __init__(self,rigName):
         TaskControl.__init__(self,rigName)
+        self.defaultParams = 'masking'
         self.gratingCenter = [(0,0)]
         self.gratingContrast = [0.4,1]
         self.gratingOri = [(0,np.nan),(90,np.nan),(-45,np.nan),(45,np.nan),(0,90)] # clockwise degrees from vertical
@@ -25,20 +26,19 @@ class RFMapping(TaskControl):
         self.gratingEdgeBlurWidth = 0.1 # only applies to raisedCos
         self.preFrames = 60
         self.stimFrames = [2,6]
-        self.postFrames = 60
+        self.postFrames = 60      
+
+
+    def taskFlow(self):
         
-    
-    def setDefaultParams(self,name):
-        if name=='masking':
+        if self.defaultParams == 'masking':
             r = 0.5*self.gratingSize*self.pixelsPerDeg
             w,h = self.monSizePix
             self.gratingCenter = []
             for x in (r,0.25*w,0.5*w-r):
                 for y in (0.5*h-r,0,-0.5*h+r):
                     self.gratingCenter.append((x,y))
-
-
-    def taskFlow(self):
+        
         edgeBlurWidth = {'fringeWidth':self.gratingEdgeBlurWidth} if self.gratingEdge=='raisedCos' else None
 
         gratings = [visual.GratingStim(win=self._win,

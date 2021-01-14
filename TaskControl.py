@@ -57,7 +57,6 @@ class TaskControl():
             self.diodeBoxPosition = (935,-515)
             self.nidaqDevices = ('USB-6001',)
             self.nidaqDeviceNames = ('Dev1',)
-        self.pixelsPerDeg = 0.5 * self.monSizePix[0] / math.degrees(math.atan(0.5 * self.monWidth / self.monDistance))
         
     
     def prepareSession(self):
@@ -67,6 +66,8 @@ class TaskControl():
         startTime = time.localtime()
         self.startTime = time.strftime('%Y%m%d_%H%M%S',startTime)
         print('start time was: ' + time.strftime('%I:%M',startTime))
+        
+        self.pixelsPerDeg = 0.5 * self.monSizePix[0] / math.degrees(math.atan(0.5 * self.monWidth / self.monDistance))
         
         self.prepareWindow()
 
