@@ -294,8 +294,8 @@ def plot_avg_beh(task=None, plot_type=None, kind=None):   # call with dates_to_d
                 ax.set_xticks(paramVals[0][0])   
                     
                 if task == 'masking':
-                    ax.set_xticklabels(xlabels)
-                    ax.set_xlim([1, 8])
+                    ax.set_xticklabels(xlabels[:-1])
+                    ax.set_xlim([.5, 8])
                     lbl = 'Mask Onset from Target Onset (ms)'
                 
                 if task == 'opto timing':
