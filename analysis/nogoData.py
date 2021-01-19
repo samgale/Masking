@@ -65,18 +65,18 @@ def nogo_turn(data, ignoreRepeats=True, ignoreNoRespAfter=None, returnArray=True
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
 
 
-
-    trials = d['trialType'][:end]
-    
-    for i, (start, end, t) in enumerate(zip(trialStimStart, trialRespFrame, trials)):
-        if t == 'maskOnly':
-            wheel = (np.cumsum(deltaWheel[start:end])[-1])
-            ind[1].append(i)
-            wheelMvmt[1].append((wheel/abs(wheel)).astype(int))
-
-
-
-
+#
+#    trials = d['trialType'][:end]
+#    
+#    for i, (start, end, t) in enumerate(zip(trialStimStart, trialRespFrame, trials)):
+#        if t == 'maskOnly':
+#            wheel = (np.cumsum(deltaWheel[start:end])[-1])
+#            ind[1].append(i)
+#            wheelMvmt[1].append((wheel/abs(wheel)).astype(int))
+#
+#
+#
+#
 
 
 
