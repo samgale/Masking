@@ -12,17 +12,18 @@ This returns 3 arrays -
 """
 
 import numpy as np
+from dataAnalysis import ignore_after
 
-
-def nogo_turn(data, ignoreRepeats=True, returnArray=True):
+def nogo_turn(data, ignoreRepeats=True, ignoreNoRespAfter=None, returnArray=True):
 
     d = data
-    trialResponse = d['trialResponse'][:]
-    end = len(trialResponse)
+    end = ignore_after(d, ignoreNoRespAfter)[0] if ignoreNoRespAfter is not None else len(d['trialResponse'][:])
+    
+    trialResponse = d['trialResponse'][:end]
     trialTargetFrames = d['trialTargetFrames'][:end]
     trialMaskContrast = d['trialMaskContrast'][:end]
     trialStimStart = d['trialStimStartFrame'][:end]
-    trialRespFrame = d['trialResponseFrame'][:]
+    trialRespFrame = d['trialResponseFrame'][:end]
     trialRewardDir = d['trialRewardDir'][:end]
     deltaWheel = d['deltaWheelPos'][:]
     repeats = d['incorrectTrialRepeats'][()]
@@ -62,4 +63,36 @@ def nogo_turn(data, ignoreRepeats=True, returnArray=True):
         return [wheelMvmt, ind]
 
 #catchTrials = [i for i, row in df.iterrows() if row.isnull().any()]
+
+
+
+    trials = d['trialType'][:end]
+    
+    for i, (start, end, t) in enumerate(zip(trialStimStart, trialRespFrame, trials)):
+        if t == 'maskOnly':
+            wheel = (np.cumsum(deltaWheel[start:end])[-1])
+            ind[1].append(i)
+            wheelMvmt[1].append((wheel/abs(wheel)).astype(int))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

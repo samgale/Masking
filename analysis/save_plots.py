@@ -6,7 +6,6 @@ Created on Tue Jun 30 10:59:57 2020
 """
 
 import behaviorAnalysis
-import performanceBySOA
 from plotting_variable_params import plot_param
 from SessionPerformance import plot_session
 from responsePlotByParam import plot_by_param

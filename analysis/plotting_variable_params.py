@@ -14,7 +14,8 @@ from ignoreTrials import ignore_trials
 from dataAnalysis import ignore_after, get_dates, import_data
 
 
-def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=None, returnCounts=False, array_only=False):
+def plot_param(data, param='targetLength', showTrialN=True, 
+               ignoreNoRespAfter=None, returnCounts=False, array_only=False):
     '''
     plots the percent correct or response for a variable target duration session,
     variable contrast session, opto contrast session, or masking session
@@ -48,7 +49,7 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
 
 
 # determine parameter to analyze    
-    if param =='targetLength':
+    if param =='targetLength' or param=='target duration':
         trialParam = d['trialTargetFrames'][:end] * 1000/framerate 
     elif param =='targetContrast':
         trialParam = d['trialTargetContrast'][:end]
@@ -228,7 +229,8 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
                         'Catch Trials':avg_catch,
                         'maskOnly': mask})
     
-    
+
+## PLOTTING   
     else:   
         for num, denom, title in zip([hits, hits, resps], 
                                      [totalTrials,resps, totalTrials],
@@ -323,11 +325,3 @@ def plot_param(data, param='targetLength', showTrialN=True, ignoreNoRespAfter=No
             plt.subplots_adjust(top=0.84, bottom=0.105, left=0.095, right=0.92, hspace=0.2, wspace=0.2)
             plt.legend(loc='best', fontsize='small', numpoints=1) 
             
-            
-#            
-#            for x,y,z in zip(trialResponse2, d['trialOptoOnset'][:len(trialResponse2)], trialRewardDirection):
-#                if np.isfinite(y):
-#                    print('finite:  ', x,y,z)
-#                else:
-#                    print('no finite:  ', x,y,z)
-#                        
