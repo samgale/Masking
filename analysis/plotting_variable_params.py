@@ -50,6 +50,7 @@ def plot_param(data, param='targetLength', showTrialN=True,
 
 # determine parameter to analyze    
     if param =='targetLength' or param=='target duration':
+        param = 'targetLength'
         trialParam = d['trialTargetFrames'][:end] * 1000/framerate 
     elif param =='targetContrast':
         trialParam = d['trialTargetContrast'][:end]
@@ -252,10 +253,11 @@ def plot_param(data, param='targetLength', showTrialN=True,
             if param=='targetLength':
                 xticklabels = list(np.round(xticks).astype(int))
                 xlab = 'Target Duration (ms)'
-                xticklabels = [(np.round((x/framerate)*1000, 2)) for x in xticklabels]
+
                 
             elif param=='targetContrast':
                 xlab = 'Target Contrast'
+               
                 
             elif param=='opto':
                 
@@ -263,8 +265,6 @@ def plot_param(data, param='targetLength', showTrialN=True,
                     ax.plot(xticks, catchTurn/catchCounts, 'mo-', alpha=.5, lw=3, label='Catch Trials') # plot catch trials
                     for p, c in zip(xticks, catchCounts):
                         fig.text(p, 1.05, str(c), transform=ax.transData, color='m', alpha=.5, fontsize=10,ha='center',va='bottom')
-                
-                
                 
                 xticklabels[-1] = 'no opto'
                 ax.xaxis.set_label_coords(0.5,-0.08)  
@@ -274,17 +274,18 @@ def plot_param(data, param='targetLength', showTrialN=True,
             elif param=='soa':
                 
                 xticklabels = [int(np.round((tick/framerate)*1000)) for tick in xticklabels]
-                
                 xlab = 'Mask Onset From Target Onset (ms)'
                 lbl = ['mask\nonly', 'target only']
                 del xticklabels[-1]
                 xticklabels.append(lbl[1])
+                
                 if title=='Response Rate':  # show mask-only resps 
                     xticks = np.insert(xticks, 0, 1)
                     xticklabels = np.insert(xticklabels, 0, lbl[0])
                     ax.plot(1, maskOnly[0]/maskOnlyTotal, 'ro')
                     ax.plot(1, maskOnly[1]/maskOnlyTotal, 'bo')
                     fig.text(1,1.05,str(maskOnlyTotal),transform=ax.transData,color='k',fontsize=10,ha='center',va='bottom')
+                
                 ax.xaxis.set_label_coords(0.5,-0.08)
 
             
@@ -308,7 +309,7 @@ def plot_param(data, param='targetLength', showTrialN=True,
             ax.set_xticklabels(xticklabels)
             
             if param=='targetLength':
-                ax.set_xlim([-5, paramVals[-1]+1])
+                ax.set_xlim([-5, paramVals[-1]+paramVals[0]])
             elif param=='targetContrast':
                 ax.set_xlim([0, 1.05])
             elif param=='soa':
@@ -317,7 +318,8 @@ def plot_param(data, param='targetLength', showTrialN=True,
                 ax.set_xlim([paramVals[0]-1, max(paramVals)+1])
             else:
                 ax.set_xlim([-.5, max(paramVals)+1])
-                
+            
+            
             ax.set_ylim([0,1.05])
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
