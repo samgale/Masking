@@ -133,6 +133,8 @@ class DynamicRouting1(TaskControl):
         self.trialRewarded = []
         self.trialRepeat = [False]
         self.quiescentMoveFrames = [] # frames where quiescent period was violated
+        self.trialBlock = []
+        self.trialProbGoRight = []
         blockTrialCount = None
         probGoRight = None
         incorrectRepeatCount = 0
@@ -159,7 +161,11 @@ class DynamicRouting1(TaskControl):
                         else:
                             blockTrialCount = 1
                             probGoRight = self.blockProbGoRight[0] if len(self.blockProbGoRight) == 1 else random.choice([p for p in self.blockProbGoRight if p != probGoRight])
-                        
+                            if len(self.trialBlock) < 1:
+                                self.trialBlock.append(0)
+                            else:
+                                self.trialBlock.append(self.trialBlock[-1] + 1)
+                            
                         rewardDir = 1 if random.random() < probGoRight else -1
                         targetContrast = random.choice(self.targetContrast)
                         targetFrames = random.choice(self.targetFrames)
@@ -179,6 +185,9 @@ class DynamicRouting1(TaskControl):
                 self.trialRewardDir.append(rewardDir)
                 self.trialTargetContrast.append(targetContrast)
                 self.trialTargetFrames.append(targetFrames)
+                if blockTrialCount > 1:
+                    self.trialBlock.append(self.trialBlock[-1])
+                self.trialProbGoRight.append(probGoRight)
                 hasResponded = False
             
             # extend pre stim gray frames if wheel moving during quiescent period
