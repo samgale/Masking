@@ -266,6 +266,8 @@ def plot_param(data, param='targetLength', showTrialN=True,
                     for p, c in zip(xticks, catchCounts):
                         fig.text(p, 1.05, str(c), transform=ax.transData, color='m', alpha=.5, fontsize=10,ha='center',va='bottom')
                 
+                
+                xticklabels = [int(np.round(((x-2)/framerate)*1000)) for x in xticklabels]
                 xticklabels[-1] = 'no opto'
                 ax.xaxis.set_label_coords(0.5,-0.08)  
                 xlab = 'Optogenetic light onset relative to target onset (ms)'
