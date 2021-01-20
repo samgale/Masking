@@ -153,7 +153,7 @@ class DynamicRouting1(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    if random.random() < self.probCatch:
+                    if blockTrialCount is not None and random.random() < self.probCatch:
                         rewardDir = targetContrast = targetFrames = 0
                     else:
                         if blockTrialCount is not None and (blockTrialCount < self.trialsPerBlock[0] or (blockTrialCount < self.trialsPerBlock[1] and random.choice([True,False]))):
