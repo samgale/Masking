@@ -98,7 +98,7 @@ def ignore_after(data, lim):
         startFrame = d['trialStartFrame'][trialNum]
         
 #    elif type(lim) == list:       # to ignore after a certain time or a selection of session - use minutes
-#        start, end  = lim[0], lim[1]
+#   #     start, end  = lim[0], lim[1]
         # convert minutes into frames;  match frames to trial num;  index by trial num
         # need to finish this
     
