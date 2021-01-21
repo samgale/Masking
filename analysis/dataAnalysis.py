@@ -102,7 +102,12 @@ def ignore_after(data, lim):
         # convert minutes into frames;  match frames to trial num;  index by trial num
         # need to finish this
     
-    return trialNum, startFrame-1
+    if lim==None:
+        ans = len(d['trialResponse'][:-1])
+    else:
+        ans = [trialNum, startFrame-1]
+    
+    return ans
 
 
 
