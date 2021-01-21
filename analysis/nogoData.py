@@ -12,14 +12,16 @@ This returns 3 arrays -
 """
 
 import numpy as np
-from dataAnalysis import ignore_after
+#from dataAnalysis import ignore_after
 
 def nogo_turn(data, ignoreRepeats=True, ignoreNoRespAfter=None, returnArray=True):
 
     d = data
-    end = ignore_after(d, ignoreNoRespAfter)[0] if ignoreNoRespAfter is not None else len(d['trialResponse'][:])
+ #   end = ignore_after(d, ignoreNoRespAfter)[0] if ignoreNoRespAfter is not None else len(d['trialResponse'][:])
     
-    trialResponse = d['trialResponse'][:end]
+    
+    trialResponse = d['trialResponse'][:-1]
+    end = len(trialResponse)
     trialTargetFrames = d['trialTargetFrames'][:end]
     trialMaskContrast = d['trialMaskContrast'][:end]
     trialStimStart = d['trialStimStartFrame'][:end]
