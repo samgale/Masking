@@ -135,8 +135,9 @@ class DynamicRouting1(TaskControl):
         self.quiescentMoveFrames = [] # frames where quiescent period was violated
         self.trialBlock = []
         self.trialProbGoRight = []
-        blockTrialCount = None
-        probGoRight = None
+        blockTrials = None # number of trials of current block
+        blockTrialCount = None # number of trials completed in current block
+        probGoRight = None # probability that rightward movement rewarded in current block
         incorrectRepeatCount = 0
         
         # run loop for each frame presented on the monitor
@@ -153,18 +154,19 @@ class DynamicRouting1(TaskControl):
                 closedLoopWheelMove = 0 # actual or virtual change in target position/ori during closed loop period
                 
                 if not self.trialRepeat[-1]:
-                    if blockTrialCount is not None and random.random() < self.probCatch:
+                    if blockTrials is not None and random.random() < self.probCatch:
                         rewardDir = targetContrast = targetFrames = 0
                     else:
-                        if blockTrialCount is not None and (blockTrialCount < self.trialsPerBlock[0] or (blockTrialCount < self.trialsPerBlock[1] and random.choice([True,False]))):
-                            blockTrialCount += 1
-                        else:
+                        if blockTrials is None or blockTrialCount == blockTrials:
+                            blockTrials = random.randint(*self.trialsPerBlock)
                             blockTrialCount = 1
                             probGoRight = self.blockProbGoRight[0] if len(self.blockProbGoRight) == 1 else random.choice([p for p in self.blockProbGoRight if p != probGoRight])
                             if len(self.trialBlock) < 1:
                                 self.trialBlock.append(0)
                             else:
                                 self.trialBlock.append(self.trialBlock[-1] + 1)
+                        else:
+                            blockTrialCount += 1
                             
                         rewardDir = 1 if random.random() < probGoRight else -1
                         targetContrast = random.choice(self.targetContrast)
