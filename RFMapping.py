@@ -54,6 +54,7 @@ class RFMapping(TaskControl):
         params = list(itertools.product(self.gratingCenter,self.gratingContrast,self.gratingOri,self.stimFrames))
         random.shuffle(params)
         
+        self.stimStartFrame = []
         self.trialGratingCenter = []
         self.trialGratingContrast = []
         self.trialGratingOri = []
@@ -76,6 +77,8 @@ class RFMapping(TaskControl):
                         g.ori = ori
                 
             if self.preFrames <= self._trialFrame < self.preFrames + self.trialStimFrames[-1]:
+                if self._trialFrame == self.preFrame:
+                    self.stimStartFrame.append(self._sessionFrame)
                 for g,ori in zip(gratings,self.trialGratingOri[-1]):
                     if not np.isnan(ori):
                         g.draw()
