@@ -235,40 +235,58 @@ class MaskingEphys():
         
         self.unitPos = np.array([self.units[u]['position'][1]/1000 for u in self.goodUnits])
 
-        # get behavior data    
+        # get behavior and rf mapping data    
         self.behavDataPath = fileIO.getFile('Select behavior data file',fileType='*.hdf5')
-        behavData = h5py.File(self.behavDataPath,'r')
+        if len(self.behavDataPath)>0:
+            behavData = h5py.File(self.behavDataPath,'r')
+            self.behavFrameIntervals = behavData['frameIntervals'][:]
+        self.frameRate = round(1/np.median(self.behavFrameIntervals))
+        
+        self.rfDataPath = fileIO.getFile('Select rf mapping data file',fileType='*.hdf5')
+        if len(self.rfDataPath)>0:
+            rfData = h5py.File(self.rfDataPath,'r')
+            self.rfFrameIntervals = rfData['frameIntervals'][:]
+        
         
         # get frame times and compare with psychopy frame intervals
         self.frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
         
-        self.psychopyFrameIntervals = behavData['frameIntervals'][:]
-        self.frameRate = round(1/np.median(self.psychopyFrameIntervals))
-        
         print(str(self.frameSamples.size)+' frame signals')
-        print(str(self.psychopyFrameIntervals.size)+' psychopy frame intervals')
+        print(str(self.behavFrameIntervals.size+1)+' behavior frames')
+        print(str(self.rfFrameIntervals.size+1)+' rf frames')
         
-        # correct for ephys ending before psychopy
-        if self.psychopyFrameIntervals.size+1>self.frameSamples.size:
-            self.ntrials = np.sum(behavData['trialEndFrame'][:]<self.frameSamples.size)
-        else:
-            self.ntrials = behavData['trialEndFrame'].size
+        if len(self.behavDataPath)>0:
+            if self.behavFrameIntervals.size+1>self.frameSamples.size:
+                self.ntrials = np.sum(behavData['trialEndFrame'][:]<self.frameSamples.size)
+            else:
+                self.ntrials = behavData['trialEndFrame'].size
+            self.stimStart = behavData['trialStimStartFrame'][:self.ntrials]
+            self.trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:self.ntrials]
+            if np.unique(self.trialOpenLoopFrames).size>1:
+                print('multiple values of open loop frames')
+            self.openLoopFrames = self.trialOpenLoopFrames[0]
+            self.responseWindowFrames = behavData['maxResponseWaitFrames'][()]
+            self.trialType = behavData['trialType'][:self.ntrials]
+            self.targetFrames = behavData['trialTargetFrames'][:self.ntrials]
+            self.maskFrames = behavData['trialMaskFrames'][:self.ntrials]
+            self.maskOnset = behavData['trialMaskOnset'][:self.ntrials]
+            self.rewardDir = behavData['trialRewardDir'][:self.ntrials]
+            self.response = behavData['trialResponse'][:self.ntrials]
+            self.responseDir = behavData['trialResponseDir'][:self.ntrials]
+            self.optoChan = behavData['trialOptoChan'][:self.ntrials]
+            self.optoOnset = behavData['trialOptoOnset'][:self.ntrials]
             
-        self.stimStart = behavData['trialStimStartFrame'][:self.ntrials]
-        self.trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:self.ntrials]
-        if np.unique(self.trialOpenLoopFrames).size>1:
-            print('multiple values of open loop frames')
-        self.openLoopFrames = self.trialOpenLoopFrames[0]
-        self.responseWindowFrames = behavData['maxResponseWaitFrames'][()]
-        self.trialType = behavData['trialType'][:self.ntrials]
-        self.targetFrames = behavData['trialTargetFrames'][:self.ntrials]
-        self.maskFrames = behavData['trialMaskFrames'][:self.ntrials]
-        self.maskOnset = behavData['trialMaskOnset'][:self.ntrials]
-        self.rewardDir = behavData['trialRewardDir'][:self.ntrials]
-        self.response = behavData['trialResponse'][:self.ntrials]
-        self.responseDir = behavData['trialResponseDir'][:self.ntrials]
-        self.optoChan = behavData['trialOptoChan'][:self.ntrials]
-        self.optoOnset = behavData['trialOptoOnset'][:self.ntrials]
+        if len(self.rfDataPath)>0:
+            self.firstRFFrame = self.frameSamples[-self.rfFrameIntervals.size+1]
+            if 'stimStartFrame' in rfData:
+                self.rfStimStart = rfData['stimStartFrame'][:]
+            else:
+                trialStartFrame = np.concatenate(([0],np.cumsum(rfData['preFrames']+rfData['trialStimFrames'][:-1]+rfData['postFrames'])))
+                self.rfStimStart = trialStartFrame+rfData['preFrames']
+            self.rfStimPos = rfData['trialGratingCenter'][:]
+            self.rfStimContrast = rfData['trialGratingContrast'][:]
+            self.rfStimOri = rfData['trialGratingOri'][:]
+            self.rfStimFrames = rfData['trialStimFrames'][:]
         
         # check frame display lag
         fig = plt.figure()
@@ -488,7 +506,7 @@ for j,(xdata,xlbl) in enumerate(zip((obj.peakToTrough,obj.unitPos),('Spike peak 
         ax = fig.add_subplot(gs[i,j])
         for ct,cellType,clr in zip((fs,~fs),('FS','RS'),'mg'):
             for r,mfc in zip((~respCells[cellType],respCells[cellType]),('none',clr)):
-                ax.plot(xdata[ct][r],peakResp[cellType][stim]['right'][0][r],'o',mec=clr,mfc=mfc)
+                ax.plot(xdata[ct][r],peakResp[cellType][stim]['right']['all'][0][r],'o',mec=clr,mfc=mfc)
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
@@ -505,9 +523,10 @@ ax.plot([0,200],[0,200],'--',color='0.5')
 amax = 0
 for cellType,clr in zip(('FS','RS'),'mg'):
     for r,mfc in zip((~respCells[cellType],respCells[cellType]),('none',clr)):
-        x,y = [peakResp[cellType][stim]['right'][0][r] for stim in stimLabels[:2]]
-        amax = max(amax,x.max(),y.max())
-        ax.plot(x,y,'o',mec=clr,mfc=mfc,label=cellType)
+        x,y = [peakResp[cellType][stim]['right']['all'][0][r] for stim in stimLabels[:2]]
+        if any(x) and any(y):
+            amax = max(amax,x.max(),y.max())
+            ax.plot(x,y,'o',mec=clr,mfc=mfc,label=cellType)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
@@ -526,7 +545,7 @@ for j,cellType in enumerate(('FS','RS')):
     for i,(ydata,ylbl) in enumerate(zip((timeToPeak,timeToFirstSpike),('Time to peak (ms)','Time to first spike (ms)'))):
         ax = fig.add_subplot(gs[i,j])
         for x,stim in enumerate(stimLabels):
-            y = 1000*np.array(ydata[cellType][stim]['right'][0])[respCells[cellType]]
+            y = 1000*np.array(ydata[cellType][stim]['right']['all'][0])[respCells[cellType]]
             ax.plot(x+np.zeros(len(y)),y,'o',mec='0.5',mfc='none')
             m = np.nanmean(y)
             s = np.nanstd(y)/(np.sum(~np.isnan(y))**0.5)
@@ -602,6 +621,23 @@ ymax = max(plt.get(ax,'ylim')[1] for ax in axs)
 for ax in axs:
     ax.set_ylim([ymin,ymax])
 plt.tight_layout()        
+
+
+# rf mapping
+azi,ele = [np.unique(p) for p in obj.rfStimPos.T]
+preTime = 0.1
+postTime = 0.2
+rfMap = np.zeros((ele.size,azi.size))
+for x,y in obj.rfStimPos:
+    pass
+
+
+
+
+
+
+
+
 
 
 
