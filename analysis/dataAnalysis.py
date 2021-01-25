@@ -455,7 +455,7 @@ def rxnTimes(data, dataframe, version=None):
                
             elif init<100 and sigMove>1:
                 init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
-                if init<100:
+                if init<100 and i not in ignoreTrials:
                     ignoreTrials.append(i)
 
                 if sigMove-init>100:
@@ -468,7 +468,7 @@ def rxnTimes(data, dataframe, version=None):
                    
                 elif init<100 and sigMove>1:
                     init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
-                    if init<100:
+                    if init<100 and i not in ignoreTrials:
                         ignoreTrials.append(i)
                     
         initiateMovement.append(init)
