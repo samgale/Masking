@@ -176,13 +176,13 @@ for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
 #    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=.3, hspace=.3)
 formatFigure(fig, ax)              
                 
-if array_only==True:
-    return(mouse_id, 
-           ['each list is stim L/R?none, and each list inside is move L/R'],
-           ['Right Stimulus, 40% contrast', 'Left Stimulus, 40% contrast', 'No Stim'],
-           ['Move Left', 'Move Right'],
-           ['No Opto', 'Opto Left', 'Opto Right', 'Opto Both'],
-           returnArray)
-    
+#if array_only==True:
+#    return(mouse_id, 
+#           ['each list is stim L/R?none, and each list inside is move L/R'],
+#           ['Right Stimulus, 40% contrast', 'Left Stimulus, 40% contrast', 'No Stim'],
+#           ['Move Left', 'Move Right'],
+#           ['No Opto', 'Opto Left', 'Opto Right', 'Opto Both'],
+#           returnArray)
+#    
     
     
