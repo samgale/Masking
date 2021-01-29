@@ -661,15 +661,49 @@ for i,y in enumerate(ele):
                         rfMap[n,:,i,j,k,l,m] = p
 
 
+fig = plt.figure()
+gs = matplotlib.gridspec.GridSpec(ele.size,azi.size)
+for i,y in enumerate(ele):
+    for j,x in enumerate(azi):
+        ax = fig.add_subplot(gs[ele.size-1-i,j])
+        
+#        ax.plot(t,rfMap.mean(axis=(0,4,5,6))[:,i,j],'k')
+        
+#        for k,d in enumerate(dur):
+#            ax.plot(t,rfMap.mean(axis=(0,4,5))[:,i,j,k],'k')
+            
+#        for k,c in enumerate(contrast):
+#            ax.plot(t,rfMap.mean(axis=(0,4,6))[:,i,j,k],'k')
+        
+        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,4,5,6))[:,i,j],'k')
+        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,4,5,6))[:,i,j],'k')
+            
+        # target
+#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,5,6))[:,i,j,0],'k')
+        
+        # mask
+#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,5,6))[:,i,j,4],'k')
+        
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        if i==0 and j==azi.size-1:
+            ax.set_xlabel('Time (s)')
+        else:
+            ax.set_xticklabels([])
+        if i==ele.size-1 and j==0:
+            ax.set_ylabel('Spikes/s')
+        else:
+            ax.set_yticklabels([])
+        ax.set_xticks([0,0.5])
+        ax.set_yticks([0,10,20])
+        ax.set_ylim([0,20])
+plt.tight_layout()
+
+
 plt.figure()
 for i,o in enumerate(ori):
     plt.plot(t,rfMap.mean(axis=(0,2,3,5,6))[:,i],label=o)
 plt.legend()
-
-
-
-
-
 
 
 
