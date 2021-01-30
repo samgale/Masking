@@ -675,8 +675,8 @@ for i,y in enumerate(ele):
 #        for k,c in enumerate(contrast):
 #            ax.plot(t,rfMap.mean(axis=(0,4,6))[:,i,j,k],'k')
         
-        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,4,5,6))[:,i,j],'k')
-        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,4,5,6))[:,i,j],'k')
+        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,4,5,6))[:,i,j],'k',label='17 ms stim')
+        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,4,5,6))[:,i,j],'r',label='50 ms stim')
             
         # target
 #        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,5,6))[:,i,j,0],'k')
@@ -686,17 +686,19 @@ for i,y in enumerate(ele):
         
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
-        if i==0 and j==azi.size-1:
-            ax.set_xlabel('Time (s)')
+        if i==0 and j==1:
+            ax.set_xlabel('Time from stim onset (s)')
         else:
             ax.set_xticklabels([])
-        if i==ele.size-1 and j==0:
+        if i==1 and j==0:
             ax.set_ylabel('Spikes/s')
         else:
             ax.set_yticklabels([])
+        if i==ele.size-1 and j==azi.size-1:
+            ax.legend(loc='upper right')
         ax.set_xticks([0,0.5])
-        ax.set_yticks([0,10,20])
-        ax.set_ylim([0,20])
+        ax.set_yticks([0,10,20,30])
+        ax.set_ylim([0,35])
 plt.tight_layout()
 
 
