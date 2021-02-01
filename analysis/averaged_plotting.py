@@ -371,6 +371,7 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
             
             for k, df in enumerate(dict1.items()): 
                 
+                paramVals = np.unique(df[1][param])
                 paramVals = [p for p in paramVals if np.isfinite(p)]
 #                paramVals = paramVals[:5]
                 trialTimes = [[] for i in range(len(paramVals))]
@@ -393,7 +394,7 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
                     for j in range(len(filtered_df)):
                         if np.round(filtered_df.iloc[j][param], 2)==np.round(p,2):
                             trialTimes[i].append(filtered_df.iloc[j][col])
-                            print(filtered_df.iloc[j][col])
+#                            print((p, filtered_df.iloc[j][col]))
 
                 compiledTimes.append(trialTimes)
                 
