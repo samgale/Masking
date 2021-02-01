@@ -235,25 +235,29 @@ class MaskingEphys():
         
         self.unitPos = np.array([self.units[u]['position'][1]/1000 for u in self.goodUnits])
 
-        # get behavior and rf mapping data    
+        # get behavior and rf mapping data
+        totalPklFrames = 0
+        
         self.behavDataPath = fileIO.getFile('Select behavior data file',fileType='*.hdf5')
         if len(self.behavDataPath)>0:
             behavData = h5py.File(self.behavDataPath,'r')
             self.behavFrameIntervals = behavData['frameIntervals'][:]
+            totalPklFrames += self.behavFrameIntervals.size+1
+            print(str(self.behavFrameIntervals.size+1)+' behavior frames')
         self.frameRate = round(1/np.median(self.behavFrameIntervals))
         
         self.rfDataPath = fileIO.getFile('Select rf mapping data file',fileType='*.hdf5')
         if len(self.rfDataPath)>0:
             rfData = h5py.File(self.rfDataPath,'r')
             self.rfFrameIntervals = rfData['frameIntervals'][:]
-        
+            totalPklFrames += self.rfFrameIntervals.size+1
+            print(str(self.rfFrameIntervals.size+1)+' rf frames')
         
         # get frame times and compare with psychopy frame intervals
         self.frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
         
+        print(str(totalPklFrames)+' total frames')
         print(str(self.frameSamples.size)+' frame signals')
-        print(str(self.behavFrameIntervals.size+1)+' behavior frames')
-        print(str(self.rfFrameIntervals.size+1)+' rf frames')
         
         if len(self.behavDataPath)>0:
             if self.behavFrameIntervals.size+1>self.frameSamples.size:
@@ -277,14 +281,15 @@ class MaskingEphys():
             self.optoOnset = behavData['trialOptoOnset'][:self.ntrials]
             
         if len(self.rfDataPath)>0:
-            self.firstRFFrame = self.frameSamples[-self.rfFrameIntervals.size+1]
             if 'stimStartFrame' in rfData:
                 self.rfStimStart = rfData['stimStartFrame'][:]
             else:
                 trialStartFrame = np.concatenate(([0],np.cumsum(rfData['preFrames']+rfData['trialStimFrames'][:-1]+rfData['postFrames'])))
                 self.rfStimStart = trialStartFrame+rfData['preFrames']
+            self.rfStimStart += obj.frameSamples.size-(obj.rfFrameIntervals.size+1)
             self.rfStimPos = rfData['trialGratingCenter'][:]
             self.rfStimContrast = rfData['trialGratingContrast'][:]
+            self.rfOris = rfData['gratingOri'][:]
             self.rfStimOri = rfData['trialGratingOri'][:]
             self.rfStimFrames = rfData['trialStimFrames'][:]
         
@@ -625,19 +630,82 @@ plt.tight_layout()
 
 # rf mapping
 azi,ele = [np.unique(p) for p in obj.rfStimPos.T]
+ori = obj.rfOris
+contrast = np.unique(obj.rfStimContrast)
+dur = np.unique(obj.rfStimFrames)
+binSize = 1/obj.frameRate
 preTime = 0.1
-postTime = 0.2
-rfMap = np.zeros((ele.size,azi.size))
-for x,y in obj.rfStimPos:
-    pass
+postTime = 0.6
+nbins = np.arange(0,preTime+postTime+binSize,binSize).size-1
+rfMap = np.zeros((obj.goodUnits.size,nbins,ele.size,azi.size,ori.shape[0],contrast.size,dur.size))
+for i,y in enumerate(ele):
+    eleTrials = obj.rfStimPos[:,1]==y
+    for j,x in enumerate(azi):
+        aziTrials = obj.rfStimPos[:,0]==x
+        for k,o in enumerate(ori):
+            oriTrials = obj.rfStimOri[:,0]==o[0]
+            if np.isnan(o[1]):
+                oriTrials = oriTrials & np.isnan(obj.rfStimOri[:,1])
+            else:
+                oriTrials = oriTrials & (obj.rfStimOri[:,1]==o[1])
+            for l,c in enumerate(contrast):
+                contrastTrials = obj.rfStimContrast==c
+                for m,d in enumerate(dur):
+                    trials = eleTrials & aziTrials & oriTrials & contrastTrials & (obj.rfStimFrames==d)
+                    startTimes = obj.frameSamples[obj.rfStimStart[trials]]/obj.sampleRate
+                    for n,u in enumerate(obj.goodUnits):
+                        spikeTimes = obj.units[u]['samples']/obj.sampleRate
+                        p,t = getPSTH(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
+                        t -= preTime
+#                        p -= p[t<0].mean()
+                        rfMap[n,:,i,j,k,l,m] = p
 
 
+fig = plt.figure()
+gs = matplotlib.gridspec.GridSpec(ele.size,azi.size)
+for i,y in enumerate(ele):
+    for j,x in enumerate(azi):
+        ax = fig.add_subplot(gs[ele.size-1-i,j])
+        
+#        ax.plot(t,rfMap.mean(axis=(0,4,5,6))[:,i,j],'k')
+        
+#        for k,d in enumerate(dur):
+#            ax.plot(t,rfMap.mean(axis=(0,4,5))[:,i,j,k],'k')
+            
+#        for k,c in enumerate(contrast):
+#            ax.plot(t,rfMap.mean(axis=(0,4,6))[:,i,j,k],'k')
+        
+        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,4,5,6))[:,i,j],'k',label='17 ms stim')
+        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,4,5,6))[:,i,j],'r',label='50 ms stim')
+            
+        # target
+#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,5,6))[:,i,j,0],'k')
+        
+        # mask
+#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,5,6))[:,i,j,4],'k')
+        
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        if i==0 and j==1:
+            ax.set_xlabel('Time from stim onset (s)')
+        else:
+            ax.set_xticklabels([])
+        if i==1 and j==0:
+            ax.set_ylabel('Spikes/s')
+        else:
+            ax.set_yticklabels([])
+        if i==ele.size-1 and j==azi.size-1:
+            ax.legend(loc='upper right')
+        ax.set_xticks([0,0.5])
+        ax.set_yticks([0,10,20,30])
+        ax.set_ylim([0,35])
+plt.tight_layout()
 
 
-
-
-
-
+plt.figure()
+for i,o in enumerate(ori):
+    plt.plot(t,rfMap.mean(axis=(0,2,3,5,6))[:,i],label=o)
+plt.legend()
 
 
 
