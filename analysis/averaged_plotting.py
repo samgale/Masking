@@ -33,7 +33,8 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
     turning time = how long between intitation and outcome (i.e. how long it took them to move the wheel)
     respVal is whether you want corr or incorr timing trials
     '''
-    
+    # expect to see relationship btwn rxnTime and performance with contrast
+    ## make plotting work for contrast, masking, opto masking
     
 
     matplotlib.rcParams['pdf.fonttype'] = 42
@@ -289,7 +290,8 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
             
                     ax.plot(x[0],y[0], 'k-', alpha=.4, lw=1)
                 plt.errorbar(paramVals[0][0], np.nanmean(fractionCorr, axis=0)[0], 
-                             yerr=scipy.stats.sem(fractionCorr, axis=0, nan_policy='omit')[0], color='k', alpha=1, lw=3)
+                             yerr=scipy.stats.sem(fractionCorr, axis=0, nan_policy='omit')[0], 
+                             color='k', alpha=1, lw=3)
                 
                 
                 ax.set_xticks(paramVals[0][0])   
@@ -327,6 +329,12 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
         for (m, f) in zip(mice.keys(), files):
             dict1['df_{}'.format(m)] = create_df(f)
          
+            
+        if respVal == 1:
+            add = 'correct trials'
+        else:
+            add = 'incorrect trials'
+        
         if 'opto' in task:
             param='optoOnset'
             lbl = 'Optogenetic light onset relative to target onset (ms)'
@@ -339,75 +347,67 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
         
         if kind=='initiation':
             col = 'initiationTime_ms'
-            title = 'Avg Time to Inititiate Wheel Movement (ms), correct trials'
+            title = 'Avg Time to Inititiate Wheel Movement (ms), ' + add
         elif kind=='outcome':
             col = 'trialLength_ms'
-            title = 'Avg Time to Outcome (ms), correct trials'
+            title = 'Avg Time to Outcome (ms), ' + add
         elif kind == 'turningTime':
             pass
         
-## how do I make a conditional loop, 
-        if task == 'opto masking':
+ 
+        if task == 'opto masking':  # loops thru twice to make 2 plots, with and without masking
             loops = [0,1]
-            typ = ['noOpto']
+            typ = ['mask', 'targetOnly']
+            titleAdd = [' with masking', ' no masking']
             
         else:
             loops = [0]
-            typ='targetOnly'
+            
           
         for plot in (loops):
         
             compiledTimes = []
             targetOnlyTimes = [[] for i in range(len(mice))]
             
-            for k, df in enumerate(dict1.items()):
+            for k, df in enumerate(dict1.items()): 
                 
-                
-                paramVals = np.unique(df[1][param])
-                paramVals = paramVals[:5]
+                paramVals = [p for p in paramVals if np.isfinite(p)]
+#                paramVals = paramVals[:5]
                 trialTimes = [[] for i in range(len(paramVals))]
                 
-                # correct turning trials only
+                # turning trial type specified by respVal in function call
                 filtered_df = df[1][(df[1]['ignoreTrial']==False) & (df[1]['resp']==respVal)]
                 
+                ## list of times for either target only or no opto conditions
+                xlist = filtered_df[col][filtered_df['trialType']==typ[plot]]
+                targetOnlyTimes[k].append(xlist.values)
+                    
+                
                 if task == 'opto masking':
-                    if loops == 0:
-                        filtered_df = filtered_df[filtered_df['trialType']=='maskOpto']
+                    if plot == 0:
+                        filtered_df = filtered_df[filtered_df['trialType']=='maskOpto']  ## with masking
                     else:
-                        filtered_df = filtered_df[filtered_df['trialType']=='targetOnlyOpto']
+                        filtered_df = filtered_df[filtered_df['trialType']=='targetOnlyOpto']  ## no masking
                 
                 for i, p in enumerate(paramVals):
                     for j in range(len(filtered_df)):
                         if np.round(filtered_df.iloc[j][param], 2)==np.round(p,2):
                             trialTimes[i].append(filtered_df.iloc[j][col])
-                
-                xlist = filtered_df[col][filtered_df['trialType']==typ]
-                targetOnlyTimes[k].append(xlist.values)
-                
+                            print(filtered_df.iloc[j][col])
+
                 compiledTimes.append(trialTimes)
                 
-                
-                # for opto masking, want to separately plot mask and no mask condition
-                # and no opto timing in both, final xtick
-                
-                
-                    
-                    ## last soa is target only
-    
-    #        ax.set_xticks(list(paramVals[1:]))
-    #        xticklabels = list(np.round(list(paramVals[1:-1]),2))
-    #        xticklabels.append('Target Only')
-    #        ax.set_xticklabels(xticklabels)
-            
             
             paramVals = paramVals[:]
-            tarOnly =  paramVals[-1] + round(np.mean(np.diff(paramVals)))
+            if task == 'masking':
+                tarOnly = paramVals[-1] + 5
+            else:
+                tarOnly =  paramVals[-1] + round(np.mean(np.diff(paramVals)))
             
             
             fig, ax = plt.subplots()
             for i in compiledTimes:
                 if task == 'masking':
-                   
                     ax.plot(paramVals[1:], [np.mean(t) for t in i][1::], c='k', alpha=.4)
                     
                 else:
@@ -455,33 +455,29 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
                          yerr=err[1::], 
                          color='k', alpha=.6, lw=3, label='Average')
             else:
-                 plt.errorbar(paramVals, avg, 
+                if plot==0:
+                    colr = 'b'
+                elif plot==1:
+                    colr='c'
+                else:
+                    colr = 'k'
+                plt.errorbar(paramVals, avg, 
                          yerr=err, 
-                         color='k', alpha=.6, lw=3, label='Average')
+                         color=colr, alpha=.7, lw=3, label='Average')
                  
             plt.errorbar(tarOnly, np.mean(p), yerr=scipy.stats.sem(p), color='k', alpha=.6, lw=3)
     
-            ax.set_title(title)
-            ax.set_xlim(paramVals[0]-3, paramVals[-1]+3)
+            if task != 'opto masking':
+                titleAdd = None
+                
+                
+         
+            ax.set_xlim(xticks[0]-3, paramVals[-1]+3)
+            if task == 'opto masking':
+                ax.set_xlim([3, 15])
+            ax.set_title((title + titleAdd[plot]), pad=20)
             plt.subplots_adjust(top=0.9, bottom=0.15, left=0.12, right=0.92, hspace=0.2, wspace=0.2)
     
             
             
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
