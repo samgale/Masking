@@ -24,22 +24,28 @@ import scipy.stats
 def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with dates_to_dict(task==task)
     '''
     mice is a dict of mouse_ids and dates - ex: {'525458':'1022', '516686':'1015'}
-    task is the task type you want to average (e.g., 'opto masking')
-    if plot_type=='beh', plots combined behavioral performance for task type
-    if plot_type=='rxnTime', plots average reactionTime for each condition in task type
-    must specify what aspect of reaction time -- 'kind'== initiation, outcome, or turning time
-    initiation = how long to initiate movement for choice
-    outcome = how long to the outcome of trial
-    turning time = how long between intitation and outcome (i.e. how long it took them to move the wheel)
-    respVal is whether you want corr or incorr timing trials
+    
+    - "task" is the task type you want to average (e.g., 'opto masking')
+    
+    - plot_type is either behavioral data or reaction time data
+        if "plot_type" == 'beh', plots combined behavioral performance for task type
+        if "plot_type" == 'rxnTime', plots average reactionTime for each condition in task type
+    
+    - kind is aspect of reaction time; kind == initiation, outcome, or turning time
+        initiation = how long to initiate movement for choice
+        outcome = how long to the outcome of trial
+        turning time = how long between intitation and outcome (i.e. how long it took them to move the wheel)
+    
+    - respVal is whether you want corr or incorr timing trials
     '''
-    # expect to see relationship btwn rxnTime and performance with contrast
-    ## make plotting work for contrast, masking, opto masking
+  # expect to see relationship btwn rxnTime and performance with contrast
+  ## make plotting work for contrast, masking, opto masking
     
 
     matplotlib.rcParams['pdf.fonttype'] = 42
-    # for each mouse listed, pull file and get data
-    # run task-specific plotting code but get arrays back (this reduces code and helps w indexing)
+  # for each mouse listed, pull file and get data
+  # run task-specific plotting code but get arrays back (this reduces code and helps w indexing)
+  # adjust mice in 'Masking Training Notes new' excel sheet, tab 'TaskVals'
     
     if 'opto' in task:
          
@@ -89,9 +95,9 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
     
     if plot_type=='beh':  # creates combined performance plots
     
-        percents = []   #each item in percents has mouseID, dict of param vals, then dicts of vals to plot
+        percents = []    # each item in percents has mouseID, dict of param vals, then dicts of vals to plot
         
-        for f in files:    # calls function appropriate to params and returns array of %s  
+        for f in files:  # calls function appropriate to params and returns array of %s  
             percents.append(func(f, param=param, ignoreNoRespAfter=None, array_only=True)) 
             
         rn = range(len(mice))
@@ -143,7 +149,7 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
            
           
           
-    # response rate plotting      
+### response rate plotting      
         
             if task == 'opto masking':
                 colors = ['k', 'c', 'b', 'm']
@@ -154,7 +160,7 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
                 avgs = [[] for i in range(len(plots))]
                 for i, r in enumerate(responseRate):
                     for e, (y, c, p) in enumerate(zip(r[0], colors, plots)):
-                #                ax.plot(paramVals[0][0], y, c=c, alpha=.4, label=p)
+                       #ax.plot(paramVals[0][0], y, c=c, alpha=.4, label=p)
                         avgs[e].append(y)
                         
                 for e, (c,p,noOp) in enumerate(zip(colors, plots, np.nanmean(responseRateNoOpto, axis=0)[0])):
@@ -241,7 +247,7 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
         
             
             
-    # fraction correct plotting
+### fraction correct plotting
             if task == 'opto masking':
                
                 fig, ax = plt.subplots()
@@ -322,8 +328,8 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
         
       
         
-        
-    elif plot_type=='rxnTime':  # creates plots of reaction Times
+### plot reaction times, based on "kind" ('initiation', 'outcome') and "task"
+    elif plot_type=='rxnTime':  
         
         dict1 = {}
         for (m, f) in zip(mice.keys(), files):
@@ -362,6 +368,7 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
             
         else:
             loops = [0]
+            typ = ['targetOnly']
             
           
         for plot in (loops):
@@ -373,7 +380,9 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
                 
                 paramVals = np.unique(df[1][param])
                 paramVals = [p for p in paramVals if np.isfinite(p)]
-#                paramVals = paramVals[:5]
+                if task == 'masking':
+                    paramVals = paramVals[:5]
+                    
                 trialTimes = [[] for i in range(len(paramVals))]
                 
                 # turning trial type specified by respVal in function call
@@ -401,15 +410,16 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
             
             paramVals = paramVals[:]
             if task == 'masking':
-                tarOnly = paramVals[-1] + 5
-            else:
+                tarOnly = paramVals[-1] + 3
+            elif 'opto' in task:
                 tarOnly =  paramVals[-1] + round(np.mean(np.diff(paramVals)))
-            
+            else:
+                tarOnly = paramVals[-1]
             
             fig, ax = plt.subplots()
             for i in compiledTimes:
                 if task == 'masking':
-                    ax.plot(paramVals[1:], [np.mean(t) for t in i][1::], c='k', alpha=.4)
+                    ax.plot(paramVals[1:5], [np.mean(t) for t in i][1::], c='k', alpha=.4)
                     
                 else:
                     ax.plot(paramVals, [np.mean(t) for t in i][:], c='k', alpha=.4)
@@ -427,6 +437,8 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
             elif 'opto' in task:
                 xticklabels = [int(round((p-2)*(1/120)*1000)) for p in paramVals[:]]
                 xticklabels.append('No Opto')
+#            elif task = 'targetContrast
+            
             
             ax.set_xticks(xticks)
             ax.set_xticklabels(xticklabels)
@@ -456,10 +468,11 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
                          yerr=err[1::], 
                          color='k', alpha=.6, lw=3, label='Average')
             else:
-                if plot==0:
-                    colr = 'b'
-                elif plot==1:
-                    colr='c'
+                if task == 'opto masking':
+                    if plot==0:
+                        colr = 'b'
+                    elif plot==1:
+                        colr='c'
                 else:
                     colr = 'k'
                 plt.errorbar(paramVals, avg, 
@@ -469,16 +482,18 @@ def plot_avg_beh(task=None, plot_type=None, kind=None, respVal=1):   # call with
             plt.errorbar(tarOnly, np.mean(p), yerr=scipy.stats.sem(p), color='k', alpha=.6, lw=3)
     
             if task != 'opto masking':
-                titleAdd = None
+                titleAdd = ' '
                 
                 
          
             ax.set_xlim(xticks[0]-3, paramVals[-1]+3)
+            if task == 'targetContrast':
+                ax.set_xlim([0, 1.02])
             if task == 'opto masking':
                 ax.set_xlim([3, 15])
-            ax.set_title((title + titleAdd[plot]), pad=20)
             plt.subplots_adjust(top=0.9, bottom=0.15, left=0.12, right=0.92, hspace=0.2, wspace=0.2)
-    
+            ax.set_title((title + titleAdd[plot]), pad=20)
+
             
             
  
