@@ -114,16 +114,16 @@ def ignore_after(data, lim):
 def dates_to_dict(task=None):  #use with combined plotting
 
 
-    df = pd.read_excel(r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\Masking training notes new.xlsx', 
+    task_vals = pd.read_excel(r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\Masking training notes new.xlsx', 
                    sheet_name='Task_vals')
 
-    df.index = df['mouse_id']
+    task_vals.index = task_vals['mouse_id']
 
-    d = df.to_dict()   # turn df into dict by task type, {mouse:date}
+    dt = task_vals.to_dict()   # turn df into dict by task type, {mouse:date}
     
-    selection = d[task]
+    selection = dt[task]
     
-    new_d = {str(key): str(value) for key, value in selection.items()}
+    new_d = {str(key): str(int(value)) for key, value in selection.items() if str(value)!='nan'}
     
     return new_d
 
@@ -443,7 +443,7 @@ def rxnTimes(data, dataframe, version=None):
     #        if (0<init<150) and sigMove>150:
     #            init = np.argmax(abs(interp[150:])>(initiationThresh + interp[150])) + 150
                 # maybe change this to just send to ignore - right now ignoring early move
-            if sigMove-init>100:
+            if sigMove-init>200:
                 check.append(i)
                 init = np.argmax(np.round(abs(interp[0:sigMove]),3)>.25)
             
@@ -502,7 +502,7 @@ def rxnTimes(data, dataframe, version=None):
 #        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
 #        plt.ylim([-10,10])
 #        plt.legend(loc='best', fontsize=10)
-#        
+##        
 
         
 #
