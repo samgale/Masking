@@ -22,7 +22,7 @@ from create_pdf import create_daily_summary
 from dataAnalysis import import_data
 
 d = import_data()
-save_daily_plots(d, 10)  #2nd num is the max number of consecutive no responses you want to include in analysis
+save_daily_plots(d, 10)  #num is the max number of consecutive no responses you want to include in analysis
 create_daily_summary(d, 10)
 d.close()
 
