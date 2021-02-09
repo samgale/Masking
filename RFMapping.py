@@ -15,29 +15,38 @@ class RFMapping(TaskControl):
     
     def __init__(self,rigName):
         TaskControl.__init__(self,rigName)
-        self.defaultParams = 'masking'
+        self.defaultParams = 'mask mapping'
         self.gratingCenter = [(0,0)]
-        self.gratingContrast = [0.4,1]
-        self.gratingOri = [(0,np.nan),(90,np.nan),(-45,np.nan),(45,np.nan),(0,90)] # clockwise degrees from vertical
+        self.gratingContrast = [1]
+        self.gratingOri = [(0,90)] # clockwise degrees from vertical
         self.gratingSize = 25 # degrees
         self.gratingSF = 0.08 # cycles/deg
         self.gratingType = 'sqr' # 'sqr' or 'sin'
         self.gratingEdge= 'raisedCos' # 'circle' or 'raisedCos'
         self.gratingEdgeBlurWidth = 0.1 # only applies to raisedCos
-        self.preFrames = 60
-        self.stimFrames = [2,6]
-        self.postFrames = 60      
+        self.preFrames = 50
+        self.stimFrames = [6]
+        self.postFrames = 50      
 
 
     def taskFlow(self):
         
-        if self.defaultParams == 'masking':
+        if 'mask' in self.defaultParams:
             r = 0.5*self.gratingSize*self.pixelsPerDeg
             w,h = self.monSizePix
             self.gratingCenter = []
             for x in (r,0.25*w,0.5*w-r):
                 for y in (0.5*h-r,0,-0.5*h+r):
                     self.gratingCenter.append((x,y))
+            if self.defaultParams == 'masking':
+                self.gratingContrast = [0.4,1]
+                self.gratingOri = [(0,np.nan),(90,np.nan),(-45,np.nan),(45,np.nan),(0,90)]
+                self.gratingSize = 25
+                self.gratingSF = 0.08
+                self.gratingType = 'sqr'
+                self.gratingEdge= 'raisedCos'
+                self.gratingEdgeBlurWidth = 0.1
+                self.stimFrames = [2,24]
         
         edgeBlurWidth = {'fringeWidth':self.gratingEdgeBlurWidth} if self.gratingEdge=='raisedCos' else None
 
