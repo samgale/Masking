@@ -9,6 +9,8 @@ import time
 import h5py
 import numpy as np
 import scipy.signal
+import matplotlib
+import matplotlib.pyplot as plt
 from numba import njit
 import fileIO
 
@@ -71,6 +73,19 @@ def findNextSpike(data,negThresh,posThresh):
     return None,None
 
 
+def getPSTH(spikes,startTimes,windowDur,binSize=0.01,avg=True):
+    bins = np.arange(0,windowDur+binSize,binSize)
+    counts = np.zeros((len(startTimes),bins.size-1))    
+    for i,start in enumerate(startTimes):
+        counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,bins)[0]
+    if avg:
+        counts = counts.mean(axis=0)
+    counts /= binSize
+    return counts, bins[:-1]+binSize/2
+
+
+
+
 datPath = fileIO.getFile('Select probe dat file',fileType='*.dat')
 datData,analogInData = loadDatData(datPath)
 sampleRate = 30000
@@ -81,6 +96,7 @@ frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling'
 pklPath = fileIO.getFile('Select rf mapping pkl file',fileType='*.hdf5')
 pklData = h5py.File(pklPath,'r')
 frameIntervals = pklData['frameIntervals'][:]
+frameRate = round(1/np.median(frameIntervals))
 if 'stimStartFrame' in pklData:
     stimStart = pklData['stimStartFrame'][:]
 else:
@@ -94,12 +110,12 @@ print(str(frameIntervals.size+1)+' frames')
 print(str(frameSamples.size)+' frame samples')    
 
 
-channelRange = [9,10]
+channelRange = [0,127]
 negThresh = -500
 posThresh = 100
 chunkSamples = int(15*sampleRate)
 
-Wn = 300/(sampleRate/2)
+Wn = 300/(sampleRate/2) # cutoff freq normalized to nyquist
 b,a = scipy.signal.butter(2,Wn,btype='highpass')
 
 t = time.perf_counter()
@@ -117,40 +133,42 @@ for ch in range(channelRange[0],channelRange[1]):
 
 print(time.perf_counter()-t)      
 
-                        
-    
+
+spikeTimes = np.array(spikes)/sampleRate                       
+
+binSize = 1/frameRate
+preTime = 0.1
+postTime = 0.6
+nbins = np.arange(0,preTime+postTime+binSize,binSize).size-1
+azi,ele = [np.unique(p) for p in stimPos.T]
+rfMap = np.zeros((ele.size,azi.size,nbins))
+for i,y in enumerate(ele):
+    for j,x in enumerate(azi):
+        trials = (stimPos[:,1]==y) & (stimPos[:,0]==x)
+        startTimes = frameSamples[stimStart[trials]]/sampleRate
+        p,t = getPSTH(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
+        rfMap[i,j] = p
+t -= preTime
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+fig = plt.figure()
+gs = matplotlib.gridspec.GridSpec(ele.size,azi.size)
+ymax = 1.02*rfMap.max()
+for i,y in enumerate(ele):
+    for j,x in enumerate(azi):
+        ax = fig.add_subplot(gs[ele.size-1-i,j])
+        ax.plot(t,rfMap[i,j],'k')
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        if i==0 and j==1:
+            ax.set_xlabel('Time from stim onset (s)')
+        else:
+            ax.set_xticklabels([])
+        if i==1 and j==0:
+            ax.set_ylabel('Spikes/s')
+        else:
+            ax.set_yticklabels([])
+        ax.set_xticks([0,0.5])
+        ax.set_ylim([0,ymax])
+plt.tight_layout()
 
