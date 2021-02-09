@@ -19,6 +19,21 @@ from numba import njit
 import fileIO
 
 
+def loadDatData(filePath):
+    totalChannels = 136
+    probeChannels = 128      
+    rawData = np.memmap(filePath,dtype='int16',mode='r')    
+    rawData = np.reshape(rawData,(int(rawData.size/totalChannels),-1)).T
+    analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync',
+                                                                              'photodiode',
+                                                                              'rotaryEncoder',
+                                                                              'cam1Exposure',
+                                                                              'cam2Exposure',
+                                                                              'led1',
+                                                                              'led2'))}
+    return rawData,analogInData
+
+
 @njit
 def findSignalEdges(signal,edgeType,thresh,refractory):
     """
@@ -159,20 +174,9 @@ class MaskingEphys():
         probeDataDir = os.path.dirname(self.datFilePath)
 
         self.sampleRate = 30000
-        totalChannels = 136
-        probeChannels = 128      
-
-        rawData = np.memmap(self.datFilePath,dtype='int16',mode='r')    
-        rawData = np.reshape(rawData,(int(rawData.size/totalChannels),-1)).T
-        totalSamples = rawData.shape[1]
         
-        analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync',
-                                                                                  'photodiode',
-                                                                                  'rotaryEncoder',
-                                                                                  'cam1Exposure',
-                                                                                  'cam2Exposure',
-                                                                                  'led1',
-                                                                                  'led2'))}
+        rawData,analogInData = loadDatData(self.datFilePath)
+        totalSamples = rawData.shape[1]
         
         kilosortData = {key: np.load(os.path.join(probeDataDir,'kilosort',key+'.npy')) for key in ('spike_clusters',
                                                                                                    'spike_times',
