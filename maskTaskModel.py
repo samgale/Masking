@@ -40,9 +40,9 @@ def analyzeSession(trialTypeLabels,trialType,response):
 
 @njit
 def runSession(sigma,decayRate,threshold,signalSigma,record=False):
-    ntrials = 1000
+    ntrials = 4000
     trialEnd = 200
-    targetLatency = 40
+    targetLatency = 50
     targetRespDur = 50
     targetAmp = 1
     maskAmp = 1
@@ -115,8 +115,8 @@ fractionCorrect = [1,1,0.5,0.5]
 
 sigmaRange = slice(0.05,0.5,0.05)
 decayRateRange = slice(0.05,0.45,0.05)
-thresholdRange = slice(2,14,2)
-signalSigmaRange = slice(0.05,0.45,0.05)
+thresholdRange = slice(2,10,2)
+signalSigmaRange = slice(0,0.06,0.02)
 
 
 fit = scipy.optimize.brute(scoreSimulation,(sigmaRange,decayRateRange,thresholdRange,signalSigmaRange),args=(responseRate,fractionCorrect),full_output=True,finish=None)
@@ -128,14 +128,54 @@ trialTypeLabels,trialType,response,responseTime,Lrecord,Rrecord = runSession(sig
 modelRespRate,modelFracCorr = analyzeSession(trialTypeLabels,trialType,response)
 
 
-trials = range(4)
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+x = np.arange(4)
+ax.plot(x,responseRate,'o',mec='k',mfc='none',label="~mouse")
+ax.plot(x,modelRespRate,'o',mec='r',mfc='none',label="model")
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False)
+ax.set_xticks(x)
+ax.set_xticklabels(('target left','target right','target left\n+ mask','target right\n+ mask'))
+ax.set_xlim([-0.5,3.5])
+ax.set_ylim([0,1.05])
+ax.set_ylabel('Response Rate')
+ax.legend()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+x = np.arange(4)
+ax.plot(x,fractionCorrect,'o',mec='k',mfc='none',label="~mouse")
+ax.plot(x,modelFracCorr,'o',mec='r',mfc='none',label="model")
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False)
+ax.set_xticks(x)
+ax.set_xticklabels(('target left','target right','target left\n+ mask','target right\n+ mask'))
+ax.set_xlim([-0.5,3.5])
+ax.set_ylim([0.45,1.05])
+ax.set_ylabel('Fraction Correct')
+ax.legend()
+
+
+trials = range(0,4)
 for trial in trials:
-    plt.figure()
-    plt.title(trialType[trial]+' , response = '+str(response[trial]))
-    plt.plot([0,150],[threshold,threshold],'b--')
-    plt.plot([0,150],[-threshold,-threshold],'r--')
-    plt.plot(Lrecord[trial],'b')
-    plt.plot(-Rrecord[trial],'r')
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot([0,200],[threshold,threshold],'r--')
+    ax.plot([0,200],[-threshold,-threshold],'b--')
+    ax.plot(Rrecord[trial],'r')
+    ax.plot(-Lrecord[trial],'b')
+    for side in ('right','top','left','bottom'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',right=False,top=False,left=False)
+    ax.set_xticks([0,200])
+    ax.set_yticks([])
+    ax.set_xlim([0,200])
+    ax.set_ylim([-1.05*threshold,1.05*threshold])
+    ax.set_xlabel('Time (ms)')
+    ax.set_title(trialType[trial]+' , response = '+str(response[trial]))
 
 
 
