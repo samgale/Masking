@@ -14,31 +14,38 @@ from numba import njit
 
 
 def scoreSimulation(paramsToFit,*fixedParams):
-    sigma,threshold = paramsToFit
+    sigma,decayRate,threshold,signalSigma = paramsToFit
     responseRate,fractionCorrect = fixedParams
-    trialType,response,responseTime,Lrecord,Rrecord = runSession(sigma,threshold)
-    modelRespRate = []
-    modelFracCorr = []
-    for label in set(trialType):
+    trialTypeLabels,trialType,response,responseTime,Lrecord,Rrecord = runSession(sigma,decayRate,threshold,signalSigma)
+    modelRespRate,modelFracCorr = analyzeSession(trialTypeLabels,trialType,response)
+    if any(r==0 for r in modelRespRate):
+        return 1000
+    else:
+        respRateError = np.sum((np.array(responseRate)-np.array(modelRespRate))**2)
+        fracCorrError = np.sum((2*(np.array(fractionCorrect)-np.array(modelFracCorr)))**2)
+        return respRateError + fracCorrError
+
+
+def analyzeSession(trialTypeLabels,trialType,response):
+    responseRate = []
+    fractionCorrect = []
+    for label in trialTypeLabels:
         trials = [trial==label for trial in trialType]
         responded = response[trials] != 0
-        if not any(responded):
-            return 1000
         correct = response[trials]==-1 if 'Left' in label else response[trials]==1
-        modelRespRate.append(np.sum(responded)/np.sum(trials))
-        modelFracCorr.append(np.sum(correct[responded])/np.sum(responded))
-        
-    respRateError = np.sum((np.array(responseRate)-np.array(modelRespRate))**2)
-    fracCorrError = np.sum((np.array(fractionCorrect)-np.array(modelFracCorr))**2)
-    
-    return respRateError + 2*fracCorrError
+        responseRate.append(np.sum(responded)/np.sum(trials))
+        fractionCorrect.append(np.sum(correct[responded])/np.sum(responded))
+    return responseRate,fractionCorrect
 
 
 @njit
-def runSession(sigma,threshold,record=False):
+def runSession(sigma,decayRate,threshold,signalSigma,record=False):
     ntrials = 1000
-    trialEnd = 150
+    trialEnd = 200
     targetLatency = 40
+    targetRespDur = 50
+    targetAmp = 1
+    maskAmp = 1
     maskLatency = targetLatency + 17
     trialTypeLabels = ('targetLeft','targetRight','targetLeftMask','targetRightMask')
     trialInd = 0
@@ -52,12 +59,13 @@ def runSession(sigma,threshold,record=False):
         Lsignal = np.zeros(trialEnd)
         Rsignal = np.zeros(trialEnd)
         targetSignal = Lsignal if 'Left' in trialType[-1] else Rsignal
-        targetSignal[targetLatency:targetLatency+50] = 0.7
+        respNoise = random.gauss(0,signalSigma)
+        targetSignal[targetLatency:targetLatency+targetRespDur] = targetAmp + targetAmp/maskAmp*respNoise
         if 'Mask' in trialType[-1]:
-            Lsignal[maskLatency:] = 1
-            Rsignal[maskLatency:] = 1
+            Lsignal[maskLatency:] = maskAmp + respNoise
+            Rsignal[maskLatency:] = maskAmp + respNoise
         Linitial = Rinitial = 0
-        result = runTrial(trialEnd,sigma,threshold,Linitial,Rinitial,Lsignal,Rsignal,record)
+        result = runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record)
         response.append(result[0])
         responseTime.append(result[1])
         if record:
@@ -68,11 +76,11 @@ def runSession(sigma,threshold,record=False):
         else:
             trialInd += 1
     
-    return trialType,np.array(response),np.array(responseTime),Lrecord,Rrecord
+    return trialTypeLabels,trialType,np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
 @njit
-def runTrial(trialEnd,sigma,threshold,Linitial,Rinitial,Lsignal,Rsignal,record=False):
+def runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record=False):
     if record:
         Lrecord = np.full(trialEnd,np.nan)
         Rrecord = np.full(trialEnd,np.nan)
@@ -83,8 +91,8 @@ def runTrial(trialEnd,sigma,threshold,Linitial,Rinitial,Lsignal,Rsignal,record=F
     i = 0
     response = 0
     while i<trialEnd and response==0:
-        L += Lsignal[i] + random.gauss(0,sigma)
-        R += Rsignal[i] + random.gauss(0,sigma)
+        L += random.gauss(0,sigma) + Lsignal[i] - decayRate*L 
+        R += random.gauss(0,sigma) + Rsignal[i] - decayRate*R
         if record:
             Lrecord[i] = L
             Rrecord[i] = R
@@ -101,42 +109,40 @@ def runTrial(trialEnd,sigma,threshold,Linitial,Rinitial,Lsignal,Rsignal,record=F
 
 
 
-responseRate = [0.6,0.6,0.9,0.9]
-accuracy = [0.9,0.9,0.6,0.6]
+# fit model parameters
+responseRate = [0.5,0.5,1,1]
+fractionCorrect = [1,1,0.5,0.5]
 
-sigmaRange = slice(1,20,1)
-thresholdRange = slice(10,200,10)
-
-
-fit = scipy.optimize.brute(scoreSimulation,(sigmaRange,thresholdRange),args=(responseRate,accuracy),full_output=True,finish=None)
-
-fit[3][fit[3]>999]=np.nan
+sigmaRange = slice(0.05,0.5,0.05)
+decayRateRange = slice(0.05,0.45,0.05)
+thresholdRange = slice(2,14,2)
+signalSigmaRange = slice(0.05,0.45,0.05)
 
 
-plt.imshow(fit[3],cmap='gray',origin='lower')
+fit = scipy.optimize.brute(scoreSimulation,(sigmaRange,decayRateRange,thresholdRange,signalSigmaRange),args=(responseRate,fractionCorrect),full_output=True,finish=None)
 
-sigma,threshold = fit[0]
+sigma,decayRate,threshold,signalSigma = fit[0]
 
-sigma,threshold = 0.5,100
+trialTypeLabels,trialType,response,responseTime,Lrecord,Rrecord = runSession(sigma,decayRate,threshold,signalSigma,record=True)
 
-trialType,response,responseTime,Lrecord,Rrecord = runSession(sigma,threshold,record=True)
+modelRespRate,modelFracCorr = analyzeSession(trialTypeLabels,trialType,response)
 
 
 
-plt.plot(Lrecord[-100])
+
+trials = range(4,8)
+
+for trial in trials:
+    plt.figure()
+    plt.title(trialType[trial]+' , response = '+str(response[trial]))
+    plt.plot([0,150],[threshold,threshold],'b--')
+    plt.plot([0,150],[-threshold,-threshold],'r--')
+    plt.plot(Lrecord[trial],'b')
+    plt.plot(-Rrecord[trial],'r')
 
 
 
-trial = 4
-
-plt.figure()
-plt.plot([0,150],[threshold,threshold],'k--')
-plt.plot([0,150],[-threshold,-threshold],'k--')
-plt.plot(Lrecord[trial],'b')
-plt.plot(-Rrecord[trial],'r')
-
-
-
+r = response[np.array(trialType)=='targetLeft']
 
 
 
