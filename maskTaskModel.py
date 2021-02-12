@@ -128,10 +128,7 @@ trialTypeLabels,trialType,response,responseTime,Lrecord,Rrecord = runSession(sig
 modelRespRate,modelFracCorr = analyzeSession(trialTypeLabels,trialType,response)
 
 
-
-
-trials = range(4,8)
-
+trials = range(4)
 for trial in trials:
     plt.figure()
     plt.title(trialType[trial]+' , response = '+str(response[trial]))
@@ -142,7 +139,8 @@ for trial in trials:
 
 
 
-r = response[np.array(trialType)=='targetLeft']
+# masking experiment
+
 
 
 
