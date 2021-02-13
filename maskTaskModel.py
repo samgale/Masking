@@ -13,70 +13,98 @@ from numba import njit
 
 
 
-def scoreSimulation(paramsToFit,*fixedParams):
+def getModelError(paramsToFit,*fixedParams):
     sigma,decayRate,threshold,signalSigma = paramsToFit
-    responseRate,fractionCorrect = fixedParams
-    trialTypeLabels,trialType,response,responseTime,Lrecord,Rrecord = runSession(sigma,decayRate,threshold,signalSigma)
-    modelRespRate,modelFracCorr = analyzeSession(trialTypeLabels,trialType,response)
-    if any(r==0 for r in modelRespRate):
+    maskOnset,optoOnset,responseRate,fractionCorrect = fixedParams
+    targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(maskOnset,optoOnset,sigma,decayRate,threshold,signalSigma)
+    result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response)
+    modelResponseRate = []
+    modelFractionCorrect = []
+    for side in (-1,1):
+        for maskOn in maskOnset:
+            for optoOn in optoOnset:
+                modelResponseRate.append(result[side][maskOn][optoOn]['responseRate'])
+                modelFractionCorrect.append(result[side][maskOn][optoOn]['fractionCorrect'])
+    if any(r==0 for r in modelResponseRate):
         return 1000
     else:
-        respRateError = np.sum((np.array(responseRate)-np.array(modelRespRate))**2)
-        fracCorrError = np.sum((2*(np.array(fractionCorrect)-np.array(modelFracCorr)))**2)
+        respRateError = np.sum((np.array(responseRate)-np.array(modelResponseRate))**2)
+        fracCorrError = np.sum((2*(np.array(fractionCorrect)-np.array(modelFractionCorrect)))**2)
         return respRateError + fracCorrError
 
 
-def analyzeSession(trialTypeLabels,trialType,response):
-    responseRate = []
-    fractionCorrect = []
-    for label in trialTypeLabels:
-        trials = [trial==label for trial in trialType]
-        responded = response[trials] != 0
-        correct = response[trials]==-1 if 'Left' in label else response[trials]==1
-        responseRate.append(np.sum(responded)/np.sum(trials))
-        fractionCorrect.append(np.sum(correct[responded])/np.sum(responded))
-    return responseRate,fractionCorrect
+def analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response):
+    result = {}
+    maskOnset = getOnsetTimes(trialMaskOnset)
+    optoOnset = getOnsetTimes(trialOptoOnset)
+    for side in (-1,1):
+        sideTrials = targetSide==side
+        result[side] = {}
+        for maskOn in maskOnset:
+            maskTrials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
+            result[side][maskOn] = {}
+            for optoOn in optoOnset:
+                optoTrials = np.isnan(trialOptoOnset) if np.isnan(optoOn) else trialOptoOnset==optoOn
+                trials = sideTrials & maskTrials & optoTrials
+                responded = response[trials]!=0
+                correct = response[trials]==side
+                result[side][maskOn][optoOn] = {}
+                result[side][maskOn][optoOn]['responseRate'] = np.sum(responded)/np.sum(trials)
+                result[side][maskOn][optoOn]['fractionCorrect'] = np.sum(correct[responded])/np.sum(responded)
+    return result,maskOnset,optoOnset
+
+
+def getOnsetTimes(trialOnsets):
+    onset = np.unique(trialOnsets)
+    if any(np.isnan(onset)):
+        onset = [np.nan] + list(onset[~np.isnan(onset)])
+    return onset
 
 
 @njit
-def runSession(sigma,decayRate,threshold,signalSigma,record=False):
-    ntrials = 4000
+def runSession(maskOnset,optoOnset,sigma,decayRate,threshold,signalSigma,record=False):
+    trialsPerCondition = 1000
     trialEnd = 200
     targetLatency = 50
     targetRespDur = 50
     targetAmp = 1
     maskAmp = 1
-    maskLatency = targetLatency + 17
-    trialTypeLabels = ('targetLeft','targetRight','targetLeftMask','targetRightMask')
-    trialInd = 0
-    trialType = []
+    targetSide = []
+    trialMaskOnset = []
+    trialOptoOnset = []
     response = []
     responseTime = []
     Lrecord = []
     Rrecord = []
-    for n in range(ntrials):
-        trialType.append(trialTypeLabels[trialInd])
-        Lsignal = np.zeros(trialEnd)
-        Rsignal = np.zeros(trialEnd)
-        targetSignal = Lsignal if 'Left' in trialType[-1] else Rsignal
-        respNoise = random.gauss(0,signalSigma)
-        targetSignal[targetLatency:targetLatency+targetRespDur] = targetAmp + targetAmp/maskAmp*respNoise
-        if 'Mask' in trialType[-1]:
-            Lsignal[maskLatency:] = maskAmp + respNoise
-            Rsignal[maskLatency:] = maskAmp + respNoise
-        Linitial = Rinitial = 0
-        result = runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record)
-        response.append(result[0])
-        responseTime.append(result[1])
-        if record:
-            Lrecord.append(result[2])
-            Rrecord.append(result[3])
-        if trialInd==len(trialTypeLabels)-1:
-            trialInd = 0
-        else:
-            trialInd += 1
+    for side in (-1,1):
+        for maskOn in maskOnset:
+            for optoOn in optoOnset:
+                for _ in range(trialsPerCondition):
+                    targetSide.append(side)
+                    trialMaskOnset.append(maskOn)
+                    trialOptoOnset.append(optoOn)
+                    Lsignal = np.zeros(trialEnd)
+                    Rsignal = np.zeros(trialEnd)
+                    targetSignal = Lsignal if side<0 else Rsignal
+                    respNoise = random.gauss(0,signalSigma)
+                    targetSignal[targetLatency:targetLatency+targetRespDur] = targetAmp + targetAmp/maskAmp*respNoise
+                    if not np.isnan(maskOn):
+                        maskLatency = targetLatency + maskOn
+                        Lsignal[maskLatency:] = maskAmp + respNoise
+                        Rsignal[maskLatency:] = maskAmp + respNoise
+                    if not np.isnan(optoOn):
+                        optoLatency = targetLatency + optoOn
+                        Lsignal[optoLatency:] = 0
+                        Rsignal[optoLatency:] = 0
+                    Linitial = Rinitial = 0
+                    result = runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record)
+                    response.append(result[0])
+                    responseTime.append(result[1])
+                    if record:
+                        Lrecord.append(result[2])
+                        Rrecord.append(result[3])
     
-    return trialTypeLabels,trialType,np.array(response),np.array(responseTime),Lrecord,Rrecord
+    return np.array(targetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
 @njit
@@ -110,8 +138,10 @@ def runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsigna
 
 
 # fit model parameters
-responseRate = [0.5,0.5,1,1]
-fractionCorrect = [1,1,0.5,0.5]
+maskOnset = np.array([np.nan,17.0])
+optoOnset = np.array([np.nan])
+responseRate = [0.5,1,0.5,1]
+fractionCorrect = [1,0.5,1,0.5]
 
 sigmaRange = slice(0.05,0.5,0.05)
 decayRateRange = slice(0.05,0.45,0.05)
@@ -119,25 +149,32 @@ thresholdRange = slice(2,10,2)
 signalSigmaRange = slice(0,0.06,0.02)
 
 
-fit = scipy.optimize.brute(scoreSimulation,(sigmaRange,decayRateRange,thresholdRange,signalSigmaRange),args=(responseRate,fractionCorrect),full_output=True,finish=None)
+fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRateRange,thresholdRange,signalSigmaRange),args=(maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
 
 sigma,decayRate,threshold,signalSigma = fit[0]
 
-trialTypeLabels,trialType,response,responseTime,Lrecord,Rrecord = runSession(sigma,decayRate,threshold,signalSigma,record=True)
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(maskOnset,optoOnset,sigma,decayRate,threshold,signalSigma,record=True)
 
-modelRespRate,modelFracCorr = analyzeSession(trialTypeLabels,trialType,response)
+result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response)
 
+modelResponseRate = []
+modelFractionCorrect = []
+for side in (-1,1):
+    for maskOn in maskOnset:
+        for optoOn in optoOnset:
+            modelResponseRate.append(result[side][maskOn][optoOn]['responseRate'])
+            modelFractionCorrect.append(result[side][maskOn][optoOn]['fractionCorrect'])
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 x = np.arange(4)
 ax.plot(x,responseRate,'o',mec='k',mfc='none',label="~mouse")
-ax.plot(x,modelRespRate,'o',mec='r',mfc='none',label="model")
+ax.plot(x,modelResponseRate,'o',mec='r',mfc='none',label="model")
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
 ax.set_xticks(x)
-ax.set_xticklabels(('target left','target right','target left\n+ mask','target right\n+ mask'))
+ax.set_xticklabels(('target left','target left\n+ mask','target right','target right\n+ mask'))
 ax.set_xlim([-0.5,3.5])
 ax.set_ylim([0,1.05])
 ax.set_ylabel('Response Rate')
@@ -147,12 +184,12 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 x = np.arange(4)
 ax.plot(x,fractionCorrect,'o',mec='k',mfc='none',label="~mouse")
-ax.plot(x,modelFracCorr,'o',mec='r',mfc='none',label="model")
+ax.plot(x,modelFractionCorrect,'o',mec='r',mfc='none',label="model")
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
 ax.set_xticks(x)
-ax.set_xticklabels(('target left','target right','target left\n+ mask','target right\n+ mask'))
+ax.set_xticklabels(('target left','target left\n+ mask','target right','target right\n+ mask'))
 ax.set_xlim([-0.5,3.5])
 ax.set_ylim([0.45,1.05])
 ax.set_ylabel('Fraction Correct')
