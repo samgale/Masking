@@ -226,27 +226,28 @@ targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord =
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
 
-for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.45,1.05),(50,150))):
+for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.45,1.05),(60,140))):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    for side,clr in zip((-1,1),'br'):
-        d = []
-        for maskOn in maskOnset:
-            for optoOn in optoOnset:
-                d.append(result[side][maskOn][optoOn][measure])
-        if measure=='responseTime':
-            d = [r.mean() for r in d]
-        ax.plot(maskOnset[1:],d[1:],clr+'o')
-        ax.plot(150,d[0],clr+'o')
+    d = []
+    for maskOn in maskOnset:
+        for optoOn in optoOnset:
+            if measure=='responseTime':
+                d.append(sum([result[side][maskOn][optoOn][measure].mean() for side in (-1,1)])/2)
+            else:
+                d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
+    ax.plot(maskOnset[1:],d[1:],'ko')
+    ax.plot(125,d[0],'ko')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
-    ax.set_xticks([0,50,100,150])
-    ax.set_xticklabels([0,50,100,'no mask'])
-    ax.set_xlim([0,157.5])
+    ax.set_xticks([0,25,50,75,100,125])
+    ax.set_xticklabels([0,25,50,75,100,'target only'])
+    ax.set_xlim([0,137.5])
     ax.set_ylim(ylim)
-    ax.set_xlabel('SOA (ms)')
-    ax.set_ylabel(measure)
+    ax.set_xlabel('Mask onset relative to target onset (ms)')
+    ax.set_ylabel(ylabel[measure])
+    plt.tight_layout()
 
 
 
@@ -259,10 +260,10 @@ targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord =
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
 
-for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.45,1.05),(50,150))):
+for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.45,1.05),(50,110))):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)   
-    for maskOn,clr in zip(maskOnset,'cb'):
+    for maskOn,clr,lbl in zip(maskOnset,'cb',('target only','target + mask')):
         d = []
         for optoOn in optoOnset:
             if measure=='responseTime':
@@ -270,22 +271,19 @@ for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1
             else:
                 d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
         ax.plot(optoOnset[1:],d[1:],clr+'o')
-        ax.plot(125,d[0],clr+'o')
+        ax.plot(125,d[0],clr+'o',label=lbl)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
     ax.set_xticks([0,50,100,125])
     ax.set_xticklabels([0,50,100,'no opto'])
-    ax.set_xlim([0,157.5])
+    ax.set_xlim([0,137.5])
     ax.set_ylim(ylim)
-    ax.set_xlabel('Opto Onset Time (ms)')
-    ax.set_ylabel(measure)
-
-
-
-
-
-
+    ax.set_xlabel('Opto onset relative to target onset (ms)')
+    ax.set_ylabel(ylabel[measure])
+    if measure=='responseRate':
+        ax.legend()
+    plt.tight_layout()
 
 
 
