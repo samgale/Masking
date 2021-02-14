@@ -33,7 +33,7 @@ def getModelError(paramsToFit,*fixedParams):
         return respRateError + fracCorrError
 
 
-def analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response):
+def analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime):
     result = {}
     maskOnset = getOnsetTimes(trialMaskOnset)
     optoOnset = getOnsetTimes(trialOptoOnset)
@@ -51,6 +51,7 @@ def analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response):
                 result[side][maskOn][optoOn] = {}
                 result[side][maskOn][optoOn]['responseRate'] = np.sum(responded)/np.sum(trials)
                 result[side][maskOn][optoOn]['fractionCorrect'] = np.sum(correct[responded])/np.sum(responded)
+                result[side][maskOn][optoOn]['responseTime'] = responseTime[trials][responded]
     return result,maskOnset,optoOnset
 
 
@@ -138,7 +139,7 @@ def runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsigna
 
 
 # fit model parameters
-maskOnset = np.array([np.nan,17.0])
+maskOnset = np.array([np.nan,17])
 optoOnset = np.array([np.nan])
 responseRate = [0.5,1,0.5,1]
 fractionCorrect = [1,0.5,1,0.5]
@@ -157,43 +158,29 @@ targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord =
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response)
 
-modelResponseRate = []
-modelFractionCorrect = []
-for side in (-1,1):
-    for maskOn in maskOnset:
-        for optoOn in optoOnset:
-            modelResponseRate.append(result[side][maskOn][optoOn]['responseRate'])
-            modelFractionCorrect.append(result[side][maskOn][optoOn]['fractionCorrect'])
 
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
 x = np.arange(4)
-ax.plot(x,responseRate,'o',mec='k',mfc='none',label="~mouse")
-ax.plot(x,modelResponseRate,'o',mec='r',mfc='none',label="model")
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False)
-ax.set_xticks(x)
-ax.set_xticklabels(('target left','target left\n+ mask','target right','target right\n+ mask'))
-ax.set_xlim([-0.5,3.5])
-ax.set_ylim([0,1.05])
-ax.set_ylabel('Response Rate')
-ax.legend()
+for measure,ylim in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.45,1.05))):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    d = []
+    for side in (-1,1):
+        for maskOn in maskOnset:
+            for optoOn in optoOnset:
+                d.append(result[side][maskOn][optoOn][measure])
+    y = responseRate if measure=='responseRate' else fractionCorrect
+    ax.plot(x,y,'o',mec='k',mfc='none',label="~mouse")
+    ax.plot(x,d,'o',mec='r',mfc='none',label="model")
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',right=False)
+    ax.set_xticks(x)
+    ax.set_xticklabels(('target left','target left\n+ mask','target right','target right\n+ mask'))
+    ax.set_xlim([-0.5,3.5])
+    ax.set_ylim(ylim)
+    ax.set_ylabel(measure)
+    ax.legend()
 
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-x = np.arange(4)
-ax.plot(x,fractionCorrect,'o',mec='k',mfc='none',label="~mouse")
-ax.plot(x,modelFractionCorrect,'o',mec='r',mfc='none',label="model")
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False)
-ax.set_xticks(x)
-ax.set_xticklabels(('target left','target left\n+ mask','target right','target right\n+ mask'))
-ax.set_xlim([-0.5,3.5])
-ax.set_ylim([0.45,1.05])
-ax.set_ylabel('Fraction Correct')
-ax.legend()
 
 
 trials = range(0,4)
@@ -216,8 +203,46 @@ for trial in trials:
 
 
 
-# masking experiment
+# masking
+maskOnset = np.array([np.nan,17,33,50,67,83,100])
+optoOnset = np.array([np.nan])
 
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(maskOnset,optoOnset,sigma,decayRate,threshold,signalSigma,record=True)
+
+result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+
+
+for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.45,1.05),(50,150))):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for side,clr in zip((-1,1),'br'):
+        d = []
+        for maskOn in maskOnset:
+            for optoOn in optoOnset:
+                d.append(result[side][maskOn][optoOn][measure])
+        if measure=='responseTime':
+            d = [r.mean() for r in d]
+        ax.plot(maskOnset[1:],d[1:],clr+'o')
+        ax.plot(150,d[0],clr+'o')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',right=False)
+    ax.set_xticks([0,50,100,150])
+    ax.set_xticklabels([0,50,100,'no mask'])
+    ax.set_xlim([0,157.5])
+    ax.set_ylim(ylim)
+    ax.set_xlabel('SOA (ms)')
+    ax.set_ylabel(measure)
+
+
+
+# opto masking
+maskOnset = np.array([np.nan,17])
+optoOnset = np.array([np.nan,17,33,50,67,83,100])
+
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(maskOnset,optoOnset,sigma,decayRate,threshold,signalSigma,record=True)
+
+result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
 
 
