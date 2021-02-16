@@ -253,40 +253,52 @@ for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
+mo = maskOnset[1:] + [np.nan]
+moLabels = [str(int(m)) for m in mo[:-1]] + ['target only']
+clrs = plt.cm.plasma(np.linspace(0,1,len(maskOnset)))[::-1]
+binWidth = 5
+bins = np.arange(50,200,binWidth)
+xlim = [50,200]
 rt = []
-clrs = plt.cm.jet(np.linspace(0,1,len(maskOnset)))
-xlim = np.array([50,200])
-for maskOn,clr in zip(maskOnset,clrs):
+for maskOn,clr in zip(mo,clrs):
     trials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
     trials = trials & (response!=0)
-    x = responseTime[trials].astype(float)
-    y = (targetSide==response)[trials]
-    slope,yint,rval,pval,stderr = scipy.stats.linregress(x,y) # try binning instead
-    ax.plot(xlim,slope*xlim+yint,'-',color=clr)
-    rt.append(x)
+    rt.append(responseTime[trials].astype(float))
+    c = (targetSide==response)[trials]
+    p = []
+    for i in bins:
+        j = (rt[-1]>i) & (rt[-1]<i+binWidth)
+        p.append(np.sum(c[j])/np.sum(j))
+    ax.plot(bins,p,'-',color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
+ax.set_xticks([50,100,150,200])
 ax.set_xlim(xlim)
 ax.set_ylim([0,1.01])
 ax.set_ylabel('Probability Correct')
 
 ax = fig.add_subplot(2,1,2)
 yticks = np.arange(len(rt))
-for x,y,clr in zip(rt,yticks,clrs):
-    ax.plot(x.mean(),y,'o',color=clr)
-    ax.plot(np.percentile(x,[2.5,97.5]),[y,y],'-',color=clr)
+violin = ax.violinplot(rt,positions=yticks,vert=False,showextrema=False)
+for v,clr in zip(violin['bodies'],clrs):
+    v.set_color(clr)
+    v.set_alpha(1)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
+ax.set_xticks([50,100,150,200])
 ax.set_yticks(yticks)
-ax.set_yticklabels(['target only'] + [str(int(mo)) for mo in maskOnset if not np.isnan(mo)])
+ax.set_yticklabels(moLabels)
 ax.set_xlim(xlim)
 ax.set_ylim([-0.5,len(rt)-0.5])
 ax.set_xlabel('Decision Time (ms)')
 ax.set_ylabel('SOA (ms)')
-
 plt.tight_layout()
+
+
+# mask duration
+
 
 
 # opto masking
