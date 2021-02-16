@@ -8,6 +8,7 @@ Created on Wed Feb  3 16:32:27 2021
 import random
 import numpy as np
 import scipy.optimize
+import scipy.stats
 import matplotlib.pyplot as plt
 from numba import njit
 
@@ -116,22 +117,22 @@ def runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsigna
         Lrecord = Rrecord = None
     L = Linitial
     R = Rinitial
-    i = 0
+    t = 0
     response = 0
-    while i<trialEnd and response==0:
-        L += random.gauss(0,sigma) + Lsignal[i] - decayRate*L 
-        R += random.gauss(0,sigma) + Rsignal[i] - decayRate*R
+    while t<trialEnd and response==0:
+        L += random.gauss(0,sigma) + Lsignal[t] - decayRate*L 
+        R += random.gauss(0,sigma) + Rsignal[t] - decayRate*R
         if record:
-            Lrecord[i] = L
-            Rrecord[i] = R
+            Lrecord[t] = L
+            Rrecord[t] = R
         if L > threshold and R > threshold:
             response = -1 if L > R else 1
         elif L > threshold:
             response = -1
         elif R > threshold:
             response = 1
-        i += 1
-    responseTime = i+1
+        t += 1
+    responseTime = t-1
     
     return response,responseTime,Lrecord,Rrecord
 
@@ -140,8 +141,8 @@ def runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsigna
 # fit model parameters
 maskOnset = np.array([np.nan,17])
 optoOnset = np.array([np.nan])
-responseRate = [0.5,1,0.5,1]
-fractionCorrect = [1,0.5,1,0.5]
+responseRate = [0.4,0.8,0.4,0.8]
+fractionCorrect = [0.9,0.55,0.9,0.55]
 
 sigmaRange = slice(0.05,0.5,0.05)
 decayRateRange = slice(0.05,0.5,0.05)
@@ -249,6 +250,43 @@ for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1
     ax.set_ylabel(ylabel[measure])
     plt.tight_layout()
 
+
+fig = plt.figure()
+ax = fig.add_subplot(2,1,1)
+rt = []
+clrs = plt.cm.jet(np.linspace(0,1,len(maskOnset)))
+xlim = np.array([50,200])
+for maskOn,clr in zip(maskOnset,clrs):
+    trials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
+    trials = trials & (response!=0)
+    x = responseTime[trials].astype(float)
+    y = (targetSide==response)[trials]
+    slope,yint,rval,pval,stderr = scipy.stats.linregress(x,y) # try binning instead
+    ax.plot(xlim,slope*xlim+yint,'-',color=clr)
+    rt.append(x)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False)
+ax.set_xlim(xlim)
+ax.set_ylim([0,1.01])
+ax.set_ylabel('Probability Correct')
+
+ax = fig.add_subplot(2,1,2)
+yticks = np.arange(len(rt))
+for x,y,clr in zip(rt,yticks,clrs):
+    ax.plot(x.mean(),y,'o',color=clr)
+    ax.plot(np.percentile(x,[2.5,97.5]),[y,y],'-',color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False)
+ax.set_yticks(yticks)
+ax.set_yticklabels(['target only'] + [str(int(mo)) for mo in maskOnset if not np.isnan(mo)])
+ax.set_xlim(xlim)
+ax.set_ylim([-0.5,len(rt)-0.5])
+ax.set_xlabel('Decision Time (ms)')
+ax.set_ylabel('SOA (ms)')
+
+plt.tight_layout()
 
 
 # opto masking
