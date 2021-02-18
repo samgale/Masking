@@ -275,7 +275,9 @@ class MaskingEphys():
             self.openLoopFrames = self.trialOpenLoopFrames[0]
             self.responseWindowFrames = behavData['maxResponseWaitFrames'][()]
             self.trialType = behavData['trialType'][:self.ntrials]
+            self.targetContrast = behavData['trialTargetContrast'][:self.ntrials]
             self.targetFrames = behavData['trialTargetFrames'][:self.ntrials]
+            self.maskContrast = behavData['trialMaskContrast'][:self.ntrials]
             self.maskFrames = behavData['trialMaskFrames'][:self.ntrials]
             self.maskOnset = behavData['trialMaskOnset'][:self.ntrials]
             self.rewardDir = behavData['trialRewardDir'][:self.ntrials]
@@ -321,47 +323,62 @@ class MaskingEphys():
         
 
 obj = MaskingEphys()
-
 obj.loadData()
 
 obj.saveToHdf5()
 
-obj.loadFromHdf5()    
+obj = MaskingEphys()
+obj.loadFromHdf5()   
 
 
-fs = obj.peakToTrough<=0.5
+exps = []
+while True:
+    f = fileIO.getFile('choose masking ephys experiment',fileType='*.hdf5')
+    if f!='':
+        obj = MaskingEphys()
+        obj.loadFromHdf5(f)
+        exps.append(obj)
+    else:
+        break
 
 
 # plot response to optogenetic stimuluation during catch trials
 psth = []
-peakBaseRate = np.full(obj.goodUnits.size,np.nan)
+peakBaseRate = np.full(sum(obj.goodUnits.size for obj in exps),np.nan)
 meanBaseRate = peakBaseRate.copy()
 transientOptoResp = peakBaseRate.copy()
 sustainedOptoResp = peakBaseRate.copy()
 sustainedOptoRate = peakBaseRate.copy()
 preTime = 0.5
 postTime = 0.5
-trialTime = (obj.openLoopFrames+obj.responseWindowFrames)/obj.frameRate
+trialTime = [(obj.openLoopFrames+obj.responseWindowFrames)/obj.frameRate for obj in exps]
+assert(all([t==trialTime[0] for t in trialTime]))
+trialTime = trialTime[0]
 windowDur = preTime+trialTime+postTime
-binSize = 1/obj.frameRate
-optoOnsetToPlot = np.nanmin(obj.optoOnset)
-for i,u in enumerate(obj.goodUnits):
-    spikeTimes = obj.units[u]['samples']/obj.sampleRate
-    p = []
-    for onset in [optoOnsetToPlot]: #np.unique(optoOnset[~np.isnan(optoOnset)]):
-        trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
-        startTimes = obj.frameSamples[obj.stimStart[trials]+int(onset)]/obj.sampleRate-preTime
-        s,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
-        p.append(s)
-    p = np.mean(np.concatenate(p),axis=0)
-    psth.append(p)
-    peakBaseRate[i] = p[t<preTime].max()
-    meanBaseRate[i] = p[t<preTime].mean()
-    transientOptoResp[i] = p[(t>=preTime) & (t<preTime+0.25)].max()-peakBaseRate[i]
-    sustainedOptoRate[i] = p[(t>preTime+trialTime-0.35) & (t<preTime+trialTime-0.25)].mean()
-    sustainedOptoResp[i] = sustainedOptoRate[i]-meanBaseRate[i]
+binSize = 1/exps[0].frameRate
+i = 0
+for obj in exps:
+    optoOnsetToPlot = np.nanmin(obj.optoOnset)
+    for u in obj.goodUnits:
+        spikeTimes = obj.units[u]['samples']/obj.sampleRate
+        p = []
+        for onset in [optoOnsetToPlot]: #np.unique(optoOnset[~np.isnan(optoOnset)]):
+            trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
+            startTimes = obj.frameSamples[obj.stimStart[trials]+int(onset)]/obj.sampleRate-preTime
+            s,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
+            p.append(s)
+        p = np.mean(np.concatenate(p),axis=0)
+        psth.append(p)
+        peakBaseRate[i] = p[t<preTime].max()
+        meanBaseRate[i] = p[t<preTime].mean()
+        transientOptoResp[i] = p[(t>=preTime) & (t<preTime+0.25)].max()-peakBaseRate[i]
+        sustainedOptoRate[i] = p[(t>preTime+trialTime-0.35) & (t<preTime+trialTime-0.25)].mean()
+        sustainedOptoResp[i] = sustainedOptoRate[i]-meanBaseRate[i]
+        i += 1
 t -= preTime
 psth = np.array(psth)
+
+fs = np.concatenate([obj.peakToTrough<=0.5 for obj in exps])
 
 fig = plt.figure(figsize=(8,8))
 excit = sustainedOptoResp>1
@@ -416,8 +433,8 @@ preTime = 0.5
 postTime = 0.5
 windowDur = preTime+trialTime+postTime
 binSize = 1/obj.frameRate
-ntrials = {stim: {side: {resp: [] for resp in respLabels} for side in ('left','right')} for stim in stimLabels}
-psth = {cellType: {stim: {side: {resp: [] for resp in respLabels} for side in ('left','right')} for stim in stimLabels} for cellType in cellTypeLabels}
+ntrials = {stim: {side: {resp: {} for resp in respLabels} for side in ('left','right')} for stim in stimLabels}
+psth = {cellType: {stim: {side: {resp: {} for resp in respLabels} for side in ('left','right')} for stim in stimLabels} for cellType in cellTypeLabels}
 hasResp = copy.deepcopy(psth)
 peakResp = copy.deepcopy(psth)
 timeToPeak = copy.deepcopy(psth)
@@ -425,41 +442,47 @@ timeToFirstSpike = copy.deepcopy(psth)
 for stim in stimLabels:
     for rd,side in zip((1,-1),('left','right')):
         for resp in respLabels:
-            stimTrials = obj.trialType==stim if stim=='maskOnly' else (obj.trialType==stim) & (obj.rewardDir==rd)
-            if resp=='all':
-                respTrials = np.ones(obj.ntrials,dtype=bool)
-            else:
-                respTrials = ~np.isnan(obj.responseDir) if resp=='go' else np.isnan(obj.responseDir)
-            for mo in np.unique(obj.maskOnset[stimTrials]):
-                moTrials = obj.maskOnset==mo
-                trials = stimTrials & respTrials & (obj.maskOnset==mo)
-                ntrials[stim][side][resp].append(trials.sum())
-                startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
-                for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
-                    p = []
-                    timeToFirstSpike[cellType][stim][side][resp].append([])
-                    for u in obj.goodUnits[ct]:
-                        spikeTimes = obj.units[u]['samples']/obj.sampleRate
-                        d,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
-                        t -= preTime
-                        d -= d[t<0].mean()
-                        p.append(d)
-                        lat = []
-                        for st in startTimes:
-                            firstSpike = np.where((spikeTimes > st+0.03) & (spikeTimes < st+0.15))[0]
-                            if len(firstSpike)>0:
-                                lat.append(spikeTimes[firstSpike[0]]-st)
-                            else:
-                                lat.append(np.nan)
-                        timeToFirstSpike[cellType][stim][side][resp][-1].append(np.nanmedian(lat))
-                    p = np.array(p)
-                    psth[cellType][stim][side][resp].append(p)
-                    analysisWindow = (t>0.03) & (t<0.15)
-                    hasResp[cellType][stim][side][resp].append(p[:,analysisWindow].max(axis=1) > respThresh*p[:,t<0].std())
-                    peakResp[cellType][stim][side][resp].append(p[:,analysisWindow].max(axis=1))
-                    timeToPeak[cellType][stim][side][resp].append(t[np.argmax(p[:,analysisWindow],axis=1)+np.where(analysisWindow)[0][0]])
+            for obj in exps:
+                fs = obj.peakToTrough<=0.5
+                stimTrials = obj.trialType==stim if stim=='maskOnly' else (obj.trialType==stim) & (obj.rewardDir==rd)
+                if resp=='all':
+                    respTrials = np.ones(obj.ntrials,dtype=bool)
+                else:
+                    respTrials = ~np.isnan(obj.responseDir) if resp=='go' else np.isnan(obj.responseDir)
+                for mo in np.unique(obj.maskOnset[stimTrials]):
+                    moTrials = obj.maskOnset==mo
+                    trials = stimTrials & respTrials & (obj.maskOnset==mo)
+                    if mo not in ntrials[stim][side][resp]:
+                        ntrials[stim][side][resp][mo] = 0
+                    ntrials[stim][side][resp][mo] += trials.sum()
+                    startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
+                    for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
+                        if mo not in psth[cellType][stim][side][resp]:
+                            psth[cellType][stim][side][resp][mo] = []
+                            hasResp[cellType][stim][side][resp][mo] = []
+                            peakResp[cellType][stim][side][resp][mo] = []
+                            timeToPeak[cellType][stim][side][resp][mo] = []
+                            timeToFirstSpike[cellType][stim][side][resp][mo] = []
+                        for u in obj.goodUnits[ct]:
+                            spikeTimes = obj.units[u]['samples']/obj.sampleRate
+                            p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+                            t -= preTime
+                            analysisWindow = (t>0.03) & (t<0.15)
+                            p -= p[t<0].mean()
+                            psth[cellType][stim][side][resp][mo].append(p)
+                            hasResp[cellType][stim][side][resp][mo].append(p[analysisWindow].max() > respThresh*p[t<0].std())
+                            peakResp[cellType][stim][side][resp][mo].append(p[analysisWindow].max())
+                            timeToPeak[cellType][stim][side][resp][mo].append(t[np.argmax(p[analysisWindow])+np.where(analysisWindow)[0][0]])
+                            lat = []
+                            for st in startTimes:
+                                firstSpike = np.where((spikeTimes > st+0.03) & (spikeTimes < st+0.15))[0]
+                                if len(firstSpike)>0:
+                                    lat.append(spikeTimes[firstSpike[0]]-st)
+                                else:
+                                    lat.append(np.nan)
+                            timeToFirstSpike[cellType][stim][side][resp][mo].append(np.nanmedian(lat))
 
-respCells = {cellType: hasResp[cellType]['targetOnly']['right']['all'][0] | hasResp[cellType]['maskOnly']['right']['all'][0] for cellType in cellTypeLabels}
+respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['right']['all'][0]) | np.array(hasResp[cellType]['maskOnly']['right']['all'][0]) for cellType in cellTypeLabels}
 
 xlim = [-0.1,0.4]
 for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
@@ -483,13 +506,13 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
                     cmap[:,1:] = np.arange(0,1.01-cint,cint)[:,None]
                 else:
                     cmap = [clr]
-                for moInd,(mo,c) in enumerate(zip(mskOn,cmap)):
-                    p = psth[cellType][stim][side][resp][moInd][respCells[cellType]]
+                for mo,c in zip(mskOn,cmap):
+                    p = np.array(psth[cellType][stim][side][resp][mo])[respCells[cellType]]
                     m = np.mean(p,axis=0)
                     s = np.std(p,axis=0)/(len(p)**0.5)
                     lbl = 'target+mask, SOA '+str(round(1000*mo/obj.frameRate,1))+' ms' if stim=='mask' else stim
                     rlbl = '' if resp=='all' else ' '+resp
-                    lbl += ' ('+str(ntrials[stim][side][resp][moInd])+rlbl+' trials)'
+                    lbl += ' ('+str(ntrials[stim][side][resp][mo])+rlbl+' trials)'
                     tme = t+2/obj.frameRate if stim=='maskOnly' else t
                     ax.plot(tme,m,color=c,label=lbl)
         #            ax.fill_between(t,m+s,m-s,color=c,alpha=0.25)
