@@ -8,16 +8,18 @@ Created on Wed Feb  3 16:32:27 2021
 import random
 import numpy as np
 import scipy.optimize
+import scipy.signal
 import scipy.stats
 import matplotlib.pyplot as plt
 from numba import njit
+import fileIO
 
 
 
 def getModelError(paramsToFit,*fixedParams):
     sigma,decayRate,threshold = paramsToFit
-    maskOnset,optoOnset,responseRate,fractionCorrect = fixedParams
-    targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(maskOnset,optoOnset,sigma,decayRate,threshold)
+    target,mask,maskOnset,optoOnset,responseRate,fractionCorrect = fixedParams
+    targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold)
     result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
     modelResponseRate = []
     modelFractionCorrect = []
@@ -30,7 +32,7 @@ def getModelError(paramsToFit,*fixedParams):
         return 1000
     else:
         respRateError = np.sum((np.array(responseRate)-np.array(modelResponseRate))**2)
-        fracCorrError = np.sum((2*(np.array(fractionCorrect)-np.array(modelFractionCorrect)))**2)
+        fracCorrError = np.sum((1*(np.array(fractionCorrect)-np.array(modelFractionCorrect)))**2)
         return respRateError + fracCorrError
 
 
@@ -64,13 +66,10 @@ def getOnsetTimes(trialOnsets):
 
 
 @njit
-def runSession(maskOnset,optoOnset,sigma,decayRate,threshold,record=False):
-    trialsPerCondition = 10000
+def runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold,record=False):
+    trialsPerCondition = 1000
     trialEnd = 200
-    targetLatency = 50
-    targetRespDur = 50
-    targetAmp = 1
-    maskAmp = 1
+    targetLatency = 40
     targetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -85,14 +84,17 @@ def runSession(maskOnset,optoOnset,sigma,decayRate,threshold,record=False):
                     targetSide.append(side)
                     trialMaskOnset.append(maskOn)
                     trialOptoOnset.append(optoOn)
-                    Lsignal = np.zeros(trialEnd)
-                    Rsignal = np.zeros(trialEnd)
-                    targetSignal = Lsignal if side<0 else Rsignal
-                    targetSignal[targetLatency:targetLatency+targetRespDur] = targetAmp
+                    if side < 0:
+                        Lsignal = target
+                        Rsignal = np.zeros(trialEnd)
+                    else:
+                        Lsignal = np.zeros(trialEnd)
+                        Rsignal = target
                     if not np.isnan(maskOn):
-                        maskLatency = targetLatency + maskOn
-                        Lsignal[maskLatency:] = maskAmp
-                        Rsignal[maskLatency:] = maskAmp
+                        m = np.zeros(trialEnd)
+                        m[maskOn:] = mask[:-maskOn]
+                        Lsignal = np.maximum(Lsignal,m)
+                        Rsignal = np.maximum(Rsignal,m)
                     if not np.isnan(optoOn):
                         optoLatency = targetLatency + optoOn
                         Lsignal[optoLatency:] = 0
@@ -138,22 +140,41 @@ def runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsigna
 
 
 
+# create model input signals from mean ephys responses
+f = fileIO.getFile()
+d = np.load(f)
+i = (d['t']>=0) & (d['t']<0.2)
+t = np.arange(200)
+signals = ('target','mask','targetMask')
+target,mask,targetMask = [np.interp(t,d['t'][i]*1000,scipy.signal.savgol_filter(d[s][i],5,3)) for s in signals]
+
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for s,r,clr in zip(signals,(target,mask,targetMask),'kbr'):
+    ax.plot(d['t'][i]*1000,d[s][i],clr)
+    ax.plot(t,r,clr+':')
+
+target /= mask.max()
+mask /= mask.max()
+
+
 # fit model parameters
 maskOnset = np.array([np.nan,17])
 optoOnset = np.array([np.nan])
 responseRate = [0.4,0.8,0.4,0.8]
 fractionCorrect = [0.9,0.55,0.9,0.55]
 
-sigmaRange = slice(0.05,0.5,0.05)
-decayRateRange = slice(0.05,0.5,0.05)
-thresholdRange = slice(2,12,2)
+sigmaRange = slice(0.2,0.65,0.05)
+decayRateRange = slice(0.25,0.7,0.05)
+thresholdRange = slice(1,10,1)
 
 
-fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRateRange,thresholdRange),args=(maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
+fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRateRange,thresholdRange),args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
 
 sigma,decayRate,threshold = fit[0]
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(maskOnset,optoOnset,sigma,decayRate,threshold,record=True)
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold,record=True)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 

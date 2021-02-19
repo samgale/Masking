@@ -484,6 +484,7 @@ for stim in stimLabels:
 
 respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['right']['all'][0]) | np.array(hasResp[cellType]['maskOnly']['right']['all'][0]) for cellType in cellTypeLabels}
 
+d = []
 xlim = [-0.1,0.4]
 for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
     if cellType!='all':
@@ -518,6 +519,7 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
         #            ax.fill_between(t,m+s,m-s,color=c,alpha=0.25)
                     ymin = min(ymin,np.min(m[(t>=xlim[0]) & (t<=xlim[1])]))
                     ymax = max(ymax,np.max(m[(t>=xlim[0]) & (t<=xlim[1])]))
+                    d.append(m)
             for s in ('right','top'):
                 ax.spines[s].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
