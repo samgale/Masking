@@ -32,7 +32,7 @@ def getModelError(paramsToFit,*fixedParams):
         return 1000
     else:
         respRateError = np.sum((np.array(responseRate)-np.array(modelResponseRate))**2)
-        fracCorrError = np.sum((1*(np.array(fractionCorrect)-np.array(modelFractionCorrect)))**2)
+        fracCorrError = np.sum((np.array(fractionCorrect)-np.array(modelFractionCorrect))**2)
         return respRateError + fracCorrError
 
 

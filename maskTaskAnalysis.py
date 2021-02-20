@@ -340,6 +340,42 @@ while True:
         exps.append(obj)
     else:
         break
+    
+
+# spike rate autocorrelation
+corrWidth = 50
+corr = np.zeros((sum([len(obj.goodUnits) for obj in exps]),corrWidth*2+1))
+uind = 0
+for obj in exps:
+    starts = np.round(1000*np.concatenate(([0],obj.frameSamples[obj.stimStart]/obj.sampleRate+obj.responseWindowFrames/obj.frameRate))).astype(int)
+    stops = np.round(np.concatenate((obj.frameSamples[obj.stimStart]/obj.sampleRate,[obj.frameSamples[-1]/obj.sampleRate]))*1000-corrWidth).astype(int)
+    for u in obj.goodUnits:
+        spikeTimes = obj.units[u]['samples']/obj.sampleRate*1000
+        c = np.zeros(corrWidth*2+1)
+        n = 0
+        for i,j in zip(starts,stops):
+            spikes = spikeTimes[(spikeTimes>i) & (spikeTimes<j)]
+            for s in spikes:
+                bins = np.arange(s-corrWidth-0.5,s+corrWidth+1)
+                c += np.histogram(spikes,bins)[0]
+                n += 1
+        c /= n
+        corr[uind] = c
+        uind += 1
+        print(str(uind)+'/'+str(corr.shape[0]))
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+t = np.arange(corrWidth*2+1)-corrWidth
+m = np.nanmean(corr,axis=0)
+ax.plot(t,m,'k')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_ylim([0,1.05*m[t!=0].max()])
+ax.set_xlabel('Lag (ms)')
+ax.set_ylabel('Autocorrelation')
+plt.tight_layout()
 
 
 # plot response to optogenetic stimuluation during catch trials
