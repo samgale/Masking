@@ -8,7 +8,7 @@ Created on Tue Apr 16 13:50:03 2019
 import MaskingTask
 import TaskControl
 
-task = MaskingTask.MaskingTask('pilot')  
+task = MaskingTask.MaskingTask('pilot')
 gray = TaskControl.TaskControl('pilot')
 gray.saveParams = False
 
@@ -26,6 +26,21 @@ task.incorrectTrialRepeats = 3
 task.maxConsecutiveSameDir = task.incorrectTrialRepeats + 3
 
 
+## training5 transition 
+task.setDefaultParams('training4', 'pos')
+task.maxResponseWaitFrames = 120
+task.wheelRewardDistance = 4.0
+
+
+task.setDefaultParams('training5', 'pos')
+
+task.targetContrast = [.4,.8]
+task.targetFrames = [2, 4,6]
+
+task.setDefaultParams('training3', 'pos')
+task.wheelRewardDistance = 4.0  #(to prevent stim jitter)
+task.maxResponseWaitFrames = 300
+task.start('563901')
 
     # rotation task
 
