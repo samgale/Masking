@@ -363,16 +363,33 @@ for obj in exps:
         corr[uind] = c
         uind += 1
         print(str(uind)+'/'+str(corr.shape[0]))
+        
+
+expfunc = lambda x,a,tau,c: a*np.exp(-x/tau)+c
+
+tau = []
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 t = np.arange(corrWidth*2+1)-corrWidth
+x0 = 3
+fitInd = slice(corrWidth+x0,None)
+fitx = t[fitInd]-x0
+for c in corr:
+    if not np.all(np.isnan(c)):
+        ax.plot(t,c,color='0.5')
+        fitParams = scipy.optimize.curve_fit(expfunc,fitx,c[fitInd])[0]
+        tau.append(fitParams[1])
+        ax.plot(t[fitInd],expfunc(fitx,*fitParams),color=[1,0.5,0.5])
 m = np.nanmean(corr,axis=0)
 ax.plot(t,m,'k')
+fitParams = scipy.optimize.curve_fit(expfunc,fitx,m[fitInd])[0]
+tauMean = fitParams[1]
+ax.plot(t[fitInd],expfunc(fitx,*fitParams),'r')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
-ax.set_ylim([0,1.05*m[t!=0].max()])
+ax.set_ylim([0,1.05*np.nanmax(corr[:,t!=0])])
 ax.set_xlabel('Lag (ms)')
 ax.set_ylabel('Autocorrelation')
 plt.tight_layout()

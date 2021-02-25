@@ -67,9 +67,6 @@ def getOnsetTimes(trialOnsets):
 
 @njit
 def runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold,record=False):
-    trialsPerCondition = 1000
-    trialEnd = 200
-    targetLatency = 40
     targetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -100,7 +97,7 @@ def runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold,record=
                         Lsignal[optoLatency:] = 0
                         Rsignal[optoLatency:] = 0
                     Linitial = Rinitial = 0
-                    result = runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record)
+                    result = runTrial(sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record)
                     response.append(result[0])
                     responseTime.append(result[1])
                     if record:
@@ -111,7 +108,7 @@ def runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold,record=
 
 
 @njit
-def runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record=False):
+def runTrial(sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record=False):
     if record:
         Lrecord = np.full(trialEnd,np.nan)
         Rrecord = np.full(trialEnd,np.nan)
@@ -139,12 +136,19 @@ def runTrial(trialEnd,sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsigna
     return response,responseTime,Lrecord,Rrecord
 
 
+# fixed parameters
+trialsPerCondition = 5000
+dt = 1/120*1000
+trialEndTime = 200
+trialEnd = int(round(200/dt))
+targetLatency = int(round(40/dt))
+
 
 # create model input signals from mean ephys responses
 f = fileIO.getFile()
 d = np.load(f)
-i = (d['t']>=0) & (d['t']<0.2)
-t = np.arange(200)
+i = (d['t']>=0) & (d['t']<trialEnd*dt/1000)
+t = np.arange(0,trialEnd*dt,dt)
 signals = ('target','mask','targetMask')
 target,mask,targetMask = [np.interp(t,d['t'][i]*1000,scipy.signal.savgol_filter(d[s][i],5,3)) for s in signals]
 
@@ -155,19 +159,20 @@ for s,r,clr in zip(signals,(target,mask,targetMask),'kbr'):
     ax.plot(d['t'][i]*1000,d[s][i],clr)
     ax.plot(t,r,clr+':')
 
+mask = targetMask
 target /= mask.max()
 mask /= mask.max()
 
 
 # fit model parameters
-maskOnset = np.array([np.nan,17])
+maskOnset = np.array([np.nan,2])
 optoOnset = np.array([np.nan])
 responseRate = [0.4,0.8,0.4,0.8]
 fractionCorrect = [0.9,0.55,0.9,0.55]
 
-sigmaRange = slice(0.2,0.65,0.05)
-decayRateRange = slice(0.25,0.7,0.05)
-thresholdRange = slice(1,10,1)
+sigmaRange = slice(0.4,0.8,0.05)
+decayRateRange = slice(0.2,0.6,0.05)
+thresholdRange = slice(0.5,5,0.5)
 
 
 fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRateRange,thresholdRange),args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
@@ -214,8 +219,8 @@ for side,lbl in zip((-1,1),('target left','target right')):
         ax.plot([0,200],[-threshold,-threshold],'b--')
         maskTrials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
         trial = np.where(sideTrials & maskTrials)[0][0]
-        ax.plot(Rrecord[trial],'r')
-        ax.plot(-Lrecord[trial],'b')
+        ax.plot(t,Rrecord[trial],'r')
+        ax.plot(t,-Lrecord[trial],'b')
         for axside in ('right','top','left','bottom'):
             ax.spines[axside].set_visible(False)
         ax.tick_params(direction='out',right=False,top=False,left=False)
@@ -240,10 +245,10 @@ for side,lbl in zip((-1,1),('target left','target right')):
 
 
 # masking
-maskOnset = np.array([np.nan,17,33,50,67,83,100])
+maskOnset = np.array([np.nan,2,4,6,8,10,12])
 optoOnset = np.array([np.nan])
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(maskOnset,optoOnset,sigma,decayRate,threshold,record=True)
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold,record=True)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
@@ -255,10 +260,10 @@ for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1
     for maskOn in maskOnset:
         for optoOn in optoOnset:
             if measure=='responseTime':
-                d.append(sum([result[side][maskOn][optoOn][measure].mean() for side in (-1,1)])/2)
+                d.append(sum([dt*result[side][maskOn][optoOn][measure].mean() for side in (-1,1)])/2)
             else:
                 d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
-    ax.plot(maskOnset[1:],d[1:],'ko')
+    ax.plot(np.array(maskOnset[1:])*dt,d[1:],'ko')
     ax.plot(125,d[0],'ko')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
