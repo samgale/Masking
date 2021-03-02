@@ -86,7 +86,7 @@ class RFMapping(TaskControl):
                         g.ori = ori
                 
             if self.preFrames <= self._trialFrame < self.preFrames + self.trialStimFrames[-1]:
-                if self._trialFrame == self.preFrame:
+                if self._trialFrame == self.preFrames:
                     self.stimStartFrame.append(self._sessionFrame)
                 for g,ori in zip(gratings,self.trialGratingOri[-1]):
                     if not np.isnan(ori):
