@@ -74,29 +74,29 @@ def runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold,record=
     responseTime = []
     Lrecord = []
     Rrecord = []
+    Linitial = Rinitial = 0
     for side in (-1,1):
         for maskOn in maskOnset:
             for optoOn in optoOnset:
+                if side < 0:
+                    Lsignal = target
+                    Rsignal = np.zeros(trialEnd)
+                else:
+                    Lsignal = np.zeros(trialEnd)
+                    Rsignal = target
+                if not np.isnan(maskOn):
+                    m = np.zeros(trialEnd)
+                    m[maskOn:] = mask[:-maskOn]
+                    Lsignal = np.maximum(Lsignal,m)
+                    Rsignal = np.maximum(Rsignal,m)
+                if not np.isnan(optoOn):
+                    optoLatency = targetLatency + optoOn
+                    Lsignal[optoLatency:] = 0
+                    Rsignal[optoLatency:] = 0
                 for _ in range(trialsPerCondition):
                     targetSide.append(side)
                     trialMaskOnset.append(maskOn)
                     trialOptoOnset.append(optoOn)
-                    if side < 0:
-                        Lsignal = target
-                        Rsignal = np.zeros(trialEnd)
-                    else:
-                        Lsignal = np.zeros(trialEnd)
-                        Rsignal = target
-                    if not np.isnan(maskOn):
-                        m = np.zeros(trialEnd)
-                        m[maskOn:] = mask[:-maskOn]
-                        Lsignal = np.maximum(Lsignal,m)
-                        Rsignal = np.maximum(Rsignal,m)
-                    if not np.isnan(optoOn):
-                        optoLatency = targetLatency + optoOn
-                        Lsignal[optoLatency:] = 0
-                        Rsignal[optoLatency:] = 0
-                    Linitial = Rinitial = 0
                     result = runTrial(sigma,decayRate,threshold,Linitial,Rinitial,Lsignal,Rsignal,record)
                     response.append(result[0])
                     responseTime.append(result[1])
@@ -150,7 +150,14 @@ d = np.load(f)
 i = (d['t']>=0) & (d['t']<trialEnd*dt/1000)
 t = np.arange(0,trialEnd*dt,dt)
 signals = ('target','mask','targetMask')
-target,mask,targetMask = [np.interp(t,d['t'][i]*1000,scipy.signal.savgol_filter(d[s][i],5,3)) for s in signals]
+
+#target,mask,targetMask = [np.interp(t,d['t'][i]*1000,scipy.signal.savgol_filter(d[s][i],5,3)) for s in signals]
+
+filtPts = t.size
+expFilt = np.zeros(filtPts*2)
+expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=2,sym=False)
+expFilt /= expFilt.sum()
+target,mask,targetMask = [np.interp(t,d['t'][i]*1000,np.convolve(d[s][i],expFilt)[t.size:2*t.size]) for s in signals]
 
 
 fig = plt.figure()
@@ -159,7 +166,7 @@ for s,r,clr in zip(signals,(target,mask,targetMask),'kbr'):
     ax.plot(d['t'][i]*1000,d[s][i],clr)
     ax.plot(t,r,clr+':')
 
-mask = targetMask
+
 target /= mask.max()
 mask /= mask.max()
 
@@ -170,14 +177,17 @@ optoOnset = np.array([np.nan])
 responseRate = [0.4,0.8,0.4,0.8]
 fractionCorrect = [0.9,0.55,0.9,0.55]
 
-sigmaRange = slice(0.4,0.8,0.05)
-decayRateRange = slice(0.2,0.6,0.05)
+sigmaRange = slice(0.4,1.1,0.05)
+decayRateRange = slice(0.2,0.95,0.05)
 thresholdRange = slice(0.5,5,0.5)
 
 
 fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRateRange,thresholdRange),args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
 
+#finalFit = scipy.optimize.minimize(getModelError,fit[0],args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),method='Nelder-Mead')
+
 sigma,decayRate,threshold = fit[0]
+
 
 targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decayRate,threshold,record=True)
 
