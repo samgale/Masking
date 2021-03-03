@@ -240,13 +240,13 @@ class MaskingEphys():
         self.unitPos = np.array([self.units[u]['position'][1]/1000 for u in self.goodUnits])
 
         # get behavior and rf mapping data
-        totalPklFrames = 0
+        totalFrames = 0
         
         self.behavDataPath = fileIO.getFile('Select behavior data file',fileType='*.hdf5')
         if len(self.behavDataPath)>0:
             behavData = h5py.File(self.behavDataPath,'r')
             self.behavFrameIntervals = behavData['frameIntervals'][:]
-            totalPklFrames += self.behavFrameIntervals.size+1
+            totalFrames += self.behavFrameIntervals.size+1
             print(str(self.behavFrameIntervals.size+1)+' behavior frames')
         self.frameRate = round(1/np.median(self.behavFrameIntervals))
         
@@ -254,13 +254,13 @@ class MaskingEphys():
         if len(self.rfDataPath)>0:
             rfData = h5py.File(self.rfDataPath,'r')
             self.rfFrameIntervals = rfData['frameIntervals'][:]
-            totalPklFrames += self.rfFrameIntervals.size+1
+            totalFrames += self.rfFrameIntervals.size+1
             print(str(self.rfFrameIntervals.size+1)+' rf frames')
         
         # get frame times and compare with psychopy frame intervals
         self.frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
         
-        print(str(totalPklFrames)+' total frames')
+        print(str(totalFrames)+' total frames')
         print(str(self.frameSamples.size)+' frame signals')
         
         if len(self.behavDataPath)>0:

@@ -93,17 +93,13 @@ channelMap = np.array([16,112,111,14,110,15,109,12,108,13,107,10,106,11,105,8,10
 frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
 
 
-pklPath = fileIO.getFile('Select rf mapping pkl file',fileType='*.hdf5')
-pklData = h5py.File(pklPath,'r')
-frameIntervals = pklData['frameIntervals'][:]
+rfPath = fileIO.getFile('Select rf mapping pkl file',fileType='*.hdf5')
+rfData = h5py.File(rfPath,'r')
+frameIntervals = rfData['frameIntervals'][:]
 frameRate = round(1/np.median(frameIntervals))
-if 'stimStartFrame' in pklData:
-    stimStart = pklData['stimStartFrame'][:]
-else:
-    trialStartFrame = np.concatenate(([0],np.cumsum(pklData['preFrames'] + pklData['trialStimFrames'][:-1] + pklData['postFrames'])))
-    stimStart = trialStartFrame + pklData['preFrames']
+stimStart = rfData['stimStartFrame'][:-1]
 stimStart += frameSamples.size-(frameIntervals.size+1)
-stimPos = pklData['trialGratingCenter'][:]
+stimPos = rfData['trialGratingCenter'][:len(stimStart)]
 
 
 print(str(frameIntervals.size+1)+' frames')
@@ -111,8 +107,8 @@ print(str(frameSamples.size)+' frame samples')
 
 
 channelRange = [0,127]
-negThresh = -500
-posThresh = 100
+negThresh = -200
+posThresh = 50
 chunkSamples = int(15*sampleRate)
 
 Wn = 300/(sampleRate/2) # cutoff freq normalized to nyquist
