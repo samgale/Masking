@@ -172,14 +172,14 @@ mask /= mask.max()
 
 
 # fit model parameters
-maskOnset = np.array([np.nan,2])
+maskOnset = np.array([np.nan,2,6])
 optoOnset = np.array([np.nan])
-responseRate = [0.4,0.8,0.4,0.8]
-fractionCorrect = [0.9,0.55,0.9,0.55]
+responseRate = [0.4,0.8,0.8,0.4,0.8,0.8]
+fractionCorrect = [0.9,0.55,0.8,0.9,0.55,0.8]
 
-sigmaRange = slice(0.4,1.1,0.05)
-decayRateRange = slice(0.2,0.95,0.05)
-thresholdRange = slice(0.5,5,0.5)
+sigmaRange = slice(0.1,1,0.05)
+decayRateRange = slice(0,0.15,0.01)
+thresholdRange = slice(0.5,6,0.25)
 
 
 fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRateRange,thresholdRange),args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
@@ -198,7 +198,7 @@ ylabel = {'responseRate': 'Response Rate',
           'responseTime': 'Decision Time (ms)'}
 
 
-x = (0,1)
+x = (0,1,2)
 for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.45,1.05)),('upper left','upper right')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -207,14 +207,14 @@ for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.45,
         for optoOn in optoOnset:
             d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
     y = responseRate if measure=='responseRate' else fractionCorrect
-    ax.plot(x,y[:2],'o',mec='k',mfc='none',ms=8,mew=2,label="~mouse")
+    ax.plot(x,y[:len(x)],'o',mec='k',mfc='none',ms=8,mew=2,label="~mouse")
     ax.plot(x,d,'o',mec='r',mfc='none',ms=8,mew=2,label="model")
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
     ax.set_xticks(x)
-    ax.set_xticklabels(('target','target + mask'))
-    ax.set_xlim([-0.5,1.5])
+    ax.set_xticklabels(('target','target + mask','target + mask'))
+    ax.set_xlim([x[0]-0.5,x[-1]+0.5])
     ax.set_ylim(ylim)
     ax.set_ylabel(ylabel[measure])
     ax.legend(loc=loc)
