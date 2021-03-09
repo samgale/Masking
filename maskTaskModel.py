@@ -61,7 +61,7 @@ def analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTim
 def getOnsetTimes(trialOnsets):
     onset = np.unique(trialOnsets)
     if any(np.isnan(onset)):
-        onset = [np.nan] + list(onset[~np.isnan(onset)])
+        onset = list(onset[~np.isnan(onset)]) + [np.nan]
     return onset
 
 
@@ -86,13 +86,13 @@ def runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold,recor
                     Rsignal = target
                 if not np.isnan(maskOn):
                     m = np.zeros(trialEnd)
-                    m[maskOn:] = mask[:-maskOn]
+                    m[int(maskOn):] = mask[:-int(maskOn)]
                     Lsignal = np.maximum(Lsignal,m)
                     Rsignal = np.maximum(Rsignal,m)
                 if not np.isnan(optoOn):
                     optoLatency = targetLatency + optoOn
-                    Lsignal[optoLatency:] = 0
-                    Rsignal[optoLatency:] = 0
+                    Lsignal[int(optoLatency):] = 0
+                    Rsignal[int(optoLatency):] = 0
                 for _ in range(trialsPerCondition):
                     targetSide.append(side)
                     trialMaskOnset.append(maskOn)
@@ -137,10 +137,10 @@ def runTrial(sigma,decay,inhib,threshold,Linitial,Rinitial,Lsignal,Rsignal,recor
 
 
 # fixed parameters
-trialsPerCondition = 5000
+trialsPerCondition = 1000
 dt = 1/120*1000
 trialEndTime = 200
-trialEnd = int(round(200/dt))
+trialEnd = int(round(trialEndTime/dt))
 targetLatency = int(round(40/dt))
 
 
@@ -177,15 +177,17 @@ optoOnset = np.array([np.nan])
 responseRate = [0.4,0.8,0.4,0.8]
 fractionCorrect = [0.9,0.55,0.9,0.55]
 
-maskOnset = np.array([np.nan,2,6])
+maskOnset = np.array([1,2,3,np.nan])
+maskOnset = np.array([2,4,6,np.nan])
+maskOnset = np.array([4,8,12,np.nan])
 optoOnset = np.array([np.nan])
-responseRate = [0.4,0.8,0.8,0.4,0.8,0.8]
-fractionCorrect = [0.9,0.55,0.8,0.9,0.55,0.8]
+responseRate = [0.8,0.8,0.8,0.4,0.8,0.8,0.8,0.4]
+fractionCorrect = [0.55,0.7,0.8,0.9,0.55,0.7,0.8,0.9]
 
 sigmaRange = slice(0.1,1,0.05)
 decayRange = slice(0,0.8,0.05)
-inhibRange = slice(0,0.5,0.1)
-thresholdRange = slice(0.5,10,0.5)
+inhibRange = slice(0,0.4,0.05)
+thresholdRange = slice(1,11,0.5)
 
 
 fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRange,inhibRange,thresholdRange),args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
@@ -204,7 +206,10 @@ ylabel = {'responseRate': 'Response Rate',
           'responseTime': 'Decision Time (ms)'}
 
 
-x = np.arange(len(responseRate)/2)
+x = [mo*dt for mo in maskOnset]
+x[-1] = x[-2]+x[0]
+xticklabels = [str(int(round(mo))) for mo in x]
+xticklabels[-1] = 'target only'
 for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.45,1.05)),('upper left','upper right')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -213,15 +218,16 @@ for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.45,
         for optoOn in optoOnset:
             d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
     y = responseRate if measure=='responseRate' else fractionCorrect
-    ax.plot(x,y[:len(x)],'o',mec='k',mfc='none',ms=8,mew=2,label="~mouse")
-    ax.plot(x,d,'o',mec='r',mfc='none',ms=8,mew=2,label="model")
+    ax.plot(x,y[:len(x)],'o',mec='k',mfc='none',ms=8,mew=2,label='mice')
+    ax.plot(x,d,'o',mec='r',mfc='none',ms=8,mew=2,label='model')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
     ax.set_xticks(x)
-    ax.set_xticklabels(('target','target + mask','target + mask'))
-    ax.set_xlim([x[0]-0.5,x[-1]+0.5])
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim([0,x[-1]+x[0]/2])
     ax.set_ylim(ylim)
+    ax.set_xlabel('Mask onset relative to target onset (ms)')
     ax.set_ylabel(ylabel[measure])
     ax.legend(loc=loc)
 
@@ -264,7 +270,7 @@ for side,lbl in zip((-1,1),('target left','target right')):
 maskOnset = np.array([np.nan,2,4,6,8,10,12])
 optoOnset = np.array([np.nan])
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decay,threshold,record=True)
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=True)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
