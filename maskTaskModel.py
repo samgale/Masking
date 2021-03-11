@@ -11,6 +11,8 @@ import numpy as np
 import scipy.optimize
 import scipy.signal
 import scipy.stats
+import matplotlib
+matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 from numba import njit
 import fileIO
@@ -149,7 +151,6 @@ targetLatency = int(round(40/dt))
 pkl = fileIO.getFile(fileType='*.pkl')
 popPsth = pickle.load(open(pkl,'rb'))
 
-i = (popPsth['t']>=0) & (popPsth['t']<trialEnd*dt/1000)
 t = np.arange(0,trialEnd*dt,dt)
 signals = ('targetOnly','maskOnly','mask')
 
@@ -158,27 +159,54 @@ signals = ('targetOnly','maskOnly','mask')
 #expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=2,sym=False)
 #expFilt /= expFilt.sum()
 
+popPsthFilt = {}
 for sig in signals:
-    popPsth[sig] = {}
-    for mo in popPsth[sig]:
-        maskOn = np.nan if mo==0 else mo
-        popPsth[sig][maskOn] = np.interp(t,popPsth['t'][i]*1000,scipy.signal.savgol_filter(popPsth[sig][i],5,3))
-#        popPsth[sig][maskOn] = np.interp(t,popPsth['t'][i]*1000,np.convolve(popPsth[sig][i],expFilt)[t.size:2*t.size])
+    popPsthFilt[sig] = {}
+    for side in ('left','right'):
+        popPsthFilt[sig][side] = {}
+        for mo in popPsth[sig][side]:
+            maskOn = np.nan if mo==0 else mo
+            popPsthFilt[sig][side][maskOn] = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(popPsth[sig][side][mo],5,3))
+#            popPsthFilt[sig][maskOn] = np.interp(t,popPsth['t']*1000,np.convolve(popPsth[sig],expFilt)[t.size:2*t.size])
+            popPsthFilt[sig][side][maskOn] -= popPsthFilt[sig][side][maskOn][t<=25].mean()
 
 
 
-#target,mask,targetMask = [np.interp(t,d['t'][i]*1000,np.convolve(d[s][i],expFilt)[t.size:2*t.size]) for s in signals]
+
+fig = plt.figure(figsize=(6,10))
+n = 2+len(popPsthFilt['mask']['right'].keys())
+gs = matplotlib.gridspec.GridSpec(n,2)
+axs = []
+ymin = 0
+ymax = 0
+for j,side in enumerate(('left','right')):
+    i = 0
+    for sig in signals:
+        for mo in popPsthFilt[sig][side]:
+            ax = fig.add_subplot(gs[i,j])
+            d = popPsthFilt[sig][side][mo]
+            ax.plot(t,d,'k')
+            moLbl = mo if np.isnan(mo) else round(mo/120*1000,1)
+            ax.set_title(sig+' , SOA '+str(moLbl)+' ms')
+            if j==0 and i==0:
+                ax.set_ylabel('Spikes/s')
+            if j==1 and i==n-1:
+                ax.set_xlabel('Time (ms)')
+            else:
+                ax.set_xticklabels([])
+            ymin = min(ymin,d.min())
+            ymax = max(ymax,d.max())
+            axs.append(ax)
+            i += 1
+for ax in axs:
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xlim([0,trialEndTime])
+    ax.set_ylim([1.05*ymin,1.05*ymax])
+plt.tight_layout()
 
 
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-for s,r,clr in zip(signals,(target,mask,targetMask),'kbr'):
-    ax.plot(d['t'][i]*1000,d[s][i],clr)
-    ax.plot(t,r,clr+':')
-
-
-target /= mask.max()
-mask /= mask.max()
 
 
 # fit model parameters

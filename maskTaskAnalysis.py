@@ -661,12 +661,13 @@ for j,cellType in enumerate(('FS','RS')):
 plt.tight_layout()
 
 
-popPsth = {stim: {} for stim in stimLabels}
+popPsth = {stim: {side: {} for side in ('left','right')} for stim in stimLabels}
 for cellType in ('all',):
     for stim in stimLabels:
-        p = psth[cellType][stim]['right']['all']
-        for mo in p.keys():
-            popPsth[stim][mo] = np.mean(np.array(p[mo])[respCells[cellType]],axis=0)
+        for side in ('left','right'):
+            p = psth[cellType][stim][side]['all']
+            for mo in p.keys():
+                popPsth[stim][side][mo] = np.mean(np.array(p[mo])[respCells[cellType]],axis=0)
 popPsth['t'] = t
             
 pkl = fileIO.saveFile(fileType='*.pkl')
