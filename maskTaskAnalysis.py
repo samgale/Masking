@@ -7,6 +7,7 @@ Created on Mon Mar 11 12:34:44 2019
 
 import copy
 import os
+import pickle
 import h5py
 import numpy as np
 import pandas as pd
@@ -241,6 +242,7 @@ class MaskingEphys():
 
         # get behavior and rf mapping data
         totalFrames = 0
+        self.frameRate = None
         
         self.behavDataPath = fileIO.getFile('Select behavior data file',fileType='*.hdf5')
         if len(self.behavDataPath)>0:
@@ -248,7 +250,7 @@ class MaskingEphys():
             self.behavFrameIntervals = behavData['frameIntervals'][:]
             totalFrames += self.behavFrameIntervals.size+1
             print(str(self.behavFrameIntervals.size+1)+' behavior frames')
-        self.frameRate = round(1/np.median(self.behavFrameIntervals))
+            self.frameRate = round(1/np.median(self.behavFrameIntervals))
         
         self.rfDataPath = fileIO.getFile('Select rf mapping data file',fileType='*.hdf5')
         if len(self.rfDataPath)>0:
@@ -256,6 +258,8 @@ class MaskingEphys():
             self.rfFrameIntervals = rfData['frameIntervals'][:]
             totalFrames += self.rfFrameIntervals.size+1
             print(str(self.rfFrameIntervals.size+1)+' rf frames')
+            if self.frameRate is None:
+                self.frameRate = round(1/np.median(self.rfFrameIntervals))
         
         # get frame times and compare with psychopy frame intervals
         self.frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
@@ -288,16 +292,17 @@ class MaskingEphys():
             
         if len(self.rfDataPath)>0:
             if 'stimStartFrame' in rfData:
-                self.rfStimStart = rfData['stimStartFrame'][:]
+                self.rfStimStart = rfData['stimStartFrame'][:-1]
             else:
                 trialStartFrame = np.concatenate(([0],np.cumsum(rfData['preFrames']+rfData['trialStimFrames'][:-1]+rfData['postFrames'])))
                 self.rfStimStart = trialStartFrame+rfData['preFrames']
             self.rfStimStart += obj.frameSamples.size-(obj.rfFrameIntervals.size+1)
-            self.rfStimPos = rfData['trialGratingCenter'][:]
-            self.rfStimContrast = rfData['trialGratingContrast'][:]
-            self.rfOris = rfData['gratingOri'][:]
-            self.rfStimOri = rfData['trialGratingOri'][:]
-            self.rfStimFrames = rfData['trialStimFrames'][:]
+            rfTrials = self.rfStimStart.size
+            self.rfStimPos = rfData['trialGratingCenter'][:rfTrials]
+            self.rfStimContrast = rfData['trialGratingContrast'][:rfTrials]
+            self.rfOris = rfData['gratingOri'][:rfTrials]
+            self.rfStimOri = rfData['trialGratingOri'][:rfTrials]
+            self.rfStimFrames = rfData['trialStimFrames'][:rfTrials]
         
         # check frame display lag
         fig = plt.figure()
@@ -367,29 +372,31 @@ for obj in exps:
 
 expfunc = lambda x,a,tau,c: a*np.exp(-x/tau)+c
 
-tau = []
-
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 t = np.arange(corrWidth*2+1)-corrWidth
 x0 = 3
 fitInd = slice(corrWidth+x0,None)
 fitx = t[fitInd]-x0
-for c in corr:
-    if not np.all(np.isnan(c)):
-        ax.plot(t,c,color='0.5')
-        fitParams = scipy.optimize.curve_fit(expfunc,fitx,c[fitInd])[0]
-        tau.append(fitParams[1])
-        ax.plot(t[fitInd],expfunc(fitx,*fitParams),color=[1,0.5,0.5])
+#tau = []
+#for c in corr:
+#    if not np.all(np.isnan(c)):
+#        ax.plot(t,c,color='0.5')
+#        fitParams = scipy.optimize.curve_fit(expfunc,fitx,c[fitInd])[0]
+#        tau.append(fitParams[1])
+#        ax.plot(t[fitInd],expfunc(fitx,*fitParams),color=[1,0.5,0.5])
 m = np.nanmean(corr,axis=0)
 ax.plot(t,m,'k')
 fitParams = scipy.optimize.curve_fit(expfunc,fitx,m[fitInd])[0]
 tauMean = fitParams[1]
-ax.plot(t[fitInd],expfunc(fitx,*fitParams),'r')
+#ax.plot(t[fitInd],expfunc(fitx,*fitParams),'r')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
-ax.set_ylim([0,1.05*np.nanmax(corr[:,t!=0])])
+#ax.set_ylim([0,1.05*np.nanmax(corr[:,t!=0])])
+ax.set_xlim([0,corrWidth])
+ax.set_ylim([0,0.04])
+ax.set_yticks([0,0.01,0.02,0.03,0.04])
 ax.set_xlabel('Lag (ms)')
 ax.set_ylabel('Autocorrelation')
 plt.tight_layout()
@@ -537,7 +544,7 @@ for stim in stimLabels:
 
 respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['right']['all'][0]) | np.array(hasResp[cellType]['maskOnly']['right']['all'][0]) for cellType in cellTypeLabels}
 
-d = []
+
 xlim = [-0.1,0.4]
 for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
     if cellType!='all':
@@ -553,7 +560,7 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
             for stim,clr in zip(stimLabels,('k','0.5','r')):
                 stimTrials = obj.trialType==stim if stim=='maskOnly' else (obj.trialType==stim) & (obj.rewardDir==rd)
                 mskOn = np.unique(obj.maskOnset[stimTrials])
-                mskOn = [mskOn[0]]
+#                mskOn = [mskOn[-1]]
                 if stim=='mask' and len(mskOn)>1:
                     cmap = np.ones((len(mskOn),3))
                     cint = 1/len(mskOn)
@@ -572,7 +579,6 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
         #            ax.fill_between(t,m+s,m-s,color=c,alpha=0.25)
                     ymin = min(ymin,np.min(m[(t>=xlim[0]) & (t<=xlim[1])]))
                     ymax = max(ymax,np.max(m[(t>=xlim[0]) & (t<=xlim[1])]))
-                    d.append(m)
             for s in ('right','top'):
                 ax.spines[s].set_visible(False)
             ax.tick_params(direction='out',top=False,right=False)
@@ -653,6 +659,19 @@ for j,cellType in enumerate(('FS','RS')):
         if j==0:
             ax.set_ylabel(ylbl)
 plt.tight_layout()
+
+
+popPsth = {stim: {} for stim in stimLabels}
+for cellType in ('all',):
+    for stim in stimLabels:
+        p = psth[cellType][stim]['right']['all']
+        for mo in p.keys():
+            popPsth[stim][mo] = np.mean(np.array(p[mo])[respCells[cellType]],axis=0)
+popPsth['t'] = t
+            
+pkl = fileIO.saveFile(fileType='*.pkl')
+pickle.dump(popPsth,open(pkl,'wb'))
+
 
 
 # plot response to visual stimuli with opto
@@ -749,7 +768,7 @@ for i,y in enumerate(ele):
     for j,x in enumerate(azi):
         ax = fig.add_subplot(gs[ele.size-1-i,j])
         
-#        ax.plot(t,rfMap.mean(axis=(0,4,5,6))[:,i,j],'k')
+        ax.plot(t,rfMap.mean(axis=(0,4,5,6))[:,i,j],'k')
         
 #        for k,d in enumerate(dur):
 #            ax.plot(t,rfMap.mean(axis=(0,4,5))[:,i,j,k],'k')
@@ -757,8 +776,8 @@ for i,y in enumerate(ele):
 #        for k,c in enumerate(contrast):
 #            ax.plot(t,rfMap.mean(axis=(0,4,6))[:,i,j,k],'k')
         
-        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,4,5,6))[:,i,j],'k',label='17 ms stim')
-        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,4,5,6))[:,i,j],'r',label='50 ms stim')
+#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,4,5,6))[:,i,j],'k',label='17 ms stim')
+#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,4,5,6))[:,i,j],'r',label='50 ms stim')
             
         # target
 #        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,5,6))[:,i,j,0],'k')

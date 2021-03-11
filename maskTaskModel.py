@@ -5,6 +5,7 @@ Created on Wed Feb  3 16:32:27 2021
 @author: svc_ccg
 """
 
+import pickle
 import random
 import numpy as np
 import scipy.optimize
@@ -145,18 +146,27 @@ targetLatency = int(round(40/dt))
 
 
 # create model input signals from mean ephys responses
-f = fileIO.getFile()
-d = np.load(f)
-i = (d['t']>=0) & (d['t']<trialEnd*dt/1000)
-t = np.arange(0,trialEnd*dt,dt)
-signals = ('target','mask','targetMask')
+pkl = fileIO.getFile(fileType='*.pkl')
+popPsth = pickle.load(open(pkl,'rb'))
 
-target,mask,targetMask = [np.interp(t,d['t'][i]*1000,scipy.signal.savgol_filter(d[s][i],5,3)) for s in signals]
+i = (popPsth['t']>=0) & (popPsth['t']<trialEnd*dt/1000)
+t = np.arange(0,trialEnd*dt,dt)
+signals = ('targetOnly','maskOnly','mask')
 
 #filtPts = t.size
 #expFilt = np.zeros(filtPts*2)
 #expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=2,sym=False)
 #expFilt /= expFilt.sum()
+
+for sig in signals:
+    popPsth[sig] = {}
+    for mo in popPsth[sig]:
+        maskOn = np.nan if mo==0 else mo
+        popPsth[sig][maskOn] = np.interp(t,popPsth['t'][i]*1000,scipy.signal.savgol_filter(popPsth[sig][i],5,3))
+#        popPsth[sig][maskOn] = np.interp(t,popPsth['t'][i]*1000,np.convolve(popPsth[sig][i],expFilt)[t.size:2*t.size])
+
+
+
 #target,mask,targetMask = [np.interp(t,d['t'][i]*1000,np.convolve(d[s][i],expFilt)[t.size:2*t.size]) for s in signals]
 
 
@@ -253,7 +263,7 @@ for side,lbl in zip((-1,1),('target left','target right')):
         ax.set_xlabel('Time (ms)')
         title = lbl
         if not np.isnan(maskOn):
-            title += ' + mask'
+            title += ' + mask (' + str(int(round(maskOn*dt))) + ' ms)'
         title += ', decision = '
         if response[trial]==-1:
             title += 'left'
@@ -267,7 +277,7 @@ for side,lbl in zip((-1,1),('target left','target right')):
 
 
 # masking
-maskOnset = np.array([np.nan,2,4,6,8,10,12])
+maskOnset = np.array([2,4,6,8,10,12,np.nan])
 optoOnset = np.array([np.nan])
 
 targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=True)
@@ -285,8 +295,8 @@ for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1
                 d.append(sum([dt*result[side][maskOn][optoOn][measure].mean() for side in (-1,1)])/2)
             else:
                 d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
-    ax.plot(np.array(maskOnset[1:])*dt,d[1:],'ko')
-    ax.plot(125,d[0],'ko')
+    ax.plot(np.array(maskOnset[:-1])*dt,d[:-1],'ko')
+    ax.plot(125,d[-1],'ko')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
