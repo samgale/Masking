@@ -88,11 +88,11 @@ def runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=Fa
                 sig = 'mask'
             for optoOn in optoOnset:
                 if side < 0:
-                    Lsignal = signals[sig]['contra'][maskOn]
-                    Rsignal = signals[sig]['ipsi'][maskOn]
+                    Lsignal = signals[sig]['contra'][maskOn].copy()
+                    Rsignal = signals[sig]['ipsi'][maskOn].copy()
                 else:
-                    Lsignal = signals[sig]['ipsi'][maskOn]
-                    Rsignal = signals[sig]['contra'][maskOn]
+                    Lsignal = signals[sig]['ipsi'][maskOn].copy()
+                    Rsignal = signals[sig]['contra'][maskOn].copy()
                 if not np.isnan(optoOn):
                     optoLatency = targetLatency + optoOn
                     Lsignal[int(optoLatency):] = 0
@@ -138,8 +138,10 @@ def runTrial(sigma,decay,inhib,threshold,Linitial,Rinitial,Lsignal,Rsignal,recor
     return response,responseTime,Lrecord,Rrecord
 
 
-def createSignals(target,mask,maskOnset,psth):
-    for sig in ('targetOnly','maskOnly','mask'):
+def createSignals(psth,maskOnset):
+    target = psth['targetOnly']['contra'][np.nan]
+    mask = psth['maskOnly']['contra'][0]
+    for sig in psth.keys():
         signals[sig] = {}
         for hemi in ('ipsi','contra'):
             signals[sig][hemi] = {}
@@ -148,11 +150,20 @@ def createSignals(target,mask,maskOnset,psth):
             elif sig=='maskOnly':
                 signals[sig][hemi][0] = psth[sig][hemi][0]
             else:
-                for mo in maskOnset:
+                for mo in maskOnset[(~np.isnan(maskOnset)) & (maskOnset>0)]:
                     msk = np.zeros(mask.size)
-                    msk[mo:] = mask[:-mo]
+                    msk[int(mo):] = mask[:-int(mo)]
                     signals[sig][hemi][mo] = np.maximum(target,msk) if hemi=='contra' else msk
+    normalizeSignals(signals)
     return signals
+
+
+def normalizeSignals(signals):
+    smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
+    for sig in signals.keys():
+        for hemi in ('ipsi','contra'):
+            for mo in signals[sig][hemi]:
+                signals[sig][hemi][mo] /= smax
 
 
 ## fixed parameters
@@ -187,18 +198,11 @@ for sig in signalNames:
             p -= p[t<=25].mean()
             popPsthFilt[sig][hemi][maskOn] = p
             
-# normalize
-pmax = max([popPsthFilt[sig][hemi][mo].max() for sig in signalNames for hemi in ('ipsi','contra') for mo in popPsthFilt[sig][hemi]])
-for sig in signalNames:
-    for hemi in ('ipsi','contra'):
-        for mo in popPsthFilt[sig][hemi]:
-            popPsthFilt[sig][hemi][mo] /= pmax
+normalizeSignals(popPsthFilt)
             
 # sythetic signals based on ephys response to target and mask only
-target = popPsthFilt['targetOnly']['contra'][np.nan]
-mask = popPsthFilt['maskOnly']['contra'][0]
-maskOnset = (2,3,4,6)                
-syntheticSignals = createSignals(target,mask,maskOnset,popPsthFilt)
+maskOnset = np.array([2,3,4,6])                
+syntheticSignals = createSignals(popPsthFilt,maskOnset)
 
 # plot signals
 for d in (popPsthFilt,syntheticSignals):
@@ -249,10 +253,10 @@ optoOnset = np.array([np.nan])
 responseRate = 2 * [0.8,0.8,0.4]
 fractionCorrect = 2 * [0.55,0.8,0.9]
 
-sigmaRange = slice(0.1,1,0.05)
+sigmaRange = slice(0.1,0.9,0.05)
 decayRange = slice(0,0.8,0.05)
-inhibRange = slice(0,1,1) #slice(0,0.4,0.05)
-thresholdRange = slice(1,11,0.5)
+inhibRange = slice(0,0.4,0.05)
+thresholdRange = slice(1,6,0.5)
 
 signals = syntheticSignals
 
@@ -335,8 +339,9 @@ for side,lbl in zip((-1,1),('target left','target right')):
 # masking
 maskOnset = np.array([2,4,6,8,10,12,np.nan])
 optoOnset = np.array([np.nan])
+signals = createSignals(target,mask,maskOnset)
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=True)
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=True)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
