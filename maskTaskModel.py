@@ -21,8 +21,8 @@ import fileIO
 
 def getModelError(paramsToFit,*fixedParams):
     sigma,decay,inhib,threshold = paramsToFit
-    target,mask,maskOnset,optoOnset,responseRate,fractionCorrect = fixedParams
-    targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold)
+    signals,maskOnset,optoOnset,responseRate,fractionCorrect = fixedParams
+    targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold)
     result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
     modelResponseRate = []
     modelFractionCorrect = []
@@ -68,8 +68,7 @@ def getOnsetTimes(trialOnsets):
     return onset
 
 
-@njit
-def runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=False):
+def runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=False):
     targetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -80,18 +79,20 @@ def runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold,recor
     Linitial = Rinitial = 0
     for side in (-1,1):
         for maskOn in maskOnset:
+            if np.isnan(maskOn):
+                sig = 'targetOnly'
+                maskOn = np.nan
+            elif maskOn==0:
+                sig = 'maskOnly'
+            else:
+                sig = 'mask'
             for optoOn in optoOnset:
                 if side < 0:
-                    Lsignal = target
-                    Rsignal = np.zeros(trialEnd)
+                    Lsignal = signals[sig]['contra'][maskOn]
+                    Rsignal = signals[sig]['ipsi'][maskOn]
                 else:
-                    Lsignal = np.zeros(trialEnd)
-                    Rsignal = target
-                if not np.isnan(maskOn):
-                    m = np.zeros(trialEnd)
-                    m[int(maskOn):] = mask[:-int(maskOn)]
-                    Lsignal = np.maximum(Lsignal,m)
-                    Rsignal = np.maximum(Rsignal,m)
+                    Lsignal = signals[sig]['ipsi'][maskOn]
+                    Rsignal = signals[sig]['contra'][maskOn]
                 if not np.isnan(optoOn):
                     optoLatency = targetLatency + optoOn
                     Lsignal[int(optoLatency):] = 0
@@ -106,7 +107,6 @@ def runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold,recor
                     if record:
                         Lrecord.append(result[2])
                         Rrecord.append(result[3])
-    
     return np.array(targetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
@@ -135,11 +135,27 @@ def runTrial(sigma,decay,inhib,threshold,Linitial,Rinitial,Lsignal,Rsignal,recor
             response = 1
         t += 1
     responseTime = t-1
-    
     return response,responseTime,Lrecord,Rrecord
 
 
-# fixed parameters
+def createSignals(target,mask,maskOnset,psth):
+    for sig in ('targetOnly','maskOnly','mask'):
+        signals[sig] = {}
+        for hemi in ('ipsi','contra'):
+            signals[sig][hemi] = {}
+            if sig=='targetOnly':
+                signals[sig][hemi][np.nan] = psth[sig][hemi][np.nan]
+            elif sig=='maskOnly':
+                signals[sig][hemi][0] = psth[sig][hemi][0]
+            else:
+                for mo in maskOnset:
+                    msk = np.zeros(mask.size)
+                    msk[mo:] = mask[:-mo]
+                    signals[sig][hemi][mo] = np.maximum(target,msk) if hemi=='contra' else msk
+    return signals
+
+
+## fixed parameters
 trialsPerCondition = 1000
 dt = 1/120*1000
 trialEndTime = 200
@@ -147,12 +163,12 @@ trialEnd = int(round(trialEndTime/dt))
 targetLatency = int(round(40/dt))
 
 
-# create model input signals from mean ephys responses
+## create model input signals from population ephys responses
 pkl = fileIO.getFile(fileType='*.pkl')
 popPsth = pickle.load(open(pkl,'rb'))
 
 t = np.arange(0,trialEnd*dt,dt)
-signals = ('targetOnly','maskOnly','mask')
+signalNames = ('targetOnly','maskOnly','mask')
 
 #filtPts = t.size
 #expFilt = np.zeros(filtPts*2)
@@ -160,82 +176,95 @@ signals = ('targetOnly','maskOnly','mask')
 #expFilt /= expFilt.sum()
 
 popPsthFilt = {}
-for sig in signals:
+for sig in signalNames:
     popPsthFilt[sig] = {}
-    for side in ('left','right'):
-        popPsthFilt[sig][side] = {}
+    for side,hemi in zip(('left','right'),('ipsi','contra')):
+        popPsthFilt[sig][hemi] = {}
         for mo in popPsth[sig][side]:
-            maskOn = np.nan if mo==0 else mo
-            popPsthFilt[sig][side][maskOn] = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(popPsth[sig][side][mo],5,3))
-#            popPsthFilt[sig][maskOn] = np.interp(t,popPsth['t']*1000,np.convolve(popPsth[sig],expFilt)[t.size:2*t.size])
-            popPsthFilt[sig][side][maskOn] -= popPsthFilt[sig][side][maskOn][t<=25].mean()
+            maskOn = np.nan if sig=='targetOnly' else mo
+            p = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(popPsth[sig][side][mo],5,3))
+#            p = np.interp(t,popPsth['t']*1000,np.convolve(popPsth[sig],expFilt)[t.size:2*t.size])
+            p -= p[t<=25].mean()
+            popPsthFilt[sig][hemi][maskOn] = p
+            
+# normalize
+pmax = max([popPsthFilt[sig][hemi][mo].max() for sig in signalNames for hemi in ('ipsi','contra') for mo in popPsthFilt[sig][hemi]])
+for sig in signalNames:
+    for hemi in ('ipsi','contra'):
+        for mo in popPsthFilt[sig][hemi]:
+            popPsthFilt[sig][hemi][mo] /= pmax
+            
+# sythetic signals based on ephys response to target and mask only
+target = popPsthFilt['targetOnly']['contra'][np.nan]
+mask = popPsthFilt['maskOnly']['contra'][0]
+maskOnset = (2,3,4,6)                
+syntheticSignals = createSignals(target,mask,maskOnset,popPsthFilt)
+
+# plot signals
+for d in (popPsthFilt,syntheticSignals):
+    fig = plt.figure(figsize=(6,10))
+    n = 2+len(d['mask']['contra'].keys())
+    gs = matplotlib.gridspec.GridSpec(n,2)
+    axs = []
+    ymin = 0
+    ymax = 0
+    for j,hemi in enumerate(('ipsi','contra')):
+        i = 0
+        for sig in signalNames:
+            for mo in d[sig][hemi]:
+                ax = fig.add_subplot(gs[i,j])
+                p = d[sig][hemi][mo]
+                ax.plot(t,p,'k')
+                if i==n-1:
+                    ax.set_xlabel('Time (ms)')
+                else:
+                    ax.set_xticklabels([])
+                if j==0:
+                    ax.set_ylabel('Spikes/s')
+                    title = sig
+                    if sig=='mask':
+                        title += ', SOA '+str(round(mo/120*1000,1))+' ms'
+                    title += ', '+hemi
+                else:
+                    ax.set_yticklabels([])
+                    title = hemi
+                ax.set_title(title)
+                ymin = min(ymin,p.min())
+                ymax = max(ymax,p.max())
+                axs.append(ax)
+                i += 1
+    for ax in axs:
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        ax.set_xlim([0,trialEndTime])
+        ax.set_ylim([1.05*ymin,1.05*ymax])
+    plt.tight_layout()
 
 
 
-
-fig = plt.figure(figsize=(6,10))
-n = 2+len(popPsthFilt['mask']['right'].keys())
-gs = matplotlib.gridspec.GridSpec(n,2)
-axs = []
-ymin = 0
-ymax = 0
-for j,side in enumerate(('left','right')):
-    i = 0
-    for sig in signals:
-        for mo in popPsthFilt[sig][side]:
-            ax = fig.add_subplot(gs[i,j])
-            d = popPsthFilt[sig][side][mo]
-            ax.plot(t,d,'k')
-            moLbl = mo if np.isnan(mo) else round(mo/120*1000,1)
-            ax.set_title(sig+' , SOA '+str(moLbl)+' ms')
-            if j==0 and i==0:
-                ax.set_ylabel('Spikes/s')
-            if j==1 and i==n-1:
-                ax.set_xlabel('Time (ms)')
-            else:
-                ax.set_xticklabels([])
-            ymin = min(ymin,d.min())
-            ymax = max(ymax,d.max())
-            axs.append(ax)
-            i += 1
-for ax in axs:
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xlim([0,trialEndTime])
-    ax.set_ylim([1.05*ymin,1.05*ymax])
-plt.tight_layout()
-
-
-
-
-# fit model parameters
-maskOnset = np.array([np.nan,2])
+## fit model parameters
+maskOnset = np.array([2,6,np.nan])
 optoOnset = np.array([np.nan])
-responseRate = [0.4,0.8,0.4,0.8]
-fractionCorrect = [0.9,0.55,0.9,0.55]
-
-maskOnset = np.array([1,2,3,np.nan])
-maskOnset = np.array([2,4,6,np.nan])
-maskOnset = np.array([4,8,12,np.nan])
-optoOnset = np.array([np.nan])
-responseRate = [0.8,0.8,0.8,0.4,0.8,0.8,0.8,0.4]
-fractionCorrect = [0.55,0.7,0.8,0.9,0.55,0.7,0.8,0.9]
+responseRate = 2 * [0.8,0.8,0.4]
+fractionCorrect = 2 * [0.55,0.8,0.9]
 
 sigmaRange = slice(0.1,1,0.05)
 decayRange = slice(0,0.8,0.05)
-inhibRange = slice(0,0.4,0.05)
+inhibRange = slice(0,1,1) #slice(0,0.4,0.05)
 thresholdRange = slice(1,11,0.5)
 
+signals = syntheticSignals
 
-fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRange,inhibRange,thresholdRange),args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
+
+fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRange,inhibRange,thresholdRange),args=(signals,maskOnset,optoOnset,responseRate,fractionCorrect),full_output=True,finish=None)
 
 #finalFit = scipy.optimize.minimize(getModelError,fit[0],args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),method='Nelder-Mead')
 
 sigma,decay,inhib,threshold = fit[0]
 
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(target,mask,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=True)
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=True)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
@@ -248,7 +277,7 @@ x = [mo*dt for mo in maskOnset]
 x[-1] = x[-2]+x[0]
 xticklabels = [str(int(round(mo))) for mo in x]
 xticklabels[-1] = 'target only'
-for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.45,1.05)),('upper left','upper right')):
+for measure,ylim in  zip(('responseRate','fractionCorrect'),((0,1.05),(0,1.05))):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     d = []
@@ -267,7 +296,7 @@ for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.45,
     ax.set_ylim(ylim)
     ax.set_xlabel('Mask onset relative to target onset (ms)')
     ax.set_ylabel(ylabel[measure])
-    ax.legend(loc=loc)
+    ax.legend()
 
 
 for side,lbl in zip((-1,1),('target left','target right')):
@@ -275,16 +304,15 @@ for side,lbl in zip((-1,1),('target left','target right')):
     for maskOn in maskOnset:
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        ax.plot([0,200],[threshold,threshold],'r--')
-        ax.plot([0,200],[-threshold,-threshold],'b--')
+        ax.plot([0,200],[threshold,threshold],'k--')
         maskTrials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
         trial = np.where(sideTrials & maskTrials)[0][0]
         ax.plot(t,Rrecord[trial],'r')
-        ax.plot(t,-Lrecord[trial],'b')
+        ax.plot(t,Lrecord[trial],'b')
         for axside in ('right','top','left','bottom'):
             ax.spines[axside].set_visible(False)
         ax.tick_params(direction='out',right=False,top=False,left=False)
-        ax.set_xticks([0,200])
+        ax.set_xticks([0,50,100,150,200])
         ax.set_yticks([])
         ax.set_xlim([0,200])
         ax.set_ylim([-1.05*threshold,1.05*threshold])
