@@ -163,7 +163,7 @@ def normalizeSignals(signals):
     for sig in signals.keys():
         for hemi in ('ipsi','contra'):
             for mo in signals[sig][hemi]:
-                signals[sig][hemi][mo] /= smax
+                signals[sig][hemi][mo] = signals[sig][hemi][mo]/smax
 
 
 ## fixed parameters
@@ -255,8 +255,8 @@ fractionCorrect = 2 * [0.55,0.8,0.9]
 
 sigmaRange = slice(0.1,0.9,0.05)
 decayRange = slice(0,0.8,0.05)
-inhibRange = slice(0,0.4,0.05)
-thresholdRange = slice(1,6,0.5)
+inhibRange = slice(0,1,1) #slice(0,0.4,0.05)
+thresholdRange = slice(1,10,0.5)
 
 signals = syntheticSignals
 
@@ -281,7 +281,7 @@ x = [mo*dt for mo in maskOnset]
 x[-1] = x[-2]+x[0]
 xticklabels = [str(int(round(mo))) for mo in x]
 xticklabels[-1] = 'target only'
-for measure,ylim in  zip(('responseRate','fractionCorrect'),((0,1.05),(0,1.05))):
+for measure,ylim in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.475,1.025))):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     d = []
@@ -339,14 +339,14 @@ for side,lbl in zip((-1,1),('target left','target right')):
 # masking
 maskOnset = np.array([2,4,6,8,10,12,np.nan])
 optoOnset = np.array([np.nan])
-signals = createSignals(target,mask,maskOnset)
+signals = createSignals(popPsthFilt,maskOnset)
 
 targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=True)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
 
-for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.45,1.05),(60,140))):
+for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.475,1.025),(80,150))):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     d = []
