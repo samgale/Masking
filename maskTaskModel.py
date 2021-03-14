@@ -167,7 +167,7 @@ def normalizeSignals(signals):
 
 
 ## fixed parameters
-trialsPerCondition = 1000
+trialsPerCondition = 5000
 dt = 1/120*1000
 trialEndTime = 200
 trialEnd = int(round(trialEndTime/dt))
@@ -255,7 +255,7 @@ fractionCorrect = 2 * [0.55,0.8,0.9]
 
 sigmaRange = slice(0.1,0.9,0.05)
 decayRange = slice(0,0.8,0.05)
-inhibRange = slice(0,1,1) #slice(0,0.4,0.05)
+inhibRange = slice(0,0.4,0.05)
 thresholdRange = slice(1,10,0.5)
 
 signals = syntheticSignals
@@ -274,7 +274,7 @@ result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoO
 
 ylabel = {'responseRate': 'Response Rate',
           'fractionCorrect': 'Fraction Correct',
-          'responseTime': 'Decision Time (ms)'}
+          'responseTime': 'Mean Decision Time (ms)'}
 
 
 x = [mo*dt for mo in maskOnset]
@@ -337,16 +337,16 @@ for side,lbl in zip((-1,1),('target left','target right')):
 
 
 # masking
-maskOnset = np.array([2,4,6,8,10,12,np.nan])
+maskOnset = np.array([2,3,4,6,8,10,12,np.nan])
 optoOnset = np.array([np.nan])
 signals = createSignals(popPsthFilt,maskOnset)
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,record=True)
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
 
-for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.475,1.025),(80,150))):
+for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.475,1.025),(80,140))):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     d = []
@@ -371,48 +371,45 @@ for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1
 
 
 fig = plt.figure()
-ax = fig.add_subplot(2,1,1)
-mo = maskOnset[1:] + [np.nan]
-moLabels = [str(int(m)) for m in mo[:-1]] + ['target only']
+ax = fig.add_subplot(2,1,2)
 clrs = plt.cm.plasma(np.linspace(0,1,len(maskOnset)))[::-1]
-binWidth = 5
-bins = np.arange(50,200,binWidth)
-xlim = [50,200]
+lbls = [str(round(mo*dt,1))+' ms' for mo in maskOnset[:-1]]+['target only']
+xlim = [0,200]
+ntrials = []
 rt = []
-for maskOn,clr in zip(mo,clrs):
+for maskOn,clr in zip(maskOnset,clrs):
     trials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
-    trials = trials & (response!=0)
-    rt.append(responseTime[trials].astype(float))
-    c = (targetSide==response)[trials]
+    ntrials.append(trials.sum())
+    respTrials = trials & (response!=0)
+    rt.append(responseTime[respTrials].astype(float)*dt)
+    c = (targetSide==response)[respTrials]
     p = []
-    for i in bins:
-        j = (rt[-1]>i) & (rt[-1]<i+binWidth)
+    for i in t:
+        j = (rt[-1]>=i) & (rt[-1]<i+dt)
         p.append(np.sum(c[j])/np.sum(j))
-    ax.plot(bins,p,'-',color=clr)
+    ax.plot(t,p,'-',color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
 ax.set_xticks([50,100,150,200])
 ax.set_xlim(xlim)
-ax.set_ylim([0,1.01])
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Model Decision Time (ms)')
 ax.set_ylabel('Probability Correct')
 
-ax = fig.add_subplot(2,1,2)
-yticks = np.arange(len(rt))
-violin = ax.violinplot(rt,positions=yticks,vert=False,showextrema=False)
-for v,clr in zip(violin['bodies'],clrs):
-    v.set_color(clr)
-    v.set_alpha(1)
+ax = fig.add_subplot(2,1,1)
+for r,n,clr,lbl in zip(rt,ntrials,clrs,lbls):
+    s = np.sort(r)
+    c = [np.sum(r<=i)/n for i in s]
+    ax.plot(s,c,'-',color=clr,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
 ax.set_xticks([50,100,150,200])
-ax.set_yticks(yticks)
-ax.set_yticklabels(moLabels)
 ax.set_xlim(xlim)
-ax.set_ylim([-0.5,len(rt)-0.5])
-ax.set_xlabel('Decision Time (ms)')
-ax.set_ylabel('SOA (ms)')
+ax.set_ylim([0,1.02])
+ax.set_ylabel('Cumulative Probability')
+ax.legend(fontsize=8,loc='upper left')
 plt.tight_layout()
 
 
@@ -421,10 +418,10 @@ plt.tight_layout()
 
 
 # opto masking
-maskOnset = np.array([np.nan,17])
-optoOnset = np.array([np.nan,17,33,50,67,83,100])
+maskOnset = np.array([2,np.nan])
+optoOnset = np.array([-2,0,2,4,6,8,10,12,np.nan])
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(maskOnset,optoOnset,sigma,decay,threshold,record=True)
+targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
@@ -439,14 +436,14 @@ for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1
                 d.append(sum([result[side][maskOn][optoOn][measure].mean() for side in (-1,1)])/2)
             else:
                 d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
-        ax.plot(optoOnset[1:],d[1:],clr+'o')
-        ax.plot(125,d[0],clr+'o',label=lbl)
+        ax.plot(np.array(optoOnset[:-1])*dt,d[1:],clr+'o')
+        ax.plot(125,d[-1],clr+'o',label=lbl)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
     ax.set_xticks([0,50,100,125])
     ax.set_xticklabels([0,50,100,'no opto'])
-    ax.set_xlim([0,137.5])
+#    ax.set_xlim([0,137.5])
     ax.set_ylim(ylim)
     ax.set_xlabel('Opto onset relative to target onset (ms)')
     ax.set_ylabel(ylabel[measure])
