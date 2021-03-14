@@ -353,7 +353,7 @@ for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1
     for maskOn in maskOnset:
         for optoOn in optoOnset:
             if measure=='responseTime':
-                d.append(sum([dt*result[side][maskOn][optoOn][measure].mean() for side in (-1,1)])/2)
+                d.append(sum([result[side][maskOn][optoOn][measure].mean()*dt for side in (-1,1)])/2)
             else:
                 d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
     ax.plot(np.array(maskOnset[:-1])*dt,d[:-1],'ko')
@@ -419,31 +419,31 @@ plt.tight_layout()
 
 # opto masking
 maskOnset = np.array([2,np.nan])
-optoOnset = np.array([-2,0,2,4,6,8,10,12,np.nan])
+optoOnset = np.array([0,2,4,6,8,10,12,np.nan])
 
 targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold)
 
 result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
 
-for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.45,1.05),(50,110))):
+for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.475,1.025),(80,130))):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)   
-    for maskOn,clr,lbl in zip(maskOnset,'cb',('target only','target + mask')):
+    for maskOn,clr,lbl in zip(maskOnset,'bc',('target + mask','target only')):
         d = []
         for optoOn in optoOnset:
             if measure=='responseTime':
-                d.append(sum([result[side][maskOn][optoOn][measure].mean() for side in (-1,1)])/2)
+                d.append(sum([result[side][maskOn][optoOn][measure].mean()*dt for side in (-1,1)])/2)
             else:
                 d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
-        ax.plot(np.array(optoOnset[:-1])*dt,d[1:],clr+'o')
+        ax.plot(np.array(optoOnset[:-1])*dt,d[:-1],clr+'o')
         ax.plot(125,d[-1],clr+'o',label=lbl)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
     ax.set_xticks([0,50,100,125])
     ax.set_xticklabels([0,50,100,'no opto'])
-#    ax.set_xlim([0,137.5])
+    ax.set_xlim([-12.5,137.5])
     ax.set_ylim(ylim)
     ax.set_xlabel('Opto onset relative to target onset (ms)')
     ax.set_ylabel(ylabel[measure])
