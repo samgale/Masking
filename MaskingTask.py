@@ -202,11 +202,21 @@ class MaskingTask(TaskControl):
             self.probMask = 0.6
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
-        elif name == 'mask pos':
+        elif name == 'masking2':
             self.setDefaultParams('masking',taskVersion)
+            self.maskFrames = [78]
+            
+        elif name == 'mask position':
+            self.setDefaultParams('masking2',taskVersion)
             self.normMaskPos.append([(0,-0.25),(0,0.25)])
             self.maskOnset = [2,4,6]
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
+            
+        elif name == 'mask duration':
+            self.setDefaultParams('masking2',taskVersion)
+            self.maskOnset = [2]
+            self.maskFrames = [2,4,6,8,78]
+            self.probCatch = 1 / (1 + 2*len(self.maskFrames))
             
         elif name == 'opto timing':
             self.setDefaultParams('testing',taskVersion)
