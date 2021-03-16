@@ -485,7 +485,7 @@ plt.tight_layout()
 
 
 # plot response to visual stimuli without opto
-respThresh = 0 # stdev
+respThresh = 5 # stdev
 stimLabels = ('targetOnly','maskOnly','mask')
 respLabels = ('all','go','nogo')
 cellTypeLabels = ('all','FS','RS')
@@ -662,7 +662,7 @@ plt.tight_layout()
 
 
 popPsth = {stim: {side: {} for side in ('left','right')} for stim in stimLabels}
-for cellType in ('all',):
+for cellType in ('RS',):
     for stim in stimLabels:
         for side in ('left','right'):
             p = psth[cellType][stim][side]['all']
