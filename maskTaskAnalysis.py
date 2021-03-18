@@ -574,8 +574,8 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
                     lbl = 'target+mask, SOA '+str(round(1000*mo/obj.frameRate,1))+' ms' if stim=='mask' else stim
                     rlbl = '' if resp=='all' else ' '+resp
                     lbl += ' ('+str(ntrials[stim][side][resp][mo])+rlbl+' trials)'
-                    tme = t+2/obj.frameRate if stim=='maskOnly' else t
-                    ax.plot(tme,m,color=c,label=lbl)
+#                    tme = t+2/obj.frameRate if stim=='maskOnly' else t
+                    ax.plot(t,m,color=c,label=lbl)
         #            ax.fill_between(t,m+s,m-s,color=c,alpha=0.25)
                     ymin = min(ymin,np.min(m[(t>=xlim[0]) & (t<=xlim[1])]))
                     ymax = max(ymax,np.max(m[(t>=xlim[0]) & (t<=xlim[1])]))
@@ -661,13 +661,13 @@ for j,cellType in enumerate(('FS','RS')):
 plt.tight_layout()
 
 
-popPsth = {stim: {side: {} for side in ('left','right')} for stim in stimLabels}
-for cellType in ('RS',):
+popPsth = {stim: {hemi: {} for hemi in ('ipsi','contra')} for stim in stimLabels}
+for cellType in ('all',):
     for stim in stimLabels:
-        for side in ('left','right'):
+        for side,hemi in zip(('left','right'),('ipsi','contra')):
             p = psth[cellType][stim][side]['all']
             for mo in p.keys():
-                popPsth[stim][side][mo] = np.mean(np.array(p[mo])[respCells[cellType]],axis=0)
+                popPsth[stim][hemi][mo] = np.mean(np.array(p[mo])[respCells[cellType]],axis=0)
 popPsth['t'] = t
             
 pkl = fileIO.saveFile(fileType='*.pkl')
