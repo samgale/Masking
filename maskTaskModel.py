@@ -161,11 +161,9 @@ def createSignals(psth,maskOnset,gamma):
                     msk = np.zeros(mask.size)
                     msk[int(mo):] = mask[:-int(mo)]
 #                    signals[sig][hemi][mo] = target+msk*(1-np.exp(-mo/tau)) if hemi=='contra' else msk
-#                    signals[sig][hemi][mo] = target+msk/(1+gamma*target[np.argmax(msk)]) if hemi=='contra' else msk
                     trg = target
                     trg[trg<0] = 0
                     signals[sig][hemi][mo] = target+msk/(1+gamma*trg) if hemi=='contra' else msk
-#                    signals[sig][hemi][mo] = target+gamma*(msk/(alpha+trg)) if hemi=='contra' else msk
     return signals
 
 
@@ -272,7 +270,7 @@ plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
 
 
 ## fit model parameters
-trialsPerCondition = 100
+trialsPerCondition = 1000
 maskOnset = np.array([2,4,6,np.nan])
 optoOnset = np.array([np.nan])
 catchRate = 0.1
