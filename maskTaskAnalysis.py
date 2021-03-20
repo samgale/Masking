@@ -361,6 +361,7 @@ class MaskTaskData():
         fileIO.hdf5ToObj(self,filePath)
         
 
+
 obj = MaskTaskData()
 
 obj.saveToHdf5()
@@ -376,13 +377,15 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     exps.append(obj)
     
 
+
 # masking
 frameRate = 120
-maskOnset = np.array([0,2,3,4,6])
+maskOnset = np.array([2,3,4,6,0])
 respRate = np.full((len(exps),2,len(maskOnset)+2),np.nan)
 fracCorr = respRate.copy()
-meanReacTimeCorr = respRate.copy()
-meanReacTimeIncorr = respRate.copy()
+meanReacTime = respRate.copy()
+meanReacTimeCorrect = respRate.copy()
+meanReacTimeIncorrect = respRate.copy()
 for n,obj in enumerate(exps):
     validTrials = obj.engaged & (~obj.earlyMove)
     for stim in ('maskOnly','mask','targetOnly','catch'):
@@ -391,6 +394,8 @@ for n,obj in enumerate(exps):
             moTrials = stimTrials  & (obj.maskOnset==mo)
             if moTrials.sum()>0:
                 if stim=='targetOnly':
+                    j = -3
+                elif stim=='maskOnly':
                     j = -2
                 elif stim=='catch':
                     j = -1  
@@ -398,24 +403,86 @@ for n,obj in enumerate(exps):
                     trials = moTrials & (obj.rewardDir==rd) if stim in ('targetOnly','mask') else moTrials
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,i,j] = respTrials.sum()/trials.sum()
+                    meanReacTime[n,i,j] = np.nanmedian(obj.reactionTime[respTrials])
                     if stim in ('targetOnly','mask'):
                         corrTrials = obj.response[respTrials]==1
                         fracCorr[n,i,j] = corrTrials.sum()/respTrials.sum()
-                        meanReacTimeCorr[n,i,j] = np.median(obj.reactionTime[respTrials][corrTrials])
-                        meanReacTimeIncorr[n,i,j] = np.median(obj.reactionTime[respTrials][~corrTrials])
+                        meanReacTimeCorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][corrTrials])
+                        meanReacTimeIncorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][~corrTrials])
                     else:
                         break
 
-x = list(np.round(maskOnset/frameRate*1000).astype(int))+[67,83]
-for i,obj in enumerate(exps):
-    for data in (respRate[i],fracCorr[i],meanReacTimeCorr[i],meanReacTimeIncorr[i]):                    
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-        for d,clr in zip(data,'br'):
-            ax.plot(x,d,'o',color=clr)
-        ax.plot(x,np.nanmean(data,axis=0),'ko')
+xticks = list(maskOnset[:-1]/frameRate*1000)+[67,83,100]
+xticklabels = [str(int(round(x))) for x in xticks[:-3]]+['target\nonly','mask\nonly','no\nstimulus']
+xlim = [8,108]
+
+# single experiment
+i = 0
+for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0,1),None),('Response Rate','Fraction Correct','Reaction Time (ms)')):                  
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for d,clr in zip(data,'br'):
+        ax.plot(xticks[:-3],d[:-3],'o',color=clr)
+    ax.plot(xticks,np.nanmean(data,axis=0),'ko')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    ax.set_xlabel('Mask onset relative to target onset (ms)')
+    ax.set_ylabel(ylabel)
+    plt.tight_layout()
+    
+# population
+for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Reaction Time (ms)')):        
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    meanLR = np.nanmean(data,axis=1)
+    mean = np.nanmean(meanLR,axis=0)
+    sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    ax.plot(xticks,mean,'ko')
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'k-')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    ax.set_xlabel('Mask onset relative to target onset (ms)')
+    ax.set_ylabel(ylabel)
+    plt.tight_layout()
+    
+# reaction time on correct and incorrect trials
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for data,clr,lbl in zip((meanReacTimeCorrect,meanReacTimeIncorrect),('k','0.5'),('correct','incorrect')):
+    meanLR = np.nanmean(data,axis=1)
+    mean = np.nanmean(meanLR,axis=0)
+    sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    ax.plot(xticks,mean,'o',color=clr,label=lbl)
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'-',color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_xlim(xlim)
+ax.set_xlabel('Mask onset relative to target onset (ms)')
+ax.set_ylabel('Reaction time (ms)')
+ax.legend()
+plt.tight_layout()
+
+# fraction correct vs reaction time
 
     
+
 
 # unilateral opto (old)
 behavDataPath = fileIO.getFile('',fileType='*.hdf5')
