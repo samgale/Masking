@@ -156,14 +156,22 @@ class MaskTaskData():
         self.frameDisplayLag = 2
         
         
-    def loadBehavData(self):
-        self.behavDataPath = fileIO.getFile('Select behavior data file',fileType='*.hdf5')
+    def loadBehavData(self,filePath=None):
+        if filePath is None:
+            self.behavDataPath = fileIO.getFile('Select behavior data file',fileType='*.hdf5')
+        else:
+            self.behavDataPath = filePath
         if len(self.behavDataPath)==0:
             return
         self.behav = True
+        
         behavData = h5py.File(self.behavDataPath,'r')
         self.behavFrameIntervals = behavData['frameIntervals'][:]
         self.frameRate = round(1/np.median(self.behavFrameIntervals))
+        if self.ephys and self.behavFrameIntervals.size+1>self.frameSamples.size:
+            self.ntrials = np.sum(behavData['trialEndFrame'][:]<self.frameSamples.size)
+        else:
+            self.ntrials = behavData['trialEndFrame'].size
         self.quiescentFrames = behavData['quiescentFrames'][()]
         self.trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:self.ntrials]
         assert(np.unique(self.trialOpenLoopFrames).size==1)
@@ -174,10 +182,6 @@ class MaskTaskData():
         self.wheelRewardDistance = behavData['wheelRewardDistance'][()]
         self.maxQuiescentMoveDist = behavData['maxQuiescentMoveDist'][()]
         self.deltaWheelPos = behavData['deltaWheelPos'][()]
-        if self.ephys and self.behavFrameIntervals.size+1>self.frameSamples.size:
-            self.ntrials = np.sum(behavData['trialEndFrame'][:]<self.frameSamples.size)
-        else:
-            self.ntrials = behavData['trialEndFrame'].size
         self.trialType = behavData['trialType'][:self.ntrials]
         self.stimStart = behavData['trialStimStartFrame'][:self.ntrials]
         self.targetContrast = behavData['trialTargetContrast'][:self.ntrials]
@@ -191,6 +195,41 @@ class MaskTaskData():
         self.responseFrame = behavData['trialResponseFrame'][:self.ntrials]
         self.optoChan = behavData['trialOptoChan'][:self.ntrials]
         self.optoOnset = behavData['trialOptoOnset'][:self.ntrials]
+        
+        self.findEngagedTrials()
+        self.getWheelPos()
+        self.findEarlyMoveTrials()
+        self.calcReactionTime()
+        
+    def findEngagedTrials(self,engagedThresh=10):
+        self.engaged = np.ones(self.ntrials,dtype=bool)
+        trials = (obj.trialType!='catch') & np.isnan(self.optoOnset)
+        for i in range(self.ntrials):
+            r = self.responseDir[:i+1][trials[:i+1]]
+            if len(r)>engagedThresh:
+                if all(np.isnan(r[-engagedThresh:])):
+                    self.engaged[i] = False
+                    
+    def getWheelPos(self,preFrames=0,postFrames=0):            
+        self.wheelPos = np.cumsum(np.stack([self.deltaWheelPos[s-preFrames:s-preFrames+self.openLoopFrames+obj.responseWindowFrames+postFrames] for s in self.stimStart]),axis=1)
+        self.wheelPos *= obj.wheelRadius
+        
+    def findEarlyMoveTrials(self,earlyMoveThresh=None):
+        if earlyMoveThresh is None:
+            earlyMoveThresh = self.maxQuiescentMoveDist
+        obj.earlyMove = np.any(self.wheelPos[:,:self.openLoopFrames]>earlyMoveThresh,axis=1)
+        
+    def calcReactionTime(self,moveInitThresh=0.2):
+        self.reactionTime = np.full(obj.ntrials,np.nan)
+        t = 1000/self.frameRate*(np.arange(self.wheelPos.shape[1]))
+        tinterp = np.arange(t[0],t[-1])
+        for i,w in enumerate(self.wheelPos):
+            winterp = np.interp(tinterp,t,np.absolute(w))
+            respInd = np.where(winterp>=self.wheelRewardDistance)[0]
+            if len(respInd)>0:
+                initInd = np.where(winterp[:respInd[0]]<=moveInitThresh)[0]
+                if len(initInd)>0:
+                    self.reactionTime[i] = tinterp[initInd[-1]]+1
     
     
     def loadRFData(self):    
@@ -331,41 +370,50 @@ obj.loadFromHdf5()
 
 
 exps = []
-while True:
-    f = fileIO.getFile('choose masking ephys experiment',fileType='*.hdf5')
-    if f!='':
-        obj = MaskTaskData()
-        obj.loadFromHdf5(f)
-        exps.append(obj)
-    else:
-        break
+for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
+    obj = MaskTaskData()
+    obj.loadBehavData(f)
+    exps.append(obj)
     
 
-# new
-engagedThresh = 10
-unengaged = np.where(np.correlate(obj.response==0,np.ones(engagedThresh),mode='valid')==engagedThresh)[0]
-firstUnengagedTrial = unengaged[0] if len(unengaged)>0 else obj.ntrials
-    
-    
-wheelPos = np.cumsum(np.stack([obj.deltaWheelPos[s:s+obj.openLoopFrames+obj.responseWindowFrames+1] for s in obj.stimStart]),axis=1)
-wheelPos *= obj.wheelRadius
+# masking
+frameRate = 120
+maskOnset = np.array([0,2,3,4,6])
+respRate = np.full((len(exps),2,len(maskOnset)+2),np.nan)
+fracCorr = respRate.copy()
+meanReacTimeCorr = respRate.copy()
+meanReacTimeIncorr = respRate.copy()
+for n,obj in enumerate(exps):
+    validTrials = obj.engaged & (~obj.earlyMove)
+    for stim in ('maskOnly','mask','targetOnly','catch'):
+        stimTrials = validTrials & (obj.trialType==stim)
+        for j,mo in enumerate(maskOnset):
+            moTrials = stimTrials  & (obj.maskOnset==mo)
+            if moTrials.sum()>0:
+                if stim=='targetOnly':
+                    j = -2
+                elif stim=='catch':
+                    j = -1  
+                for i,rd in enumerate((1,-1)):
+                    trials = moTrials & (obj.rewardDir==rd) if stim in ('targetOnly','mask') else moTrials
+                    respTrials = trials & (~np.isnan(obj.responseDir))
+                    respRate[n,i,j] = respTrials.sum()/trials.sum()
+                    if stim in ('targetOnly','mask'):
+                        corrTrials = obj.response[respTrials]==1
+                        fracCorr[n,i,j] = corrTrials.sum()/respTrials.sum()
+                        meanReacTimeCorr[n,i,j] = np.median(obj.reactionTime[respTrials][corrTrials])
+                        meanReacTimeIncorr[n,i,j] = np.median(obj.reactionTime[respTrials][~corrTrials])
+                    else:
+                        break
 
-initThresh = 0.5
-t = 1000/obj.frameRate*(np.arange(wheelPos.shape[1]))
-tinterp = np.arange(t[0],t[-1])
-
-obj.earlyMove = np.zeros(obj.ntrials,dtype=bool)
-obj.reactionTime = np.full(obj.ntrials,np.nan)
-for i,w in enumerate(wheelPos):
-    if any(w[:obj.openLoopFrames]>obj.maxQuiescentMoveDist):
-        obj.earlyMove[i] = True
-    winterp = np.interp(tinterp,t,np.absolute(w))
-    respInd = np.where(winterp>=obj.wheelRewardDistance)[0]
-    if len(respInd)>0:
-        initInd = np.where(winterp[:respInd[0]]<=initThresh)[0]
-        if len(initInd)>0:
-            obj.reactionTime[i] = tinterp[initInd[-1]]+1
-    
+x = list(np.round(maskOnset/frameRate*1000).astype(int))+[67,83]
+for i,obj in enumerate(exps):
+    for data in (respRate[i],fracCorr[i],meanReacTimeCorr[i],meanReacTimeIncorr[i]):                    
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        for d,clr in zip(data,'br'):
+            ax.plot(x,d,'o',color=clr)
+        ax.plot(x,np.nanmean(data,axis=0),'ko')
 
     
 
