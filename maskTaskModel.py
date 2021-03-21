@@ -19,32 +19,20 @@ import fileIO
 
 
 
-def getModelError(paramsToFit,*fixedParams):
+def calcModelError(paramsToFit,*fixedParams):
     sigma,decay,inhib,threshold,trialEnd = paramsToFit
     signals,maskOnset,optoOnset,trialsPerCondition,responseRate,fractionCorrect = fixedParams
     targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
     result = analyzeSession(maskOnset,optoOnset,targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
-    modelResponseRate = []
-    modelFractionCorrect = []
-    for side in (1,0):
-        mo = [np.nan] if side==0 else maskOnset
-        for maskOn in mo:
-            for optoOn in optoOnset:
-                modelResponseRate.append(result[side][maskOn][optoOn]['responseRate'])
-                if side!=0 and maskOn!=0:
-                    modelFractionCorrect.append(result[side][maskOn][optoOn]['fractionCorrect'])
-    if any(r==0 for r in modelResponseRate):
-        return 1000
-    else:
-        respRateError = np.sum((np.array(responseRate)-np.array(modelResponseRate))**2)
-        fracCorrError = np.sum((np.array(fractionCorrect)-np.array(modelFractionCorrect))**2)
-        return respRateError + fracCorrError
+    respRateError = np.nansum((responseRate-result['responseRate'])**2)
+    fracCorrError = np.nansum((fractionCorrect-result['fractionCorrect'])**2)
+    return respRateError + fracCorrError
 
 
 def analyzeSession(maskOnset,optoOnset,targetSide,trialMaskOnset,trialOptoOnset,response,responseTime):
     result = {}
-#    maskOnset = getOnsetTimes(trialMaskOnset)
-#    optoOnset = getOnsetTimes(trialOptoOnset)
+    responseRate = []
+    fractionCorrect = []
     for side in (1,0):
         result[side] = {}
         sideTrials = targetSide==side
@@ -56,19 +44,19 @@ def analyzeSession(maskOnset,optoOnset,targetSide,trialMaskOnset,trialOptoOnset,
                 optoTrials = np.isnan(trialOptoOnset) if np.isnan(optoOn) else trialOptoOnset==optoOn
                 trials = sideTrials & maskTrials & optoTrials
                 responded = response[trials]!=0
-                correct = response[trials]==side
+                responseRate.append(np.sum(responded)/np.sum(trials))
                 result[side][maskOn][optoOn] = {}
-                result[side][maskOn][optoOn]['responseRate'] = np.sum(responded)/np.sum(trials)
-                result[side][maskOn][optoOn]['fractionCorrect'] = np.sum(correct[responded])/np.sum(responded)
+                result[side][maskOn][optoOn]['responseRate'] = responseRate[-1]
                 result[side][maskOn][optoOn]['responseTime'] = responseTime[trials][responded]
+                if side!=0 and maskOn!=0:
+                    correct = response[trials]==side
+                    fractionCorrect.append(np.sum(correct[responded])/np.sum(responded))
+                    result[side][maskOn][optoOn]['fractionCorrect'] = fractionCorrect[-1]
+                else:
+                    fractionCorrect.append(np.nan)
+    result['responseRate'] = np.array(responseRate)
+    result['fractionCorrect'] = np.array(fractionCorrect)
     return result
-
-
-#def getOnsetTimes(trialOnsets):
-#    onset = np.unique(trialOnsets)
-#    if any(np.isnan(onset)):
-#        onset = list(onset[~np.isnan(onset)]) + [np.nan]
-#    return onset
 
 
 def runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,record=False):
@@ -231,15 +219,14 @@ def plotSignals(signalList,tmes,clrs):
 
 
 
-
-## fixed parameters
+# fixed parameters
 dt = 1/120*1000
 trialEndTimeMax = 200
 trialEndMax = int(round(trialEndTimeMax/dt))
 targetLatency = int(round(4/120*1000/dt))
 
 
-## create model input signals from population ephys responses
+# create model input signals from population ephys responses
 popPsthFilePath = fileIO.getFile(fileType='*.pkl')
 popPsth = pickle.load(open(popPsthFilePath,'rb'))
 
@@ -271,18 +258,14 @@ normalizeSignals(popPsthFilt)
 
 # sythetic signals based on ephys response to target and mask only
 maskOnset = np.array([2,3,4,6])
-#tau = 24/dt 
-
 
 gammaRange = slice(1,50,1)
 fit = scipy.optimize.brute(calcSignalError,(gammaRange,),args=(popPsthFilt,maskOnset),full_output=True,finish=None)
 
-gamma = fit[0]
+gamma = 12
 syntheticSignals = createSignals(popPsthFilt,maskOnset,gamma)
 
-
 plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
-
 
 
 
@@ -291,13 +274,11 @@ respRateFilePath = fileIO.getFile(fileType='*.npy')
 respRateData = np.load(respRateFilePath)
 respRateMean = np.nanmean(np.nanmean(respRateData,axis=1),axis=0)
 respRateSem = np.nanmean(np.nanmean(respRateData,axis=1),axis=0)/(len(respRateData)**0.5)
-responseRate = list(respRateMean[:-1])+[respRateMean[-1]]
 
 fracCorrFilePath = fileIO.getFile(fileType='*.npy')
 fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
-fractionCorrect = list(fracCorrMean[:-2])
 
 trialsPerCondition = 5000
 maskOnset = [2,3,4,6,np.nan,0]
@@ -312,7 +293,7 @@ trialEndRange = slice(10,22,2)
 signals = syntheticSignals
 
 
-fit = scipy.optimize.brute(getModelError,(sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange),args=(signals,maskOnset,optoOnset,trialsPerCondition,responseRate,fractionCorrect),full_output=True,finish=None)
+fit = scipy.optimize.brute(calcModelError,(sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange),args=(signals,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean),full_output=True,finish=None)
 
 #finalFit = scipy.optimize.minimize(getModelError,fit[0],args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),method='Nelder-Mead')
 
@@ -334,19 +315,10 @@ xlim = [8,108]
 for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.4,1.03)),('upper right','upper left')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    d = []
-    for maskOn in maskOnset:
-        for optoOn in optoOnset:
-            for side in (1,):
-                d.append(result[side][maskOn][optoOn][measure])
-    if measure=='responseRate':
-        y = responseRate
-        side = 0
-        d.append(result[side][np.nan][optoOn][measure])
-    else:
-        y = fractionCorrect
-    ax.plot(xticks[:len(y)],y,'o',mec='k',mfc='none',ms=8,mew=2,label='mice')
-    ax.plot(xticks[:len(y)],d[:len(y)],'o',mec='r',mfc='none',ms=8,mew=2,label='model')
+    y = respRateMean if measure=='responseRate' else fracCorrMean
+    d = result[measure]
+    ax.plot(xticks,y,'o',mec='k',mfc='none',ms=8,mew=2,label='mice')
+    ax.plot(xticks,d,'o',mec='r',mfc='none',ms=8,mew=2,label='model')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
