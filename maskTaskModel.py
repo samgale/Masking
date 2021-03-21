@@ -229,8 +229,8 @@ targetLatency = int(round(4/120*1000/dt))
 
 
 ## create model input signals from population ephys responses
-pkl = fileIO.getFile(fileType='*.pkl')
-popPsth = pickle.load(open(pkl,'rb'))
+popPsthFilePath = fileIO.getFile(fileType='*.pkl')
+popPsth = pickle.load(open(popPsthFilePath,'rb'))
 
 t = np.arange(0,trialEndMax*dt,dt)
 signalNames = ('targetOnly','maskOnly','mask')
@@ -273,8 +273,17 @@ plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
 trialsPerCondition = 1000
 maskOnset = np.array([2,4,6,np.nan])
 optoOnset = np.array([np.nan])
-catchRate = 0.1
+
+respRateFilePath = fileIO.getFile(fileType='*.npy')
+respRateData = np.load(respRateFilePath)
+respRateMean = np.nanmean(np.nanmean(respRateData,axis=1),axis=0)
+respRateSem = np.nanmean(np.nanmean(respRateData,axis=1),axis=0)/(len(respRateData)**0.5)
 responseRate = 2 * [0.8,0.8,0.8,0.4] + [catchRate]
+
+fracCorrFilePath = fileIO.getFile(fileType='*.npy')
+fracCorrData = np.load(fracCorrFilePath)
+fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
+fracCorrMean = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 fractionCorrect = 2 * [0.55,0.7,0.8,0.9]
 
 sigmaRange = slice(0.1,0.7,0.05)

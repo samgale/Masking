@@ -220,10 +220,13 @@ class MaskTaskData():
         obj.earlyMove = np.any(self.wheelPos[:,:self.openLoopFrames]>earlyMoveThresh,axis=1)
         
     def calcReactionTime(self,moveInitThresh=0.2):
-        self.reactionTime = np.full(obj.ntrials,np.nan)
-        t = 1000/self.frameRate*(np.arange(self.wheelPos.shape[1]))
+        wp = self.wheelPos.copy()
+        wp -= wp[:,self.openLoopFrames][:,None]
+        wp[:,:self.openLoopFrames] = 0
+        t = 1000/self.frameRate*(np.arange(wp.shape[1]))
         tinterp = np.arange(t[0],t[-1])
-        for i,w in enumerate(self.wheelPos):
+        self.reactionTime = np.full(obj.ntrials,np.nan)
+        for i,w in enumerate(wp):
             winterp = np.interp(tinterp,t,np.absolute(w))
             respInd = np.where(winterp>=self.wheelRewardDistance)[0]
             if len(respInd)>0:
@@ -375,20 +378,27 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     obj = MaskTaskData()
     obj.loadBehavData(f)
     exps.append(obj)
+
+    
+frameRate = 120
+stimLabels = ('mask','targetOnly','maskOnly','catch')
+rewardDir = (1,-1)
     
 
 
 # masking
-frameRate = 120
 maskOnset = np.array([2,3,4,6,0])
 respRate = np.full((len(exps),2,len(maskOnset)+2),np.nan)
 fracCorr = respRate.copy()
 meanReacTime = respRate.copy()
 meanReacTimeCorrect = respRate.copy()
 meanReacTimeIncorrect = respRate.copy()
+reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 for n,obj in enumerate(exps):
     validTrials = obj.engaged & (~obj.earlyMove)
-    for stim in ('maskOnly','mask','targetOnly','catch'):
+    for stim in stimLabels:
         stimTrials = validTrials & (obj.trialType==stim)
         for j,mo in enumerate(maskOnset):
             moTrials = stimTrials  & (obj.maskOnset==mo)
@@ -399,18 +409,24 @@ for n,obj in enumerate(exps):
                     j = -2
                 elif stim=='catch':
                     j = -1  
-                for i,rd in enumerate((1,-1)):
+                for i,rd in enumerate(rewardDir):
                     trials = moTrials & (obj.rewardDir==rd) if stim in ('targetOnly','mask') else moTrials
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,i,j] = respTrials.sum()/trials.sum()
-                    meanReacTime[n,i,j] = np.nanmedian(obj.reactionTime[respTrials])
+                    meanReacTime[n,i,j] = np.nanmean(obj.reactionTime[respTrials])
+                    reacTime[n][stim][rd][mo] = obj.reactionTime[respTrials]
                     if stim in ('targetOnly','mask'):
-                        corrTrials = obj.response[respTrials]==1
-                        fracCorr[n,i,j] = corrTrials.sum()/respTrials.sum()
-                        meanReacTimeCorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][corrTrials])
-                        meanReacTimeIncorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][~corrTrials])
+                        correctTrials = obj.response[respTrials]==1
+                        fracCorr[n,i,j] = correctTrials.sum()/respTrials.sum()
+                        meanReacTimeCorrect[n,i,j] = np.nanmean(obj.reactionTime[respTrials][correctTrials])
+                        meanReacTimeIncorrect[n,i,j] = np.nanmean(obj.reactionTime[respTrials][~correctTrials])
+                        reacTimeCorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][correctTrials]
+                        reacTimeIncorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][~correctTrials]
                     else:
                         break
+                    
+np.save(fileIO.saveFile(fileType='*.npy'),respRate)
+np.save(fileIO.saveFile(fileType='*.npy'),fracCorr)
 
 xticks = list(maskOnset[:-1]/frameRate*1000)+[67,83,100]
 xticklabels = [str(int(round(x))) for x in xticks[:-3]]+['target\nonly','mask\nonly','no\nstimulus']
@@ -480,8 +496,19 @@ ax.legend()
 plt.tight_layout()
 
 # fraction correct vs reaction time
-
-    
+binWidth = 50
+bins = np.arange(0,650,binWidth)
+for mo in maskOnset:
+    stim = 'mask' if mo>0 else 'targetOnly'
+    correct = np.zeros(bins.size-1)
+    incorrect = correct.copy()
+    for i in range(len(exps)):
+        for rd in rewardDir:
+            c,ic = [np.histogram(rt[i][stim][rd][mo],bins)[0] for rt in (reacTimeCorrect,reacTimeIncorrect)]
+            correct += c
+            incorrect += ic
+    plt.plot(bins[:-1]+binWidth/2,correct/(correct+incorrect),label=mo)
+plt.legend()    
 
 
 # unilateral opto (old)
