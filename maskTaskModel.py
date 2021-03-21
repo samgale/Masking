@@ -176,6 +176,17 @@ def normalizeSignals(signals):
     return None
 
 
+def calcSignalError(gamma,*params):
+    psth,maskOnset = params
+    signals = createSignals(psth,maskOnset,gamma)
+    sse = []
+    for sig in psth.keys():
+        for hemi in ('ipsi','contra'):
+            for mo in psth[sig][hemi]:
+                sse.append(np.sum((signals[sig][hemi][mo]-psth[sig][hemi][mo])**2))
+    return sum(sse)
+
+
 def plotSignals(signalList,tmes,clrs):
     fig = plt.figure(figsize=(6,10))
     n = 2+len(signalList[-1]['mask']['contra'].keys())
@@ -261,8 +272,14 @@ normalizeSignals(popPsthFilt)
 # sythetic signals based on ephys response to target and mask only
 maskOnset = np.array([2,3,4,6])
 #tau = 24/dt 
-gamma = 12
+
+
+gammaRange = slice(1,50,1)
+fit = scipy.optimize.brute(calcSignalError,(gammaRange,),args=(popPsthFilt,maskOnset),full_output=True,finish=None)
+
+gamma = fit[0]
 syntheticSignals = createSignals(popPsthFilt,maskOnset,gamma)
+
 
 plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
 
@@ -270,10 +287,6 @@ plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
 
 
 ## fit model parameters
-trialsPerCondition = 1000
-maskOnset = [2,3,4,6,np.nan,0]
-optoOnset = [np.nan]
-
 respRateFilePath = fileIO.getFile(fileType='*.npy')
 respRateData = np.load(respRateFilePath)
 respRateMean = np.nanmean(np.nanmean(respRateData,axis=1),axis=0)
@@ -286,11 +299,15 @@ fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 fractionCorrect = list(fracCorrMean[:-2])
 
-sigmaRange = slice(0.1,0.7,0.05)
-decayRange = slice(0,0.5,0.05)
-inhibRange = slice(0,0.4,0.05)
+trialsPerCondition = 5000
+maskOnset = [2,3,4,6,np.nan,0]
+optoOnset = [np.nan]
+
+sigmaRange = slice(0.05,0.55,0.05)
+decayRange = slice(0,0.45,0.05)
+inhibRange = slice(0,0.45,0.05)
 thresholdRange = slice(1,5,0.5)
-trialEndRange = slice(10,trialEndMax,2)
+trialEndRange = slice(10,22,2)
 
 signals = syntheticSignals
 
