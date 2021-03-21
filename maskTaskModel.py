@@ -19,23 +19,29 @@ import fileIO
 
 
 
+def fitModel(fitParamRanges,fixedParams):
+    fit = scipy.optimize.brute(calcModelError,fitParamRanges,args=fixedParams,full_output=True,finish=None)
+    #finalFit = scipy.optimize.minimize(getModelError,fit[0],args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),method='Nelder-Mead')
+    return fit[0]
+
+
 def calcModelError(paramsToFit,*fixedParams):
     sigma,decay,inhib,threshold,trialEnd = paramsToFit
-    signals,maskOnset,optoOnset,trialsPerCondition,responseRate,fractionCorrect = fixedParams
-    targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
-    result = analyzeSession(maskOnset,optoOnset,targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+    signals,targetSide,maskOnset,optoOnset,trialsPerCondition,responseRate,fractionCorrect = fixedParams
+    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
+    result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
     respRateError = np.nansum((responseRate-result['responseRate'])**2)
     fracCorrError = np.nansum((fractionCorrect-result['fractionCorrect'])**2)
     return respRateError + fracCorrError
 
 
-def analyzeSession(maskOnset,optoOnset,targetSide,trialMaskOnset,trialOptoOnset,response,responseTime):
+def analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime):
     result = {}
     responseRate = []
     fractionCorrect = []
-    for side in (1,0):
+    for side in targetSide:
         result[side] = {}
-        sideTrials = targetSide==side
+        sideTrials = trialTargetSide==side
         mo = [np.nan] if side==0 else maskOnset
         for maskOn in mo:
             result[side][maskOn] = {}
@@ -59,8 +65,8 @@ def analyzeSession(maskOnset,optoOnset,targetSide,trialMaskOnset,trialOptoOnset,
     return result
 
 
-def runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,record=False):
-    targetSide = []
+def runSession(signals,targetSide,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,record=False):
+    trialTargetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
     response = []
@@ -68,7 +74,7 @@ def runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,
     Lrecord = []
     Rrecord = []
     Linitial = Rinitial = 0
-    for side in (1,0):
+    for side in targetSide:
         mo = [np.nan] if side==0 else maskOnset
         for maskOn in mo:
             if np.isnan(maskOn):
@@ -92,7 +98,7 @@ def runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,
                     Lsignal[int(optoOn):] = 0
                     Rsignal[int(optoOn):] = 0
                 for _ in range(trialsPerCondition):
-                    targetSide.append(side)
+                    trialTargetSide.append(side)
                     trialMaskOnset.append(maskOn)
                     trialOptoOnset.append(optoOn)
                     result = runTrial(sigma,decay,inhib,threshold,trialEnd,Linitial,Rinitial,Lsignal,Rsignal,record)
@@ -101,7 +107,7 @@ def runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,
                     if record:
                         Lrecord.append(result[2])
                         Rrecord.append(result[3])
-    return np.array(targetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(response),np.array(responseTime),Lrecord,Rrecord
+    return np.array(trialTargetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
 @njit
@@ -281,28 +287,46 @@ fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
 trialsPerCondition = 5000
+targetSide = (1,0) # (-1,1,0)
 maskOnset = [2,3,4,6,np.nan,0]
 optoOnset = [np.nan]
 
 sigmaRange = slice(0.05,0.55,0.05)
-decayRange = slice(0,0.45,0.05)
+decayRange = slice(0,1,1) #slice(0,0.45,0.05)
 inhibRange = slice(0,0.45,0.05)
-thresholdRange = slice(1,5,0.5)
+thresholdRange = slice(0.5,5.5,0.5)
 trialEndRange = slice(10,22,2)
 
 signals = syntheticSignals
 
+fitParamRanges = (sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
+fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
 
-fit = scipy.optimize.brute(calcModelError,(sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange),args=(signals,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean),full_output=True,finish=None)
+fit = fitModel(fitParamRanges,fixedParams)
 
-#finalFit = scipy.optimize.minimize(getModelError,fit[0],args=(target,mask,maskOnset,optoOnset,responseRate,fractionCorrect),method='Nelder-Mead')
+# out of sample fits
+outOfSampleFits = []
+nconditions = len(respRateMean)
+for i in range(nconditions):
+    if i==nconditions-1:
+        tarSide = [ts for ts in targetSide if ts!=0]
+        maskOn = maskOnset
+        respRate = respRateMean[:-1]
+        fracCorr = fracCorrMean[:-1]
+    else:
+        tarSide = targetSide
+        maskOn = [mo for j,mo in enumerate(maskOnset) if j!=i]
+        respRate,fracCorr = [np.array([d for j,d in enumerate(data) if j!=i]) for data in (respRateMean,fracCorrMean)]
+    fixedParams=(signals,tarSide,maskOn,optoOnset,trialsPerCondition,respRate,fracCorr)
+    outOfSampleFits.append(fitModel(fitParamRanges,fixedParams))
+    
 
-sigma,decay,inhib,threshold,trialEnd = fit[0]
+# plot fit results
+sigma,decay,inhib,threshold,trialEnd = fit
 
+trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=10000,record=True)
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=10000,record=True)
-
-result = analyzeSession(maskOnset,optoOnset,targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
 ylabel = {'responseRate': 'Response Rate',
           'fractionCorrect': 'Fraction Correct',
