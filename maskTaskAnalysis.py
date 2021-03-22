@@ -388,7 +388,8 @@ rewardDir = (1,-1)
 
 # masking
 maskOnset = np.array([2,3,4,6,0])
-respRate = np.full((len(exps),2,len(maskOnset)+2),np.nan)
+ntrials = np.full((len(exps),2,len(maskOnset)+2),np.nan)
+respRate = ntrials.copy()
 fracCorr = respRate.copy()
 meanReacTime = respRate.copy()
 meanReacTimeCorrect = respRate.copy()
@@ -411,6 +412,7 @@ for n,obj in enumerate(exps):
                     j = -1  
                 for i,rd in enumerate(rewardDir):
                     trials = moTrials & (obj.rewardDir==rd) if stim in ('targetOnly','mask') else moTrials
+                    ntrials[n,i,j] = trials.sum()
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,i,j] = respTrials.sum()/trials.sum()
                     meanReacTime[n,i,j] = np.nanmean(obj.reactionTime[respTrials])
@@ -453,7 +455,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0,1),None),
     plt.tight_layout()
     
 # population
-for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Reaction Time (ms)')):        
+for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     meanLR = np.nanmean(data,axis=1)
@@ -491,24 +493,96 @@ ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
 ax.set_xlabel('Mask onset relative to target onset (ms)')
-ax.set_ylabel('Reaction time (ms)')
+ax.set_ylabel('Mean reaction time (ms)')
 ax.legend()
 plt.tight_layout()
 
 # fraction correct vs reaction time
 binWidth = 50
 bins = np.arange(0,650,binWidth)
+rt = []
+pc = []
 for mo in maskOnset:
     stim = 'mask' if mo>0 else 'targetOnly'
+    rt.append([])
     correct = np.zeros(bins.size-1)
     incorrect = correct.copy()
     for i in range(len(exps)):
         for rd in rewardDir:
+            rt[-1].extend(reacTime[i][stim][rd][mo])
             c,ic = [np.histogram(rt[i][stim][rd][mo],bins)[0] for rt in (reacTimeCorrect,reacTimeIncorrect)]
             correct += c
             incorrect += ic
-    plt.plot(bins[:-1]+binWidth/2,correct/(correct+incorrect),label=mo)
-plt.legend()    
+    pc.append(correct/(correct+incorrect))
+
+fig = plt.figure()
+ax = fig.add_subplot(2,1,1)
+clrs = np.zeros((len(maskOnset),3))
+clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+lbls = xticklabels[:-3]+['target only']
+for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1)),clrs,lbls):
+    s = np.sort(r)
+    c = [np.sum(r<=i)/n for i in s]
+    ax.plot(s,c,'-',color=clr,label=lbl)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False)
+ax.set_xlim([150,650])
+ax.set_ylim([0,1.02])
+ax.set_ylabel('Cumulative Probability')
+ax.legend(fontsize=8,loc='upper left')
+
+ax = fig.add_subplot(2,1,2)
+for p,clr in zip(pc,clrs):
+    ax.plot(bins[:-1]+binWidth/2,p,color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False)
+ax.set_xlim([150,650])
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Reaction Time (ms)')
+ax.set_ylabel('Probability Correct')
+plt.tight_layout()
+
+
+# opto masking
+optoOnset = np.array([2,4,6,np.nan])
+ntrials = np.full((len(exps),len(stimLabels),2,len(optoOnset)),np.nan)
+respRate = ntrials.copy()
+fracCorr = respRate.copy()
+meanReacTime = respRate.copy()
+meanReacTimeCorrect = respRate.copy()
+meanReacTimeIncorrect = respRate.copy()
+reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+for n,obj in enumerate(exps):
+    validTrials = obj.engaged & (~obj.earlyMove)
+    for s,stim in enumerate(stimLabels):
+        mo = 2 if stim=='mask' else 0
+        stimTrials = validTrials & (obj.trialType==stim) & (obj.maskOnset==mo)
+        for i,rd in enumerate(rewardDir):
+            rdTrials = stimTrials & (obj.rewardDir==rd) if stim in ('targetOnly','mask') else stimTrials
+            for j,optoOn in enumerate(optoOnset):
+                trials = rdTrials & np.isnan(obj.optoOnset) if np.isnan(optoOn) else rdTrials & (obj.optoOnset==optoOn)
+                ntrials[n,s,i,j] = trials.sum()
+                respTrials = trials & (~np.isnan(obj.responseDir))
+                respRate[n,s,i,j] = respTrials.sum()/trials.sum()
+                meanReacTime[n,s,i,j] = np.nanmean(obj.reactionTime[respTrials])
+                reacTime[n][stim][rd][optoOn] = obj.reactionTime[respTrials]
+                if stim in ('targetOnly','mask'):
+                    correctTrials = obj.response[respTrials]==1
+                    fracCorr[n,s,i,j] = correctTrials.sum()/respTrials.sum()
+                    meanReacTimeCorrect[n,s,i,j] = np.nanmean(obj.reactionTime[respTrials][correctTrials])
+                    meanReacTimeIncorrect[n,s,i,j] = np.nanmean(obj.reactionTime[respTrials][~correctTrials])
+                    reacTimeCorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][correctTrials]
+                    reacTimeIncorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][~correctTrials]
+                else:
+                    break
+
+
+
+ 
 
 
 # unilateral opto (old)

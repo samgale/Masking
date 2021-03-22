@@ -58,6 +58,8 @@ def analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset
                     correct = response[trials]==side
                     fractionCorrect.append(np.sum(correct[responded])/np.sum(responded))
                     result[side][maskOn][optoOn]['fractionCorrect'] = fractionCorrect[-1]
+                    result[side][maskOn][optoOn]['responseTimeCorrect'] = responseTime[trials][responded & correct]
+                    result[side][maskOn][optoOn]['responseTimeIncorrect'] = responseTime[trials][responded & (~correct)]
                 else:
                     fractionCorrect.append(np.nan)
     result['responseRate'] = np.array(responseRate)
@@ -271,7 +273,7 @@ fit = scipy.optimize.brute(calcSignalError,(gammaRange,),args=(popPsthFilt,maskO
 gamma = 12
 syntheticSignals = createSignals(popPsthFilt,maskOnset,gamma)
 
-plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
+plotSignals([popPsthFilt],[t],'kr')
 
 
 
@@ -279,7 +281,7 @@ plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
 respRateFilePath = fileIO.getFile(fileType='*.npy')
 respRateData = np.load(respRateFilePath)
 respRateMean = np.nanmean(np.nanmean(respRateData,axis=1),axis=0)
-respRateSem = np.nanmean(np.nanmean(respRateData,axis=1),axis=0)/(len(respRateData)**0.5)
+respRateSem = np.nanstd(np.nanmean(respRateData,axis=1),axis=0)/(len(respRateData)**0.5)
 
 fracCorrFilePath = fileIO.getFile(fileType='*.npy')
 fracCorrData = np.load(fracCorrFilePath)
@@ -304,45 +306,55 @@ fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRat
 
 fit = fitModel(fitParamRanges,fixedParams)
 
-# out of sample fits
-outOfSampleFits = []
-nconditions = len(respRateMean)
-for i in range(nconditions):
-    if i==nconditions-1:
-        tarSide = [ts for ts in targetSide if ts!=0]
-        maskOn = maskOnset
-        respRate = respRateMean[:-1]
-        fracCorr = fracCorrMean[:-1]
-    else:
-        tarSide = targetSide
-        maskOn = [mo for j,mo in enumerate(maskOnset) if j!=i]
-        respRate,fracCorr = [np.array([d for j,d in enumerate(data) if j!=i]) for data in (respRateMean,fracCorrMean)]
-    fixedParams=(signals,tarSide,maskOn,optoOnset,trialsPerCondition,respRate,fracCorr)
-    outOfSampleFits.append(fitModel(fitParamRanges,fixedParams))
-    
-
-# plot fit results
 sigma,decay,inhib,threshold,trialEnd = fit
 
 trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=10000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+responseRate = result['responseRate']
+fractionCorrect = result['fractionCorrect']
 
-ylabel = {'responseRate': 'Response Rate',
-          'fractionCorrect': 'Fraction Correct',
-          'responseTime': 'Mean Decision Time (ms)'}
+# out of sample fits
+leaveOneOutFits = []
+nconditions = len(respRateMean)
+for i in range(nconditions):
+    print('fitting leave out condition '+str(i+1)+' of '+str(nconditions))
+    if i==nconditions-1:
+        ts = [s for s in targetSide if s!=0]
+        mo = maskOnset
+        rr = respRateMean[:-1]
+        fc = fracCorrMean[:-1]
+    else:
+        ts = targetSide
+        mo = [m for j,m in enumerate(maskOnset) if j!=i]
+        rr,fc = [np.array([d for j,d in enumerate(data) if j!=i]) for data in (respRateMean,fracCorrMean)]
+    fixedParams=(signals,ts,mo,optoOnset,trialsPerCondition,rr,fc)
+    leaveOneOutFits.append(fitModel(fitParamRanges,fixedParams))
 
+outOfSampleRespRate = []
+outOfSampleFracCorr = []    
+for i in range(nconditions):
+    sigma,decay,inhib,threshold,trialEnd = leaveOneOutFits[i]
+    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=10000,record=True)
+    result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+    outOfSampleRespRate.append(result['responseRate'][i])
+    outOfSampleFracCorr.append(result['fractionCorrect'][i])
+    
+responseRate = outOfSampleRespRate
+fractionCorrect = outOfSampleFracCorr
+    
 
+# compare fit to data
 xticks = [mo*dt for mo in maskOnset[:-2]]+[67,83,100]
 xticklabels = [str(int(round(x))) for x in xticks[:-3]]+['target\nonly','mask\nonly','no\nstimulus']
 xlim = [8,108]
-for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.4,1.03)),('upper right','upper left')):
+for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,fracCorrSem),(responseRate,fractionCorrect),((0,1.02),(0.4,1)),('Response Rate','Fraction Correct')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    y = respRateMean if measure=='responseRate' else fracCorrMean
-    d = result[measure]
-    ax.plot(xticks,y,'o',mec='k',mfc='none',ms=8,mew=2,label='mice')
-    ax.plot(xticks,d,'o',mec='r',mfc='none',ms=8,mew=2,label='model')
+    ax.plot(xticks,mean,'o',mec='k',mfc='none',ms=8,mew=2,label='mice')
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'k')
+    ax.plot(xticks,model,'o',mec='r',mfc='none',ms=8,mew=2,label='model')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
@@ -351,31 +363,35 @@ for measure,ylim,loc in  zip(('responseRate','fractionCorrect'),((0,1.05),(0.4,1
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.set_xlabel('Mask onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel[measure])
-    ax.legend(loc=loc)
+    ax.set_ylabel(ylabel)
+    ax.legend()
+    plt.tight_layout()
 
 
-for side,lbl in zip((-1,1),('target left','target right')):
-    sideTrials = targetSide==side
-    for maskOn in maskOnset:
+# example model traces
+trialInd = 1
+for side,lbl in zip((1,0),('target right','no stim')):
+    sideTrials = trialTargetSide==side
+    maskOn = [np.nan] if side==0 else maskOnset
+    for mo in maskOn:
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        ax.plot([0,200],[threshold,threshold],'k--')
-        maskTrials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
-        trial = np.where(sideTrials & maskTrials)[0][0]
-        ax.plot(t,Rrecord[trial],'r')
-        ax.plot(t,Lrecord[trial],'b')
+        ax.plot([0,150],[threshold,threshold],'k--')
+        maskTrials = np.isnan(trialMaskOnset) if np.isnan(mo) else trialMaskOnset==mo
+        trial = np.where(sideTrials & maskTrials)[0][trialInd]
+        ax.plot(t,Rrecord[trial],'r',label='R')
+        ax.plot(t,Lrecord[trial],'b',label='L')
         for axside in ('right','top','left','bottom'):
             ax.spines[axside].set_visible(False)
         ax.tick_params(direction='out',right=False,top=False,left=False)
         ax.set_xticks([0,50,100,150,200])
         ax.set_yticks([])
-        ax.set_xlim([0,200])
+        ax.set_xlim([0,150])
         ax.set_ylim([-1.05*threshold,1.05*threshold])
         ax.set_xlabel('Time (ms)')
         title = lbl
-        if not np.isnan(maskOn):
-            title += ' + mask (' + str(int(round(maskOn*dt))) + ' ms)'
+        if not np.isnan(mo):
+            title += ' + mask (' + str(int(round(mo*dt))) + ' ms)'
         title += ', decision = '
         if response[trial]==-1:
             title += 'left'
@@ -384,56 +400,84 @@ for side,lbl in zip((-1,1),('target left','target right')):
         else:
             title += 'none'
         ax.set_title(title)
+        ax.legend(loc='right')
         plt.tight_layout()
 
 
-
-# masking
-maskOnset = np.array([2,3,4,6,np.nan])
-optoOnset = np.array([np.nan])
-
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=5000)
-
-result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
-
-
-for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.4,1.03),(80,140))):
+# masking reaction time
+for data,ylim,ylabel in  zip((responseRate,fractionCorrect),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    d = []
-    for maskOn in maskOnset:
-        for optoOn in optoOnset:
-            if measure=='responseTime':
-                d.append(sum([result[side][maskOn][optoOn][measure].mean()*dt for side in (-1,1)])/2)
-            else:
-                d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
-    ax.plot(np.array(maskOnset[:-1])*dt,d[:-1],'ko')
-    ax.plot(125,d[-1],'ko')
+    ax.plot(xticks,data,'ko')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
-    ax.set_xticks([0,25,50,75,100,125])
-    ax.set_xticklabels([0,25,50,75,100,'target only'])
-    ax.set_xlim([0,137.5])
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.set_xlabel('Mask onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel[measure])
+    ax.set_ylabel(ylabel)
     plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+rt = []
+for side in targetSide:
+    maskOn = [np.nan] if side==0 else maskOnset
+    for mo in maskOn:
+        for optoOn in optoOnset:
+            rt.append(dt*np.mean(result[side][mo][optoOn]['responseTime']))
+ax.plot(xticks,rt,'ko')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_xlim(xlim)
+ax.set_xlabel('Mask onset relative to target onset (ms)')
+ax.set_ylabel('Mean decision time (ms)')
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for respTime,clr,lbl in zip(('responseTimeCorrect','responseTimeIncorrect'),('k','0.5'),('correct','incorrect')):
+    rt = []
+    for side in targetSide:
+        maskOn = [np.nan] if side==0 else maskOnset
+        for mo in maskOn:
+            for optoOn in optoOnset:
+                if side!=0 and mo!=0:
+                    rt.append(dt*np.mean(result[side][mo][optoOn][respTime]))
+                else:
+                    rt.append(np.nan)
+    ax.plot(xticks,rt,'o',color=clr,label=lbl)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_xlim(xlim)
+ax.set_xlabel('Mask onset relative to target onset (ms)')
+ax.set_ylabel('Mean decision time (ms)')
+ax.legend()
+plt.tight_layout()
 
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,2)
-clrs = plt.cm.plasma(np.linspace(0,1,len(maskOnset)))[::-1]
-lbls = [str(round(mo*dt,1))+' ms' for mo in maskOnset[:-1]]+['target only']
-xlim = [0,200]
+clrs = np.zeros((len(maskOnset)-1,3))
+clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-2))[::-1,:3]
+lbls = xticklabels[:-3]+['target only']
+xlim = [50,150]
 ntrials = []
 rt = []
-for maskOn,clr in zip(maskOnset,clrs):
+for maskOn,clr in zip(maskOnset[:-1],clrs):
     trials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
     ntrials.append(trials.sum())
     respTrials = trials & (response!=0)
     rt.append(responseTime[respTrials].astype(float)*dt)
-    c = (targetSide==response)[respTrials]
+    c = (trialTargetSide==response)[respTrials]
     p = []
     for i in t:
         j = (rt[-1]>=i) & (rt[-1]<i+dt)
@@ -442,10 +486,10 @@ for maskOn,clr in zip(maskOnset,clrs):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xticks([50,100,150,200])
+ax.set_xticks([50,100,150])
 ax.set_xlim(xlim)
 ax.set_ylim([0,1.02])
-ax.set_xlabel('Model Decision Time (ms)')
+ax.set_xlabel('Model decision time (ms)')
 ax.set_ylabel('Probability Correct')
 
 ax = fig.add_subplot(2,1,1)
@@ -456,7 +500,7 @@ for r,n,clr,lbl in zip(rt,ntrials,clrs,lbls):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xticks([50,100,150,200])
+ax.set_xticks([50,100,150])
 ax.set_xlim(xlim)
 ax.set_ylim([0,1.02])
 ax.set_ylabel('Cumulative Probability')
@@ -464,49 +508,43 @@ ax.legend(fontsize=8,loc='upper left')
 plt.tight_layout()
 
 
-# mask duration
-
-
 
 # opto masking
-maskOnset = np.array([2,np.nan])
-optoOnset = np.array([0,2,4,6,8,10,12,14,16,np.nan])
+maskOnset = [2,np.nan,0]
+optoOnset = [0,2,4,6,8,10,12,14,16,np.nan]
 
-targetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=5000)
+trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=10000)
 
-result,maskOnset,optoOnset = analyzeSession(targetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
-
-x = np.array(optoOnset)*dt
-x[-1] = x[-2] + 2*dt
-for measure,ylim in  zip(('responseRate','fractionCorrect','responseTime'),((0,1.05),(0.4,1.03),(80,130))):
+xticks = np.array(optoOnset)*dt
+xticks[-1] = xticks[-2] + 2*dt
+xticklabels = [int(round(x)) for x in xticks[:-1]]+['no\nopto']
+for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean decision time (ms)')):
     fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)  
-    if measure=='responseRate':
-        side = 0
-        d = [result[side][np.nan][optoOn][measure] for optoOn in optoOnset]
-        ax.plot(x[:-1],d[:-1],'m-o')
-        ax.plot(x[-1],d[-1],'mo',label='no stim')
-    for maskOn,clr,lbl in zip(maskOnset,'bc',('target + mask','target only')):
-        d = []
-        for optoOn in optoOnset:
-            if measure=='responseTime':
-                d.append(sum([result[side][maskOn][optoOn][measure].mean()*dt for side in (-1,1)])/2)
-            else:
-                d.append(sum([result[side][maskOn][optoOn][measure] for side in (-1,1)])/2)
-        ax.plot(x[:-1],d[:-1],clr+'-o')
-        ax.plot(x[-1],d[-1],clr+'o',label=lbl)
+    ax = fig.add_subplot(1,1,1)
+    for lbl,side,mo,clr in zip(('target only','target + mask','mask only','no stim'),(1,1,1,0),(np.nan,2,0,np.nan),'cbkm'):
+        if measure=='responseRate' or 'target' in lbl:
+            d = []
+            for optoOn in optoOnset:
+                    if measure=='responseTime':
+                        d.append(dt*np.mean(result[side][mo][optoOn][measure]))
+                    else:
+                        d.append(result[side][mo][optoOn][measure])
+            ax.plot(xticks[:-1],d[:-1],color=clr,label=lbl)
+            ax.plot(xticks[-1],d[-1],'o',color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False)
-    ax.set_xticks([0,50,100,x[-1]])
-    ax.set_xticklabels([0,50,100,'no opto'])
-    ax.set_xlim([0,x[-1]+2*dt])
-    ax.set_ylim(ylim)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim([0,xticks[-1]+dt])
+    if ylim is not None:
+        ax.set_ylim(ylim)
     ax.set_xlabel('Opto onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel[measure])
+    ax.set_ylabel(ylabel)
     if measure=='responseRate':
-        ax.legend()
+        ax.legend(loc='upper left')
     plt.tight_layout()
 
 
