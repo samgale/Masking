@@ -299,6 +299,12 @@ inhibRange = slice(0,0.45,0.05)
 thresholdRange = slice(0.5,5.5,0.5)
 trialEndRange = slice(10,22,2)
 
+sigmaRange = slice(0.11,0.2,0.01)
+decayRange = slice(0,0.05,0.01)
+inhibRange = slice(0.11,0.2,0.01)
+thresholdRange = slice(3.1,4,0.1)
+trialEndRange = slice(17,20,1)
+
 signals = syntheticSignals
 
 fitParamRanges = (sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
@@ -315,6 +321,12 @@ responseRate = result['responseRate']
 fractionCorrect = result['fractionCorrect']
 
 # out of sample fits
+sigmaRange = slice(0.11,0.25,0.01)
+decayRange = slice(0,1,1) #slice(0.01,0.1,0.01)
+inhibRange = slice(0.11,0.25,0.01)
+thresholdRange = slice(3.1,4,0.1)
+trialEndRange = slice(15,20,1)
+
 leaveOneOutFits = []
 nconditions = len(respRateMean)
 for i in range(nconditions):

@@ -210,8 +210,12 @@ class MaskTaskData():
                 if all(np.isnan(r[-engagedThresh:])):
                     self.engaged[i] = False
                     
-    def getWheelPos(self,preFrames=0,postFrames=0):            
-        self.wheelPos = np.cumsum(np.stack([self.deltaWheelPos[s-preFrames:s-preFrames+self.openLoopFrames+obj.responseWindowFrames+postFrames] for s in self.stimStart]),axis=1)
+    def getWheelPos(self,preFrames=0,postFrames=0):  
+        deltaWheel = np.zeros((obj.ntrials,preFrames+self.openLoopFrames+obj.responseWindowFrames+postFrames))
+        for i,s in enumerate(self.stimStart):
+            d = self.deltaWheelPos[s-preFrames:s-preFrames+self.openLoopFrames+obj.responseWindowFrames+postFrames]
+            deltaWheel[i,:len(d)] = d
+        self.wheelPos = np.cumsum(deltaWheel,axis=1)
         self.wheelPos *= obj.wheelRadius
         
     def findEarlyMoveTrials(self,earlyMoveThresh=None):
@@ -546,7 +550,7 @@ plt.tight_layout()
 
 
 # opto masking
-optoOnset = np.array([2,4,6,np.nan])
+optoOnset = np.array([4,6,8,10,12,np.nan])
 ntrials = np.full((len(exps),len(stimLabels),2,len(optoOnset)),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
@@ -559,18 +563,18 @@ reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels}
 for n,obj in enumerate(exps):
     validTrials = obj.engaged & (~obj.earlyMove)
     for s,stim in enumerate(stimLabels):
-        mo = 2 if stim=='mask' else 0
-        stimTrials = validTrials & (obj.trialType==stim) & (obj.maskOnset==mo)
-        for i,rd in enumerate(rewardDir):
-            rdTrials = stimTrials & (obj.rewardDir==rd) if stim in ('targetOnly','mask') else stimTrials
-            for j,optoOn in enumerate(optoOnset):
-                trials = rdTrials & np.isnan(obj.optoOnset) if np.isnan(optoOn) else rdTrials & (obj.optoOnset==optoOn)
+        mo = 2 if stim in ('mask','maskOpto') else 0
+        stimTrials = validTrials & np.in1d(obj.trialType,(stim,stim+'Opto')) & (obj.maskOnset==mo)
+        for j,optoOn in enumerate(optoOnset):
+            optoTrials = stimTrials & np.isnan(obj.optoOnset) if np.isnan(optoOn) else stimTrials & (obj.optoOnset==optoOn)
+            for i,rd in enumerate(rewardDir):
+                trials = optoTrials & (obj.rewardDir==rd) if stim in ('targetOnly','targetOnlyOpto','mask','maskOpto') else optoTrials
                 ntrials[n,s,i,j] = trials.sum()
                 respTrials = trials & (~np.isnan(obj.responseDir))
                 respRate[n,s,i,j] = respTrials.sum()/trials.sum()
                 meanReacTime[n,s,i,j] = np.nanmean(obj.reactionTime[respTrials])
                 reacTime[n][stim][rd][optoOn] = obj.reactionTime[respTrials]
-                if stim in ('targetOnly','mask'):
+                if stim in ('targetOnly','targetOnlyOpto','mask','maskOpto'):
                     correctTrials = obj.response[respTrials]==1
                     fracCorr[n,s,i,j] = correctTrials.sum()/respTrials.sum()
                     meanReacTimeCorrect[n,s,i,j] = np.nanmean(obj.reactionTime[respTrials][correctTrials])
@@ -580,7 +584,44 @@ for n,obj in enumerate(exps):
                 else:
                     break
 
+xticks = list(optoOnset[:-1]/frameRate*1000)+[117]
+xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 
+for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target + mask','target only','mask only','no stim'),'bckm')):
+        meanLR = np.nanmean(data[:,i],axis=1)
+        mean = np.nanmean(meanLR,axis=0)
+        sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+        if data is fracCorr:
+            if stim=='targetOnly':
+                firstValid = 3
+            elif stim=='mask':
+                firstValid = 2
+            else:
+                firstValid = 0
+            lbls = ('response rate not above chance','response rate above chance') if stim=='maskOnly' else (None,None)
+            ax.plot(xticks[:firstValid],mean[:firstValid],'o',ms=8,mec=clr,mfc='none',label=lbls[0])
+            ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',ms=8,mec=clr,mfc=clr,label=lbls[1])
+        lbl = stimLbl if data is respRate else None
+        ax.plot(xticks[:-1],mean[:-1],color=clr)
+        ax.plot(xticks[-1],mean[-1],'o',ms=8,color=clr,label=lbl)
+        for x,m,s in zip(xticks,mean,sem):
+            ax.plot([x,x],[m-s,m+s],color=clr)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim([25,125])
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    ax.set_xlabel('Opto onset relative to target onset (ms)')
+    ax.set_ylabel(ylabel)
+    if data is not meanReacTime:
+        ax.legend()
+    plt.tight_layout()
 
  
 
