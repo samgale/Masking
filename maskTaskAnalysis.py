@@ -39,36 +39,6 @@ def findSignalEdges(signal,edgeType,thresh,refractory):
     return edges
 
 
-def getPSTH(spikes,startTimes,windowDur,binSize=0.01,avg=True):
-    bins = np.arange(0,windowDur+binSize,binSize)
-    counts = np.zeros((len(startTimes),bins.size-1))    
-    for i,start in enumerate(startTimes):
-        counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,bins)[0]
-    if avg:
-        counts = counts.mean(axis=0)
-    counts /= binSize
-    return counts, bins[:-1]+binSize/2
-
-
-def getSDF(spikes,startTimes,windowDur,sampInt=0.001,filt='exponential',filtWidth=0.005,avg=True):
-        t = np.arange(0,windowDur+sampInt,sampInt)
-        counts = np.zeros((startTimes.size,t.size-1))
-        for i,start in enumerate(startTimes):
-            counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,t)[0]
-        if filt in ('exp','exponential'):
-            filtPts = int(5*filtWidth/sampInt)
-            expFilt = np.zeros(filtPts*2)
-            expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=filtWidth/sampInt,sym=False)
-            expFilt /= expFilt.sum()
-            sdf = scipy.ndimage.filters.convolve1d(counts,expFilt,axis=1)
-        else:
-            sdf = scipy.ndimage.filters.gaussian_filter1d(counts,filtWidth/sampInt,axis=1)
-        if avg:
-            sdf = sdf.mean(axis=0)
-        sdf /= sampInt
-        return sdf,t[:-1]
-
-
 
 # get analog sync data acquired with NidaqRecorder
 syncPath = fileIO.getFile('Select sync file',fileType='*.hdf5')
@@ -154,6 +124,7 @@ class MaskTaskData():
         self.rf = False
         self.ephys = False
         self.frameDisplayLag = 2
+        self.earlyMoveFrames = 12
         
         
     def loadBehavData(self,filePath=None):
@@ -221,12 +192,12 @@ class MaskTaskData():
     def findEarlyMoveTrials(self,earlyMoveThresh=None):
         if earlyMoveThresh is None:
             earlyMoveThresh = self.maxQuiescentMoveDist
-        obj.earlyMove = np.any(self.wheelPos[:,:self.openLoopFrames]>earlyMoveThresh,axis=1)
+        obj.earlyMove = np.any(self.wheelPos[:,:self.earlyMoveFrames]>earlyMoveThresh,axis=1)
         
     def calcReactionTime(self,moveInitThresh=0.2):
         wp = self.wheelPos.copy()
-        wp -= wp[:,self.openLoopFrames][:,None]
-        wp[:,:self.openLoopFrames] = 0
+        wp -= wp[:,self.earlyMoveFrames][:,None]
+        wp[:,:self.earlyMoveFrames] = 0
         t = 1000/self.frameRate*(np.arange(wp.shape[1]))
         tinterp = np.arange(t[0],t[-1])
         self.reactionTime = np.full(obj.ntrials,np.nan)
@@ -264,7 +235,7 @@ class MaskTaskData():
     
     def loadEphysData(self):
         self.datFilePath = fileIO.getFile('Select probe dat file',fileType='*.dat')
-        if len(self.datDataPath)==0:
+        if len(self.datFilePath)==0:
             return
         self.ephys = True
         probeDataDir = os.path.dirname(self.datFilePath)
