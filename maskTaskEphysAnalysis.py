@@ -53,63 +53,6 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     obj = MaskTaskData()
     obj.loadFromHdf5(f)
     exps.append(obj)
-    
-
-
-# spike rate autocorrelation
-corrWidth = 50
-corr = np.zeros((sum([len(obj.goodUnits) for obj in exps]),corrWidth*2+1))
-uind = 0
-for obj in exps:
-    starts = np.round(1000*np.concatenate(([0],obj.frameSamples[obj.stimStart]/obj.sampleRate+obj.responseWindowFrames/obj.frameRate))).astype(int)
-    stops = np.round(np.concatenate((obj.frameSamples[obj.stimStart]/obj.sampleRate,[obj.frameSamples[-1]/obj.sampleRate]))*1000-corrWidth).astype(int)
-    for u in obj.goodUnits:
-        spikeTimes = obj.units[u]['samples']/obj.sampleRate*1000
-        c = np.zeros(corrWidth*2+1)
-        n = 0
-        for i,j in zip(starts,stops):
-            spikes = spikeTimes[(spikeTimes>i) & (spikeTimes<j)]
-            for s in spikes:
-                bins = np.arange(s-corrWidth-0.5,s+corrWidth+1)
-                c += np.histogram(spikes,bins)[0]
-                n += 1
-        c /= n
-        corr[uind] = c
-        uind += 1
-        print(str(uind)+'/'+str(corr.shape[0]))
-        
-
-expfunc = lambda x,a,tau,c: a*np.exp(-x/tau)+c
-
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-t = np.arange(corrWidth*2+1)-corrWidth
-x0 = 3
-fitInd = slice(corrWidth+x0,None)
-fitx = t[fitInd]-x0
-#tau = []
-#for c in corr:
-#    if not np.all(np.isnan(c)):
-#        ax.plot(t,c,color='0.5')
-#        fitParams = scipy.optimize.curve_fit(expfunc,fitx,c[fitInd])[0]
-#        tau.append(fitParams[1])
-#        ax.plot(t[fitInd],expfunc(fitx,*fitParams),color=[1,0.5,0.5])
-m = np.nanmean(corr,axis=0)
-ax.plot(t,m,'k')
-fitParams = scipy.optimize.curve_fit(expfunc,fitx,m[fitInd])[0]
-tauMean = fitParams[1]
-#ax.plot(t[fitInd],expfunc(fitx,*fitParams),'r')
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-#ax.set_ylim([0,1.05*np.nanmax(corr[:,t!=0])])
-ax.set_xlim([0,corrWidth])
-ax.set_ylim([0,0.04])
-ax.set_yticks([0,0.01,0.02,0.03,0.04])
-ax.set_xlabel('Lag (ms)')
-ax.set_ylabel('Autocorrelation')
-plt.tight_layout()
-
 
 
 # plot response to visual stimuli without opto
@@ -133,13 +76,15 @@ ntrials = {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in ('ips
 psth = {cellType: {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in ('ipsi','contra')} for stim in stimLabels} for cellType in cellTypeLabels}
 hasResp = copy.deepcopy(psth)
 
-for stim in stimLabels:
+for obj in exps:
     ephysHemi = ('contra','ipsi') if hasattr(obj,'hemi') and obj.hemi=='right' else ('ipsi','contra')
-    for rd,hemi in zip((1,-1),ephysHemi):
-        for resp in behavRespLabels:
-            for obj in exps:
-                fs = obj.peakToTrough<=fsThresh
-                stimTrials = obj.trialType==stim if stim=='maskOnly' else (obj.trialType==stim) & (obj.rewardDir==rd)
+    fs = obj.peakToTrough<=fsThresh
+    for stim in stimLabels:
+        for rd,hemi in zip((1,-1),ephysHemi):
+            stimTrials = obj.trialType==stim
+            if stim in ('targetOnly','mask'):
+                stimTrials = stimTrials & (obj.rewardDir==rd)
+            for resp in behavRespLabels:
                 if resp=='all':
                     respTrials = np.ones(obj.ntrials,dtype=bool)
                 else:
@@ -311,54 +256,59 @@ plt.tight_layout()
 
 # plot response to visual stimuli with opto
 optoOnset = list(np.unique(exps[0].optoOnset[~np.isnan(exps[0].optoOnset)]))+[np.nan]
-optoOnsetPsth = {stim: {onset: [] for onset in optoOnset} for stim in stimLabels}
+optoOnsetPsth = {stim: {hemi: {onset: [] for onset in optoOnset} for hemi in ('ipsi','contra')} for stim in stimLabels}
 for obj in exps:
+    ephysHemi = ('contra','ipsi') if hasattr(obj,'hemi') and obj.hemi=='right' else ('ipsi','contra')
     for stim in stimLabels:
-        stimTrials = np.in1d(obj.trialType,(stim,stim+'Opto'))
-        if stim in ('targetOnly','mask'):
-            rd = 1 if hasattr(obj,'hemi') and obj.hemi=='right' else -1
-            stimTrials = stimTrials & (obj.rewardDir==rd)
-        for mo in np.unique(obj.maskOnset[stimTrials]):
-            moTrials = obj.maskOnset==mo
-            for onset in optoOnset:
-                trials = np.isnan(obj.optoOnset) if np.isnan(onset) else obj.optoOnset==onset
-                trials = trials & stimTrials & moTrials
-                startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
-                for u in obj.goodUnits:
-                    spikeTimes = obj.units[u]['samples']/obj.sampleRate
-                    p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
-                    optoOnsetPsth[stim][onset].append(p)
+        for hemi,rd in zip(ephysHemi,(1,-1)):
+            stimTrials = np.in1d(obj.trialType,(stim,stim+'Opto'))
+            if stim in ('targetOnly','mask'):
+                stimTrials = stimTrials & (obj.rewardDir==rd)
+            for mo in np.unique(obj.maskOnset[stimTrials]):
+                moTrials = obj.maskOnset==mo
+                for onset in optoOnset:
+                    trials = np.isnan(obj.optoOnset) if np.isnan(onset) else obj.optoOnset==onset
+                    trials = trials & stimTrials & moTrials
+                    startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
+                    for u in obj.goodUnits:
+                        spikeTimes = obj.units[u]['samples']/obj.sampleRate
+                        p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+                        optoOnsetPsth[stim][hemi][onset].append(p)
                 t -= preTime
+                
+optoOnsetTicks = list(1000*np.array(optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate) + [100]
+optoOnsetLabels = [str(round(onset)) for onset in optoOnsetTicks[:-1]] + ['no opto']
 
 fig = plt.figure(figsize=(6,10))
+gs = matplotlib.gridspec.GridSpec(len(stimLabels),2)
 axs = []
-naxs = len(stimLabels)
 cmap = np.zeros((len(optoOnset),3))
 cint = 1/(len(optoOnset)-1)
 cmap[:-1,:2] = np.arange(0,1.01-cint,cint)[:,None]
 cmap[:-1,2] = 1
-for stim in stimLabels:
-    ax = fig.add_subplot(naxs,1,len(axs)+1)
-    axs.append(ax)
-    for onset,clr in zip(optoOnset,cmap):
-        p = np.array(optoOnsetPsth[stim][onset])[~fs & inhib & respCells['all']]
-        m = np.mean(p,axis=0)
-        s = np.std(p,axis=0)/(len(psth)**0.5)
-        lbl = 'no opto' if np.isnan(onset) else str(int(round(1000*(onset-obj.frameDisplayLag)/obj.frameRate)))+' ms'
-        ax.plot(t,m,color=clr,label=lbl)
-#        ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xticks(np.arange(-0.05,0.21,0.05))
-    ax.set_xlim([-0.05,0.2])
-    ax.set_ylabel('Spikes/s')
-    title = 'SOA '+str(int(round(1000*mo/obj.frameRate)))+' ms' if stim=='mask' else stim
-    ax.set_title(title)
-    if len(axs)==1:
-        ax.legend(loc='upper right',title='opto onset')
-    elif len(axs)==naxs:
-        ax.set_xlabel('Time from stimulus onset (s)')
+for i,stim in enumerate(stimLabels):
+    for j,hemi in enumerate(('ipsi','contra')):
+        ax = fig.add_subplot(gs[i,j])
+        axs.append(ax)
+        for onset,clr,lbl in zip(optoOnset,cmap,optoOnsetLabels):
+            p = np.array(optoOnsetPsth[stim][hemi][onset])[~fs & inhib & respCells['all']]
+            m = np.mean(p,axis=0)
+            s = np.std(p,axis=0)/(len(psth)**0.5)
+            lbl = lbl if np.isnan(onset) else lbl+' ms'
+            ax.plot(t,m,color=clr,label=lbl)
+#            ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        ax.set_xticks(np.arange(-0.05,0.21,0.05))
+        ax.set_xlim([-0.05,0.2])
+        ax.set_ylabel('Spikes/s')
+        title = 'SOA '+str(int(round(1000*mo/obj.frameRate)))+' ms' if stim=='mask' else stim
+        ax.set_title(title)
+        if i==0 and j==0:
+            ax.legend(loc='upper left',title='opto onset')
+        elif i==len(stimLabels)-1:
+            ax.set_xlabel('Time from stimulus onset (s)')
 ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
 ymax = max(plt.get(ax,'ylim')[1] for ax in axs)
 for ax in axs:
@@ -367,20 +317,37 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-x = list(1000*np.array(optoOnset[:-1])/frameRate) + [117]
-analysisWindow = (t>0.03) & (t<0.1)
-for stim,clr in zip(stimLabels,'ckbm'):
+analysisWindow = (t>0) & (t<0.15)
+units = ~fs & inhib & respCells['all']
+for stim,clr in zip(stimLabels[:3],'ckb'):
     respMean = []
     respSem = []
     for onset in optoOnset:
-        ind = ~fs & inhib & respCells['all']
-        p = np.array(optoOnsetPsth[stim][onset])[ind]
-        c = np.array(optoOnsetPsth['catch'][onset])[ind]
-        r = (p-c)[:,analysisWindow].sum(axis=1)
+        p = np.array(optoOnsetPsth[stim]['contra'][onset])[units]
+        c = np.array(optoOnsetPsth['catch']['contra'][onset])[units]
+        r = (p-c)[:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize
         respMean.append(np.mean(r))
         respSem.append(np.std(r)/(len(r)**0.5))
-    ax.plot(x,respMean,'o',color=clr)
+    ax.plot(optoOnsetTicks,respMean,'o',color=clr)
+    for x,m,s in zip(optoOnsetTicks,respMean,respSem):
+        ax.plot([x,x],[m-s,m+s],color=clr)
 ax.set_ylabel('Stimulus evoked spikes')
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for stim,clr in zip(('targetOnly','mask'),'cb'):
+    mean = []
+    sem = []
+    for onset in optoOnset:
+        contra = np.array(optoOnsetPsth[stim]['contra'][onset])[units]
+        ipsi = np.array(optoOnsetPsth[stim]['ipsi'][onset])[units]
+        diff = (contra-ipsi)[:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize
+        mean.append(np.mean(diff))
+        sem.append(np.std(diff)/(len(diff)**0.5))
+    ax.plot(optoOnsetTicks,mean,'o',color=clr)
+    for x,m,s in zip(optoOnsetTicks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],color=clr)
+ax.set_ylabel('Contra - Ipsi (spikes)')
         
 
 
@@ -462,6 +429,61 @@ plt.figure()
 for i,o in enumerate(ori):
     plt.plot(t,rfMap.mean(axis=(0,2,3,5,6))[:,i],label=o)
 plt.legend()
+
+
+# spike rate autocorrelation
+corrWidth = 50
+corr = np.zeros((sum([len(obj.goodUnits) for obj in exps]),corrWidth*2+1))
+uind = 0
+for obj in exps:
+    starts = np.round(1000*np.concatenate(([0],obj.frameSamples[obj.stimStart]/obj.sampleRate+obj.responseWindowFrames/obj.frameRate))).astype(int)
+    stops = np.round(np.concatenate((obj.frameSamples[obj.stimStart]/obj.sampleRate,[obj.frameSamples[-1]/obj.sampleRate]))*1000-corrWidth).astype(int)
+    for u in obj.goodUnits:
+        spikeTimes = obj.units[u]['samples']/obj.sampleRate*1000
+        c = np.zeros(corrWidth*2+1)
+        n = 0
+        for i,j in zip(starts,stops):
+            spikes = spikeTimes[(spikeTimes>i) & (spikeTimes<j)]
+            for s in spikes:
+                bins = np.arange(s-corrWidth-0.5,s+corrWidth+1)
+                c += np.histogram(spikes,bins)[0]
+                n += 1
+        c /= n
+        corr[uind] = c
+        uind += 1
+        print(str(uind)+'/'+str(corr.shape[0]))
+        
+
+expfunc = lambda x,a,tau,c: a*np.exp(-x/tau)+c
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+t = np.arange(corrWidth*2+1)-corrWidth
+x0 = 3
+fitInd = slice(corrWidth+x0,None)
+fitx = t[fitInd]-x0
+#tau = []
+#for c in corr:
+#    if not np.all(np.isnan(c)):
+#        ax.plot(t,c,color='0.5')
+#        fitParams = scipy.optimize.curve_fit(expfunc,fitx,c[fitInd])[0]
+#        tau.append(fitParams[1])
+#        ax.plot(t[fitInd],expfunc(fitx,*fitParams),color=[1,0.5,0.5])
+m = np.nanmean(corr,axis=0)
+ax.plot(t,m,'k')
+fitParams = scipy.optimize.curve_fit(expfunc,fitx,m[fitInd])[0]
+tauMean = fitParams[1]
+#ax.plot(t[fitInd],expfunc(fitx,*fitParams),'r')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+#ax.set_ylim([0,1.05*np.nanmax(corr[:,t!=0])])
+ax.set_xlim([0,corrWidth])
+ax.set_ylim([0,0.04])
+ax.set_yticks([0,0.01,0.02,0.03,0.04])
+ax.set_xlabel('Lag (ms)')
+ax.set_ylabel('Autocorrelation')
+plt.tight_layout()
 
                 
                 
