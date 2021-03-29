@@ -105,7 +105,7 @@ for obj in exps:
                             p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                             psth[cellType][stim][hemi][resp][mo].append(p)
                             t -= preTime
-                            analysisWindow = (t>0.03) & (t<0.15)
+                            analysisWindow = (t>0.025) & (t<0.15)
                             b = p-p[t<0].mean()
                             hasResp[cellType][stim][hemi][resp][mo].append(b[analysisWindow].max() > respThresh*b[t<0].std())
 
@@ -228,14 +228,14 @@ noResp = ~(excit | inhib | transient)
 for k,p in enumerate((optoPsthExample,optoPsth)):
     fig = plt.figure(figsize=(8,8))
     gs = matplotlib.gridspec.GridSpec(4,2)
-    for i,j,clr,ind,lbl in zip((0,1,0,1,2,3),(0,0,1,1,1,1),'mgkkkk',(fs,~fs,excit,inhib,transient,noResp),('FS','RS','Excited','Inhibited','Transient','No Response')):
+    for i,j,units,clr,lbl in zip((0,1,0,1,2,3),(0,0,1,1,1,1),(fs,~fs,excit,inhib,transient,noResp),'mgkkkk',('FS','RS','Excited','Inhibited','Transient','No Response')):
         ax = fig.add_subplot(gs[i,j])
-        ax.plot(t,optoPsth[ind].mean(axis=0),clr)
+        ax.plot(t,p[units].mean(axis=0),clr)
         ylim = plt.get(ax,'ylim')
         if k==0:
             poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime,ylim[1]),(0,ylim[1])])
             ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
-        n = str(np.sum(ind)) if j==0 else str(np.sum(ind & fs))+' FS, '+str(np.sum(ind & ~fs))+' RS'
+        n = str(np.sum(units)) if j==0 else str(np.sum(units & fs))+' FS, '+str(np.sum(units & ~fs))+' RS'
         ax.text(1,1,lbl+' (n = '+n+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
@@ -293,12 +293,13 @@ for obj in exps:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         optoOnsetPsth[stim][hemi][onset].append(p)
-                t -= preTime
+t -= preTime
+t *= 1000
                 
 units = ~(transient | excit) & respCells['all']
                 
 optoOnsetTicks = list(1000*np.array(optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate) + [100]
-optoOnsetLabels = [str(round(onset)) for onset in optoOnsetTicks[:-1]] + ['no opto']
+optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no opto']
 
 fig = plt.figure(figsize=(6,10))
 gs = matplotlib.gridspec.GridSpec(len(stimLabels),2)
@@ -321,24 +322,24 @@ for i,stim in enumerate(stimLabels):
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-        ax.set_xticks(np.arange(-0.05,0.21,0.05))
-        ax.set_xlim([-0.05,0.2])
+        ax.set_xticks(np.arange(-50,201,50))
+        ax.set_xlim([-25,175])
         ax.set_ylabel('Spikes/s')
-        title = 'SOA '+str(int(round(1000*mo/obj.frameRate)))+' ms' if stim=='mask' else stim
+        title = 'target+mask (17 ms offset)' if stim=='mask' else stim
         ax.set_title(title)
         if i==0 and j==0:
-            ax.legend(loc='upper left',title='opto onset')
+            ax.legend(loc='upper left',title='opto onset',fontsize=8)
         elif i==len(stimLabels)-1:
-            ax.set_xlabel('Time from stimulus onset (s)')
+            ax.set_xlabel('Time from stimulus onset (ms)')
 ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
 ymax = max(plt.get(ax,'ylim')[1] for ax in axs)
 for ax in axs:
     ax.set_ylim([ymin,ymax])
-plt.tight_layout() 
+plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-analysisWindow = (t>0.025) & (t<0.15)
+analysisWindow = (t>25) & (t<150)
 for stim,clr in zip(stimLabels[:3],'ckb'):
     respMean = []
     respSem = []
@@ -348,10 +349,20 @@ for stim,clr in zip(stimLabels[:3],'ckb'):
         r = (p-c)[:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize
         respMean.append(np.mean(r))
         respSem.append(np.std(r)/(len(r)**0.5))
-    ax.plot(optoOnsetTicks,respMean,'o',color=clr)
+    lbl = 'target + mask' if stim=='mask' else stim
+    ax.plot(optoOnsetTicks,respMean,'o',color=clr,label=lbl)
     for x,m,s in zip(optoOnsetTicks,respMean,respSem):
         ax.plot([x,x],[m-s,m+s],color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xticks(optoOnsetTicks)
+ax.set_xticklabels(optoOnsetLabels)
+ax.set_xlim([8,108])
+ax.set_xlabel('Opto onset relative to target onset (ms)')
 ax.set_ylabel('Stimulus evoked spikes')
+ax.legend()
+plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
@@ -364,10 +375,18 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
         diff = (contra-ipsi)[:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize
         mean.append(np.mean(diff))
         sem.append(np.std(diff)/(len(diff)**0.5))
-    ax.plot(optoOnsetTicks,mean,'o',color=clr)
-    for x,m,s in zip(optoOnsetTicks,mean,sem):
+    ax.plot(optoOnsetTicks[2:],mean[2:],'o',color=clr)
+    for x,m,s in zip(optoOnsetTicks[2:],mean[2:],sem[2:]):
         ax.plot([x,x],[m-s,m+s],color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xticks(optoOnsetTicks)
+ax.set_xticklabels(optoOnsetLabels)
+ax.set_xlim([8,108])
+ax.set_xlabel('Opto onset relative to target onset (ms)')
 ax.set_ylabel('Contra - Ipsi (spikes)')
+plt.tight_layout()
         
 
 

@@ -555,7 +555,7 @@ for n,obj in enumerate(exps):
                 else:
                     break
 
-xticks = list(optoOnset[:-1]/frameRate*1000)+[117]
+xticks = list((optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 
 for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
@@ -572,25 +572,27 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
                 firstValid = 2
             else:
                 firstValid = 0
-            lbls = ('response rate not above chance','response rate above chance') if stim=='maskOnly' else (None,None)
-            ax.plot(xticks[:firstValid],mean[:firstValid],'o',ms=8,mec=clr,mfc='none',label=lbls[0])
-            ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',ms=8,mec=clr,mfc=clr,label=lbls[1])
+#            lbls = ('response rate not above chance','response rate above chance') if stim=='maskOnly' else (None,None)
+#            ax.plot(xticks[:firstValid],mean[:firstValid],'o',mec=clr,mfc='none',label=lbls[0])
+#            ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',mec=clr,mfc=clr,label=lbls[1])
+        else:
+            firstValid = 0
         lbl = stimLbl if data is respRate else None
-        ax.plot(xticks[:-1],mean[:-1],color=clr)
-        ax.plot(xticks[-1],mean[-1],'o',ms=8,color=clr,label=lbl)
-        for x,m,s in zip(xticks,mean,sem):
+        ax.plot(xticks[firstValid:-1],mean[firstValid:-1],color=clr)
+        ax.plot(xticks[-1],mean[-1],'o',color=clr,label=lbl)
+        for x,m,s in zip(xticks[firstValid:],mean[firstValid:],sem[firstValid:]):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
-    ax.set_xlim([25,125])
+    ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
     ax.set_xlabel('Opto onset relative to target onset (ms)')
     ax.set_ylabel(ylabel)
-    if data is not meanReacTime:
+    if data is respRate:
         ax.legend()
     plt.tight_layout()
 
