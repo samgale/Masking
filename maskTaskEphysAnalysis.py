@@ -117,7 +117,7 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
         continue
     axs = []
     ymin = ymax = 0
-    for resp in behavRespLabels:
+    for resp in ('all',): #behavRespLabels:
         fig = plt.figure(figsize=(10,5))
         fig.text(0.5,0.99,cellType+' (n='+str(respCells[cellType].sum())+' cells)',ha='center',va='top',fontsize=12)
         rewDir = (-1,1) if hasattr(obj,'hemi') and obj.hemi=='right' else (1,-1)
@@ -172,65 +172,84 @@ pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # plot response to optogenetic stimuluation during catch trials
-optoPsth = []
-peakBaseRate = np.full(sum(obj.goodUnits.size for obj in exps),np.nan)
-meanBaseRate = peakBaseRate.copy()
-transientOptoResp = peakBaseRate.copy()
-sustainedOptoResp = peakBaseRate.copy()
-sustainedOptoRate = peakBaseRate.copy()
-
+optoPsthExample = []
 i = 0
 for obj in exps:
     optoOnsetToPlot = np.nanmin(obj.optoOnset)
     for u in obj.goodUnits:
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
+        for onset in [optoOnsetToPlot]:
+            trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
+            startTimes = obj.frameSamples[obj.stimStart[trials]+int(onset)]/obj.sampleRate-preTime
+            p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+        t -= preTime
+        optoPsthExample.append(p)
+        i += 1
+optoPsthExample = np.array(optoPsthExample)
+
+optoPsth = []
+baseRate = np.full(sum(obj.goodUnits.size for obj in exps),np.nan)
+stdBaseRate = baseRate.copy()
+transientOptoResp = baseRate.copy()
+sustainedOptoResp = baseRate.copy()
+sustainedOptoRate = baseRate.copy()
+i = 0
+for obj in exps:
+    for u in obj.goodUnits:
         p = []
-        for onset in [optoOnsetToPlot]: #np.unique(optoOnset[~np.isnan(optoOnset)]):
+        spikeTimes = obj.units[u]['samples']/obj.sampleRate
+        for onset in np.unique(obj.optoOnset[~np.isnan(obj.optoOnset)]):
             trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
             startTimes = obj.frameSamples[obj.stimStart[trials]+int(onset)]/obj.sampleRate-preTime
             s,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
             p.append(s)
+        t -= preTime
         p = np.mean(np.concatenate(p),axis=0)
         optoPsth.append(p)
-        peakBaseRate[i] = p[t<preTime].max()
-        meanBaseRate[i] = p[t<preTime].mean()
-        transientOptoResp[i] = p[(t>=preTime) & (t<preTime+0.25)].max()-peakBaseRate[i]
-        sustainedOptoRate[i] = p[(t>preTime+trialTime-0.35) & (t<preTime+trialTime-0.25)].mean()
-        sustainedOptoResp[i] = sustainedOptoRate[i]-meanBaseRate[i]
+        baseRate[i] = p[t<0].mean()
+        stdBaseRate[i] = p[t<0].std()
+        transientOptoResp[i] = p[(t>0) & (t<0.1)].max()-baseRate[i]
+        sustainedOptoRate[i] = p[(t>0.1) & (t<0.5)].mean()
+        sustainedOptoResp[i] = sustainedOptoRate[i]-baseRate[i]
         i += 1
-t -= preTime
 optoPsth = np.array(optoPsth)
 
 peakToTrough = np.concatenate([obj.peakToTrough for obj in exps])
 unitPos = np.concatenate([obj.unitPos for obj in exps])
 fs = peakToTrough < fsThresh
 
-fig = plt.figure(figsize=(8,8))
-excit = sustainedOptoResp>1
-inhib = ((sustainedOptoResp<0) & (transientOptoResp<1))
-transient = ~(excit | inhib) & (transientOptoResp>1)
+peakThresh = 3*stdBaseRate
+sustainedThresh = stdBaseRate
+excit = sustainedOptoResp>sustainedThresh
+transient = ~excit & (transientOptoResp>peakThresh)
+inhib = ~transient & (sustainedOptoResp<sustainedThresh)
 noResp = ~(excit | inhib | transient)
-gs = matplotlib.gridspec.GridSpec(4,2)
-for i,j,clr,ind,lbl in zip((0,1,0,1,2,3),(0,0,1,1,1,1),'mgkkkk',(fs,~fs,excit,inhib,transient,noResp),('FS','RS','Excited','Inhibited','Transient','No Response')):
-    ax = fig.add_subplot(gs[i,j])
-    ax.plot(t,optoPsth[ind].mean(axis=0),clr)
-    ylim = plt.get(ax,'ylim')
-    poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime,ylim[1]),(0,ylim[1])])
-    ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
-    n = str(np.sum(ind)) if j==0 else str(np.sum(ind & fs))+' FS, '+str(np.sum(ind & ~fs))+' RS'
-    ax.text(1,1,lbl+' (n = '+n+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    if (i==1 and j==0) or i==2:
-        ax.set_xlabel('Time from LED onset (s)')
-    ax.set_ylabel('Spikes/s')
-plt.tight_layout()
+
+for k,p in enumerate((optoPsthExample,optoPsth)):
+    fig = plt.figure(figsize=(8,8))
+    gs = matplotlib.gridspec.GridSpec(4,2)
+    for i,j,clr,ind,lbl in zip((0,1,0,1,2,3),(0,0,1,1,1,1),'mgkkkk',(fs,~fs,excit,inhib,transient,noResp),('FS','RS','Excited','Inhibited','Transient','No Response')):
+        ax = fig.add_subplot(gs[i,j])
+        ax.plot(t,optoPsth[ind].mean(axis=0),clr)
+        ylim = plt.get(ax,'ylim')
+        if k==0:
+            poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime,ylim[1]),(0,ylim[1])])
+            ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
+        n = str(np.sum(ind)) if j==0 else str(np.sum(ind & fs))+' FS, '+str(np.sum(ind & ~fs))+' RS'
+        ax.text(1,1,lbl+' (n = '+n+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        ax.set_xlim([-preTime,trialTime+postTime])
+        if (i==1 and j==0) or i==2:
+            ax.set_xlabel('Time from LED onset (s)')
+        ax.set_ylabel('Spikes/s')
+    plt.tight_layout()
 
 fig = plt.figure(figsize=(8,8))
 gs = matplotlib.gridspec.GridSpec(4,2)
 for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to trough (ms)','Distance from tip (mm)'))):
-    for i,(y,ylbl) in enumerate(zip((meanBaseRate,transientOptoResp,sustainedOptoResp,sustainedOptoRate),('Baseline rate','Transient opto response','Sustained opto response','Sustained opto rate'))):
+    for i,(y,ylbl) in enumerate(zip((baseRate,transientOptoResp,sustainedOptoResp,sustainedOptoRate),('Baseline rate','Transient opto response','Sustained opto response','Sustained opto rate'))):
         ax = fig.add_subplot(gs[i,j])
         xmin = xdata.min()
         xmax = xdata.max()
@@ -276,6 +295,8 @@ for obj in exps:
                         optoOnsetPsth[stim][hemi][onset].append(p)
                 t -= preTime
                 
+units = ~(transient | excit) & respCells['all']
+                
 optoOnsetTicks = list(1000*np.array(optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate) + [100]
 optoOnsetLabels = [str(round(onset)) for onset in optoOnsetTicks[:-1]] + ['no opto']
 
@@ -291,7 +312,7 @@ for i,stim in enumerate(stimLabels):
         ax = fig.add_subplot(gs[i,j])
         axs.append(ax)
         for onset,clr,lbl in zip(optoOnset,cmap,optoOnsetLabels):
-            p = np.array(optoOnsetPsth[stim][hemi][onset])[~fs & inhib & respCells['all']]
+            p = np.array(optoOnsetPsth[stim][hemi][onset])[units]
             m = np.mean(p,axis=0)
             s = np.std(p,axis=0)/(len(psth)**0.5)
             lbl = lbl if np.isnan(onset) else lbl+' ms'
@@ -317,8 +338,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-analysisWindow = (t>0) & (t<0.15)
-units = ~fs & inhib & respCells['all']
+analysisWindow = (t>0.025) & (t<0.15)
 for stim,clr in zip(stimLabels[:3],'ckb'):
     respMean = []
     respSem = []
