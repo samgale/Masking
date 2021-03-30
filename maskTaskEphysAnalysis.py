@@ -110,6 +110,7 @@ for obj in exps:
                             hasResp[cellType][stim][hemi][resp][mo].append(b[analysisWindow].max() > respThresh*b[t<0].std())
 
 respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['contra']['all'][0]) | np.array(hasResp[cellType]['maskOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
+#respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
 
 xlim = [-0.1,0.4]
 for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
@@ -292,7 +293,7 @@ for obj in exps:
                     for u in obj.goodUnits:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
-                        optoOnsetPsth[stim][hemi][onset].append(p)
+                        optoOnsetPsth[stim][hemi][onset].append(p)                      
 t -= preTime
 t *= 1000
                 
@@ -366,15 +367,26 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
+ax.plot([8,108],[0.5,0.5],'k--')
 for stim,clr in zip(('targetOnly','mask'),'cb'):
     mean = []
     sem = []
     for onset in optoOnset:
-        contra = np.array(optoOnsetPsth[stim]['contra'][onset])[units]
-        ipsi = np.array(optoOnsetPsth[stim]['ipsi'][onset])[units]
-        diff = (contra-ipsi)[:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize
-        mean.append(np.mean(diff))
-        sem.append(np.std(diff)/(len(diff)**0.5))
+#        contra = np.array(optoOnsetPsth[stim]['contra'][onset])[units]
+#        ipsi = np.array(optoOnsetPsth[stim]['ipsi'][onset])[units]
+#        diff = (contra-ipsi)[:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize
+#        mean.append(np.mean(diff))
+#        sem.append(np.std(diff)/(len(diff)**0.5))
+        d = []
+        ipsi,contra = [np.array(optoOnsetPsth[stim][hemi][onset])[units][:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize for hemi in ('ipsi','contra')]
+        for i,c in zip(ipsi,contra):
+            if i==0 and c==0:
+                d.append(0.5)
+            else:
+                d.append(c/(c+i))
+        mean.append(np.mean(d))
+        sem.append(np.std(d)/(len(d)**0.5))
+#        mean.append(contra.mean()/(ipsi.mean()+contra.mean()))
     ax.plot(optoOnsetTicks[2:],mean[2:],'o',color=clr)
     for x,m,s in zip(optoOnsetTicks[2:],mean[2:],sem[2:]):
         ax.plot([x,x],[m-s,m+s],color=clr)
@@ -385,9 +397,9 @@ ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
 ax.set_xlabel('Opto onset relative to target onset (ms)')
-ax.set_ylabel('Contra - Ipsi (spikes)')
+ax.set_ylabel('Contra / (Contra + Ipsi)')
 plt.tight_layout()
-        
+
 
 
 # rf mapping
