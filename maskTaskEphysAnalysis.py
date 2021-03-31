@@ -64,7 +64,8 @@ frameRate = 120
 binSize = 1/exps[0].frameRate
 
 fsThresh = 0.5
-respThresh = 5 # stdev
+relThresh = 5 # stdev
+absThresh = 1
 stimLabels = ('targetOnly','maskOnly','mask','catch')
 behavRespLabels = ('all','go','nogo')
 cellTypeLabels = ('all','FS','RS')
@@ -107,7 +108,8 @@ for obj in exps:
                             t -= preTime
                             analysisWindow = (t>0.025) & (t<0.15)
                             b = p-p[t<0].mean()
-                            hasResp[cellType][stim][hemi][resp][mo].append(b[analysisWindow].max() > respThresh*b[t<0].std())
+                            hr = (b[analysisWindow].mean() > absThresh) & (b[analysisWindow].max() > relThresh*b[t<0].std())
+                            hasResp[cellType][stim][hemi][resp][mo].append(hr)
 
 respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['contra']['all'][0]) | np.array(hasResp[cellType]['maskOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
 #respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
@@ -379,17 +381,17 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
 #        sem.append(np.std(diff)/(len(diff)**0.5))
         d = []
         ipsi,contra = [np.array(optoOnsetPsth[stim][hemi][onset])[units][:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize for hemi in ('ipsi','contra')]
-        for i,c in zip(ipsi,contra):
-            if i==0 and c==0:
-                d.append(0.5)
-            else:
-                d.append(c/(c+i))
-        mean.append(np.mean(d))
-        sem.append(np.std(d)/(len(d)**0.5))
-#        mean.append(contra.mean()/(ipsi.mean()+contra.mean()))
+#        for i,c in zip(ipsi,contra):
+#            if i==0 and c==0:
+#                d.append(0.5)
+#            else:
+#                d.append(c/(c+i))
+#        mean.append(np.mean(d))
+#        sem.append(np.std(d)/(len(d)**0.5))
+        mean.append(contra.mean()/(ipsi.mean()+contra.mean()))
     ax.plot(optoOnsetTicks[2:],mean[2:],'o',color=clr)
-    for x,m,s in zip(optoOnsetTicks[2:],mean[2:],sem[2:]):
-        ax.plot([x,x],[m-s,m+s],color=clr)
+#    for x,m,s in zip(optoOnsetTicks[2:],mean[2:],sem[2:]):
+#        ax.plot([x,x],[m-s,m+s],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)

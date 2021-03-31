@@ -433,6 +433,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0,1),None),
 for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    for d in data:
+        ax.plot(xticks,d.mean(axis=0),color='0.5')
     meanLR = np.nanmean(data,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
@@ -502,7 +504,7 @@ for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1)),clrs,lbls):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xlim([150,650])
+ax.set_xlim([100,650])
 ax.set_ylim([0,1.02])
 ax.set_ylabel('Cumulative Probability')
 ax.legend(fontsize=8,loc='upper left')
@@ -513,7 +515,7 @@ for p,clr in zip(pc,clrs):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xlim([150,650])
+ax.set_xlim([100,650])
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Reaction Time (ms)')
 ax.set_ylabel('Probability Correct')
