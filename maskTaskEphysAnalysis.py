@@ -403,6 +403,64 @@ ax.set_ylabel('Contra / (Contra + Ipsi)')
 plt.tight_layout()
 
 
+optoTrialPsth = {stim: {hemi: {onset: [] for onset in optoOnset} for hemi in ('ipsi','contra')} for stim in stimLabels}
+i = 0
+for obj in exps:
+    ephysHemi = ('contra','ipsi') if hasattr(obj,'hemi') and obj.hemi=='right' else ('ipsi','contra')
+    for stim in stimLabels:
+        for hemi,rd in zip(ephysHemi,(1,-1)):
+            stimTrials = np.in1d(obj.trialType,(stim,stim+'Opto'))
+            if stim in ('targetOnly','mask'):
+                stimTrials = stimTrials & (obj.rewardDir==rd)
+            for mo in np.unique(obj.maskOnset[stimTrials]):
+                moTrials = obj.maskOnset==mo
+                for onset in optoOnset:
+                    trials = np.isnan(obj.optoOnset) if np.isnan(onset) else obj.optoOnset==onset
+                    trials = trials & stimTrials & moTrials
+                    startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
+                    p = []
+                    for u in obj.goodUnits:
+                        spikeTimes = obj.units[u]['samples']/obj.sampleRate
+                        s,_ = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
+                        p.append(s)
+                    optoTrialPsth[stim][hemi][onset].append(np.array(p)[units[i:i+len(obj.goodUnits)]].mean(axis=0))
+    i += len(obj.goodUnits)
+
+analysisWindow = (t>25) & (t<150)
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([8,108],[0.5,0.5],'k--')
+for stim,clr in zip(('targetOnly','mask'),'cb'):
+    mean = []
+    sem = []
+    for onset in optoOnset:
+        d = []
+        for ind in range(len(exps)):
+            ipsi,contra = [optoTrialPsth[stim][hemi][onset][ind][:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize for hemi in ('ipsi','contra')]
+            for i in ipsi:
+                for c in contra:
+                    if i==0 and c==0:
+                        pass
+                        d.append(0.5)
+                    else:
+                        d.append(c/(c+i))
+        mean.append(np.mean(d))
+        sem.append(np.std(d)/(len(d)**0.5))
+    ax.plot(optoOnsetTicks,mean,'o',color=clr)
+    for x,m,s in zip(optoOnsetTicks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xticks(optoOnsetTicks)
+ax.set_xticklabels(optoOnsetLabels)
+ax.set_xlim([8,108])
+ax.set_xlabel('Opto onset relative to target onset (ms)')
+ax.set_ylabel('Contra / (Contra + Ipsi)')
+plt.tight_layout()
+
+
 
 # rf mapping
 azi,ele = [np.unique(p) for p in obj.rfStimPos.T]
