@@ -39,36 +39,6 @@ def findSignalEdges(signal,edgeType,thresh,refractory):
     return edges
 
 
-def getPSTH(spikes,startTimes,windowDur,binSize=0.01,avg=True):
-    bins = np.arange(0,windowDur+binSize,binSize)
-    counts = np.zeros((len(startTimes),bins.size-1))    
-    for i,start in enumerate(startTimes):
-        counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,bins)[0]
-    if avg:
-        counts = counts.mean(axis=0)
-    counts /= binSize
-    return counts, bins[:-1]+binSize/2
-
-
-def getSDF(spikes,startTimes,windowDur,sampInt=0.001,filt='exponential',filtWidth=0.005,avg=True):
-        t = np.arange(0,windowDur+sampInt,sampInt)
-        counts = np.zeros((startTimes.size,t.size-1))
-        for i,start in enumerate(startTimes):
-            counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,t)[0]
-        if filt in ('exp','exponential'):
-            filtPts = int(5*filtWidth/sampInt)
-            expFilt = np.zeros(filtPts*2)
-            expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=filtWidth/sampInt,sym=False)
-            expFilt /= expFilt.sum()
-            sdf = scipy.ndimage.filters.convolve1d(counts,expFilt,axis=1)
-        else:
-            sdf = scipy.ndimage.filters.gaussian_filter1d(counts,filtWidth/sampInt,axis=1)
-        if avg:
-            sdf = sdf.mean(axis=0)
-        sdf /= sampInt
-        return sdf,t[:-1]
-
-
 
 # get analog sync data acquired with NidaqRecorder
 syncPath = fileIO.getFile('Select sync file',fileType='*.hdf5')
@@ -154,6 +124,7 @@ class MaskTaskData():
         self.rf = False
         self.ephys = False
         self.frameDisplayLag = 2
+        self.earlyMoveFrames = 12
         
         
     def loadBehavData(self,filePath=None):
@@ -221,12 +192,12 @@ class MaskTaskData():
     def findEarlyMoveTrials(self,earlyMoveThresh=None):
         if earlyMoveThresh is None:
             earlyMoveThresh = self.maxQuiescentMoveDist
-        obj.earlyMove = np.any(self.wheelPos[:,:self.openLoopFrames]>earlyMoveThresh,axis=1)
+        obj.earlyMove = np.any(self.wheelPos[:,:self.earlyMoveFrames]>earlyMoveThresh,axis=1)
         
     def calcReactionTime(self,moveInitThresh=0.2):
         wp = self.wheelPos.copy()
-        wp -= wp[:,self.openLoopFrames][:,None]
-        wp[:,:self.openLoopFrames] = 0
+        wp -= wp[:,self.earlyMoveFrames][:,None]
+        wp[:,:self.earlyMoveFrames] = 0
         t = 1000/self.frameRate*(np.arange(wp.shape[1]))
         tinterp = np.arange(t[0],t[-1])
         self.reactionTime = np.full(obj.ntrials,np.nan)
@@ -264,7 +235,7 @@ class MaskTaskData():
     
     def loadEphysData(self):
         self.datFilePath = fileIO.getFile('Select probe dat file',fileType='*.dat')
-        if len(self.datDataPath)==0:
+        if len(self.datFilePath)==0:
             return
         self.ephys = True
         probeDataDir = os.path.dirname(self.datFilePath)
@@ -462,6 +433,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0,1),None),
 for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    for d in data:
+        ax.plot(xticks,d.mean(axis=0),color='0.5')
     meanLR = np.nanmean(data,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
@@ -531,7 +504,7 @@ for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1)),clrs,lbls):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xlim([150,650])
+ax.set_xlim([100,650])
 ax.set_ylim([0,1.02])
 ax.set_ylabel('Cumulative Probability')
 ax.legend(fontsize=8,loc='upper left')
@@ -542,7 +515,7 @@ for p,clr in zip(pc,clrs):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xlim([150,650])
+ax.set_xlim([100,650])
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Reaction Time (ms)')
 ax.set_ylabel('Probability Correct')
@@ -584,7 +557,7 @@ for n,obj in enumerate(exps):
                 else:
                     break
 
-xticks = list(optoOnset[:-1]/frameRate*1000)+[117]
+xticks = list((optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 
 for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
@@ -601,25 +574,27 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
                 firstValid = 2
             else:
                 firstValid = 0
-            lbls = ('response rate not above chance','response rate above chance') if stim=='maskOnly' else (None,None)
-            ax.plot(xticks[:firstValid],mean[:firstValid],'o',ms=8,mec=clr,mfc='none',label=lbls[0])
-            ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',ms=8,mec=clr,mfc=clr,label=lbls[1])
+#            lbls = ('response rate not above chance','response rate above chance') if stim=='maskOnly' else (None,None)
+#            ax.plot(xticks[:firstValid],mean[:firstValid],'o',mec=clr,mfc='none',label=lbls[0])
+#            ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',mec=clr,mfc=clr,label=lbls[1])
+        else:
+            firstValid = 0
         lbl = stimLbl if data is respRate else None
-        ax.plot(xticks[:-1],mean[:-1],color=clr)
-        ax.plot(xticks[-1],mean[-1],'o',ms=8,color=clr,label=lbl)
-        for x,m,s in zip(xticks,mean,sem):
+        ax.plot(xticks[firstValid:-1],mean[firstValid:-1],color=clr)
+        ax.plot(xticks[-1],mean[-1],'o',color=clr,label=lbl)
+        for x,m,s in zip(xticks[firstValid:],mean[firstValid:],sem[firstValid:]):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
-    ax.set_xlim([25,125])
+    ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
     ax.set_xlabel('Opto onset relative to target onset (ms)')
     ax.set_ylabel(ylabel)
-    if data is not meanReacTime:
+    if data is respRate:
         ax.legend()
     plt.tight_layout()
 
