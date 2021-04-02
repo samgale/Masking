@@ -124,7 +124,7 @@ class MaskTaskData():
         self.rf = False
         self.ephys = False
         self.frameDisplayLag = 2
-        self.earlyMoveFrames = 12
+        self.earlyMoveFrames = 18
         
         
     def loadBehavData(self,filePath=None):
@@ -356,12 +356,11 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
 
     
 frameRate = 120
-stimLabels = ('mask','targetOnly','maskOnly','catch')
 rewardDir = (1,-1)
     
 
-
 # masking
+stimLabels = ('mask','targetOnly','maskOnly','catch')
 maskOnset = np.array([2,3,4,6,0])
 ntrials = np.full((len(exps),2,len(maskOnset)+2),np.nan)
 respRate = ntrials.copy()
@@ -520,6 +519,79 @@ ax.set_ylim([0,1.02])
 ax.set_xlabel('Reaction Time (ms)')
 ax.set_ylabel('Probability Correct')
 plt.tight_layout()
+
+
+# opto timing
+stimLabels = ('targetOnly','catch')
+optoOnset = np.array([4,6,8,10,12,np.nan])
+ntrials = np.full((len(exps),len(stimLabels),2,len(optoOnset)),np.nan)
+respRate = ntrials.copy()
+fracCorr = respRate.copy()
+meanReacTime = respRate.copy()
+meanReacTimeCorrect = respRate.copy()
+meanReacTimeIncorrect = respRate.copy()
+reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+for n,obj in enumerate(exps):
+    validTrials = obj.engaged & (~obj.earlyMove)
+    for s,stim in enumerate(stimLabels):
+        stimTrials = validTrials & np.in1d(obj.trialType,(stim,stim+'Opto'))
+        for j,optoOn in enumerate(optoOnset):
+            optoTrials = stimTrials & np.isnan(obj.optoOnset) if np.isnan(optoOn) else stimTrials & (obj.optoOnset==optoOn)
+            if optoTrials.sum()>0:
+                for i,rd in enumerate(rewardDir):
+                    trials = optoTrials & (obj.rewardDir==rd) if stim=='targetOnly' else optoTrials
+                    ntrials[n,s,i,j] = trials.sum()
+                    respTrials = trials & (~np.isnan(obj.responseDir))
+                    respRate[n,s,i,j] = respTrials.sum()/trials.sum()
+                    meanReacTime[n,s,i,j] = np.nanmean(obj.reactionTime[respTrials])
+                    reacTime[n][stim][rd][mo] = obj.reactionTime[respTrials]
+                    if stim=='targetOnly':
+                        correctTrials = obj.response[respTrials]==1
+                        fracCorr[n,s,i,j] = correctTrials.sum()/respTrials.sum()
+                        meanReacTimeCorrect[n,s,i,j] = np.nanmean(obj.reactionTime[respTrials][correctTrials])
+                        meanReacTimeIncorrect[n,s,i,j] = np.nanmean(obj.reactionTime[respTrials][~correctTrials])
+                        reacTimeCorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][correctTrials]
+                        reacTimeIncorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][~correctTrials]
+                    else:
+                        break
+
+xticks = list((optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
+xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
+                    
+for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target only','no stim'),'cm')):
+        meanLR = np.nanmean(data[:,i],axis=1)
+        mean = np.nanmean(meanLR,axis=0)
+        sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+        if data is fracCorr:
+            if stim=='targetOnly':
+                firstValid = 2
+            else:
+                firstValid = 0
+        else:
+            firstValid = 0
+        lbl = stimLbl if data is respRate else None
+        ax.plot(xticks[firstValid:-1],mean[firstValid:-1],color=clr)
+        ax.plot(xticks[-1],mean[-1],'o',color=clr,label=lbl)
+        for x,m,s in zip(xticks[firstValid:],mean[firstValid:],sem[firstValid:]):
+            ax.plot([x,x],[m-s,m+s],color=clr)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim([8,108])
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    ax.set_xlabel('Opto onset relative to target onset (ms)')
+    ax.set_ylabel(ylabel)
+    if data is respRate:
+        ax.legend()
+    plt.tight_layout()
 
 
 # opto masking

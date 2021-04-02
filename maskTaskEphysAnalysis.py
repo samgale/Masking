@@ -45,7 +45,18 @@ def getSDF(spikes,startTimes,windowDur,sampInt=0.001,filt='exponential',filtWidt
             sdf = sdf.mean(axis=0)
         sdf /= sampInt
         return sdf,t[:-1]
-        
+
+
+
+obj = MaskTaskData()
+
+obj.loadEphysData()
+
+obj.loadBehavData()
+
+obj.loadRFData()
+
+obj.saveToHdf5()        
 
 
 exps = []
@@ -301,7 +312,7 @@ t *= 1000
                 
 units = ~(transient | excit) & respCells['all']
                 
-optoOnsetTicks = list(1000*np.array(optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate) + [100]
+optoOnsetTicks = list(1000*(np.array(optoOnset[:-1])-exps[0].frameDisplayLag)/frameRate) + [100]
 optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no opto']
 
 fig = plt.figure(figsize=(6,10))
@@ -426,7 +437,7 @@ for obj in exps:
                     optoTrialPsth[stim][hemi][onset].append(np.array(p)[units[i:i+len(obj.goodUnits)]].mean(axis=0))
     i += len(obj.goodUnits)
 
-analysisWindow = (t>25) & (t<150)
+analysisWindow = (t>25) & (t<100)
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
@@ -438,17 +449,26 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
         d = []
         for ind in range(len(exps)):
             ipsi,contra = [optoTrialPsth[stim][hemi][onset][ind][:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize for hemi in ('ipsi','contra')]
-            for i in ipsi:
-                for c in contra:
+            for c in contra:
+                b = []
+                for i in ipsi:
                     if i==0 and c==0:
                         pass
-                        d.append(0.5)
+                        b.append(0.5)
                     else:
-                        d.append(c/(c+i))
+                        b.append(c/(c+i))
+                d.append(np.mean(b))
         mean.append(np.mean(d))
         sem.append(np.std(d)/(len(d)**0.5))
-    ax.plot(optoOnsetTicks,mean,'o',color=clr)
-    for x,m,s in zip(optoOnsetTicks,mean,sem):
+    if stim=='targetOnly':
+        firstValid = 3
+    elif stim=='mask':
+        firstValid = 2
+    else:
+        firstValid = 0
+    ax.plot(optoOnsetTicks[firstValid:-1],mean[firstValid:-1],color=clr)
+    ax.plot(optoOnsetTicks[-1],mean[-1],'o',color=clr,label=lbl)
+    for x,m,s in zip(optoOnsetTicks[firstValid:],mean[firstValid:],sem[firstValid:]):
         ax.plot([x,x],[m-s,m+s],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
@@ -457,7 +477,7 @@ ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
 ax.set_xlabel('Opto onset relative to target onset (ms)')
-ax.set_ylabel('Contra / (Contra + Ipsi)')
+ax.set_ylabel('Fraction of spikes contralateral to target')
 plt.tight_layout()
 
 
