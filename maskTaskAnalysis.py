@@ -357,6 +357,138 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     
 frameRate = 120
 rewardDir = (1,-1)
+
+
+# target duration
+stimLabels = ('targetOnly','catch')
+targetFrames = np.array([0,1,2,4,12])
+ntrials = np.full((len(exps),2,len(targetFrames)),np.nan)
+respRate = ntrials.copy()
+fracCorr = respRate.copy()
+meanReacTime = respRate.copy()
+meanReacTimeCorrect = respRate.copy()
+meanReacTimeIncorrect = respRate.copy()
+reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+for n,obj in enumerate(exps):
+    validTrials = obj.engaged & (~obj.earlyMove)
+    for stim in stimLabels:
+        stimTrials = validTrials & (obj.trialType==stim)
+        for j,tf in enumerate(targetFrames):
+            tfTrials = stimTrials  & (obj.targetFrames==tf)
+            if tfTrials.sum()>0:  
+                for i,rd in enumerate(rewardDir):
+                    trials = tfTrials & (obj.rewardDir==rd) if stim=='targetOnly' else tfTrials
+                    ntrials[n,i,j] = trials.sum()
+                    respTrials = trials & (~np.isnan(obj.responseDir))
+                    respRate[n,i,j] = respTrials.sum()/trials.sum()
+                    meanReacTime[n,i,j] = np.nanmean(obj.reactionTime[respTrials])
+                    reacTime[n][stim][rd][tf] = obj.reactionTime[respTrials]
+                    if stim=='targetOnly':
+                        correctTrials = obj.response[respTrials]==1
+                        fracCorr[n,i,j] = correctTrials.sum()/respTrials.sum()
+                        meanReacTimeCorrect[n,i,j] = np.nanmean(obj.reactionTime[respTrials][correctTrials])
+                        meanReacTimeIncorrect[n,i,j] = np.nanmean(obj.reactionTime[respTrials][~correctTrials])
+                        reacTimeCorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][correctTrials]
+                        reacTimeIncorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][~correctTrials]
+                    else:
+                        break
+                    
+xticks = list(targetFrames/frameRate*1000)
+xticklabels = ['no\nstimulus'] + [str(int(round(x))) for x in xticks[1:]]
+xlim = [-5,105]
+
+for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    meanLR = np.nanmean(data,axis=1)
+    for d in meanLR:
+        ax.plot(xticks[0],d[0],'o',mec='0.5',mfc='none')
+        ax.plot(xticks[1:],d[1:],color='0.5')
+    mean = np.nanmean(meanLR,axis=0)
+    sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    ax.plot(xticks[0],mean[0],'ko')
+    ax.plot(xticks[1:],mean[1:],'ko-')
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'k-')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    ax.set_xlabel('Target Duration (ms)')
+    ax.set_ylabel(ylabel)
+    plt.tight_layout() 
+
+
+# target contrast
+stimLabels = ('targetOnly','catch')
+targetContrast = np.array([0,0.2,0.4,0.6,1])
+ntrials = np.full((len(exps),2,len(targetContrast)),np.nan)
+respRate = ntrials.copy()
+fracCorr = respRate.copy()
+meanReacTime = respRate.copy()
+meanReacTimeCorrect = respRate.copy()
+meanReacTimeIncorrect = respRate.copy()
+reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
+for n,obj in enumerate(exps):
+    validTrials = obj.engaged & (~obj.earlyMove)
+    for stim in stimLabels:
+        stimTrials = validTrials & (obj.trialType==stim)
+        for j,tc in enumerate(targetContrast):
+            tcTrials = stimTrials  & (obj.targetContrast==tc)
+            if tcTrials.sum()>0:  
+                for i,rd in enumerate(rewardDir):
+                    trials = tcTrials & (obj.rewardDir==rd) if stim=='targetOnly' else tcTrials
+                    ntrials[n,i,j] = trials.sum()
+                    respTrials = trials & (~np.isnan(obj.responseDir))
+                    respRate[n,i,j] = respTrials.sum()/trials.sum()
+                    meanReacTime[n,i,j] = np.nanmean(obj.reactionTime[respTrials])
+                    reacTime[n][stim][rd][tf] = obj.reactionTime[respTrials]
+                    if stim=='targetOnly':
+                        correctTrials = obj.response[respTrials]==1
+                        fracCorr[n,i,j] = correctTrials.sum()/respTrials.sum()
+                        meanReacTimeCorrect[n,i,j] = np.nanmean(obj.reactionTime[respTrials][correctTrials])
+                        meanReacTimeIncorrect[n,i,j] = np.nanmean(obj.reactionTime[respTrials][~correctTrials])
+                        reacTimeCorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][correctTrials]
+                        reacTimeIncorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][~correctTrials]
+                    else:
+                        break
+                    
+xticks = targetContrast
+xticklabels = ['no\nstimulus'] + [str(x) for x in targetContrast[1:]]
+xlim = [-0.05,1.05]
+
+for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    meanLR = np.nanmean(data,axis=1)
+    for d in meanLR:
+        ax.plot(xticks[0],d[0],'o',mec='0.5',mfc='none')
+        ax.plot(xticks[1:],d[1:],color='0.5')
+    mean = np.nanmean(meanLR,axis=0)
+    sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    ax.plot(xticks[0],mean[0],'ko')
+    ax.plot(xticks[1:],mean[1:],'ko-')
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'k-')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    ax.set_xlabel('Target Contrast (ms)')
+    ax.set_ylabel(ylabel)
+    plt.tight_layout()                  
     
 
 # masking
@@ -432,9 +564,9 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0,1),None),
 for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    for d in data:
-        ax.plot(xticks,d.mean(axis=0),color='0.5')
     meanLR = np.nanmean(data,axis=1)
+    for d in meanLR:
+        ax.plot(xticks,d,color='0.5')
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks,mean,'ko')
@@ -575,7 +707,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
         else:
             firstValid = 0
         lbl = stimLbl if data is respRate else None
-        ax.plot(xticks[firstValid:-1],mean[firstValid:-1],color=clr)
+        ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',color=clr)
         ax.plot(xticks[-1],mean[-1],'o',color=clr,label=lbl)
         for x,m,s in zip(xticks[firstValid:],mean[firstValid:],sem[firstValid:]):
             ax.plot([x,x],[m-s,m+s],color=clr)
