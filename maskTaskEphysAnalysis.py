@@ -75,8 +75,7 @@ frameRate = 120
 binSize = 1/exps[0].frameRate
 
 fsThresh = 0.5
-relThresh = 5 # stdev
-absThresh = 1
+respThresh = 5 # stdev
 stimLabels = ('targetOnly','maskOnly','mask','catch')
 behavRespLabels = ('all','go','nogo')
 cellTypeLabels = ('all','FS','RS')
@@ -86,6 +85,7 @@ windowDur = preTime+trialTime+postTime
 
 ntrials = {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in ('ipsi','contra')} for stim in stimLabels}
 psth = {cellType: {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in ('ipsi','contra')} for stim in stimLabels} for cellType in cellTypeLabels}
+hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
 
 for obj in exps:
@@ -111,19 +111,20 @@ for obj in exps:
                     for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
                         if mo not in psth[cellType][stim][hemi][resp]:
                             psth[cellType][stim][hemi][resp][mo] = []
+                            hasSpikes[cellType][stim][hemi][resp][mo] = []
                             hasResp[cellType][stim][hemi][resp][mo] = []
                         for u in obj.goodUnits[ct]:
                             spikeTimes = obj.units[u]['samples']/obj.sampleRate
                             p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                             psth[cellType][stim][hemi][resp][mo].append(p)
                             t -= preTime
-                            analysisWindow = (t>0.025) & (t<0.15)
+                            analysisWindow = (t>0.025) & (t<0.1)
+                            hasSpikes[cellType][stim][hemi][resp][mo].append(p[t<0.1].mean() > 0)
                             b = p-p[t<0].mean()
-                            hr = (b[analysisWindow].mean() > absThresh) & (b[analysisWindow].max() > relThresh*b[t<0].std())
-                            hasResp[cellType][stim][hemi][resp][mo].append(hr)
+                            hasResp[cellType][stim][hemi][resp][mo].append(b[analysisWindow].max() > respThresh*b[t<0].std())
 
+activeCells = {cellType: np.array(hasSpikes[cellType]['targetOnly']['contra']['all'][0]) | np.array(hasSpikes[cellType]['maskOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
 respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['contra']['all'][0]) | np.array(hasResp[cellType]['maskOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
-#respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
 
 xlim = [-0.1,0.4]
 for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
@@ -234,16 +235,17 @@ fs = peakToTrough < fsThresh
 
 peakThresh = 3*stdBaseRate
 sustainedThresh = stdBaseRate
-excit = sustainedOptoResp>sustainedThresh
-transient = ~excit & (transientOptoResp>peakThresh)
-inhib = ~transient & (sustainedOptoResp<sustainedThresh)
-noResp = ~(excit | inhib | transient)
+excit = activeCells['all'] & (sustainedOptoResp>sustainedThresh)
+transient = activeCells['all'] & (~excit) & (transientOptoResp>peakThresh)
+inhib = activeCells['all'] & (~transient) & (sustainedOptoResp<sustainedThresh)
+noResp = activeCells['all'] & (~(excit | inhib | transient))
 
 for k,p in enumerate((optoPsthExample,optoPsth)):
     fig = plt.figure(figsize=(8,8))
     gs = matplotlib.gridspec.GridSpec(4,2)
     for i,j,units,clr,lbl in zip((0,1,0,1,2,3),(0,0,1,1,1,1),(fs,~fs,excit,inhib,transient,noResp),'mgkkkk',('FS','RS','Excited','Inhibited','Transient','No Response')):
         ax = fig.add_subplot(gs[i,j])
+        units = units & activeCells['all']
         ax.plot(t,p[units].mean(axis=0),clr)
         ylim = plt.get(ax,'ylim')
         if k==0:
@@ -310,7 +312,7 @@ for obj in exps:
 t -= preTime
 t *= 1000
                 
-units = ~(transient | excit) & respCells['all']
+units = ~(transient | excit) & respCells['all'] & activeCells['all']
                 
 optoOnsetTicks = list(1000*(np.array(optoOnset[:-1])-exps[0].frameDisplayLag)/frameRate) + [100]
 optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no opto']
@@ -353,7 +355,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-analysisWindow = (t>25) & (t<150)
+analysisWindow = (t>25) & (t<100)
 for stim,clr in zip(stimLabels[:3],'ckb'):
     respMean = []
     respSem = []
@@ -466,7 +468,7 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
         firstValid = 2
     else:
         firstValid = 0
-    ax.plot(optoOnsetTicks[firstValid:-1],mean[firstValid:-1],color=clr)
+    ax.plot(optoOnsetTicks[firstValid:-1],mean[firstValid:-1],'o-',color=clr)
     ax.plot(optoOnsetTicks[-1],mean[-1],'o',color=clr,label=lbl)
     for x,m,s in zip(optoOnsetTicks[firstValid:],mean[firstValid:],sem[firstValid:]):
         ax.plot([x,x],[m-s,m+s],color=clr)
