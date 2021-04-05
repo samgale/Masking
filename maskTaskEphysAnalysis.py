@@ -387,24 +387,22 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
     mean = []
     sem = []
     for onset in optoOnset:
-#        contra = np.array(optoOnsetPsth[stim]['contra'][onset])[units]
-#        ipsi = np.array(optoOnsetPsth[stim]['ipsi'][onset])[units]
-#        diff = (contra-ipsi)[:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize
-#        mean.append(np.mean(diff))
-#        sem.append(np.std(diff)/(len(diff)**0.5))
         d = []
         ipsi,contra = [np.array(optoOnsetPsth[stim][hemi][onset])[units][:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize for hemi in ('ipsi','contra')]
-#        for i,c in zip(ipsi,contra):
-#            if i==0 and c==0:
-#                d.append(0.5)
-#            else:
-#                d.append(c/(c+i))
-#        mean.append(np.mean(d))
-#        sem.append(np.std(d)/(len(d)**0.5))
-        mean.append(contra.mean()/(ipsi.mean()+contra.mean()))
-    ax.plot(optoOnsetTicks[2:],mean[2:],'o',color=clr)
-#    for x,m,s in zip(optoOnsetTicks[2:],mean[2:],sem[2:]):
-#        ax.plot([x,x],[m-s,m+s],color=clr)
+        for i,c in zip(ipsi,contra):
+            if i==0 and c==0:
+                d.append(0.5)
+            else:
+                d.append(c/(c+i))
+        mean.append(np.mean(d))
+        sem.append(np.std(d)/(len(d)**0.5))
+    if stim=='targetOnly':
+        firstValid = 3
+    elif stim=='mask':
+        firstValid = 2
+    ax.plot(optoOnsetTicks[firstValid:],mean[firstValid:],'o-',color=clr)
+    for x,m,s in zip(optoOnsetTicks[firstValid:],mean[firstValid:],sem[firstValid:]):
+        ax.plot([x,x],[m-s,m+s],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
@@ -412,7 +410,7 @@ ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
 ax.set_xlabel('Opto onset relative to target onset (ms)')
-ax.set_ylabel('Contra / (Contra + Ipsi)')
+ax.set_ylabel('Fraction of spikes contralateral to target')
 plt.tight_layout()
 
 
@@ -466,8 +464,6 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
         firstValid = 3
     elif stim=='mask':
         firstValid = 2
-    else:
-        firstValid = 0
     ax.plot(optoOnsetTicks[firstValid:-1],mean[firstValid:-1],'o-',color=clr)
     ax.plot(optoOnsetTicks[-1],mean[-1],'o',color=clr,label=lbl)
     for x,m,s in zip(optoOnsetTicks[firstValid:],mean[firstValid:],sem[firstValid:]):
