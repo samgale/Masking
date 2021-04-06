@@ -312,7 +312,7 @@ for obj in exps:
 t -= preTime
 t *= 1000
                 
-units = ~(transient | excit) & respCells['all'] & activeCells['all']
+units = ~(transient | excit) & respCells['all']
                 
 optoOnsetTicks = list(1000*(np.array(optoOnset[:-1])-exps[0].frameDisplayLag)/frameRate) + [100]
 optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no opto']

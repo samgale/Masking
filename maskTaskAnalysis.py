@@ -5,6 +5,7 @@ Created on Mon Mar 11 12:34:44 2019
 @author: svc_ccg
 """
 
+import copy
 import os
 import h5py
 import numpy as np
@@ -253,7 +254,6 @@ class MaskTaskData():
                                                                                   'led1',
                                                                                   'led2'))}
         
-        totalSamples = rawData.shape[1]
         self.frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
         
         fig = plt.figure()
@@ -314,15 +314,6 @@ class MaskTaskData():
                 self.units[u]['label'] = 'noise'
                 
         self.goodUnits = np.array([u for u in self.units if self.units[u]['label']=='good'])
-
-        #epochs = 4
-        #epochSamples = totalSamples/epochs
-        #hasSpikes = np.ones(len(self.goodUnits),dtype=bool)
-        #for i in range(epochs):
-        #    hasSpikes = hasSpikes & (np.array([np.sum((self.units[u]['samples']>=i*epochSamples) & (self.units[u]['samples']<i*epochSamples+epochSamples))/epochSamples*sampleRate for u in self.goodUnits]) > 0.1)
-        
-        hasSpikes = [(self.units[u]['samples'].size/totalSamples*self.sampleRate)>0.1 for u in self.goodUnits]
-        self.goodUnits = self.goodUnits[hasSpikes]
         
         self.goodUnits = self.goodUnits[np.argsort([self.units[u]['peakChan'] for u in self.goodUnits])]
 
@@ -348,11 +339,20 @@ obj = MaskTaskData()
 obj.loadFromHdf5()   
 
 
-exps = []
-for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
-    obj = MaskTaskData()
-    obj.loadBehavData(f)
-    exps.append(obj)
+behavFiles = []
+while True:
+    files = fileIO.getFiles('choose experiments',fileType='*.hdf5')
+    if len(files)>0:
+        behavFiles.extend(files)
+    else:
+        break
+    
+if len(behavFiles)>0:
+    exps = []
+    for f in behavFiles:
+        obj = MaskTaskData()
+        obj.loadBehavData(f)
+        exps.append(obj)
 
     
 frameRate = 120
@@ -521,47 +521,48 @@ for n,obj in enumerate(exps):
                     ntrials[n,i,j] = trials.sum()
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,i,j] = respTrials.sum()/trials.sum()
-                    meanReacTime[n,i,j] = np.nanmean(obj.reactionTime[respTrials])
+                    meanReacTime[n,i,j] = np.nanmedian(obj.reactionTime[respTrials])
                     reacTime[n][stim][rd][mo] = obj.reactionTime[respTrials]
                     if stim in ('targetOnly','mask'):
                         correctTrials = obj.response[respTrials]==1
                         fracCorr[n,i,j] = correctTrials.sum()/respTrials.sum()
-                        meanReacTimeCorrect[n,i,j] = np.nanmean(obj.reactionTime[respTrials][correctTrials])
-                        meanReacTimeIncorrect[n,i,j] = np.nanmean(obj.reactionTime[respTrials][~correctTrials])
+                        meanReacTimeCorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][correctTrials])
+                        meanReacTimeIncorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
                         reacTimeCorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][~correctTrials]
                     else:
                         break
                     
-np.save(fileIO.saveFile(fileType='*.npy'),respRate)
-np.save(fileIO.saveFile(fileType='*.npy'),fracCorr)
+#np.save(fileIO.saveFile(fileType='*.npy'),respRate)
+#np.save(fileIO.saveFile(fileType='*.npy'),fracCorr)
 
 xticks = list(maskOnset[:-1]/frameRate*1000)+[67,83,100]
 xticklabels = [str(int(round(x))) for x in xticks[:-3]]+['target\nonly','mask\nonly','no\nstimulus']
 xlim = [8,108]
 
 # single experiment
-i = 0
-for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0,1),None),('Response Rate','Fraction Correct','Reaction Time (ms)')):                  
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    for d,clr in zip(data,'br'):
-        ax.plot(xticks[:-3],d[:-3],'o',color=clr)
-    ax.plot(xticks,np.nanmean(data,axis=0),'ko')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
-    ax.set_xlim(xlim)
-    if ylim is not None:
-        ax.set_ylim(ylim)
-    ax.set_xlabel('Mask onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel)
+for n in range(len(exps)):
+    fig = plt.figure(figsize=(6,9))
+    for i,(data,ylim,ylabel) in enumerate(zip((respRate[n],fracCorr[n],meanReacTime[n]),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Reaction Time (ms)'))):
+        ax = fig.add_subplot(3,1,i+1)
+        for d,clr in zip(data,'rb'):
+            ax.plot(xticks,d,'o',color=clr)
+        ax.plot(xticks,np.nanmean(data,axis=0),'ko')
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
+        ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        if i==2:
+            ax.set_xlabel('Mask onset relative to target onset (ms)')
+        ax.set_ylabel(ylabel)
     plt.tight_layout()
     
 # population
-for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean reaction time (ms)')):        
+for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     meanLR = np.nanmean(data,axis=1)
@@ -578,8 +579,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
-    if ylim is not None:
-        ax.set_ylim(ylim)
+    ax.set_ylim(ylim)
     ax.set_xlabel('Mask onset relative to target onset (ms)')
     ax.set_ylabel(ylabel)
     plt.tight_layout()
@@ -587,7 +587,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
 # reaction time on correct and incorrect trials
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for data,clr,lbl in zip((meanReacTimeCorrect,meanReacTimeIncorrect),('k','0.5'),('correct','incorrect')):
+for data,clr,lbl in zip((meanReacTime,meanReacTimeCorrect,meanReacTimeIncorrect),'kgr',('all','correct','incorrect')):
     meanLR = np.nanmean(data,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
@@ -802,135 +802,67 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
         ax.legend()
     plt.tight_layout()
 
- 
 
-
-# unilateral opto (old)
-behavDataPath = fileIO.getFile('',fileType='*.hdf5')
-behavData = h5py.File(behavDataPath,'r')
-
-ntrials = behavData['trialEndFrame'].size
-trialType = behavData['trialType'][:ntrials]
-targetContrast = behavData['trialTargetContrast'][:ntrials]
-optoChan = behavData['trialOptoChan'][:ntrials]
-optoOnset = behavData['trialOptoOnset'][:ntrials]
-rewardDir = behavData['trialRewardDir'][:ntrials]
-response = behavData['trialResponse'][:ntrials]
-responseDir = behavData['trialResponseDir'][:ntrials]
-
-behavData.close()
-
-goLeft = rewardDir==-1
-goRight = rewardDir==1
-catch = np.isnan(rewardDir)
-noOpto = np.isnan(optoOnset)
-optoLeft = optoChan[:,0] & ~optoChan[:,1]
-optoRight = ~optoChan[:,0] & optoChan[:,1]
-optoBoth = optoChan[:,0] & optoChan[:,1]
-
-fig = plt.figure(figsize=(10,6))
-gs = matplotlib.gridspec.GridSpec(2,2)
-x = np.arange(4)
-for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
-    for i,ylbl in enumerate(('Response Rate','Fraction Correct')):
-        ax = fig.add_subplot(gs[i,j])
-        for trials,trialLabel,clr,ty in zip((catch,goLeft,goRight),('catch','stim right (go left)','stim left (go right)'),'kbr',(1.05,1.1,1.15)):
-            n = []
-            y = []
-            for opto in (noOpto,optoLeft,optoRight,optoBoth):
-                ind = trials & opto
-                if trialLabel != 'catch':
-                    ind = trials & opto & (targetContrast==contrast)
-                r = ~np.isnan(responseDir[ind])
-                if ylbl=='Response Rate':
-                    n.append(np.sum(ind))
-                    y.append(r.sum()/n[-1])
-                else:
-                    n.append(r.sum())
-                    if trialLabel=='catch':
-                        y.append(np.nan)
-                    else:
-                        y.append(np.sum(r & (response[ind]==1))/n[-1])
-            ax.plot(x,y,clr,marker='o',mec=clr,mfc='none',label=trialLabel)
-            for tx,tn in zip(x,n):
-                fig.text(tx,ty,str(tn),color=clr,transform=ax.transData,va='bottom',ha='center',fontsize=8)
-        for side in ('right','top'):
-            ax.spines[side].set_visible(False)
-        ax.tick_params(direction='out',top=False,right=False)
-        ax.set_xticks(x)
-        xticklabels = ('no\nopto','opto\nleft','opto\nright','opto\nboth') if i==1 else []
-        ax.set_xticklabels(xticklabels)
-        ax.set_xlim([-0.5,3.5])
-        ax.set_ylim([0,1.05])
-        if j==0:
-            ax.set_ylabel(ylbl)
-        if i==1 and j==0:
-            ax.legend(fontsize='small', loc='best')
-    tx = 0.3 if j==0 else 0.7
-    fig.text(tx,0.99,'contrast '+str(contrast),va='top',ha='center')
-
-
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-for side,lbl,clr in zip((np.nan,-1,1),('no response','move left','move right'),'kbr'):
-    n = []
-    y = []
-    for opto in (noOpto,optoLeft,optoRight,optoBoth):
-        ind = catch & opto
-        n.append(ind.sum())
-        if np.isnan(side):
-            y.append(np.sum(np.isnan(responseDir[ind]))/n[-1])
+# unilateral opto
+nexps = len(exps)
+stimLabels = ('target left','target right','no stim')
+optoSide = ('left','right','both','none')
+ntrials = [{stim: [] for stim in stimLabels} for _ in range(nexps)]
+respRate = [{stim: {respDir: [] for respDir in rewardDir} for stim in stimLabels} for _ in range(nexps)]
+meanReacTime = copy.deepcopy(respRate)
+for n,obj in enumerate(exps):
+    validTrials = obj.engaged & (~obj.earlyMove)
+    for stim in stimLabels:
+        if stim=='no stim':
+            stimTrials = validTrials & np.in1d(obj.trialType,('catch','catchOpto')) & np.isnan(obj.rewardDir)
         else:
-            y.append(np.sum(responseDir[ind]==side)/n[-1])
-    ax.plot(x,y,clr,marker='o',mec=clr,mfc='none',label=lbl)
-for tx,tn in zip(x,n):
-    fig.text(tx,1.05,str(tn),color='k',transform=ax.transData,va='bottom',ha='center',fontsize=8)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xticks(x)
-ax.set_xticklabels(('no\nopto','opto\nleft','opto\nright','opto\nboth'))
-ax.set_xlim([-0.5,3.5])
-ax.set_ylim([0,1.05])
-ax.set_ylabel('Fraction of catch trials')
-ax.legend()
-fig.text(0.525,0.99,'Catch trial movements',va='top',ha='center')
+            rd = 1 if stim=='target left' else -1
+            stimTrials = validTrials & np.in1d(obj.trialType,('targetOnly','targetOnlyOpto')) & (obj.rewardDir==rd)
+        for opSide in optoSide:
+            if opSide=='left':
+                optoTrials = stimTrials & obj.optoChan[:,0] & ~obj.optoChan[:,1]
+            elif opSide=='right':
+                optoTrials= stimTrials & ~obj.optoChan[:,0] & obj.optoChan[:,1]
+            elif opSide=='both':
+                optoTrials = stimTrials & obj.optoChan[:,0] & obj.optoChan[:,1]
+            else:
+                optoTrials = stimTrials & np.isnan(obj.optoOnset)
+            for respDir in rewardDir:
+                respTrials = optoTrials & (obj.responseDir==respDir)
+                respRate[n][stim][respDir].append(respTrials.sum()/optoTrials.sum())
+                meanReacTime[n][stim][respDir].append(np.nanmedian(obj.reactionTime[respTrials]))
+                    
+fig = plt.figure(figsize=(6,6))
+xticks = np.arange(len(optoSide))
+for i,stim in enumerate(stimLabels):    
+    ax = fig.add_subplot(len(stimLabels),1,i+1)
+    for respDir,clr,lbl in zip(rewardDir,'rb',('move right','move left')):
+        d = [respRate[n][stim][respDir] for n in range(nexps)]
+        mean = np.mean(d,axis=0)
+        sem = np.std(d,axis=0)/(len(d)**0.5)
+        ax.plot(xticks,mean,'o-',color=clr,label=lbl)
+        for x,m,s in zip(xticks,mean,sem):
+            ax.plot([x,x],[m-s,m+s],color=clr)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(optoSide)
+    ax.set_xlim([-0.25,len(optoSide)-0.75])
+    if i==2:
+        ax.set_xlabel('Optogenetic Stimulus Side')
+        ax.set_yticks(np.arange(0,1,0.1))
+        ax.set_ylim([0,0.2])
+    else:
+        ax.set_xticklabels([])
+        ax.set_yticks(np.arange(0,1,0.2))
+        ax.set_ylim([0,0.75])
+    ax.set_ylabel('Probability')
+    if i==0:
+        ax.legend()
+    ax.set_title(stim)
+plt.tight_layout() 
 
-
-fig = plt.figure()
-gs = matplotlib.gridspec.GridSpec(8,1)
-x = np.arange(4)
-for j,contrast in enumerate([c for c in np.unique(targetContrast) if c>0]):
-    for i,(trials,trialLabel) in enumerate(zip((goLeft,goRight,catch),('Right Stimulus','Left Stimulus','No Stimulus'))):
-        if i<2 or j==0:
-            ax = fig.add_subplot(gs[i*3:i*3+2,j])
-            for resp,respLabel,clr,ty in zip((-1,1),('move left','move right'),'br',(1.05,1.1)):
-                n = []
-                y = []
-                for opto in (noOpto,optoLeft,optoRight,optoBoth):
-                    ind = trials & opto
-                    if trialLabel != 'No Stimulus':
-                        ind = trials & opto & (targetContrast==contrast)
-                    n.append(ind.sum())
-                    y.append(np.sum(responseDir[ind]==resp)/n[-1])
-                ax.plot(x,y,clr,marker='o',mec=clr,mfc='none',label=respLabel)
-            for tx,tn in zip(x,n):
-                fig.text(tx,ty,str(tn),color='k',transform=ax.transData,va='bottom',ha='center',fontsize=8)
-            title = trialLabel if trialLabel=='No Stimulus' else trialLabel+', Contrast '+str(contrast)
-            fig.text(1.5,1.25,title,transform=ax.transData,va='bottom',ha='center',fontsize=10)
-            for side in ('right','top'):
-                ax.spines[side].set_visible(False)
-            ax.tick_params(direction='out',top=False,right=False)
-            ax.set_xticks(x)
-            xticklabels = ('no\nopto','opto\nleft','opto\nright','opto\nboth')# if i==2 else []
-            ax.set_xticklabels(xticklabels)
-            ax.set_xlim([-0.5,3.5])
-            ax.set_ylim([0,1.05])
-            if j==0:
-                ax.set_ylabel('Fraction of trials')
-            if i==0 and j==0:
-                ax.legend(fontsize='small', loc=(0.71,0.71))
-                
                 
 
 
