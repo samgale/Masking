@@ -88,10 +88,10 @@ def plot_param(data, param='targetLength', showTrialN=True,
     trialTargetContrast = d['trialTargetContrast'][:end][ignoring==0]
 
 # ignore repeats AND catch trials (no target)
-    trialResponse2 = trialResponse2[(prevTrialIncorrect==False) & (trialType!='catch')]                    
-    trialParam = trialParam[(prevTrialIncorrect==False) & (trialType!='catch')]
-    trialRewardDir = trialRewardDirection[(prevTrialIncorrect==False) & (trialType!='catch')]    
-    trialTargetContrast = trialTargetContrast[(prevTrialIncorrect==False) & (trialType!='catch')]
+    trialResponse2 = trialResponse2[(prevTrialIncorrect==False)& (trialType!='catch')]                    
+    trialParam = trialParam[(prevTrialIncorrect==False)& (trialType!='catch')]
+    trialRewardDir = trialRewardDirection[(prevTrialIncorrect==False)& (trialType!='catch')]    
+    trialTargetContrast = trialTargetContrast[(prevTrialIncorrect==False)& (trialType!='catch')]
 
 
 # for session with opotgenetics, selects only those trials with the optogenetics
@@ -121,6 +121,7 @@ def plot_param(data, param='targetLength', showTrialN=True,
         trialMaskFrames = d['trialMaskFrames'][:end][ignoring==0][(prevTrialIncorrect==False) & (trialType!='catch')]    
         trialResponseDir = d['trialResponseDir'][:end][ignoring==0][(prevTrialIncorrect==False) & (trialType!='catch')] 
         trialMaskContrast = d['trialMaskContrast'][:end][ignoring==0][(prevTrialIncorrect==False) & (trialType!='catch')] 
+        trialType = d['trialType'][:end][ignoring==0][(prevTrialIncorrect==False) & (trialType!='catch')]
         
     # filters target-Only trials
         for i, (mask, frames) in enumerate(zip(trialParam, trialMaskFrames)):    
@@ -151,6 +152,7 @@ def plot_param(data, param='targetLength', showTrialN=True,
     totalTrials = resps+noResps
     
     
+   
     if param=='opto':
         trialType = d['trialType'][:end][ignoring==0]
         trialTurn = d['trialResponseDir'][:end][ignoring==0]
@@ -183,7 +185,7 @@ def plot_param(data, param='targetLength', showTrialN=True,
     if param=='soa':
         maskOnlyTotal = np.sum(trialType=='maskOnly')  # ignores are already excluded
         maskOnly = [[], [], []]
-        for typ, resp, mask in zip(trialType, trialResponseDir, trialMaskContrast):
+        for i, (typ, resp, mask) in enumerate(zip(trialType, trialResponseDir, trialMaskContrast)):
             if typ == 'maskOnly' and mask>0:
                 if np.isfinite(resp):
                     if resp==1:
@@ -300,8 +302,8 @@ def plot_param(data, param='targetLength', showTrialN=True,
                     xticklabels = ['no go'] + xticklabels
                                 
             if showTrialN==True:
-                for x,Ltrials,Rtrials in zip(paramVals,denom[0], denom[1]):   #deom[0]==L, denom[1]==R
-                    for y,n,clr in zip((1.1,1.15),[Rtrials, Ltrials],'rb'):
+                for (x, Ltrials, Rtrials) in zip(paramVals, denom[0], denom[1]):   #denom[0]==L turning, denom[1]==R
+                    for y,n,clr in zip([1.1,1.15],[Rtrials, Ltrials],['r', 'b']):
                         fig.text(x,y,str(n),transform=ax.transData,color=clr,fontsize=10,ha='center',va='bottom')
         
 

@@ -142,6 +142,7 @@ def create_df(data):
     trialTargetFrames = d['trialTargetFrames'][:end]
     trialTargetContrast = d['trialTargetContrast'][:end]
     
+    trialResponseDirection = d['trialResponseDir'][:]
     trialStartFrame = d['trialStartFrame'][:end]
     trialStimStartFrame = d['trialStimStartFrame'][:end]
     trialResponseFrame = d['trialResponseFrame'][:end] 
@@ -225,13 +226,13 @@ def create_df(data):
                       
 ### CREATE DATAFRAME
                 
-    data = list(zip(trialRewardDirection, trialResponse, 
+    data = list(zip(trialRewardDirection, trialResponse, trialResponseDirection, 
                     trialStartFrame, trialStimStartFrame, trialResponseFrame, trialOpenLoopFrames))
 
     index = np.arange(len(trialResponse))
     df = pd.DataFrame(data, 
                       index=index, 
-                      columns=['rewDir', 'resp', 'trialStart', 'stimStart', 'respFrame', 'openLoopFrames'])
+                      columns=['rewDir', 'resp', 'respDir', 'trialStart', 'stimStart', 'respFrame', 'openLoopFrames'])
     
     if 'trialType' in d.keys():
         df['trialType'] = d['trialType'][:end] 
@@ -502,7 +503,7 @@ def rxnTimes(data, dataframe, version=None):
 #        plt.vlines(df['trialLength_ms'][i], -10, 10, label='Trial Length')
 #        plt.ylim([-10,10])
 #        plt.legend(loc='best', fontsize=10)
-##        
+#        
 
         
 #
