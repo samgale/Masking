@@ -75,7 +75,8 @@ frameRate = 120
 binSize = 1/exps[0].frameRate
 
 fsThresh = 0.5
-respThresh = 5 # stdev
+relThresh = 5 # stdev
+absThresh = 0.5 # spikes
 stimLabels = ('targetOnly','maskOnly','mask','catch')
 behavRespLabels = ('all','go','nogo')
 cellTypeLabels = ('all','FS','RS')
@@ -87,7 +88,6 @@ ntrials = {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in ('ips
 psth = {cellType: {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in ('ipsi','contra')} for stim in stimLabels} for cellType in cellTypeLabels}
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
-
 for obj in exps:
     ephysHemi = ('contra','ipsi') if hasattr(obj,'hemi') and obj.hemi=='right' else ('ipsi','contra')
     fs = obj.peakToTrough<=fsThresh
@@ -121,10 +121,12 @@ for obj in exps:
                             analysisWindow = (t>0.025) & (t<0.1)
                             hasSpikes[cellType][stim][hemi][resp][mo].append(p[t<0.1].mean() > 0)
                             b = p-p[t<0].mean()
-                            hasResp[cellType][stim][hemi][resp][mo].append(b[analysisWindow].max() > respThresh*b[t<0].std())
+                            r = (b[analysisWindow].max() > relThresh*b[t<0].std()) & (b[analysisWindow].sum()*binSize > absThresh)
+                            hasResp[cellType][stim][hemi][resp][mo].append(r)
 
 activeCells = {cellType: np.array(hasSpikes[cellType]['targetOnly']['contra']['all'][0]) | np.array(hasSpikes[cellType]['maskOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
 respCells = {cellType: np.array(hasResp[cellType]['targetOnly']['contra']['all'][0]) | np.array(hasResp[cellType]['maskOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
+targetRespCells = {cellType: np.array(hasResp[cellType]['targetOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
 
 xlim = [-0.1,0.4]
 for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
@@ -173,17 +175,17 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
 
 
 # save psth
-popPsth = {stim: {hemi: {} for hemi in ('ipsi','contra')} for stim in stimLabels}
-for cellType in ('all',):
-    for stim in stimLabels:
-        for side,hemi in zip(('left','right'),('ipsi','contra')):
-            p = psth[cellType][stim][side]['all']
-            for mo in p.keys():
-                popPsth[stim][hemi][mo] = np.mean(np.array(p[mo])[respCells[cellType]],axis=0)
-popPsth['t'] = t
-            
-pkl = fileIO.saveFile(fileType='*.pkl')
-pickle.dump(popPsth,open(pkl,'wb'))
+#popPsth = {stim: {hemi: {} for hemi in ('ipsi','contra')} for stim in stimLabels}
+#for cellType in ('all',):
+#    for stim in stimLabels:
+#        for side,hemi in zip(('left','right'),('ipsi','contra')):
+#            p = psth[cellType][stim][side]['all']
+#            for mo in p.keys():
+#                popPsth[stim][hemi][mo] = np.mean(np.array(p[mo])[respCells[cellType]],axis=0)
+#popPsth['t'] = t
+#            
+#pkl = fileIO.saveFile(fileType='*.pkl')
+#pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # plot response to optogenetic stimuluation during catch trials
@@ -310,8 +312,9 @@ for obj in exps:
                         p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         optoOnsetPsth[stim][hemi][onset].append(p)                      
 t -= preTime
-t *= 1000
-                
+
+analysisWindow = (t>0.025) & (t<0.1)
+          
 units = ~(transient | excit) & respCells['all']
                 
 optoOnsetTicks = list(1000*(np.array(optoOnset[:-1])-exps[0].frameDisplayLag)/frameRate) + [100]
@@ -333,8 +336,8 @@ for i,stim in enumerate(stimLabels):
             m = np.mean(p,axis=0)
             s = np.std(p,axis=0)/(len(psth)**0.5)
             lbl = lbl if np.isnan(onset) else lbl+' ms'
-            ax.plot(t,m,color=clr,label=lbl)
-#            ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
+            ax.plot(t*1000,m,color=clr,label=lbl)
+#            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
@@ -355,14 +358,13 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-analysisWindow = (t>25) & (t<100)
 for stim,clr in zip(stimLabels[:3],'ckb'):
     respMean = []
     respSem = []
     for onset in optoOnset:
         p = np.array(optoOnsetPsth[stim]['contra'][onset])[units]
         c = np.array(optoOnsetPsth['catch']['contra'][onset])[units]
-        r = (p-c)[:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize
+        r = (p-c)[:,analysisWindow].sum(axis=1)*binSize
         respMean.append(np.mean(r))
         respSem.append(np.std(r)/(len(r)**0.5))
     lbl = 'target + mask' if stim=='mask' else stim
@@ -388,13 +390,18 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
     sem = []
     for onset in optoOnset:
         d = []
-        ipsi,contra = [np.array(optoOnsetPsth[stim][hemi][onset])[units][:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize for hemi in ('ipsi','contra')]
+        ip = 0
+        co = 0
+        ipsi,contra = [np.array(optoOnsetPsth[stim][hemi][onset])[units][:,analysisWindow].sum(axis=1)*binSize for hemi in ('ipsi','contra')]
         for i,c in zip(ipsi,contra):
             if i==0 and c==0:
+                pass
                 d.append(0.5)
             else:
                 d.append(c/(c+i))
-        mean.append(np.mean(d))
+#        d = contra.sum()/(ipsi.sum()+contra.sum())
+#        mean.append(d)
+        mean.append(np.median(d))
         sem.append(np.std(d)/(len(d)**0.5))
     if stim=='targetOnly':
         firstValid = 3
@@ -437,8 +444,6 @@ for obj in exps:
                     optoTrialPsth[stim][hemi][onset].append(np.array(p)[units[i:i+len(obj.goodUnits)]].mean(axis=0))
     i += len(obj.goodUnits)
 
-analysisWindow = (t>25) & (t<100)
-
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([8,108],[0.5,0.5],'k--')
@@ -448,7 +453,7 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
     for onset in optoOnset:
         d = []
         for ind in range(len(exps)):
-            ipsi,contra = [optoTrialPsth[stim][hemi][onset][ind][:,analysisWindow].sum(axis=1)*analysisWindow.sum()*binSize for hemi in ('ipsi','contra')]
+            ipsi,contra = [optoTrialPsth[stim][hemi][onset][ind][:,analysisWindow].sum(axis=1)*binSize for hemi in ('ipsi','contra')]
             for c in contra:
                 b = []
                 for i in ipsi:

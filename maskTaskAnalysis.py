@@ -727,6 +727,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
 
 
 # opto masking
+stimLabels = ('mask','targetOnly','maskOnly','catch')
 optoOnset = np.array([4,6,8,10,12,np.nan])
 ntrials = np.full((len(exps),len(stimLabels),2,len(optoOnset)),np.nan)
 respRate = ntrials.copy()
