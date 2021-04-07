@@ -121,7 +121,9 @@ for obj in exps:
                             analysisWindow = (t>0.025) & (t<0.1)
                             hasSpikes[cellType][stim][hemi][resp][mo].append(p[t<0.1].mean() > 0)
                             b = p-p[t<0].mean()
-                            r = (b[analysisWindow].max() > relThresh*b[t<0].std()) & (b[analysisWindow].sum()*binSize > absThresh)
+                            r = (b[analysisWindow].max() > relThresh*b[t<0].std())
+                            if absThresh is not None:
+                                r = r & (b[analysisWindow].sum()*binSize > absThresh)
                             hasResp[cellType][stim][hemi][resp][mo].append(r)
 
 activeCells = {cellType: np.array(hasSpikes[cellType]['targetOnly']['contra']['all'][0]) | np.array(hasSpikes[cellType]['maskOnly']['contra']['all'][0]) for cellType in cellTypeLabels}
@@ -378,7 +380,7 @@ ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
 ax.set_xlabel('Opto onset relative to target onset (ms)')
-ax.set_ylabel('Stimulus evoked spikes')
+ax.set_ylabel('Stimulus evoked spikes per neuron')
 ax.legend()
 plt.tight_layout()
 
@@ -390,23 +392,20 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
     sem = []
     for onset in optoOnset:
         d = []
-        ip = 0
-        co = 0
         ipsi,contra = [np.array(optoOnsetPsth[stim][hemi][onset])[units][:,analysisWindow].sum(axis=1)*binSize for hemi in ('ipsi','contra')]
         for i,c in zip(ipsi,contra):
-            if i==0 and c==0:
-                pass
+            if c==0:
                 d.append(0.5)
             else:
                 d.append(c/(c+i))
 #        d = contra.sum()/(ipsi.sum()+contra.sum())
 #        mean.append(d)
-        mean.append(np.median(d))
+        mean.append(np.mean(d))
         sem.append(np.std(d)/(len(d)**0.5))
     if stim=='targetOnly':
-        firstValid = 3
+        firstValid = 0
     elif stim=='mask':
-        firstValid = 2
+        firstValid = 0
     ax.plot(optoOnsetTicks[firstValid:],mean[firstValid:],'o-',color=clr)
     for x,m,s in zip(optoOnsetTicks[firstValid:],mean[firstValid:],sem[firstValid:]):
         ax.plot([x,x],[m-s,m+s],color=clr)
