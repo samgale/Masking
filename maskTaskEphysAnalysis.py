@@ -121,7 +121,7 @@ for obj in exps:
                         p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         psth[stim][hemi][resp][mo].append(p)
                         t -= preTime
-                        analysisWindow = (t>0.025) & (t<0.15)
+                        analysisWindow = (t>0.025) & (t<0.1)
                         hasSpikes[stim][hemi][resp][mo].append(p[t<0.1].mean() > 0)
                         b = p-p[t<0].mean()
                         r = (b[analysisWindow].max() > relThresh*b[t<0].std())
