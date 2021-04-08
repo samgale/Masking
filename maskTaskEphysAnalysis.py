@@ -184,11 +184,13 @@ maskOnset = np.unique(exps[0].maskOnset[~np.isnan(exps[0].maskOnset)])
 maskOnsetTicks = np.concatenate((maskOnset,(8,10)))/frameRate*1000
 maskOnsetLabels = ['mask only']+[str(int(round(onset))) for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
 
+analysisWindow = (t>0.025) & (t<0.15)
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 respMean = []
 respSem = []
-ymax = 0
+cumResp = []
 for stim in stimLabels:
     for mo in maskOnset:
         if stim!='mask' and mo>0 or stim=='mask' and mo==0:
@@ -198,7 +200,9 @@ for stim in stimLabels:
         r = b[:,analysisWindow].sum(axis=1)*binSize
         respMean.append(np.mean(r))
         respSem.append(np.std(r)/(len(r)**0.5))
+        cumResp.append(np.mean(np.cumsum(b[:,analysisWindow],axis=1)*binSize,axis=0))
 ax.plot(maskOnsetTicks,respMean,'ko')
+ymax = 0
 for x,m,s in zip(maskOnsetTicks,respMean,respSem):
     ax.plot([x,x],[m-s,m+s],'k')
     ymax = max(ymax,m+s)
@@ -215,24 +219,36 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-mean = []
-sem = []
-ymax = 0
+clrs = plt.cm.plasma(np.linspace(0,1,len(cumResp)))
+for s,clr,lbl in zip(cumResp,clrs,maskOnsetLabels):
+    ax.plot(t[analysisWindow],s,color=clr,label=lbl)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.legend()
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+meanContra = []
+semContra = []
+cumContra = []
 for stim in stimLabels:
     for mo in maskOnset:
         if stim!='mask' and mo>0 or stim=='mask' and mo==0:
             continue
         d = []
-        ipsi,contra = [np.array(psth[stim][hemi]['all'][mo])[respCells][:,analysisWindow].sum(axis=1)*binSize for hemi in ('ipsi','contra')]
-        for i,c in zip(ipsi,contra):
+        ipsi,contra = [np.array(psth[stim][hemi]['all'][mo])[respCells][:,analysisWindow] for hemi in ('ipsi','contra')]
+        for i,c in zip(ipsi.sum(axis=1)*binSize,contra.sum(axis=1)*binSize):
             if c==0:
                 d.append(0.5)
             else:
                 d.append(c/(c+i))
-        mean.append(np.mean(d))
-        sem.append(np.std(d)/(len(d)**0.5))
-ax.plot(maskOnsetTicks[1:-1],mean[1:-1],'ko')
-for x,m,s in zip(maskOnsetTicks[1:-1],mean[1:-1],sem[1:-1]):
+        meanContra.append(np.mean(d))
+        semContra.append(np.std(d)/(len(d)**0.5))
+        cumContra.append(np.mean(np.cumsum(contra-ipsi,axis=1)/np.sum(contra+ipsi,axis=1)[:,None],axis=0))
+ax.plot(maskOnsetTicks[1:-1],meanContra[1:-1],'ko')
+for x,m,s in zip(maskOnsetTicks[1:-1],meanContra[1:-1],semContra[1:-1]):
     ax.plot([x,x],[m-s,m+s],'k')
     ymax = max(ymax,m+s)
 for side in ('right','top'):
@@ -243,6 +259,17 @@ ax.set_xticklabels(maskOnsetLabels)
 ax.set_xlim([-8,91])
 ax.set_xlabel('Mask onset relative to target onset (ms)')
 ax.set_ylabel('Fraction of spikes contralateral to target')
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+clrs = plt.cm.plasma(np.linspace(0,1,len(cumContra)))
+for s,clr,lbl in zip(cumContra,clrs,maskOnsetLabels):
+    ax.plot(t[analysisWindow],s,color=clr,label=lbl)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.legend()
 plt.tight_layout()
 
 
