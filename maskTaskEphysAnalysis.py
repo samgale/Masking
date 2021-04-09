@@ -65,11 +65,15 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     obj.loadFromHdf5(f)
     exps.append(obj)
     
+
+useMultiUnits = False
     
-unitPos = np.concatenate([obj.unitPos for obj in exps])
-peakToTrough = np.concatenate([obj.peakToTrough for obj in exps])
-fsThresh = 0.5
-fs = peakToTrough < fsThresh
+for obj in exps:
+    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+    unitPos = np.concatenate([[obj.units[u]['position'][1]/1000 for u in units] for obj in exps])
+    peakToTrough = np.concatenate([[obj.units[u]['peakToTrough'] for u in units] for obj in exps])
+
+fs = peakToTrough < 0.5
 
 
 # plot response to visual stimuli without opto
@@ -95,6 +99,7 @@ psth = copy.deepcopy(ntrials)
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
 for obj in exps:
+    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
     for stim in stimLabels:
         for rd,hemi in zip((1,-1),ephysHemi):
@@ -116,7 +121,7 @@ for obj in exps:
                         hasResp[stim][hemi][resp][mo] = []
                     ntrials[stim][hemi][resp][mo] += trials.sum()
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
-                    for u in obj.goodUnits:
+                    for u in units:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         psth[stim][hemi][resp][mo].append(p)
@@ -292,7 +297,8 @@ optoPsthExample = []
 i = 0
 for obj in exps:
     optoOnsetToPlot = np.nanmin(obj.optoOnset)
-    for u in obj.goodUnits:
+    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+    for u in units:
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
         for onset in [optoOnsetToPlot]:
             trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
@@ -311,7 +317,8 @@ sustainedOptoResp = baseRate.copy()
 sustainedOptoRate = baseRate.copy()
 i = 0
 for obj in exps:
-    for u in obj.goodUnits:
+    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+    for u in units:
         p = []
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
         for onset in np.unique(obj.optoOnset[~np.isnan(obj.optoOnset)]):
@@ -332,17 +339,17 @@ optoPsth = np.array(optoPsth)
 
 peakThresh = 5*stdBaseRate
 sustainedThresh = stdBaseRate
-excit = activeCells['all'] & (sustainedOptoResp>sustainedThresh)
-transient = activeCells['all'] & (~excit) & (transientOptoResp>peakThresh)
-inhib = activeCells['all'] & (~transient) & (sustainedOptoResp<sustainedThresh)
-noResp = activeCells['all'] & (~(excit | inhib | transient))
+excit = activeCells & (sustainedOptoResp>sustainedThresh)
+transient = activeCells & (~excit) & (transientOptoResp>peakThresh)
+inhib = activeCells & (~transient) & (sustainedOptoResp<sustainedThresh)
+noResp = activeCells & (~(excit | inhib | transient))
 
 for k,p in enumerate((optoPsthExample,optoPsth)):
     fig = plt.figure(figsize=(8,8))
     gs = matplotlib.gridspec.GridSpec(4,2)
     for i,j,units,clr,lbl in zip((0,1,0,1,2,3),(0,0,1,1,1,1),(fs,~fs,excit,inhib,transient,noResp),'mgkkkk',('FS','RS','Excited','Inhibited','Transient','No Response')):
         ax = fig.add_subplot(gs[i,j])
-        units = units & activeCells['all']
+        units = units & activeCells
         ax.plot(t,p[units].mean(axis=0),clr)
         ylim = plt.get(ax,'ylim')
         if k==0:
@@ -390,6 +397,7 @@ plt.tight_layout()
 optoOnset = list(np.unique(exps[0].optoOnset[~np.isnan(exps[0].optoOnset)]))+[np.nan]
 optoOnsetPsth = {stim: {hemi: {onset: [] for onset in optoOnset} for hemi in hemiLabels} for stim in stimLabels}
 for obj in exps:
+    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
     ephysHemi = hemiLabels[::-1] if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels
     for stim in stimLabels:
         for hemi,rd in zip(ephysHemi,rewardDir):
@@ -402,7 +410,7 @@ for obj in exps:
                     trials = np.isnan(obj.optoOnset) if np.isnan(onset) else obj.optoOnset==onset
                     trials = trials & stimTrials & moTrials
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
-                    for u in obj.goodUnits:
+                    for u in units:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         optoOnsetPsth[stim][hemi][onset].append(p)                      
@@ -521,7 +529,8 @@ binSize = 1/obj.frameRate
 preTime = 0.1
 postTime = 0.6
 nbins = np.arange(0,preTime+postTime+binSize,binSize).size-1
-rfMap = np.zeros((obj.goodUnits.size,nbins,ele.size,azi.size,ori.shape[0],contrast.size,dur.size))
+units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+rfMap = np.zeros((units.size,nbins,ele.size,azi.size,ori.shape[0],contrast.size,dur.size))
 for i,y in enumerate(ele):
     eleTrials = obj.rfStimPos[:,1]==y
     for j,x in enumerate(azi):
@@ -537,7 +546,7 @@ for i,y in enumerate(ele):
                 for m,d in enumerate(dur):
                     trials = eleTrials & aziTrials & oriTrials & contrastTrials & (obj.rfStimFrames==d)
                     startTimes = obj.frameSamples[obj.rfStimStart[trials]]/obj.sampleRate
-                    for n,u in enumerate(obj.goodUnits):
+                    for n,u in enumerate(units):
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPSTH(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
                         t -= preTime
@@ -547,27 +556,12 @@ for i,y in enumerate(ele):
 
 fig = plt.figure()
 gs = matplotlib.gridspec.GridSpec(ele.size,azi.size)
+m = rfMap.mean(axis=(0,4,5,6))
+ymax = m.max()
 for i,y in enumerate(ele):
     for j,x in enumerate(azi):
         ax = fig.add_subplot(gs[ele.size-1-i,j])
-        
-        ax.plot(t,rfMap.mean(axis=(0,4,5,6))[:,i,j],'k')
-        
-#        for k,d in enumerate(dur):
-#            ax.plot(t,rfMap.mean(axis=(0,4,5))[:,i,j,k],'k')
-            
-#        for k,c in enumerate(contrast):
-#            ax.plot(t,rfMap.mean(axis=(0,4,6))[:,i,j,k],'k')
-        
-#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,4,5,6))[:,i,j],'k',label='17 ms stim')
-#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,4,5,6))[:,i,j],'r',label='50 ms stim')
-            
-        # target
-#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==2].mean(axis=(0,5,6))[:,i,j,0],'k')
-        
-        # mask
-#        ax.plot(t,rfMap[:,:,:,:,:,contrast==0.4][:,:,:,:,:,:,dur==6].mean(axis=(0,5,6))[:,i,j,4],'k')
-        
+        ax.plot(t,m[:,i,j],'k')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         if i==0 and j==1:
@@ -578,11 +572,9 @@ for i,y in enumerate(ele):
             ax.set_ylabel('Spikes/s')
         else:
             ax.set_yticklabels([])
-        if i==ele.size-1 and j==azi.size-1:
-            ax.legend(loc='upper right')
         ax.set_xticks([0,0.5])
         ax.set_yticks([0,10,20,30])
-        ax.set_ylim([0,35])
+        ax.set_ylim([0,1.02*ymax])
 plt.tight_layout()
 
 

@@ -218,7 +218,7 @@ class MaskTaskData():
         self.rf = True
         rfData = h5py.File(self.rfDataPath,'r')
         self.rfFrameIntervals = rfData['frameIntervals'][:]
-        if self.behav is None:
+        if not self.behav:
             self.frameRate = round(1/np.median(self.rfFrameIntervals))
         if 'stimStartFrame' in rfData:
             self.rfStimStart = rfData['stimStartFrame'][:-1]
@@ -312,14 +312,12 @@ class MaskTaskData():
             self.units[u]['normTempIntegral'] = tempNorm.sum()
             if abs(tempNorm.sum())>4:
                 self.units[u]['label'] = 'noise'
-                
-        self.goodUnits = np.array([u for u in self.units if self.units[u]['label']=='good'])
         
-        self.goodUnits = self.goodUnits[np.argsort([self.units[u]['peakChan'] for u in self.goodUnits])]
-
-        self.peakToTrough = np.array([self.units[u]['peakToTrough'] for u in self.goodUnits])
+        self.sortedUnits = np.array(list(self.units.keys()))[np.argsort([self.units[u]['peakChan'] for u in self.units])]
         
-        self.unitPos = np.array([self.units[u]['position'][1]/1000 for u in self.goodUnits])
+        self.goodUnits = np.array([u for u in self.sortedUnits if self.units[u]['label']=='good'])
+        
+        self.multiUnits = np.array([u for u in self.sortedUnits if self.units[u]['label']=='mua'])
 
         
     def saveToHdf5(self,filePath=None):
