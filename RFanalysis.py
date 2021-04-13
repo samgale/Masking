@@ -11,77 +11,9 @@ import numpy as np
 import scipy.signal
 import matplotlib
 import matplotlib.pyplot as plt
-from numba import njit
 import fileIO
+from maskTaskAnalsyisUtils import loadDatData,findSignalEdges,findSpikes,getPsth
 
-
-def loadDatData(filePath):
-    totalChannels = 136
-    probeChannels = 128      
-    rawData = np.memmap(filePath,dtype='int16',mode='r')    
-    rawData = np.reshape(rawData,(int(rawData.size/totalChannels),-1)).T
-    analogInData = {name: rawData[ch+probeChannels] for ch,name in enumerate(('vsync',
-                                                                              'photodiode',
-                                                                              'rotaryEncoder',
-                                                                              'cam1Exposure',
-                                                                              'cam2Exposure',
-                                                                              'led1',
-                                                                              'led2'))}
-    return rawData,analogInData
-
-
-@njit
-def findSignalEdges(signal,edgeType,thresh,refractory):
-    """
-    signal: typically a large memmap array (loop through values rather than load all into memory)
-    edgeType: 'rising' or 'falling'
-    thresh: difference between current and previous value
-    refractory: samples after detected edge to ignore
-    """
-    edges = []
-    lastVal = signal[0]
-    lastEdge = -refractory
-    for i in range(1,signal.size):
-        val = signal[i]
-        if i-lastEdge>refractory and ((edgeType=='rising' and val-lastVal>thresh) or (edgeType=='falling' and val-lastVal<thresh)):
-            edges.append(i)
-            lastEdge = i
-        lastVal = val
-    return edges
-
-
-@njit
-def findSpikes(data,negThresh,posThresh):
-    spikes = []    
-    searchStart = 0
-    while searchStart < data.size:
-        spikeBegin,spikeEnd = findNextSpike(data[searchStart:],negThresh,posThresh)
-        if spikeBegin is None:
-            break
-        else:
-            spikes.append(searchStart+spikeBegin)
-            searchStart += spikeEnd
-    return spikes
-
-@njit
-def findNextSpike(data,negThresh,posThresh):
-    for i,v in enumerate(data.flat):
-        if v < negThresh:
-            for j,vi in enumerate(data[i:].flat):
-                if vi > posThresh:
-                    return i,i+j
-    return None,None
-
-
-def getPSTH(spikes,startTimes,windowDur,binSize=0.01,avg=True):
-    bins = np.arange(0,windowDur+binSize,binSize)
-    counts = np.zeros((len(startTimes),bins.size-1))    
-    for i,start in enumerate(startTimes):
-        counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,bins)[0]
-    if avg:
-        counts = counts.mean(axis=0)
-    counts /= binSize
-    return counts, bins[:-1]+binSize/2
 
 
 sampleRate = 30000
@@ -180,7 +112,7 @@ for i,y in enumerate(ele):
     for j,x in enumerate(azi):
         trials = (stimPos[:,1]==y) & (stimPos[:,0]==x)
         startTimes = frameSamples[stimStart[trials]]/sampleRate
-        p,t = getPSTH(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
+        p,t = getPsth(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
         rfMapSpikes[i,j] = p
 t -= preTime
 

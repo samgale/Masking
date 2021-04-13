@@ -6,7 +6,6 @@ Created on Mon Mar 11 12:34:44 2019
 """
 
 import copy
-import pickle
 import numpy as np
 import scipy.signal
 import scipy.ndimage
@@ -14,49 +13,23 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 import fileIO
-
-
-
-def getPSTH(spikes,startTimes,windowDur,binSize=0.01,avg=True):
-    bins = np.arange(0,windowDur+binSize,binSize)
-    counts = np.zeros((len(startTimes),bins.size-1))    
-    for i,start in enumerate(startTimes):
-        counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,bins)[0]
-    if avg:
-        counts = counts.mean(axis=0)
-    counts /= binSize
-    return counts, bins[:-1]+binSize/2
-
-
-def getSDF(spikes,startTimes,windowDur,sampInt=0.001,filt='exponential',filtWidth=0.005,avg=True):
-        t = np.arange(0,windowDur+sampInt,sampInt)
-        counts = np.zeros((startTimes.size,t.size-1))
-        for i,start in enumerate(startTimes):
-            counts[i] = np.histogram(spikes[(spikes>=start) & (spikes<=start+windowDur)]-start,t)[0]
-        if filt in ('exp','exponential'):
-            filtPts = int(5*filtWidth/sampInt)
-            expFilt = np.zeros(filtPts*2)
-            expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=filtWidth/sampInt,sym=False)
-            expFilt /= expFilt.sum()
-            sdf = scipy.ndimage.filters.convolve1d(counts,expFilt,axis=1)
-        else:
-            sdf = scipy.ndimage.filters.gaussian_filter1d(counts,filtWidth/sampInt,axis=1)
-        if avg:
-            sdf = sdf.mean(axis=0)
-        sdf /= sampInt
-        return sdf,t[:-1]
+from maskTaskAnalysisUtils import MaskTaskData,getPsth
 
 
 
 obj = MaskTaskData()
 
-obj.loadEphysData()
+obj.loadEphysData(led=True)
+
+obj.loadKilosortData()
 
 obj.loadBehavData()
 
 obj.loadRFData()
 
-obj.saveToHdf5()        
+obj.saveToHdf5()
+
+obj.loadFromHdf5()      
 
 
 exps = []
@@ -66,12 +39,35 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     exps.append(obj)
     
 
-useMultiUnits = False
+#
+# need to add total time to obj
+minIsi = 0
+refracThresh = 0.0015
+normIsiViolationRate = []
+totalTime = obj.totalSamples/obj.sampleRate
+for u in obj.sortedUnits:
+    spikeTimes = obj.units[u]['samples']/obj.sampleRate
+    duplicateSpikes = np.where(np.diff(spikeTimes)<=minIsi)[0]+1
+    spikeTimes = np.delete(spikeTimes,duplicateSpikes)
+    isis = np.diff(spikeTimes)
+    numSpikes = len(spikeTimes)
+    numViolations = sum(isis<refracThresh)
+    violationTime = 2*numSpikes*(refracThresh-minIsi)
+    totalRate = numSpikes/totalTime
+    violationRate = numViolations/violationTime
+    normIsiViolationRate.append(violationRate/totalRate)
+#
     
+
+
+unitPos = []
+peakToTrough = []
 for obj in exps:
-    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
-    unitPos = np.concatenate([[obj.units[u]['position'][1]/1000 for u in units] for obj in exps])
-    peakToTrough = np.concatenate([[obj.units[u]['peakToTrough'] for u in units] for obj in exps])
+    units = obj.sortedUnits
+    unitPos.extend([obj.units[u]['position'][1]/1000 for u in units])
+    peakToTrough.extend([obj.units[u]['peakToTrough'] for u in units])
+unitPos = np.array(unitPos)
+peakToTrough = np.array(peakToTrough)
 
 fs = peakToTrough < 0.5
 
@@ -99,7 +95,7 @@ psth = copy.deepcopy(ntrials)
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
 for obj in exps:
-    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+    units = obj.sortedUnits
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
     for stim in stimLabels:
         for rd,hemi in zip((1,-1),ephysHemi):
@@ -123,7 +119,7 @@ for obj in exps:
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                     for u in units:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
-                        p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+                        p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         psth[stim][hemi][resp][mo].append(p)
                         t -= preTime
                         analysisWindow = (t>0.025) & (t<0.1)
@@ -297,34 +293,34 @@ optoPsthExample = []
 i = 0
 for obj in exps:
     optoOnsetToPlot = np.nanmin(obj.optoOnset)
-    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+    units = obj.sortedUnits
     for u in units:
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
         for onset in [optoOnsetToPlot]:
             trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
             startTimes = obj.frameSamples[obj.stimStart[trials]+int(onset)]/obj.sampleRate-preTime
-            p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+            p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
         t -= preTime
         optoPsthExample.append(p)
         i += 1
 optoPsthExample = np.array(optoPsthExample)
 
 optoPsth = []
-baseRate = np.full(sum(obj.goodUnits.size for obj in exps),np.nan)
+baseRate = np.full(len(unitPos),np.nan)
 stdBaseRate = baseRate.copy()
 transientOptoResp = baseRate.copy()
 sustainedOptoResp = baseRate.copy()
 sustainedOptoRate = baseRate.copy()
 i = 0
 for obj in exps:
-    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+    units = obj.sortedUnits
     for u in units:
         p = []
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
         for onset in np.unique(obj.optoOnset[~np.isnan(obj.optoOnset)]):
             trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
             startTimes = obj.frameSamples[obj.stimStart[trials]+int(onset)]/obj.sampleRate-preTime
-            s,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
+            s,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
             p.append(s)
         t -= preTime
         p = np.mean(np.concatenate(p),axis=0)
@@ -397,7 +393,7 @@ plt.tight_layout()
 optoOnset = list(np.unique(exps[0].optoOnset[~np.isnan(exps[0].optoOnset)]))+[np.nan]
 optoOnsetPsth = {stim: {hemi: {onset: [] for onset in optoOnset} for hemi in hemiLabels} for stim in stimLabels}
 for obj in exps:
-    units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+    units = obj.sortedUnits
     ephysHemi = hemiLabels[::-1] if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels
     for stim in stimLabels:
         for hemi,rd in zip(ephysHemi,rewardDir):
@@ -412,7 +408,7 @@ for obj in exps:
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                     for u in units:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
-                        p,t = getPSTH(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
+                        p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         optoOnsetPsth[stim][hemi][onset].append(p)                      
 t -= preTime
 
@@ -431,7 +427,7 @@ cint = 1/(len(optoOnset)-1)
 cmap[:-1,:2] = np.arange(0,1.01-cint,cint)[:,None]
 cmap[:-1,2] = 1
 for i,stim in enumerate(stimLabels):
-    for j,hemi in enumerate(('ipsi','contra')):
+    for j,hemi in enumerate(hemiLabels):
         ax = fig.add_subplot(gs[i,j])
         axs.append(ax)
         for onset,clr,lbl in zip(optoOnset,cmap,optoOnsetLabels):
@@ -529,7 +525,7 @@ binSize = 1/obj.frameRate
 preTime = 0.1
 postTime = 0.6
 nbins = np.arange(0,preTime+postTime+binSize,binSize).size-1
-units = np.concatenate((obj.goodUnits,obj.multiUnits)) if useMultiUnits else obj.goodUnits
+units =obj.sortedUnits
 rfMap = np.zeros((units.size,nbins,ele.size,azi.size,ori.shape[0],contrast.size,dur.size))
 for i,y in enumerate(ele):
     eleTrials = obj.rfStimPos[:,1]==y
@@ -548,7 +544,7 @@ for i,y in enumerate(ele):
                     startTimes = obj.frameSamples[obj.rfStimStart[trials]]/obj.sampleRate
                     for n,u in enumerate(units):
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
-                        p,t = getPSTH(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
+                        p,t = getPsth(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
                         t -= preTime
 #                        p -= p[t<0].mean()
                         rfMap[n,:,i,j,k,l,m] = p
