@@ -23,7 +23,7 @@ channelRange = [0,127]
 
 # get data
 datPath = fileIO.getFile('Select probe dat file',fileType='*.dat')
-datData,analogInData = loadDatData(datPath)
+probeData,analogInData = loadDatData(datPath)
 frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
 
 rfPath = fileIO.getFile('Select rf mapping pkl file',fileType='*.hdf5')
@@ -48,7 +48,7 @@ for i,y in enumerate(ele):
         trials = (stimPos[:,1]==y) & (stimPos[:,0]==x)
         startSamples = frameSamples[stimStart[trials]]
         for n,s in enumerate(startSamples):
-            rfMapLFP[i,j] += np.mean(datData[channelRange[0]:channelRange[1]+1,s-preSamples:s+postSamples],axis=0)
+            rfMapLFP[i,j] += np.mean(probeData[channelRange[0]:channelRange[1]+1,s-preSamples:s+postSamples],axis=0)
         rfMapLFP[i,j] /= n+1
 
 fig = plt.figure()
@@ -79,7 +79,6 @@ plt.tight_layout()
 negThresh = -200
 posThresh = 50
 chunkSamples = int(15*sampleRate)
-subtractMedian = False
 
 Wn = 300/(sampleRate/2) # cutoff freq normalized to nyquist
 b,a = scipy.signal.butter(2,Wn,btype='highpass')
@@ -87,13 +86,10 @@ b,a = scipy.signal.butter(2,Wn,btype='highpass')
 t = time.perf_counter()
 spikes = []
 offset = 0
-while offset < datData.shape[1]:
+while offset < probeData.shape[1]:
     if offset > 0 and len(spikes) < 1:
         break
-    d = datData[channelRange[0]:channelRange[1]+1,offset:offset+chunkSamples]
-    if subtractMedian:
-        d = d-np.median(d,axis=1)[:,None]
-        d -= np.median(d,axis=0)
+    d = probeData[channelRange[0]:channelRange[1]+1,offset:offset+chunkSamples]
     d = scipy.signal.filtfilt(b,a,d,axis=1)
     for ch in d:
         s = np.array(findSpikes(ch,negThresh,posThresh)) + offset

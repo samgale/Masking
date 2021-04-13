@@ -7,6 +7,7 @@ Created on Mon Apr 12 17:48:13 2021
 
 
 import os
+import time
 import h5py
 import numpy as np
 import pandas as pd
@@ -20,10 +21,10 @@ import fileIO
 
 
 
-def loadDatData(filePath):
+def loadDatData(filePath,mode='r'):
     totalChannels = 136
     probeChannels = 128      
-    data = np.memmap(filePath,dtype='int16',mode='r')    
+    data = np.memmap(filePath,dtype='int16',mode=mode)    
     data = np.reshape(data,(int(data.size/totalChannels),-1)).T
     analogInData = {name: data[ch+probeChannels] for ch,name in enumerate(('vsync',
                                                                            'photodiode',
@@ -34,6 +35,41 @@ def loadDatData(filePath):
                                                                            'led2'))}
     return data[:probeChannels],analogInData
 
+
+def filterDatData(filePath,highpass=300,ledOnsets=None,ledArtifactDur=6):
+    t = time.perf_counter()
+    
+    probeData,analogInData = loadDatData(filePath,mode='r+')
+    sampleRate = 30000
+    
+    Wn = highpass/(sampleRate/2) # cutoff freq normalized to nyquist
+    b,a = scipy.signal.butter(2,Wn,btype='highpass')
+    
+    chunkSamples = int(15*sampleRate)
+    offset = 0
+    while offset < probeData.shape[1]:
+        d = probeData[:,offset:offset+chunkSamples]
+        
+        # mask led artifacts
+        if ledOnsets is not None:
+            x = np.arange(ledArtifactDur)
+            for onset in ledOnsets-1:
+                for ch in d:
+                    ch[onset:onset+ledArtifactDur] = np.interp(x,[0,ledArtifactDur],ch[[onset,onset+ledArtifactDur]])
+        
+        # highpass filter
+        d[:,:] = scipy.signal.filtfilt(b,a,d,axis=1)
+        
+        # common avg (median) filter
+        d -= np.median(d,axis=0)
+
+        offset += chunkSamples
+        
+    del(probeData)
+    del(analogInData)
+    
+    print(time.perf_counter()-t)
+    
 
 @njit
 def findSignalEdges(signal,edgeType,thresh,refractory):
@@ -237,7 +273,8 @@ class MaskTaskData():
         self.getWheelPos()
         self.findEarlyMoveTrials()
         self.calcReactionTime()
-        
+    
+    
     def findEngagedTrials(self,engagedThresh=10):
         self.engaged = np.ones(self.ntrials,dtype=bool)
         trials = (self.trialType!='catch') & np.isnan(self.optoOnset)
@@ -246,7 +283,8 @@ class MaskTaskData():
             if len(r)>engagedThresh:
                 if all(np.isnan(r[-engagedThresh:])):
                     self.engaged[i] = False
-                    
+    
+                
     def getWheelPos(self,preFrames=0,postFrames=0):  
         deltaWheel = np.zeros((self.ntrials,preFrames+self.openLoopFrames+self.responseWindowFrames+postFrames))
         for i,s in enumerate(self.stimStart):
@@ -254,12 +292,14 @@ class MaskTaskData():
             deltaWheel[i,:len(d)] = d
         self.wheelPos = np.cumsum(deltaWheel,axis=1)
         self.wheelPos *= self.wheelRadius
-        
+    
+    
     def findEarlyMoveTrials(self,earlyMoveThresh=None):
         if earlyMoveThresh is None:
             earlyMoveThresh = self.maxQuiescentMoveDist
         self.earlyMove = np.any(self.wheelPos[:,:self.earlyMoveFrames]>earlyMoveThresh,axis=1)
-        
+    
+    
     def calcReactionTime(self,moveInitThresh=0.2):
         wp = self.wheelPos.copy()
         wp -= wp[:,self.earlyMoveFrames][:,None]
@@ -306,15 +346,15 @@ class MaskTaskData():
         self.ephys = True
 
           
-        datData,analogInData = loadDatData(self.datFilePath)
+        probeData,analogInData = loadDatData(self.datFilePath)
         
         self.sampleRate = 30000
-        self.totalSamples = datData.shape[1]
+        self.totalSamples = probeData.shape[1]
         
         self.frameSamples = np.array(findSignalEdges(analogInData['vsync'],edgeType='falling',thresh=-5000,refractory=2))
         
         if led:
-            self.led1Onsets,self.led2Onsets = [np.array(findSignalEdges(analogInData[led],edgeType='rising',thresh=5000,refractory=5)) for led in ('led1','led2')]
+            self.led1Onsets,self.led2Onsets = [np.array(findSignalEdges(analogInData[ch],edgeType='rising',thresh=5000,refractory=5)) for ch in ('led1','led2')]
         
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
@@ -338,17 +378,12 @@ class MaskTaskData():
                                                                                                 'spike_templates',
                                                                                                 'channel_positions',
                                                                                                 'amplitudes')}
-
         clusterIDs = pd.read_csv(os.path.join(self.kilosortDirPath,'cluster_KSLabel.tsv'),sep='\t')
-        
         unitIDs = np.unique(kilosortData['spike_clusters'])
-        
         self.units = {}
         for u in unitIDs:
             uind = np.where(kilosortData['spike_clusters']==u)[0]
-            
             u = str(u)
-            
             self.units[u] = {}
             self.units[u]['label'] = clusterIDs[clusterIDs['cluster_id']==int(u)]['KSLabel'].tolist()[0]
             self.units[u]['samples'] = kilosortData['spike_times'][uind].flatten()
@@ -369,14 +404,29 @@ class MaskTaskData():
             else:
                 peakInd = np.argmin(template)
                 self.units[u]['peakToTrough'] = np.argmax(template[peakInd:])/(self.sampleRate/1000)
-            
-            #check if this unit is noise
-#            tempNorm = template/np.max(np.absolute(template))
-#            self.units[u]['normTempIntegral'] = tempNorm.sum()
-#            if abs(tempNorm.sum())>4:
-#                self.units[u]['label'] = 'noise'
         
         self.sortedUnits = np.array(list(self.units.keys()))[np.argsort([self.units[u]['peakChan'] for u in self.units])]
+        self.calcIsiViolRate()
+        self.getGoodUnits()
+        
+    
+    def calcIsiViolRate(self,minIsi=0,refracThresh=0.0015):
+        totalTime = self.totalSamples/self.sampleRate
+        for u in self.units:
+            spikeTimes = self.units[u]['samples']/self.sampleRate
+            duplicateSpikes = np.where(np.diff(spikeTimes)<=minIsi)[0]+1
+            spikeTimes = np.delete(spikeTimes,duplicateSpikes)
+            isis = np.diff(spikeTimes)
+            numSpikes = len(spikeTimes)
+            numViolations = sum(isis<refracThresh)
+            violationTime = 2*numSpikes*(refracThresh-minIsi)
+            violationRate = numViolations/violationTime
+            totalRate = numSpikes/totalTime
+            self.units[u]['isiViolRate'] = violationRate/totalRate
+   
+         
+    def getGoodUnits(self,isiViolThresh=0.5):
+        self.goodUnits = [u for u in self.sortedUnits if self.units[u]['label']!='noise' and self.units[u]['isiViolRate']<isiViolThresh]
 
         
     def saveToHdf5(self,filePath=None):

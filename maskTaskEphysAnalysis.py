@@ -39,26 +39,6 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     exps.append(obj)
     
 
-#
-# need to add total time to obj
-minIsi = 0
-refracThresh = 0.0015
-normIsiViolationRate = []
-totalTime = obj.totalSamples/obj.sampleRate
-for u in obj.sortedUnits:
-    spikeTimes = obj.units[u]['samples']/obj.sampleRate
-    duplicateSpikes = np.where(np.diff(spikeTimes)<=minIsi)[0]+1
-    spikeTimes = np.delete(spikeTimes,duplicateSpikes)
-    isis = np.diff(spikeTimes)
-    numSpikes = len(spikeTimes)
-    numViolations = sum(isis<refracThresh)
-    violationTime = 2*numSpikes*(refracThresh-minIsi)
-    totalRate = numSpikes/totalTime
-    violationRate = numViolations/violationTime
-    normIsiViolationRate.append(violationRate/totalRate)
-#
-    
-
 
 unitPos = []
 peakToTrough = []
