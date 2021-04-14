@@ -41,34 +41,42 @@ def filterDatData(filePath,highpass=300,ledOnsets=None,ledArtifactDur=6):
     
     probeData,analogInData = loadDatData(filePath,mode='r+')
     sampleRate = 30000
+    totalSamples = probeData.shape[1]
     
     Wn = highpass/(sampleRate/2) # cutoff freq normalized to nyquist
     b,a = scipy.signal.butter(2,Wn,btype='highpass')
     
+    # mask led artifacts
+    if ledOnsets is not None:
+        x = np.arange(ledArtifactDur)
+        for i in ledOnsets-1:
+            for ch in probeData:
+                if i < totalSamples-ledArtifactDur:
+                    ch[i:i+ledArtifactDur] = np.interp(x,[0,ledArtifactDur],ch[[i,i+ledArtifactDur]])
+                else:
+                    ch[i:] = ch[i]
+        print('masked '+str(len(ledOnsets))+' led arftifacts')
+    
     chunkSamples = int(15*sampleRate)
     offset = 0
-    while offset < probeData.shape[1]:
+    while offset < totalSamples:
         d = probeData[:,offset:offset+chunkSamples]
-        
-        # mask led artifacts
-        if ledOnsets is not None:
-            x = np.arange(ledArtifactDur)
-            for onset in ledOnsets-1:
-                for ch in d:
-                    ch[onset:onset+ledArtifactDur] = np.interp(x,[0,ledArtifactDur],ch[[onset,onset+ledArtifactDur]])
         
         # highpass filter
         d[:,:] = scipy.signal.filtfilt(b,a,d,axis=1)
         
         # common avg (median) filter
-        d -= np.median(d,axis=0)
+        d -= np.median(d,axis=0).astype(d.dtype)
 
         offset += chunkSamples
-        
+        print('filtered '+str(offset)+' of '+str(totalSamples)+' samples')
+    
+    # flush results (overwrites existing data)
+    print('flushing to disk')
     del(probeData)
     del(analogInData)
     
-    print(time.perf_counter()-t)
+    print('completed in '+str(time.perf_counter()-t)+' s')
     
 
 @njit

@@ -13,13 +13,16 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 import fileIO
-from maskTaskAnalysisUtils import MaskTaskData,getPsth
+from maskTaskAnalysisUtils import MaskTaskData,getPsth,filterDatData
 
 
 
 obj = MaskTaskData()
 
 obj.loadEphysData(led=True)
+
+ledOnsets=np.union1d(obj.led1Onsets,obj.led2Onsets) # None
+filterDatData(obj.datFilePath,ledOnsets=ledOnsets)
 
 obj.loadKilosortData()
 
