@@ -36,18 +36,17 @@ def loadDatData(filePath,mode='r'):
     return data[:probeChannels],analogInData
 
 
-def filterDatData(filePath,highpass=300,ledOnsets=None,ledArtifactDur=6):
+def filterDatData(filePath,highpass=300,commonRef=True,ledArtifactDur=6):
     t = time.perf_counter()
     
     probeData,analogInData = loadDatData(filePath,mode='r+')
     sampleRate = 30000
     totalSamples = probeData.shape[1]
     
-    Wn = highpass/(sampleRate/2) # cutoff freq normalized to nyquist
-    b,a = scipy.signal.butter(2,Wn,btype='highpass')
-    
     # mask led artifacts
-    if ledOnsets is not None:
+    if ledArtifactDur:
+        led1Onsets,led2Onsets = [np.array(findSignalEdges(analogInData[ch],edgeType='rising',thresh=5000,refractory=5)) for ch in ('led1','led2')]
+        ledOnsets = np.union1d(led1Onsets,led2Onsets)
         x = np.arange(ledArtifactDur)
         for i in ledOnsets-1:
             for ch in probeData:
@@ -57,19 +56,26 @@ def filterDatData(filePath,highpass=300,ledOnsets=None,ledArtifactDur=6):
                     ch[i:] = ch[i]
         print('masked '+str(len(ledOnsets))+' led arftifacts')
     
-    chunkSamples = int(15*sampleRate)
-    offset = 0
-    while offset < totalSamples:
-        d = probeData[:,offset:offset+chunkSamples]
+    if highpass or commonRef:
+        if highpass:
+            Wn = highpass/(sampleRate/2) # cutoff freq normalized to nyquist
+            b,a = scipy.signal.butter(2,Wn,btype='highpass')
         
-        # highpass filter
-        d[:,:] = scipy.signal.filtfilt(b,a,d,axis=1)
-        
-        # common avg (median) filter
-        d -= np.median(d,axis=0).astype(d.dtype)
-
-        offset += chunkSamples
-        print('filtered '+str(offset)+' of '+str(totalSamples)+' samples')
+        chunkSamples = int(15*sampleRate)
+        offset = 0
+        while offset < totalSamples:
+            d = probeData[:,offset:offset+chunkSamples]
+            
+            # highpass filter
+            if highpass:
+                d[:,:] = scipy.signal.filtfilt(b,a,d,axis=1)
+            
+            # common reference median filter
+            if commonRef:
+                d -= np.median(d,axis=0).astype(d.dtype)
+    
+            offset += chunkSamples
+            print('filtered '+str(offset)+' of '+str(totalSamples)+' samples')
     
     # flush results (overwrites existing data)
     print('flushing to disk')
@@ -380,6 +386,8 @@ class MaskTaskData():
     
     def loadKilosortData(self):
         self.kilosortDirPath = fileIO.getDir('Select directory containing kilosort data')
+        if len(self.kilosortDirPath)==0:
+            return
         kilosortData = {key: np.load(os.path.join(self.kilosortDirPath,key+'.npy')) for key in ('spike_clusters',
                                                                                                 'spike_times',
                                                                                                 'templates',
@@ -418,7 +426,7 @@ class MaskTaskData():
         self.getGoodUnits()
         
     
-    def calcIsiViolRate(self,minIsi=0,refracThresh=0.0015):
+    def calcIsiViolRate(self,minIsi=0,refracPeriod=0.0015):
         totalTime = self.totalSamples/self.sampleRate
         for u in self.units:
             spikeTimes = self.units[u]['samples']/self.sampleRate
@@ -426,11 +434,14 @@ class MaskTaskData():
             spikeTimes = np.delete(spikeTimes,duplicateSpikes)
             isis = np.diff(spikeTimes)
             numSpikes = len(spikeTimes)
-            numViolations = sum(isis<refracThresh)
-            violationTime = 2*numSpikes*(refracThresh-minIsi)
+            numViolations = sum(isis<refracPeriod)
+            violationTime = 2*numSpikes*(refracPeriod-minIsi)
             violationRate = numViolations/violationTime
             totalRate = numSpikes/totalTime
             self.units[u]['isiViolRate'] = violationRate/totalRate
+            
+            c = (numViolations*totalTime)/(2*refracPeriod*numSpikes**2) # same as violationRate/totalRate
+            self.units[u]['fpRate'] = (1-(1-4*c)**0.5)/2
    
          
     def getGoodUnits(self,isiViolThresh=0.5):

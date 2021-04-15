@@ -13,16 +13,13 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 import fileIO
-from maskTaskAnalysisUtils import MaskTaskData,getPsth,filterDatData
+from maskTaskAnalysisUtils import MaskTaskData,getPsth
 
 
 
 obj = MaskTaskData()
 
 obj.loadEphysData(led=True)
-
-ledOnsets=np.union1d(obj.led1Onsets,obj.led2Onsets) # None
-filterDatData(obj.datFilePath,ledOnsets=ledOnsets)
 
 obj.loadKilosortData()
 
@@ -46,7 +43,7 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
 unitPos = []
 peakToTrough = []
 for obj in exps:
-    units = obj.sortedUnits
+    units = obj.goodUnits
     unitPos.extend([obj.units[u]['position'][1]/1000 for u in units])
     peakToTrough.extend([obj.units[u]['peakToTrough'] for u in units])
 unitPos = np.array(unitPos)
@@ -62,6 +59,7 @@ trialTime = trialTime[0]
 
 frameRate = 120
 binSize = 1/frameRate
+activeThresh = 0.1 # spikes/s
 relThresh = 5 # stdev
 absThresh = 0.5 # spikes
 stimLabels = ('maskOnly','mask','targetOnly','catch')
@@ -78,7 +76,6 @@ psth = copy.deepcopy(ntrials)
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
 for obj in exps:
-    units = obj.sortedUnits
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
     for stim in stimLabels:
         for rd,hemi in zip((1,-1),ephysHemi):
@@ -100,13 +97,13 @@ for obj in exps:
                         hasResp[stim][hemi][resp][mo] = []
                     ntrials[stim][hemi][resp][mo] += trials.sum()
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
-                    for u in units:
+                    for u in obj.goodUnits:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         psth[stim][hemi][resp][mo].append(p)
                         t -= preTime
                         analysisWindow = (t>0.025) & (t<0.1)
-                        hasSpikes[stim][hemi][resp][mo].append(p[t<0.1].mean() > 0)
+                        hasSpikes[stim][hemi][resp][mo].append(p[t<0.1].mean() > activeThresh)
                         b = p-p[t<0].mean()
                         r = (b[analysisWindow].max() > relThresh*b[t<0].std())
                         if absThresh is not None:
@@ -276,8 +273,7 @@ optoPsthExample = []
 i = 0
 for obj in exps:
     optoOnsetToPlot = np.nanmin(obj.optoOnset)
-    units = obj.sortedUnits
-    for u in units:
+    for u in obj.goodUnits:
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
         for onset in [optoOnsetToPlot]:
             trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
@@ -296,8 +292,7 @@ sustainedOptoResp = baseRate.copy()
 sustainedOptoRate = baseRate.copy()
 i = 0
 for obj in exps:
-    units = obj.sortedUnits
-    for u in units:
+    for u in obj.goodUnits:
         p = []
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
         for onset in np.unique(obj.optoOnset[~np.isnan(obj.optoOnset)]):
@@ -376,7 +371,6 @@ plt.tight_layout()
 optoOnset = list(np.unique(exps[0].optoOnset[~np.isnan(exps[0].optoOnset)]))+[np.nan]
 optoOnsetPsth = {stim: {hemi: {onset: [] for onset in optoOnset} for hemi in hemiLabels} for stim in stimLabels}
 for obj in exps:
-    units = obj.sortedUnits
     ephysHemi = hemiLabels[::-1] if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels
     for stim in stimLabels:
         for hemi,rd in zip(ephysHemi,rewardDir):
@@ -389,7 +383,7 @@ for obj in exps:
                     trials = np.isnan(obj.optoOnset) if np.isnan(onset) else obj.optoOnset==onset
                     trials = trials & stimTrials & moTrials
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
-                    for u in units:
+                    for u in obj.goodUnits:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         optoOnsetPsth[stim][hemi][onset].append(p)                      
