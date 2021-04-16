@@ -5,6 +5,7 @@ Created on Mon Mar 11 12:34:44 2019
 @author: svc_ccg
 """
 
+import os
 import copy
 import numpy as np
 import scipy.signal
@@ -36,6 +37,7 @@ exps = []
 for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     obj = MaskTaskData()
     obj.loadFromHdf5(f)
+    obj.loadKilosortData(os.path.join(os.path.dirname(obj.datFilePath),'kilosort_filtered'))
     exps.append(obj)
     
 
@@ -61,7 +63,7 @@ frameRate = 120
 binSize = 1/frameRate
 activeThresh = 0.1 # spikes/s
 relThresh = 5 # stdev
-absThresh = 0.5 # spikes
+absThresh = 5 # spikes/s
 stimLabels = ('maskOnly','mask','targetOnly','catch')
 hemiLabels = ('contra','ipsi')
 rewardDir = (-1,1)
@@ -102,12 +104,12 @@ for obj in exps:
                         p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
                         psth[stim][hemi][resp][mo].append(p)
                         t -= preTime
-                        analysisWindow = (t>0.025) & (t<0.1)
+                        analysisWindow = (t>0.04) & (t<0.1)
                         hasSpikes[stim][hemi][resp][mo].append(p[t<0.1].mean() > activeThresh)
                         b = p-p[t<0].mean()
                         r = (b[analysisWindow].max() > relThresh*b[t<0].std())
                         if absThresh is not None:
-                            r = r & (b[analysisWindow].sum()*binSize > absThresh)
+                            r = r & (b[analysisWindow].mean() > absThresh)
                         hasResp[stim][hemi][resp][mo].append(r)
 
 activeCells = np.array(hasSpikes['targetOnly']['contra']['all'][0]) | np.array(hasSpikes['maskOnly']['contra']['all'][0])
@@ -389,7 +391,7 @@ for obj in exps:
                         optoOnsetPsth[stim][hemi][onset].append(p)                      
 t -= preTime
 
-analysisWindow = (t>0.025) & (t<0.1)
+analysisWindow = (t>0.04) & (t<0.1)
           
 units = ~(transient | excit) & respCells
                 
@@ -434,7 +436,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for stim,clr in zip(stimLabels[:3],'ckb'):
+for stim,clr in zip(stimLabels[:3],'bkc'):
     respMean = []
     respSem = []
     for onset in optoOnset:

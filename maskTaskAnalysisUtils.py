@@ -46,7 +46,7 @@ def filterDatData(filePath,highpass=300,commonRef=True,ledArtifactDur=6):
     # mask led artifacts
     if ledArtifactDur:
         led1Onsets,led2Onsets = [np.array(findSignalEdges(analogInData[ch],edgeType='rising',thresh=5000,refractory=5)) for ch in ('led1','led2')]
-        ledOnsets = np.union1d(led1Onsets,led2Onsets)
+        ledOnsets = np.union1d(led1Onsets,led2Onsets).astype(int)
         x = np.arange(ledArtifactDur)
         for i in ledOnsets-1:
             for ch in probeData:
@@ -384,8 +384,11 @@ class MaskTaskData():
         plt.tight_layout()
         
     
-    def loadKilosortData(self):
-        self.kilosortDirPath = fileIO.getDir('Select directory containing kilosort data')
+    def loadKilosortData(self,dirPath=None):
+        if dirPath is None:
+            self.kilosortDirPath = fileIO.getDir('Select directory containing kilosort data')
+        else:
+            self.kilosortDirPath = dirPath
         if len(self.kilosortDirPath)==0:
             return
         kilosortData = {key: np.load(os.path.join(self.kilosortDirPath,key+'.npy')) for key in ('spike_clusters',
@@ -422,11 +425,11 @@ class MaskTaskData():
                 self.units[u]['peakToTrough'] = np.argmax(template[peakInd:])/(self.sampleRate/1000)
         
         self.sortedUnits = np.array(list(self.units.keys()))[np.argsort([self.units[u]['peakChan'] for u in self.units])]
-        self.calcIsiViolRate()
+        self.findIsiViolations()
         self.getGoodUnits()
         
     
-    def calcIsiViolRate(self,minIsi=0,refracPeriod=0.0015):
+    def findIsiViolations(self,minIsi=0,refracPeriod=0.0015):
         totalTime = self.totalSamples/self.sampleRate
         for u in self.units:
             spikeTimes = self.units[u]['samples']/self.sampleRate
@@ -438,14 +441,11 @@ class MaskTaskData():
             violationTime = 2*numSpikes*(refracPeriod-minIsi)
             violationRate = numViolations/violationTime
             totalRate = numSpikes/totalTime
-            self.units[u]['isiViolRate'] = violationRate/totalRate
-            
-            c = (numViolations*totalTime)/(2*refracPeriod*numSpikes**2) # same as violationRate/totalRate
-            self.units[u]['fpRate'] = (1-(1-4*c)**0.5)/2
+            self.units[u]['fpRate'] = violationRate/totalRate
    
          
-    def getGoodUnits(self,isiViolThresh=0.5):
-        self.goodUnits = [u for u in self.sortedUnits if self.units[u]['label']!='noise' and self.units[u]['isiViolRate']<isiViolThresh]
+    def getGoodUnits(self,fpThresh=0.5):
+        self.goodUnits = [u for u in self.sortedUnits if self.units[u]['label']!='noise' and self.units[u]['fpRate']<fpThresh]
 
         
     def saveToHdf5(self,filePath=None):
