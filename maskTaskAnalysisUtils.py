@@ -74,8 +74,8 @@ def filterDatData(filePath,highpass=300,commonRef=True,ledArtifactDur=6):
             if commonRef:
                 d -= np.median(d,axis=0).astype(d.dtype)
     
-            offset += chunkSamples
             print('filtered '+str(offset)+' of '+str(totalSamples)+' samples')
+            offset += chunkSamples
     
     # flush results (overwrites existing data)
     print('flushing to disk')

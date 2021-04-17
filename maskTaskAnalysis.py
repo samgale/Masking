@@ -445,14 +445,15 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target + mask','target only','mask only','no stim'),'bckm')):
+#        meanLR = (data[:,i,0]*ntrials[:,i,0]+data[:,i,1]*ntrials[:,i,1])/ntrials[:,i].sum(axis=1)
         meanLR = np.nanmean(data[:,i],axis=1)
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
             if stim=='targetOnly':
-                firstValid = 3
+                firstValid = 0
             elif stim=='mask':
-                firstValid = 2
+                firstValid = 0
             else:
                 firstValid = 0
 #            lbls = ('response rate not above chance','response rate above chance') if stim=='maskOnly' else (None,None)
