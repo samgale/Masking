@@ -105,7 +105,7 @@ for obj in exps:
                         psth[stim][hemi][resp][mo].append(p)
                         t -= preTime
                         analysisWindow = (t>0.04) & (t<0.1)
-                        hasSpikes[stim][hemi][resp][mo].append(p[t<0.1].mean() > activeThresh)
+                        hasSpikes[stim][hemi][resp][mo].append(p[analysisWindow].mean() > activeThresh)
                         b = p-p[t<0].mean()
                         r = (b[analysisWindow].max() > relThresh*b[t<0].std())
                         if absThresh is not None:
@@ -125,13 +125,11 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
     for resp in ('all',): #behavRespLabels:
         fig = plt.figure(figsize=(10,5))
         fig.text(0.5,0.99,cellType+' (n='+str(respCells[ct].sum())+' cells)',ha='center',va='top',fontsize=12)
-        rewDir = rewardDir[::-1] if hasattr(obj,'hemi') and obj.hemi=='right' else rewardDir
-        for i,(rd,hemi) in enumerate(zip(rewDir,hemiLabels)):
+        for i,hemi in enumerate(hemiLabels):
             ax = fig.add_subplot(1,2,i+1)
             axs.append(ax)
             for stim,clr in zip(stimLabels,('0.5','r','k','m')):
-                stimTrials = obj.trialType==stim if stim in ('maskOnly','catch') else (obj.trialType==stim) & (obj.rewardDir==rd)
-                mskOn = np.unique(obj.maskOnset[stimTrials])
+                mskOn = psth[stim][hemi][resp].keys()
                 if stim=='mask' and len(mskOn)>1:
                     cmap = np.ones((len(mskOn),3))
                     cint = 1/len(mskOn)
@@ -462,7 +460,6 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot([8,108],[0.5,0.5],'k--')
 for stim,clr in zip(('targetOnly','mask'),'cb'):
     mean = []
     sem = []
