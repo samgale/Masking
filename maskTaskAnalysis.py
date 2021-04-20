@@ -80,8 +80,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
     ax = fig.add_subplot(1,1,1)
     meanLR = np.nanmean(data,axis=1)
     for d in meanLR:
-        ax.plot(xticks[0],d[0],'o',mec='0.5',mfc='none')
-        ax.plot(xticks[1:],d[1:],color='0.5')
+        ax.plot(xticks[0],d[0],'o',mec='0.8',mfc='none')
+        ax.plot(xticks[1:],d[1:],color='0.8')
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks[0],mean[0],'ko')
@@ -146,8 +146,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
     ax = fig.add_subplot(1,1,1)
     meanLR = np.nanmean(data,axis=1)
     for d in meanLR:
-        ax.plot(xticks[0],d[0],'o',mec='0.5',mfc='none')
-        ax.plot(xticks[1:],d[1:],color='0.5')
+        ax.plot(xticks[0],d[0],'o',mec='0.8',mfc='none')
+        ax.plot(xticks[1:],d[1:],color='0.8')
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks[0],mean[0],'ko')
@@ -168,8 +168,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
     
 
 # masking
-stimLabels = ('mask','targetOnly','maskOnly','catch')
-maskOnset = np.array([2,3,4,6,0])
+stimLabels = ('maskOnly','mask','targetOnly','catch')
+maskOnset = np.array([0,2,3,4,6])
 ntrials = np.full((len(exps),2,len(maskOnset)+2),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
@@ -187,8 +187,6 @@ for n,obj in enumerate(exps):
             moTrials = stimTrials  & (obj.maskOnset==mo)
             if moTrials.sum()>0:
                 if stim=='targetOnly':
-                    j = -3
-                elif stim=='maskOnly':
                     j = -2
                 elif stim=='catch':
                     j = -1  
@@ -212,9 +210,9 @@ for n,obj in enumerate(exps):
 #np.save(fileIO.saveFile(fileType='*.npy'),respRate)
 #np.save(fileIO.saveFile(fileType='*.npy'),fracCorr)
 
-xticks = list(maskOnset[:-1]/frameRate*1000)+[67,83,100]
-xticklabels = [str(int(round(x))) for x in xticks[:-3]]+['target\nonly','mask\nonly','no\nstimulus']
-xlim = [8,108]
+xticks = list(maskOnset/frameRate*1000)+[67,83]
+xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstimulus']
+xlim = [-8,92]
 
 # single experiment
 for n in range(len(exps)):
@@ -243,7 +241,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     ax = fig.add_subplot(1,1,1)
     meanLR = np.nanmean(data,axis=1)
     for d in meanLR:
-        ax.plot(xticks,d,color='0.5')
+        ax.plot(xticks,d,color='0.8')
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks,mean,'ko')
@@ -263,7 +261,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
 # reaction time on correct and incorrect trials
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for data,clr,lbl in zip((meanReacTime,meanReacTimeCorrect,meanReacTimeIncorrect),'kgr',('all','correct','incorrect')):
+for data,clr,lbl in zip((meanReacTimeCorrect,meanReacTimeIncorrect),['k','0.8'],('correct','incorrect')):
     meanLR = np.nanmean(data,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
@@ -318,7 +316,7 @@ ax.legend(fontsize=8,loc='upper left')
 
 ax = fig.add_subplot(2,1,2)
 for p,clr in zip(pc,clrs):
-    ax.plot(bins[:-1]+binWidth/2,p,color=clr)
+    ax.plot(bins[:-2]+binWidth/2,p[:-1],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
@@ -383,6 +381,9 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
         else:
             firstValid = 0
         lbl = stimLbl if data is respRate else None
+        for d in meanLR:
+            ax.plot(xticks[firstValid:-1],d[firstValid:-1],color=clr,alpha=0.2)
+            ax.plot(xticks[-1],d[-1],'o',mec=clr,mfc='none',alpha=0.2)
         ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',color=clr)
         ax.plot(xticks[-1],mean[-1],'o',color=clr,label=lbl)
         for x,m,s in zip(xticks[firstValid:],mean[firstValid:],sem[firstValid:]):
@@ -451,9 +452,9 @@ for data,ylim,ylabel in zip((respRate,fracCorr,meanReacTime),((0,1),(0.4,1),None
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
             if stim=='targetOnly':
-                firstValid = 0
+                firstValid = 3
             elif stim=='mask':
-                firstValid = 0
+                firstValid = 2
             else:
                 firstValid = 0
 #            lbls = ('response rate not above chance','response rate above chance') if stim=='maskOnly' else (None,None)
@@ -530,7 +531,7 @@ for i,stim in enumerate(stimLabels):
     if i==2:
         ax.set_xlabel('Optogenetic Stimulus Side')
         ax.set_yticks(np.arange(0,1,0.1))
-        ax.set_ylim([0,0.2])
+        ax.set_ylim([0,0.75])
     else:
         ax.set_xticklabels([])
         ax.set_yticks(np.arange(0,1,0.2))

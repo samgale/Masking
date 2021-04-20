@@ -10,6 +10,7 @@ import copy
 import numpy as np
 import scipy.signal
 import scipy.ndimage
+import scipy.stats
 import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
@@ -62,9 +63,8 @@ trialTime = trialTime[0]
 frameRate = 120
 binSize = 1/frameRate
 activeThresh = 0.1 # spikes/s
-relThresh = 5 # stdev
-absThresh = 5 # spikes/s
-stimLabels = ('maskOnly','mask','targetOnly','catch')
+respThresh = 5 # stdev
+stimLabels = ('targetOnly','mask','maskOnly','catch')
 hemiLabels = ('contra','ipsi')
 rewardDir = (-1,1)
 behavRespLabels = ('all','go','nogo')
@@ -77,6 +77,7 @@ ntrials = {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in hemiL
 psth = copy.deepcopy(ntrials)
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
+respP = copy.deepcopy(psth)
 for obj in exps:
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
     for stim in stimLabels:
@@ -97,20 +98,22 @@ for obj in exps:
                         psth[stim][hemi][resp][mo] = []
                         hasSpikes[stim][hemi][resp][mo] = []
                         hasResp[stim][hemi][resp][mo] = []
+                        respP[stim][hemi][resp][mo] = []
                     ntrials[stim][hemi][resp][mo] += trials.sum()
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                     for u in obj.goodUnits:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
-                        p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
-                        psth[stim][hemi][resp][mo].append(p)
+                        p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
+                        m = p.mean(axis=0)
                         t -= preTime
+                        psth[stim][hemi][resp][mo].append(m)
                         analysisWindow = (t>0.04) & (t<0.1)
-                        hasSpikes[stim][hemi][resp][mo].append(p[analysisWindow].mean() > activeThresh)
-                        b = p-p[t<0].mean()
-                        r = (b[analysisWindow].max() > relThresh*b[t<0].std())
-                        if absThresh is not None:
-                            r = r & (b[analysisWindow].mean() > absThresh)
-                        hasResp[stim][hemi][resp][mo].append(r)
+                        hasSpikes[stim][hemi][resp][mo].append(m[analysisWindow].mean() > activeThresh)
+                        b = p[:,t<0].mean(axis=1)
+                        r = p[:,analysisWindow].mean(axis=1)
+                        peak = (m-b.mean())[analysisWindow].max()
+                        pval = 1 if np.sum(r-b)==0 else scipy.stats.wilcoxon(b,r)[1] 
+                        hasResp[stim][hemi][resp][mo].append(peak>respThresh*m[t<0].std() and pval<0.05)                     
 
 activeCells = np.array(hasSpikes['targetOnly']['contra']['all'][0]) | np.array(hasSpikes['maskOnly']['contra']['all'][0])
 respCells = np.array(hasResp['targetOnly']['contra']['all'][0]) | np.array(hasResp['maskOnly']['contra']['all'][0])
@@ -128,7 +131,7 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
         for i,hemi in enumerate(hemiLabels):
             ax = fig.add_subplot(1,2,i+1)
             axs.append(ax)
-            for stim,clr in zip(stimLabels,('0.5','r','k','m')):
+            for stim,clr in zip(stimLabels,('k','r','0.5','m')):
                 mskOn = psth[stim][hemi][resp].keys()
                 if stim=='mask' and len(mskOn)>1:
                     cmap = np.ones((len(mskOn),3))
@@ -319,23 +322,22 @@ inhib = activeCells & (~transient) & (sustainedOptoResp<sustainedThresh)
 noResp = activeCells & (~(excit | inhib | transient))
 
 for k,p in enumerate((optoPsthExample,optoPsth)):
-    fig = plt.figure(figsize=(8,8))
-    gs = matplotlib.gridspec.GridSpec(4,2)
-    for i,j,units,clr,lbl in zip((0,1,0,1,2,3),(0,0,1,1,1,1),(fs,~fs,excit,inhib,transient,noResp),'mgkkkk',('FS','RS','Excited','Inhibited','Transient','No Response')):
-        ax = fig.add_subplot(gs[i,j])
+    fig = plt.figure(figsize=(6,8))
+    for i,(units,lbl) in enumerate(zip((excit,transient,inhib | noResp),('Excited','Transient','Inhibited'))):
+        ax = fig.add_subplot(3,1,i+1)
         units = units & activeCells
-        ax.plot(t,p[units].mean(axis=0),clr)
+        ax.plot(t,p[units].mean(axis=0),'k')
         ylim = plt.get(ax,'ylim')
         if k==0:
             poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime,ylim[1]),(0,ylim[1])])
             ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
-        n = str(np.sum(units)) if j==0 else str(np.sum(units & fs))+' FS, '+str(np.sum(units & ~fs))+' RS'
+        n = str(np.sum(units & fs))+' FS, '+str(np.sum(units & ~fs))+' RS'
         ax.text(1,1,lbl+' (n = '+n+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
         ax.set_xlim([-preTime,trialTime+postTime])
-        if (i==1 and j==0) or i==2:
+        if i==2:
             ax.set_xlabel('Time from LED onset (s)')
         ax.set_ylabel('Spikes/s')
     plt.tight_layout()
@@ -396,36 +398,43 @@ units = ~(transient | excit) & respCells
 optoOnsetTicks = list(1000*(np.array(optoOnset[:-1])-exps[0].frameDisplayLag)/frameRate) + [100]
 optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no opto']
 
-fig = plt.figure(figsize=(6,10))
-gs = matplotlib.gridspec.GridSpec(len(stimLabels),2)
+fig = plt.figure(figsize=(6,8))
+gs = matplotlib.gridspec.GridSpec(3,2)
 axs = []
 cmap = np.zeros((len(optoOnset),3))
 cint = 1/(len(optoOnset)-1)
 cmap[:-1,:2] = np.arange(0,1.01-cint,cint)[:,None]
 cmap[:-1,2] = 1
-for i,stim in enumerate(stimLabels):
+for i,(stim,stimLbl) in enumerate(zip(stimLabels,('target','target + mask','mask only','no visual stimulus'))):
     for j,hemi in enumerate(hemiLabels):
-        ax = fig.add_subplot(gs[i,j])
+        if stim in ('maskOnly','catch'):
+            loc = gs[i,0] if stim=='maskOnly' else gs[i-1,1]
+        else:
+            loc = gs[i,j]
+        ax = fig.add_subplot(loc)
         axs.append(ax)
         for onset,clr,lbl in zip(optoOnset,cmap,optoOnsetLabels):
             p = np.array(optoOnsetPsth[stim][hemi][onset])[units]
             m = np.mean(p,axis=0)
-            s = np.std(p,axis=0)/(len(psth)**0.5)
+            s = np.std(p,axis=0)/(len(p)**0.5)
             lbl = lbl if np.isnan(onset) else lbl+' ms'
             ax.plot(t*1000,m,color=clr,label=lbl)
-#            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
+            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
         ax.set_xticks(np.arange(-50,201,50))
         ax.set_xlim([-25,175])
-        ax.set_ylabel('Spikes/s')
-        title = 'target+mask (17 ms offset)' if stim=='mask' else stim
-        ax.set_title(title)
-        if i==0 and j==0:
-            ax.legend(loc='upper left',title='opto onset',fontsize=8)
-        elif i==len(stimLabels)-1:
+        if i==2:
             ax.set_xlabel('Time from stimulus onset (ms)')
+        if j==0:
+            ax.set_ylabel('Spikes/s')
+        if i==0 and j==1:
+            ax.legend(loc='upper right',title='opto onset',fontsize=8)
+        title = hemi+' '+stimLbl if stim in ('targetOnly','mask') else stimLbl
+        ax.set_title(title)
+        if stim in ('maskOnly','catch'):
+            break
 ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
 ymax = max(plt.get(ax,'ylim')[1] for ax in axs)
 for ax in axs:
@@ -434,7 +443,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for stim,clr in zip(stimLabels[:3],'bkc'):
+for stim,clr in zip(stimLabels[:3],'cbk'):
     respMean = []
     respSem = []
     for onset in optoOnset:
