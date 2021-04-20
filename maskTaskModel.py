@@ -269,6 +269,8 @@ for sig in signalNames:
             p -= p[t<=25].mean()
             maskOn = np.nan if sig=='targetOnly' else mo
             popPsthFilt[sig][hemi][maskOn] = p
+            
+plotSignals([popPsthFilt],[t],'k')
 
 plotSignals([popPsth,popPsthFilt],[popPsth['t']*1000,t],'kr')
 

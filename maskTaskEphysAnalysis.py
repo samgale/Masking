@@ -5,8 +5,9 @@ Created on Mon Mar 11 12:34:44 2019
 @author: svc_ccg
 """
 
-import os
 import copy
+import os
+import pickle
 import numpy as np
 import scipy.signal
 import scipy.ndimage
@@ -258,17 +259,17 @@ plt.tight_layout()
 
 
 # save psth
-#popPsth = {stim: {hemi: {} for hemi in ('ipsi','contra')} for stim in stimLabels}
-#for cellType in ('all',):
-#    for stim in stimLabels:
-#        for side,hemi in zip(('left','right'),('ipsi','contra')):
-#            p = psth[cellType][stim][side]['all']
-#            for mo in p.keys():
-#                popPsth[stim][hemi][mo] = np.mean(np.array(p[mo])[respCells[cellType]],axis=0)
-#popPsth['t'] = t
-#            
-#pkl = fileIO.saveFile(fileType='*.pkl')
-#pickle.dump(popPsth,open(pkl,'wb'))
+popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
+for cellType in ('all',):
+    for stim in stimLabels:
+        for hemi in hemiLabels:
+            p = psth[stim][hemi]['all']
+            for mo in p.keys():
+                popPsth[stim][hemi][mo] = np.array(p[mo])[respCells].mean(axis=0)
+popPsth['t'] = t
+            
+pkl = fileIO.saveFile(fileType='*.pkl')
+pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # plot response to optogenetic stimuluation during catch trials
@@ -326,21 +327,37 @@ for k,p in enumerate((optoPsthExample,optoPsth)):
     for i,(units,lbl) in enumerate(zip((excit,transient,inhib | noResp),('Excited','Transient','Inhibited'))):
         ax = fig.add_subplot(3,1,i+1)
         units = units & activeCells
-        ax.plot(t,p[units].mean(axis=0),'k')
+        m = p[units].mean(axis=0)
+        s = p[units].std(axis=0)/(units.sum()**0.5)
+        ax.plot(t,m,'k')
+        ax.fill_between(t,m+s,m-s,color='k',alpha=0.25)
         ylim = plt.get(ax,'ylim')
         if k==0:
             poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime,ylim[1]),(0,ylim[1])])
-            ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.25))
+            ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.1))
         n = str(np.sum(units & fs))+' FS, '+str(np.sum(units & ~fs))+' RS'
-        ax.text(1,1,lbl+' (n = '+n+')',transform=ax.transAxes,color=clr,ha='right',va='bottom')
+        ax.text(0.5,1,lbl+' (n = '+n+')',transform=ax.transAxes,color='k',ha='center',va='bottom')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
         ax.set_xlim([-preTime,trialTime+postTime])
+        ax.set_ylim([0,ylim[1]])
         if i==2:
             ax.set_xlabel('Time from LED onset (s)')
         ax.set_ylabel('Spikes/s')
     plt.tight_layout()
+    
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+bw = 0.05
+bins = np.arange(0,peakToTrough.max()+bw,bw)
+ax.bar(x=bins[:-1]+bw/2,height=np.histogram(peakToTrough,bins=bins)[0],width=bw,color='k')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlabel('Peak to trough (ms)')
+ax.set_ylabel('Count')
+plt.tight_layout()
 
 fig = plt.figure(figsize=(8,8))
 gs = matplotlib.gridspec.GridSpec(4,2)
@@ -425,7 +442,7 @@ for i,(stim,stimLbl) in enumerate(zip(stimLabels,('target','target + mask','mask
         ax.tick_params(direction='out',top=False,right=False)
         ax.set_xticks(np.arange(-50,201,50))
         ax.set_xlim([-25,175])
-        if i==2:
+        if i>1:
             ax.set_xlabel('Time from stimulus onset (ms)')
         if j==0:
             ax.set_ylabel('Spikes/s')
@@ -443,7 +460,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for stim,clr in zip(stimLabels[:3],'cbk'):
+for stim,clr,lbl in zip(stimLabels[:3],'cbk',('target only','target + mask','mask only')):
     respMean = []
     respSem = []
     for onset in optoOnset:
@@ -452,7 +469,6 @@ for stim,clr in zip(stimLabels[:3],'cbk'):
         r = (p-c)[:,analysisWindow].sum(axis=1)*binSize
         respMean.append(np.mean(r))
         respSem.append(np.std(r)/(len(r)**0.5))
-    lbl = 'target + mask' if stim=='mask' else stim
     ax.plot(optoOnsetTicks,respMean,'o',color=clr,label=lbl)
     for x,m,s in zip(optoOnsetTicks,respMean,respSem):
         ax.plot([x,x],[m-s,m+s],color=clr)
@@ -463,8 +479,8 @@ ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
 ax.set_xlabel('Opto onset relative to target onset (ms)')
-ax.set_ylabel('Stimulus evoked spikes')
-ax.legend()
+ax.set_ylabel('Stimulus evoked spikes per neuron per trial')
+#ax.legend(loc='upper left')
 plt.tight_layout()
 
 fig = plt.figure()
@@ -486,7 +502,7 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
         firstValid = 2
     elif stim=='mask':
         firstValid = 2
-    ax.plot(optoOnsetTicks[firstValid:],mean[firstValid:],'o-',color=clr)
+    ax.plot(optoOnsetTicks[firstValid:],mean[firstValid:],'o',color=clr)
     for x,m,s in zip(optoOnsetTicks[firstValid:],mean[firstValid:],sem[firstValid:]):
         ax.plot([x,x],[m-s,m+s],color=clr)
 for side in ('right','top'):
@@ -494,7 +510,9 @@ for side in ('right','top'):
 ax.tick_params(direction='out',top=False,right=False)
 ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
+ax.set_yticks(np.arange(0.4,1,0.1))
 ax.set_xlim([8,108])
+ax.set_ylim([0.4,0.8])
 ax.set_xlabel('Opto onset relative to target onset (ms)')
 ax.set_ylabel('Fraction of spikes contralateral to target')
 plt.tight_layout()
