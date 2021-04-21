@@ -144,7 +144,7 @@ plt.tight_layout()
 
 
 # spikes
-negThresh = -150
+negThresh = -200
 posThresh = 50
 chunkSamples = int(15*sampleRate)
 subtractMedian = False
