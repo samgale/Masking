@@ -611,7 +611,8 @@ class MaskingTask(TaskControl):
                 
                 # turn on opto
                 if self._trialFrame == self.trialPreStimFrames[-1] + optoOnset:
-                    self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'dur': optoPulseDur, 'lastVal': self.optoAmp}
+                    lastVal = self.optoAmp if optoPulseDur == 0 else 0
+                    self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'dur': optoPulseDur, 'lastVal': lastVal}
                     
                 # define response if wheel moved past threshold (either side) or max trial duration reached
                 # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
@@ -657,7 +658,7 @@ class MaskingTask(TaskControl):
                     hasResponded = True
             
             # turn off opto
-            if not np.isnan(optoOnset) and optoPulseDur > 0 and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
+            if not np.isnan(optoOnset) and optoPulseDur == 0 and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                 self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'offRamp': self.optoOffRamp}
                 
             # show any post response stimuli or end trial
