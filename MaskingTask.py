@@ -84,6 +84,7 @@ class MaskingTask(TaskControl):
         self.optoAmp = 5 # V to led/laser driver
         self.optoOffRamp = 0.1 # duration in sec of linear off ramp
         self.optoOnset = [0] # frames >=0 relative to target stimulus onset
+        self.optoPulseDur = [0] # seconds; 0 = stay on until end  maxResponseWaitFrames
 
     
     def setDefaultParams(self,name,taskVersion=None):
@@ -202,10 +203,6 @@ class MaskingTask(TaskControl):
             self.probMask = 0.6
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
-        elif name == 'masking2':
-            self.setDefaultParams('masking',taskVersion)
-            self.maskFrames = [78]
-            
         elif name == 'mask position':
             self.setDefaultParams('masking2',taskVersion)
             self.normMaskPos.append([(0,-0.25),(0,0.25)])
@@ -215,7 +212,7 @@ class MaskingTask(TaskControl):
         elif name == 'mask duration':
             self.setDefaultParams('masking2',taskVersion)
             self.maskOnset = [2]
-            self.maskFrames = [2,4,6,8,78]
+            self.maskFrames = [2,4,6,8,24]
             self.probCatch = 1 / (1 + 2*len(self.maskFrames))
             
         elif name == 'opto timing':
@@ -223,6 +220,7 @@ class MaskingTask(TaskControl):
             self.probOpto = 0.6
             self.optoChan = [(True,True)]
             self.optoOnset = [4,6,8,10,12]
+            self.optoPulseDur = [0]
             self.targetContrast = [0.4]
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
             
@@ -236,6 +234,7 @@ class MaskingTask(TaskControl):
             self.probOpto = 0.6
             self.optoChan = [(True,True)]
             self.optoOnset = [4,6,8,10,12]
+            self.optoPulseDur = [0]
             self.maskOnset = [2]
             self.probMask = 0.5
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
@@ -244,6 +243,21 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('opto masking',taskVersion)
             self.optoChan = [(True,True),(True,False),(False,True)]
             self.optoOnset = [0]
+            
+        elif name == 'opto pulse timing':
+            self.setDefaultParams('opto timing',taskVersion)
+            self.optoOnset = [6,8,10,12,14]
+            self.optoPulseDur = [0.05]
+        
+        elif name == 'opto pulse masking':
+            self.setDefaultParams('opto masking',taskVersion)
+            self.optoOnset = [6,8,10,12,14]
+            self.optoPulseDur = [0.05]
+            
+        elif name == 'opto pulse unilateral':
+            self.setDefaultParams('opto unilateral',taskVersion)
+            self.optoOnset = [4]
+            self.optoPulseDur = [0.05]
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
@@ -352,7 +366,8 @@ class MaskingTask(TaskControl):
                                           0,       # mask frames
                                           0,       # mask contrast
                                           (False,False),  # opto chan
-                                          np.nan)] # opto onset
+                                          np.nan,  # opto onset
+                                          np.nan)] # opto pulse dur
         trialParams['catch']['count'] = 0
         
         if self.probMask > 0:
@@ -367,6 +382,7 @@ class MaskingTask(TaskControl):
                                                                        self.maskFrames,
                                                                        self.maskContrast,
                                                                        [(False,False)],
+                                                                       [np.nan],
                                                                        [np.nan]))
             trialParams['maskOnly']['count'] = 0
         
@@ -382,6 +398,7 @@ class MaskingTask(TaskControl):
                                                                               [0],
                                                                               [0],
                                                                               [(False,False)],
+                                                                              [np.nan],
                                                                               [np.nan]))
             trialParams['targetOnly'+side]['count'] = 0
         
@@ -398,6 +415,7 @@ class MaskingTask(TaskControl):
                                                                             self.maskFrames,
                                                                             self.maskContrast,
                                                                             [(False,False)],
+                                                                            [np.nan],
                                                                             [np.nan]))
                 trialParams['mask'+side]['count'] = 0
         
@@ -411,7 +429,7 @@ class MaskingTask(TaskControl):
                 trialParams['mask']['count'] = 0
             
         if self.probOpto > 0:
-            optoParams = list(itertools.product(self.optoChan,self.optoOnset))
+            optoParams = list(itertools.product(self.optoChan,self.optoOnset,self.optoPulseDur))
             for trialType in list(trialParams.keys()):
                 trialParams[trialType+'Opto'] = {}
                 trialParams[trialType+'Opto']['params'] = [prm[:9] + op for prm in trialParams[trialType]['params'] for op in optoParams]
@@ -440,6 +458,7 @@ class MaskingTask(TaskControl):
         self.trialRewardDir = []
         self.trialOptoChan = []
         self.trialOptoOnset = []
+        self.trialOptoPulseDur = []
         self.trialResponse = []
         self.trialResponseDir = []
         self.trialResponseFrame = []
@@ -488,7 +507,7 @@ class MaskingTask(TaskControl):
                         trialParams[trialType]['count'] += 1
                     else:
                         params = random.choice(trialParams[trialType]['params'])
-                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskPos,maskFrames,maskContrast,optoChan,optoOnset = params
+                    rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskPos,maskFrames,maskContrast,optoChan,optoOnset,optoPulseDur = params
                     if rewardDir == 1 and self.rewardSizeRight is not None:
                         rewardSize = self.rewardSizeRight
                     elif rewardDir == -1 and self.rewardSizeLeft is not None:
@@ -522,6 +541,7 @@ class MaskingTask(TaskControl):
                 self.trialRewardDir.append(rewardDir)
                 self.trialOptoChan.append(optoChan)
                 self.trialOptoOnset.append(optoOnset)
+                self.trialOptoPulseDur.append(optoPulseDur)
                 hasResponded = False
             
             # extend pre stim gray frames if wheel moving during quiescent period
@@ -591,7 +611,7 @@ class MaskingTask(TaskControl):
                 
                 # turn on opto
                 if self._trialFrame == self.trialPreStimFrames[-1] + optoOnset:
-                    self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'lastVal': self.optoAmp}
+                    self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'dur': optoPulseDur, 'lastVal': self.optoAmp}
                     
                 # define response if wheel moved past threshold (either side) or max trial duration reached
                 # trialResponse for go trials is 1 for correct direction, -1 for incorrect direction, or 0 for no response
@@ -637,7 +657,7 @@ class MaskingTask(TaskControl):
                     hasResponded = True
             
             # turn off opto
-            if not np.isnan(optoOnset) and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
+            if not np.isnan(optoOnset) and optoPulseDur > 0 and self._trialFrame == self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                 self._opto = {'ch': optoChan, 'amp': self.optoAmp, 'offRamp': self.optoOffRamp}
                 
             # show any post response stimuli or end trial
