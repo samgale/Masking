@@ -7,6 +7,7 @@ Created on Mon Mar 11 12:34:44 2019
 
 import copy
 import numpy as np
+import scipy.stats
 import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
@@ -306,9 +307,9 @@ for mo in maskOnset:
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
 clrs = np.zeros((len(maskOnset),3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
-lbls = xticklabels[:-3]+['target only']
-for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1)),clrs,lbls):
+clrs[1:] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+lbls = ['target only']+xticklabels[1:len(maskOnset)]
+for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[[5,1,2,3,4]],clrs,lbls):
     s = np.sort(r)
     c = [np.sum(r<=i)/n for i in s]
     ax.plot(s,c,'-',color=clr,label=lbl)
@@ -332,6 +333,14 @@ ax.set_xlabel('Reaction Time (ms)')
 ax.set_ylabel('Probability Correct')
 plt.tight_layout()
 
+# spearman correlation of accuracy vs mask onset
+rs = []
+ps = []
+for fc in fracCorr:
+    d = np.nanmean(fc,axis=0)
+    r,p = scipy.stats.spearmanr(np.arange(5),d[1:6])
+    rs.append(r)
+    ps.append(p)
 
 # opto timing
 stimLabels = ('targetOnly','catch')

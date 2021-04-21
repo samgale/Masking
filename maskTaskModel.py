@@ -286,7 +286,7 @@ fit = scipy.optimize.brute(calcSignalError,(gammaRange,),args=(popPsthFilt,maskO
 gamma = 12
 syntheticSignals = createSignals(popPsthFilt,maskOnset,gamma)
 
-plotSignals([popPsthFilt],[t],'kr')
+plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
 
 
 
@@ -318,7 +318,7 @@ inhibRange = slice(0.06,0.15,0.01)
 thresholdRange = slice(4.6,5.5,0.1)
 trialEndRange = slice(19,22,1)
 
-signals = syntheticSignals
+signals = popPsthFilt # syntheticSignals
 
 fitParamRanges = (sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
