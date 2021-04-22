@@ -344,7 +344,18 @@ class MaskingTask(TaskControl):
         
         # create target visibility rating scale for humans
         if self.showVisibilityRating:
-            ratingScale = visual.RatingScale(win=self.win,choices=['no','unsure','yes'],mouseOnly=True,singleClick=True,showAccept=False)
+            ratingScale = visual.RatingScale(win=self._win,
+                                             low=-1,
+                                             high=1,
+                                             tickMarks=(-1,0,1),
+                                             precision=1,
+                                             labels=None,
+                                             textColor=-1,
+                                             lineColor=-1,
+                                             markerColor=-1,
+                                             mouseOnly=True,
+                                             singleClick=True,
+                                             showAccept=False)
             
         # define parameters for each trial type
         if len(targetPosPix) > 1:
@@ -699,6 +710,7 @@ class MaskingTask(TaskControl):
                     if self.showVisibilityRating:
                         self.targetVisRating.append(ratingScale.getRating())
                         self.targetVisRatingTime.append(ratingScale.getRT())
+                        ratingScale.noResponse = True
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
                     if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
