@@ -336,11 +336,11 @@ class MaskingTask(TaskControl):
         
         if self.maskShape=='surround':
             mask += [[visual.Circle(win=self._win,
-                                   units='pix',
-                                   radius=0.5*targetSizePix,
-                                   lineColor=0.5,
-                                   fillColor=0.5)
-                                   for pos in targetPosPix]]
+                                    units='pix',
+                                    radius=0.5*targetSizePix,
+                                    lineColor=0.5,
+                                    fillColor=0.5)
+                                    for pos in targetPosPix]]
         
         # create target visibility rating scale for humans
         if self.showVisibilityRating:
@@ -349,6 +349,7 @@ class MaskingTask(TaskControl):
                                              high=1,
                                              tickMarks=(-1,0,1),
                                              precision=1,
+                                             tickHeight=-1,
                                              labels=None,
                                              textColor=-1,
                                              lineColor=-1,
@@ -356,6 +357,10 @@ class MaskingTask(TaskControl):
                                              mouseOnly=True,
                                              singleClick=True,
                                              showAccept=False)
+            ratingText = visual.TextStim(win=self._win,
+                                         text='Did you see the target?',
+                                         pos=(0,0),
+                                         color=-1)
             
         # define parameters for each trial type
         if len(targetPosPix) > 1:
@@ -706,11 +711,13 @@ class MaskingTask(TaskControl):
                     pass # wait until end of response window to turn off opto
                 elif self.showVisibilityRating and ratingScale.noResponse:
                     ratingScale.draw()
+                    ratingText.draw()
                 else:
                     if self.showVisibilityRating:
                         self.targetVisRating.append(ratingScale.getRating())
                         self.targetVisRatingTime.append(ratingScale.getRT())
                         ratingScale.noResponse = True
+                        ratingScale.markerStart = None
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
                     if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
