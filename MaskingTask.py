@@ -17,6 +17,7 @@ class MaskingTask(TaskControl):
     def __init__(self,rigName):
         TaskControl.__init__(self,rigName)
         
+        self.showVisibilityRating = False # target visiiblity rating for humans
         self.equalSampling = False # equal sampling of trial parameter combinations
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probCatch = 0 # fraction of catch trials with no target and no reward
@@ -341,6 +342,10 @@ class MaskingTask(TaskControl):
                                    fillColor=0.5)
                                    for pos in targetPosPix]]
         
+        # create target visibility rating scale for humans
+        if self.showVisibilityRating:
+            ratingScale = visual.RatingScale(win=self.win,choices=['no','unsure','yes'],mouseOnly=True,singleClick=True,showAccept=False)
+            
         # define parameters for each trial type
         if len(targetPosPix) > 1:
             goRightPos = [pos for pos in targetPosPix if pos[0] < 0]
@@ -464,6 +469,9 @@ class MaskingTask(TaskControl):
         self.trialResponseFrame = []
         self.trialRepeat = [False]
         self.quiescentMoveFrames = [] # frames where quiescent period was violated
+        if self.showVisibilityRating:
+            self.targetVisRating = []
+            self.targetVisRatingTime = []
         incorrectRepeatCount = 0
         maskCount = 0
         optoCount = 0
@@ -685,7 +693,12 @@ class MaskingTask(TaskControl):
                         target.draw()
                 elif not np.isnan(optoOnset) and self._trialFrame < self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                     pass # wait until end of response window to turn off opto
+                elif self.showVisibilityRating and ratingScale.noResponse:
+                    ratingScale.draw()
                 else:
+                    if self.showVisibilityRating:
+                        self.targetVisRating.append(ratingScale.getRating())
+                        self.targetVisRatingTime.append(ratingScale.getRT())
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
                     if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
