@@ -351,7 +351,7 @@ class MaskingTask(TaskControl):
                                           text='Did you see the target?')
             
             ratingButtons = [visual.TextStim(win=self._win,
-                                             uints='pix',
+                                             units='pix',
                                              color=-1,
                                              pos=(x*self.monSizePix[0],-0.125*self.monSizePix[1]),
                                              text=lbl)
@@ -713,8 +713,10 @@ class MaskingTask(TaskControl):
                     mousePos = self._mouse.getPos()
                     for button in ratingButtons:
                         button.draw()
-                        if button.contains(mousePos):
-                            visRating = button.text
+                        print(button.width,button.height,button.posPix)
+#                        if button.contains(mousePos):
+#                            visRating = button.text
+                    visRating = 'a'
                 else:
                     if self.showVisibilityRating:
                         self.visRating.append(visRating)
