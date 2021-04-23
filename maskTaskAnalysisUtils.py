@@ -315,13 +315,15 @@ class MaskTaskData():
     
     
     def calcReactionTime(self,moveInitThresh=0.2):
-        wp = self.wheelPos.copy()
-        wp -= wp[:,self.earlyMoveFrames][:,None]
+        wp = self.wheelPos-self.wheelPos[:,self.earlyMoveFrames][:,None]
         wp[:,:self.earlyMoveFrames] = 0
-        t = 1000/self.frameRate*(np.arange(wp.shape[1]))
-        tinterp = np.arange(t[0],t[-1])
         self.reactionTime = np.full(self.ntrials,np.nan)
-        for i,w in enumerate(wp):
+        for i,(w,s) in enumerate(zip(wp,self.stimStart)):
+            frameIntervals = self.behavFrameIntervals[s:s+w.size]
+            frameIntervals[0] = 0
+            t = np.cumsum(frameIntervals)
+            t *= 1000
+            tinterp = np.arange(t[-1])
             winterp = np.interp(tinterp,t,np.absolute(w))
             respInd = np.where(winterp>=self.wheelRewardDistance)[0]
             if len(respInd)>0:

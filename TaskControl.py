@@ -72,12 +72,15 @@ class TaskControl():
         self.prepareWindow()
 
         self._diodeBox = visual.Rect(self._win,
-                                    units='pix',
-                                    width=self.diodeBoxSize,
-                                    height=self.diodeBoxSize,
-                                    lineColor=0,
-                                    fillColor=1, 
-                                    pos=self.diodeBoxPosition)
+                                     units='pix',
+                                     width=self.diodeBoxSize,
+                                     height=self.diodeBoxSize,
+                                     lineColor=0,
+                                     fillColor=1, 
+                                     pos=self.diodeBoxPosition)
+        
+        self._keys = [] # list of keys pressed since previous frame
+        self._mouse = event.Mouse(win=self._win)
                                     
         self.startNidaqDevice()
         self.rotaryEncoderRadians = []
@@ -150,11 +153,11 @@ class TaskControl():
         
         # spacebar delivers reward
         # escape key ends session
-        keys = event.getKeys()
-        if self.spacebarRewardsEnabled and 'space' in keys and not self._reward:
+        self._keys = event.getKeys()
+        if self.spacebarRewardsEnabled and 'space' in self._keys and not self._reward:
             self._reward = self.solenoidOpenTime
             self.manualRewardFrames.append(self._sessionFrame)
-        if 'escape' in keys:   
+        if 'escape' in self._keys:   
             self._continueSession = False
             
         if self._tone:

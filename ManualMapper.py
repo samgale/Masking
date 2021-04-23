@@ -45,17 +45,19 @@ class ManualMapper(TaskControl):
                                      opacity=opa)
                                      for ori,opa in zip(orientation,opacity)]
         
-        mouse = event.Mouse(win=self._win)
-        mouse.setVisible(0)
+        self._mouse.setVisible(0)
         
         self._toggle = False
         
         while self._continueSession:
-            pos = mouse.getRel()
+            pos = self._mouse.getRel()
             for s in target:
                 s.pos += pos
             
-            if self._trialFrame == self.toggleInterval:
+            if 't' in self._keys:
+                self._toggle = not self._toggle
+                self._trialFrame = 0
+            elif self.toggle and self._trialFrame == self.toggleInterval:
                 self._trialFrame = 0
             
             if not self._toggle or self._trialFrame < self.toggleOnFrames:
@@ -63,14 +65,6 @@ class ManualMapper(TaskControl):
                     s.draw()
                 
             self.showFrame()
-    
-    
-    def showFrame(self):
-        if 't' in event.getKeys(keyList=['t']):
-            self._toggle = not self._toggle
-            self._trialFrame = 0
-        
-        TaskControl.showFrame(self)
 
 
 if __name__ == "__main__":

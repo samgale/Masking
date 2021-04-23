@@ -344,23 +344,18 @@ class MaskingTask(TaskControl):
         
         # create target visibility rating scale for humans
         if self.showVisibilityRating:
-            ratingScale = visual.RatingScale(win=self._win,
-                                             low=-1,
-                                             high=1,
-                                             tickMarks=(-1,0,1),
-                                             precision=1,
-                                             tickHeight=-1,
-                                             labels=None,
-                                             textColor=-1,
-                                             lineColor=-1,
-                                             markerColor=-1,
-                                             mouseOnly=True,
-                                             singleClick=True,
-                                             showAccept=False)
-            ratingText = visual.TextStim(win=self._win,
-                                         text='Did you see the target?',
-                                         pos=(0,0),
-                                         color=-1)
+            ratingTitle = visual.TextStim(win=self._win,
+                                          units='pix',
+                                          color=-1,
+                                          pos=(0,0.125*self.monSizePix[1]),
+                                          text='Did you see the target?')
+            
+            ratingButtons = [visual.TextStim(win=self._win,
+                                             uints='pix',
+                                             color=-1,
+                                             pos=(x*self.monSizePix[0],-0.125*self.monSizePix[1]),
+                                             text=lbl)
+                                             for x,lbl in zip((-0.125,0,0.125),('no','unsure','yes'))]
             
         # define parameters for each trial type
         if len(targetPosPix) > 1:
@@ -486,8 +481,10 @@ class MaskingTask(TaskControl):
         self.trialRepeat = [False]
         self.quiescentMoveFrames = [] # frames where quiescent period was violated
         if self.showVisibilityRating:
-            self.targetVisRating = []
-            self.targetVisRatingTime = []
+            visRating = None
+            self.visRating = []
+            self.visRatingStartFrame = []
+            self.visRatingEndFrame = []
         incorrectRepeatCount = 0
         maskCount = 0
         optoCount = 0
@@ -709,15 +706,19 @@ class MaskingTask(TaskControl):
                         target.draw()
                 elif not np.isnan(optoOnset) and self._trialFrame < self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
                     pass # wait until end of response window to turn off opto
-                elif self.showVisibilityRating and ratingScale.noResponse:
-                    ratingScale.draw()
-                    ratingText.draw()
+                elif self.showVisibilityRating and visRating is None:
+                    if len(self.visRatingStartFrame) < len(self.trialStartFrame):
+                        self.visRatingStartFrame.append(self._sessionFrame)
+                    ratingTitle.draw()
+                    mousePos = self._mouse.getPos()
+                    for button in ratingButtons:
+                        button.draw()
+                        if button.contains(mousePos):
+                            visRating = button.text
                 else:
                     if self.showVisibilityRating:
-                        self.targetVisRating.append(ratingScale.getRating())
-                        self.targetVisRatingTime.append(ratingScale.getRT())
-                        ratingScale.noResponse = True
-                        ratingScale.markerStart = None
+                        self.visRating.append(visRating)
+                        self.visRatingEndFrame.append(self._sessionFrame)
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
                     if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
