@@ -324,7 +324,7 @@ class MaskTaskData():
             t = np.cumsum(frameIntervals)
             t *= 1000
             tinterp = np.arange(t[-1])
-            winterp = np.interp(tinterp,t,np.absolute(w))
+            winterp = np.interp(tinterp,t,np.absolute(w[:t.size]))
             respInd = np.where(winterp>=self.wheelRewardDistance)[0]
             if len(respInd)>0:
                 initInd = np.where(winterp[:respInd[0]]<=moveInitThresh)[0]

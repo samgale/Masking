@@ -555,7 +555,30 @@ for i,stim in enumerate(stimLabels):
     if i==0:
         ax.legend()
     ax.set_title(stim)
-plt.tight_layout() 
+plt.tight_layout()
+
+
+# SAC figure for Shawn
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+meanLR = np.nanmean(fracCorr,axis=1)
+mean = np.nanmean(meanLR,axis=0)
+sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+ax.plot(xticks,mean,'ko',ms=12)
+for x,m,s in zip(xticks,mean,sem):
+    ax.plot([x,x],[m-s,m+s],'k-')
+ax.plot(xticks[1],optoMean[2],'co',ms=12)
+ax.plot([xticks[1]]*2,[optoMean[2]-optoSem[2],optoMean[2]+optoSem[2]],color='c')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_xlim([8,75])
+ax.set_ylim([0.5,1])
+ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=16)
+ax.set_ylabel('Fraction Correct',fontsize=16)
+plt.tight_layout()
 
                 
 

@@ -713,7 +713,7 @@ class MaskingTask(TaskControl):
                     mousePos = self._mouse.getPos()
                     for button in ratingButtons:
                         button.draw()
-                        print(button.width,button.height,button.posPix)
+                        print(button.posPix,button.size,button.height,button.font)
 #                        if button.contains(mousePos):
 #                            visRating = button.text
                     visRating = 'a'
