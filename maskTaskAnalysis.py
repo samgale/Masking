@@ -259,6 +259,23 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     ax.set_ylabel(ylabel)
     plt.tight_layout()
     
+# performance by target side
+for data in (respRate,fracCorr):        
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot([0,1],[0,1],'k--')
+    for d in data:
+        ax.plot(d[0],d[1],'ko')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xlim([0,1.02])
+    ax.set_ylim([0,1.02])
+    ax.set_aspect('equal')
+#    ax.set_xlabel('Mask onset relative to target onset (ms)')
+#    ax.set_ylabel(ylabel)
+    plt.tight_layout()
+    
 # reaction time on correct and incorrect trials
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
