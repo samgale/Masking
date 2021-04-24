@@ -57,7 +57,7 @@ class ManualMapper(TaskControl):
             if 't' in self._keys:
                 self._toggle = not self._toggle
                 self._trialFrame = 0
-            elif self.toggle and self._trialFrame == self.toggleInterval:
+            elif self._toggle and self._trialFrame == self.toggleInterval:
                 self._trialFrame = 0
             
             if not self._toggle or self._trialFrame < self.toggleOnFrames:

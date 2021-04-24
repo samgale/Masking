@@ -347,15 +347,17 @@ class MaskingTask(TaskControl):
             ratingTitle = visual.TextStim(win=self._win,
                                           units='pix',
                                           color=-1,
-                                          pos=(0,0.125*self.monSizePix[1]),
+                                          height=20,
+                                          pos=(0,0.1*self.monSizePix[1]),
                                           text='Did you see the target?')
             
             ratingButtons = [visual.TextStim(win=self._win,
                                              units='pix',
                                              color=-1,
-                                             pos=(x*self.monSizePix[0],-0.125*self.monSizePix[1]),
+                                             height=20,
+                                             pos=(x*self.monSizePix[0],-0.1*self.monSizePix[1]),
                                              text=lbl)
-                                             for x,lbl in zip((-0.125,0,0.125),('no','unsure','yes'))]
+                                             for x,lbl in zip((-0.125,0,0.125),('No','Unsure','Yes'))]
             
         # define parameters for each trial type
         if len(targetPosPix) > 1:
@@ -713,14 +715,15 @@ class MaskingTask(TaskControl):
                     mousePos = self._mouse.getPos()
                     for button in ratingButtons:
                         button.draw()
-                        print(button.posPix,button.size,button.height,button.font)
 #                        if button.contains(mousePos):
 #                            visRating = button.text
-                    visRating = 'a'
+                    if self._sessionFrame > self.visRatingStartFrame[-1]+600:
+                        visRating = 'a'
                 else:
                     if self.showVisibilityRating:
                         self.visRating.append(visRating)
                         self.visRatingEndFrame.append(self._sessionFrame)
+                        visRating = None
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
                     if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:
