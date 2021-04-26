@@ -343,6 +343,7 @@ class MaskingTask(TaskControl):
                                     for pos in targetPosPix]]
         
         # create target visibility rating scale for humans
+        # if text not positioned correct, try pip install pyglet==1.3.2
         if self.showVisibilityRating:
             ratingTitle = visual.TextStim(win=self._win,
                                           units='pix',
@@ -715,12 +716,14 @@ class MaskingTask(TaskControl):
                         self.visRatingStartFrame.append(self._sessionFrame)
                         self._mouse.clickReset()
                     ratingTitle.draw()
-                    mousePos = self._mouse.getPos()
                     for button in ratingButtons:
                         button.draw()
-                        if (any(self._mouse.getPressed(getTime=True)[0]) and
-                            all([button.pos - buttonSize < mousePos[i] < button.pos + buttonSize for i in (0,1)])):
-                            visRating = button.text
+                    if self._mouse.getPressed()[0]:
+                        mousePos = self._mouse.getPos()
+                        for button in ratingButtons:
+                            if all([button.pos[i] - buttonSize < mousePos[i] < button.pos[i] + buttonSize for i in (0,1)]):
+                                visRating = button.text
+                                break
                 else:
                     if self.showVisibilityRating:
                         self.visRating.append(visRating)
