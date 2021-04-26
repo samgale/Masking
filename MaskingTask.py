@@ -351,13 +351,15 @@ class MaskingTask(TaskControl):
                                           pos=(0,0.1*self.monSizePix[1]),
                                           text='Did you see the target?')
             
+            buttonSpacing = 0.125
+            buttonSize = (buttonSpacing / 6) * self.monSizePix[0]
             ratingButtons = [visual.TextStim(win=self._win,
                                              units='pix',
                                              color=-1,
                                              height=20,
                                              pos=(x*self.monSizePix[0],-0.1*self.monSizePix[1]),
                                              text=lbl)
-                                             for x,lbl in zip((-0.125,0,0.125),('No','Unsure','Yes'))]
+                                             for x,lbl in zip((-buttonSpacing,0,buttonSpacing),('No','Unsure','Yes'))]
             
         # define parameters for each trial type
         if len(targetPosPix) > 1:
@@ -711,14 +713,14 @@ class MaskingTask(TaskControl):
                 elif self.showVisibilityRating and visRating is None:
                     if len(self.visRatingStartFrame) < len(self.trialStartFrame):
                         self.visRatingStartFrame.append(self._sessionFrame)
+                        self._mouse.clickReset()
                     ratingTitle.draw()
                     mousePos = self._mouse.getPos()
                     for button in ratingButtons:
                         button.draw()
-#                        if button.contains(mousePos):
-#                            visRating = button.text
-                    if self._sessionFrame > self.visRatingStartFrame[-1]+600:
-                        visRating = 'a'
+                        if (any(self._mouse.getPressed(getTime=True)[0]) and
+                            all([button.pos - buttonSize < mousePos[i] < button.pos + buttonSize for i in (0,1)])):
+                            visRating = button.text
                 else:
                     if self.showVisibilityRating:
                         self.visRating.append(visRating)
