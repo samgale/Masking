@@ -22,7 +22,7 @@ from maskTaskAnalysisUtils import MaskTaskData,getPsth
 
 obj = MaskTaskData()
 
-obj.loadEphysData(led=True)
+obj.loadEphysData(led=False)
 
 obj.loadKilosortData()
 

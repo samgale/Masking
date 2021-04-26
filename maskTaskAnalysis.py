@@ -171,9 +171,10 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
 # masking
 stimLabels = ('maskOnly','mask','targetOnly','catch')
 maskOnset = np.array([0,2,3,4,6])
-ntrials = np.full((len(exps),2,len(maskOnset)+2),np.nan)
-respRate = ntrials.copy()
+ntrials = np.zeros((len(exps),2,len(maskOnset)+2))
+respRate = np.full(ntrials.shape,np.nan)
 fracCorr = respRate.copy()
+probGoRight = ntrials.copy()
 medianReacTime = respRate.copy()
 medianReacTimeCorrect = respRate.copy()
 medianReacTimeIncorrect = respRate.copy()
@@ -196,6 +197,7 @@ for n,obj in enumerate(exps):
                     ntrials[n,i,j] = trials.sum()
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,i,j] = respTrials.sum()/trials.sum()
+                    probGoRight[n,i,j] = np.sum(obj.responseDir[respTrials]==1)/respTrials.sum()
                     medianReacTime[n,i,j] = np.nanmedian(obj.reactionTime[respTrials])
                     reacTime[n][stim][rd][mo] = obj.reactionTime[respTrials]
                     if stim in ('targetOnly','mask'):
@@ -260,21 +262,49 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     plt.tight_layout()
     
 # performance by target side
-for data in (respRate,fracCorr):        
+clrs = np.zeros((len(maskOnset),3))
+clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+lbls = xticklabels[1:len(maskOnset)]+['target only']
+for data,ylabel in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot([0,1],[0,1],'k--')
-    for d in data:
-        ax.plot(d[0],d[1],'ko')
+    ax.plot([0,1],[0,1],'--',color='0.8')
+    for i,clr,lbl in zip(range(1,6),clrs,lbls):
+        ax.plot(data[:,0,i],data[:,1,i],'o',mec=clr,mfc=clr,label=lbl)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
     ax.set_xlim([0,1.02])
     ax.set_ylim([0,1.02])
     ax.set_aspect('equal')
-#    ax.set_xlabel('Mask onset relative to target onset (ms)')
-#    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Target Left '+ylabel)
+    ax.set_ylabel('Target Right '+ylabel)
+    if ylabel=='Response Rate':
+        ax.legend(fontsize=8,loc='upper left')
     plt.tight_layout()
+    # difference in response rate and fraction correct by target side vs mask onset
+
+pR = (probGoRight[:,0]*ntrials[:,0]+probGoRight[:,1]*ntrials[:,1])/ntrials.sum(axis=1)    
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([0,1],[0,1],'--',color='0.8')
+for i,clr,lbl in zip(range(1,6),clrs,lbls):
+    x = pR[:,0]
+    y = pR[:,i]
+    ax.plot(x,y,'o',mec=clr,mfc=clr)
+    slope,yint,rval,pval,stderr = scipy.stats.linregress(x,y)
+    rx = np.array([min(x),max(x)])
+    ax.plot(rx,slope*rx+yint,'-',color=clr,label=lbl+', r='+str(round(rval,2)))
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+#    ax.set_xlim([0,1.02])
+#    ax.set_ylim([0,1.02])
+ax.set_aspect('equal')
+ax.set_xlabel('Prob. Go Right (Mask Only)')
+ax.set_ylabel('Prob. Go Right (Target Left or Right)')
+ax.legend(fontsize=8,loc='upper left')
+plt.tight_layout()
     
 # reaction time on correct and incorrect trials
 fig = plt.figure()
