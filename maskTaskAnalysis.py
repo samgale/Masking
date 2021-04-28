@@ -33,7 +33,8 @@ if len(behavFiles)>0:
 
     
 frameRate = 120
-rewardDir = (1,-1)
+targetSide = ('left','right','either')
+rewardDir = (1,-1,(1,-1))
 
 
 # target duration
@@ -171,8 +172,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
 # masking
 stimLabels = ('maskOnly','mask','targetOnly','catch')
 maskOnset = np.array([0,2,3,4,6])
-ntrials = np.zeros((len(exps),2,len(maskOnset)+2))
-respRate = np.full(ntrials.shape,np.nan)
+ntrials = np.full((len(exps),len(rewardDir),len(maskOnset)+2),np.nan)
+respRate = ntrials.copy()
 fracCorr = respRate.copy()
 probGoRight = ntrials.copy()
 medianReacTime = respRate.copy()
@@ -193,7 +194,10 @@ for n,obj in enumerate(exps):
                 elif stim=='catch':
                     j = -1  
                 for i,rd in enumerate(rewardDir):
-                    trials = moTrials & (obj.rewardDir==rd) if stim in ('targetOnly','mask') else moTrials
+                    if stim in ('targetOnly','mask'):
+                        trials = moTrials & np.in1d(obj.rewardDir,rd)
+                    else:
+                        trials = moTrials
                     ntrials[n,i,j] = trials.sum()
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,i,j] = respTrials.sum()/trials.sum()
@@ -207,8 +211,6 @@ for n,obj in enumerate(exps):
                         medianReacTimeIncorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
                         reacTimeCorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][~correctTrials]
-                    else:
-                        break
                     
 #np.save(fileIO.saveFile(fileType='*.npy'),respRate)
 #np.save(fileIO.saveFile(fileType='*.npy'),fracCorr)
@@ -222,9 +224,9 @@ for n in range(len(exps)):
     fig = plt.figure(figsize=(6,9))
     for i,(data,ylim,ylabel) in enumerate(zip((respRate[n],fracCorr[n],medianReacTime[n]),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)'))):
         ax = fig.add_subplot(3,1,i+1)
-        for d,clr in zip(data,'rb'):
+        for d,clr in zip(data[:2],'rb'):
             ax.plot(xticks,d,'o',color=clr)
-        ax.plot(xticks,np.nanmean(data,axis=0),'ko')
+        ax.plot(xticks,np.nanmean(data[2],axis=0),'ko')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
@@ -242,7 +244,8 @@ for n in range(len(exps)):
 for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    meanLR = np.nanmean(data,axis=1)
+    meanLR = np.nanmean(data[:,:2],axis=1)
+    meanLR = data[:,2]
     for d in meanLR:
         ax.plot(xticks,d,color='0.8')
     mean = np.nanmean(meanLR,axis=0)
@@ -282,27 +285,28 @@ for data,ylabel in zip((respRate,fracCorr),('Response Rate','Fraction Correct'))
     if ylabel=='Response Rate':
         ax.legend(fontsize=8,loc='upper left')
     plt.tight_layout()
-    # difference in response rate and fraction correct by target side vs mask onset
 
-pR = (probGoRight[:,0]*ntrials[:,0]+probGoRight[:,1]*ntrials[:,1])/ntrials.sum(axis=1)    
+pR = np.nanmean(probGoRight[:,:2],axis=1)
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,1],[0,1],'--',color='0.8')
 for i,clr,lbl in zip(range(1,6),clrs,lbls):
     x = pR[:,0]
     y = pR[:,i]
+    x = probGoRight[:,2,0]
+    y = probGoRight[:,2,i]
     ax.plot(x,y,'o',mec=clr,mfc=clr)
     slope,yint,rval,pval,stderr = scipy.stats.linregress(x,y)
     rx = np.array([min(x),max(x)])
-    ax.plot(rx,slope*rx+yint,'-',color=clr,label=lbl+', r='+str(round(rval,2)))
+    ax.plot(rx,slope*rx+yint,'-',color=clr,label=lbl+', r='+str(round(rval,2))+', p='+str(round(pval,3)))
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
-#    ax.set_xlim([0,1.02])
-#    ax.set_ylim([0,1.02])
+ax.set_xlim([0,1.02])
+ax.set_ylim([0,1.02])
 ax.set_aspect('equal')
 ax.set_xlabel('Prob. Go Right (Mask Only)')
-ax.set_ylabel('Prob. Go Right (Target Left or Right)')
+ax.set_ylabel('Prob. Go Right (Target Either Side)')
 ax.legend(fontsize=8,loc='upper left')
 plt.tight_layout()
     
@@ -389,10 +393,11 @@ for fc in fracCorr:
     rs.append(r)
     ps.append(p)
 
+
 # opto timing
 stimLabels = ('targetOnly','catch')
 optoOnset = np.array([4,6,8,10,12,np.nan])
-ntrials = np.full((len(exps),len(stimLabels),2,len(optoOnset)),np.nan)
+ntrials = np.full((len(exps),len(stimLabels),len(rewardDir),len(optoOnset)),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
 medianReacTime = respRate.copy()
@@ -409,7 +414,13 @@ for n,obj in enumerate(exps):
             optoTrials = stimTrials & np.isnan(obj.optoOnset) if np.isnan(optoOn) else stimTrials & (obj.optoOnset==optoOn)
             if optoTrials.sum()>0:
                 for i,rd in enumerate(rewardDir):
-                    trials = optoTrials & (obj.rewardDir==rd) if stim=='targetOnly' else optoTrials
+                    if stim=='targetOnly':
+                        trials = optoTrials & np.in1d(obj.rewardDir,rd)
+                    else:
+                        if i<2:
+                            continue
+                        else:
+                            trials = optoTrials
                     ntrials[n,s,i,j] = trials.sum()
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,s,i,j] = respTrials.sum()/trials.sum()
@@ -422,8 +433,6 @@ for n,obj in enumerate(exps):
                         medianReacTimeIncorrect[n,s,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
                         reacTimeCorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][~correctTrials]
-                    else:
-                        break
 
 xticks = list((optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
@@ -433,6 +442,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax = fig.add_subplot(1,1,1)
     for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target only','no stim'),'cm')):
         meanLR = np.nanmean(data[:,i],axis=1)
+        meanLR = data[:,i,2]
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
@@ -462,6 +472,63 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax.set_ylabel(ylabel)
     if data is respRate:
         ax.legend(loc='upper left')
+    plt.tight_layout()
+
+# fraction correct vs response rate
+n = np.nanmean((ntrials*respRate)[:,0],axis=1)
+r = np.nanmean(respRate[:,0],axis=1)-np.nanmean(respRate[:,1],axis=1)
+fc = np.nanmean(fracCorr[:,0],axis=1)
+rt = np.nanmean(medianReacTime[:,0],axis=1)
+
+n = (ntrials*respRate)[:,0,2]
+r = respRate[:,0,2]-respRate[:,1,2]
+fc = fracCorr[:,0,2]
+rt = medianReacTime[:,0,2]
+    
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(r,fc,'ko')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlabel('Response Rate Above Chance')
+ax.set_ylabel('Fraction Correct')
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(n,fc,'ko')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Responsive Trials')
+ax.set_ylabel('Fraction Correct')
+plt.tight_layout()
+
+for data,ylim,ylabel in zip((fc,rt),((0.4,1),None),('Fraction Correct','Reaction Time')):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    bw = 0.2
+    bins = np.arange(-0.1,1.01,bw)
+    ind = np.digitize(r,bins)
+    for i,b in enumerate(bins[:-1]):
+        bi = ind==i+1
+        x = b+0.5*bw
+    #    d = np.nansum(data[bi]*n[bi])/np.sum(n[bi])
+    #    ax.plot(x,d,'o',mec='0.8',mfc='none')
+        m = np.nanmean(data[bi])
+        s = np.nanstd(data[bi])/(bi.sum()**0.5)
+        ax.plot(x,m,'ko')
+        ax.plot([x,x],[m-s,m+s],'k')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xlim([-0.1,0.9])
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    ax.set_xlabel('Response Rate Above Chance')
+    ax.set_ylabel(ylabel)
     plt.tight_layout()
 
 
