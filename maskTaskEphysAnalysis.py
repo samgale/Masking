@@ -265,7 +265,7 @@ for cellType in ('all',):
         for hemi in hemiLabels:
             p = psth[stim][hemi]['all']
             for mo in p.keys():
-                popPsth[stim][hemi][mo] = np.array(p[mo])[respCells].mean(axis=0)
+                popPsth[stim][hemi][mo] = np.array(p[mo])[respCells]
 popPsth['t'] = t
             
 pkl = fileIO.saveFile(fileType='*.pkl')

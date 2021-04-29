@@ -151,98 +151,10 @@ def runTrial(sigma,decay,inhib,threshold,trialEnd,Linitial,Rinitial,Lsignal,Rsig
     return response,responseTime,Lrecord,Rrecord
 
 
-def createSignals(psth,maskOnset,gamma):
-    target = psth['targetOnly']['contra'][np.nan]
-    mask = psth['maskOnly']['contra'][0]
-    signals = {}
-    for sig in psth.keys():
-        signals[sig] = {}
-        for hemi in ('ipsi','contra'):
-            signals[sig][hemi] = {}
-            if sig=='targetOnly':
-                signals[sig][hemi][np.nan] = psth[sig][hemi][np.nan]
-            elif sig=='maskOnly':
-                signals[sig][hemi][0] = psth[sig][hemi][0]
-            else:
-                for mo in maskOnset[(~np.isnan(maskOnset)) & (maskOnset>0)]:
-                    msk = np.zeros(mask.size)
-                    msk[int(mo):] = mask[:-int(mo)]
-#                    signals[sig][hemi][mo] = target+msk*(1-np.exp(-mo/tau)) if hemi=='contra' else msk
-                    trg = target
-                    trg[trg<0] = 0
-                    signals[sig][hemi][mo] = target+msk/(1+gamma*trg) if hemi=='contra' else msk
-    return signals
-
-
-def normalizeSignals(signals):
-    smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
-    for sig in signals.keys():
-        for hemi in ('ipsi','contra'):
-            for mo in signals[sig][hemi]:
-                signals[sig][hemi][mo] = signals[sig][hemi][mo]/smax
-    return None
-
-
-def calcSignalError(gamma,*params):
-    psth,maskOnset = params
-    signals = createSignals(psth,maskOnset,gamma)
-    sse = []
-    for sig in psth.keys():
-        for hemi in ('ipsi','contra'):
-            for mo in psth[sig][hemi]:
-                sse.append(np.sum((signals[sig][hemi][mo]-psth[sig][hemi][mo])**2))
-    return sum(sse)
-
-
-def plotSignals(signalList,tmes,clrs):
-    fig = plt.figure(figsize=(6,10))
-    n = 2+len(signalList[-1]['mask']['contra'].keys())
-    gs = matplotlib.gridspec.GridSpec(n,2)
-    axs = []
-    ymin = 0
-    ymax = 0
-    for j,hemi in enumerate(('ipsi','contra')):
-        i = 0
-        for sig in signalList[-1].keys():
-            for mo in signalList[-1][sig][hemi]:
-                ax = fig.add_subplot(gs[i,j])
-                for d,t,clr in zip(signalList,tmes,clrs):
-                    maskOn = list(d[sig][hemi].keys())[0] if np.isnan(mo) else mo
-                    p = d[sig][hemi][maskOn]
-                    ax.plot(t,p,clr)
-                    ymin = min(ymin,p.min())
-                    ymax = max(ymax,p.max())
-                if i==n-1:
-                    ax.set_xlabel('Time (ms)')
-                else:
-                    ax.set_xticklabels([])
-                if j==0:
-                    ax.set_ylabel('Spikes/s')
-                    title = sig
-                    if sig=='mask':
-                        title += ', SOA '+str(round(mo/120*1000,1))+' ms'
-                    title += ', '+hemi
-                else:
-                    ax.set_yticklabels([])
-                    title = hemi
-                ax.set_title(title)
-                axs.append(ax)
-                i += 1
-    for ax in axs:
-        for side in ('right','top'):
-            ax.spines[side].set_visible(False)
-        ax.tick_params(direction='out',top=False,right=False)
-        ax.set_xlim([0,trialEndTimeMax])
-        ax.set_ylim([1.05*ymin,1.05*ymax])
-    plt.tight_layout()
-
-
-
 # fixed parameters
 dt = 1/120*1000
 trialEndTimeMax = 200
 trialEndMax = int(round(trialEndTimeMax/dt))
-targetLatency = int(round(4/120*1000/dt))
 
 
 # create model input signals from population ephys responses
@@ -252,10 +164,10 @@ popPsth = pickle.load(open(popPsthFilePath,'rb'))
 t = np.arange(0,trialEndMax*dt,dt)
 signalNames = ('targetOnly','maskOnly','mask')
 
-#filtPts = t.size
-#expFilt = np.zeros(filtPts*2)
-#expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=2,sym=False)
-#expFilt /= expFilt.sum()
+filtPts = t.size
+expFilt = np.zeros(filtPts*2)
+expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=2,sym=False)
+expFilt /= expFilt.sum()
 
 popPsthFilt = {}
 for sig in signalNames:
@@ -263,31 +175,59 @@ for sig in signalNames:
     for hemi in ('ipsi','contra'):
         popPsthFilt[sig][hemi] = {}
         for mo in popPsth[sig][hemi]:
-            p = np.interp(t,popPsth['t']*1000,popPsth[sig][hemi][mo])
-#            p = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(popPsth[sig][hemi][mo],5,3))
-#            p = np.interp(t,popPsth['t']*1000,np.convolve(popPsth[sig][hemi][mo],expFilt)[t.size:2*t.size])
-            p -= p[t<=25].mean()
+            p = popPsth[sig][hemi][mo].copy()
+            p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
+            p = p.mean(axis=0)
+            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
+#            p = np.interp(t,popPsth['t']*1000,p)
+#            p = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(p,5,3))
+#            p = np.interp(t,popPsth['t']*1000,np.convolve(p,expFilt,mode='same'))
             maskOn = np.nan if sig=='targetOnly' else mo
             popPsthFilt[sig][hemi][maskOn] = p
-            
-plotSignals([popPsthFilt],[t],'k')
-
-plotSignals([popPsth,popPsthFilt],[popPsth['t']*1000,t],'kr')
-
-normalizeSignals(popPsthFilt)
 
 
-# sythetic signals based on ephys response to target and mask only
-maskOnset = np.array([2,3,4,6])
+signals = popPsthFilt
 
-gammaRange = slice(1,50,1)
-fit = scipy.optimize.brute(calcSignalError,(gammaRange,),args=(popPsthFilt,maskOnset),full_output=True,finish=None)
+smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
+for sig in signals.keys():
+    for hemi in ('ipsi','contra'):
+        for mo in signals[sig][hemi]:
+            signals[sig][hemi][mo] = signals[sig][hemi][mo]/smax
 
-gamma = 12
-syntheticSignals = createSignals(popPsthFilt,maskOnset,gamma)
-
-plotSignals([popPsthFilt,syntheticSignals],[t,t],'kr')
-
+fig = plt.figure(figsize=(4,10))
+n = 2+len(signals['mask']['contra'].keys())
+axs = []
+ymin = 0
+ymax = 0
+i = 0
+for sig in signals.keys():
+    for mo in signals[sig]['contra']:
+        ax = fig.add_subplot(n,1,i+1)
+        for hemi,clr in zip(('ipsi','contra'),'br'):
+            maskOn = list(signals[sig][hemi].keys())[0] if np.isnan(mo) else mo
+            p = signals[sig][hemi][maskOn]
+            ax.plot(t,p,clr)
+            ymin = min(ymin,p.min())
+            ymax = max(ymax,p.max())
+        if i==n-1:
+            ax.set_xlabel('Time (ms)')
+        else:
+            ax.set_xticklabels([])
+        ax.set_ylabel('Spikes/s')
+        title = sig
+        if sig=='mask':
+            title += ', SOA '+str(round(mo/120*1000,1))+' ms'
+        title += ', '+hemi
+        ax.set_title(title)
+        axs.append(ax)
+        i += 1
+for ax in axs:
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xlim([0,trialEndTimeMax])
+    ax.set_ylim([1.05*ymin,1.05*ymax])
+plt.tight_layout()
 
 
 ## fit model parameters
@@ -310,7 +250,7 @@ sigmaRange = slice(0.05,0.55,0.05)
 decayRange = slice(0,0.05,0.05)
 inhibRange = slice(0,0.45,0.05)
 thresholdRange = slice(0.5,6,0.5)
-trialEndRange = slice(10,22,2)
+trialEndRange = slice(10,26,2)
 
 sigmaRange = slice(0.11,0.2,0.01)
 decayRange = slice(-0.04,0,0.01)
@@ -318,7 +258,6 @@ inhibRange = slice(0.06,0.15,0.01)
 thresholdRange = slice(4.6,5.5,0.1)
 trialEndRange = slice(19,22,1)
 
-signals = popPsthFilt # syntheticSignals
 
 fitParamRanges = (sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
