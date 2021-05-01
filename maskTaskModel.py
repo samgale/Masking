@@ -178,8 +178,8 @@ for sig in signalNames:
             p = popPsth[sig][hemi][mo].copy()
             p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
             p = p.mean(axis=0)
-            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
-#            p = np.interp(t,popPsth['t']*1000,p)
+#            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
+            p = np.interp(t,popPsth['t']*1000,p)
 #            p = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(p,5,3))
 #            p = np.interp(t,popPsth['t']*1000,np.convolve(p,expFilt,mode='same'))
             maskOn = np.nan if sig=='targetOnly' else mo
@@ -204,8 +204,7 @@ for sig in signals.keys():
     for mo in signals[sig]['contra']:
         ax = fig.add_subplot(n,1,i+1)
         for hemi,clr in zip(('ipsi','contra'),'br'):
-            maskOn = list(signals[sig][hemi].keys())[0] if np.isnan(mo) else mo
-            p = signals[sig][hemi][maskOn]
+            p = signals[sig][hemi][mo]
             ax.plot(t,p,clr)
             ymin = min(ymin,p.min())
             ymax = max(ymax,p.max())

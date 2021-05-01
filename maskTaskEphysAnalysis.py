@@ -65,7 +65,7 @@ frameRate = 120
 binSize = 1/frameRate
 activeThresh = 0.1 # spikes/s
 respThresh = 5 # stdev
-stimLabels = ('targetOnly','mask','maskOnly','catch')
+stimLabels = ('maskOnly','mask','targetOnly','catch')
 hemiLabels = ('contra','ipsi')
 rewardDir = (-1,1)
 behavRespLabels = ('all','go','nogo')
@@ -132,7 +132,7 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
         for i,hemi in enumerate(hemiLabels):
             ax = fig.add_subplot(1,2,i+1)
             axs.append(ax)
-            for stim,clr in zip(stimLabels,('k','r','0.5','m')):
+            for stim,clr in zip(stimLabels,('0.5','r','k','m')):
                 mskOn = psth[stim][hemi][resp].keys()
                 if stim=='mask' and len(mskOn)>1:
                     cmap = np.ones((len(mskOn),3))
@@ -169,7 +169,7 @@ maskOnset = np.unique(exps[0].maskOnset[~np.isnan(exps[0].maskOnset)])
 maskOnsetTicks = np.concatenate((maskOnset,(8,10)))/frameRate*1000
 maskOnsetLabels = ['mask only']+[str(int(round(onset))) for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
 
-analysisWindow = (t>0.025) & (t<0.15)
+analysisWindow = (t>0.033) & (t<0.2)
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
@@ -223,15 +223,23 @@ for stim in stimLabels:
         if stim!='mask' and mo>0 or stim=='mask' and mo==0:
             continue
         d = []
-        ipsi,contra = [np.array(psth[stim][hemi]['all'][mo])[respCells][:,analysisWindow] for hemi in ('ipsi','contra')]
-        for i,c in zip(ipsi.sum(axis=1)*binSize,contra.sum(axis=1)*binSize):
+        ipsi,contra = [np.cumsum(np.array(psth[stim][hemi]['all'][mo])[respCells][:,analysisWindow],axis=1)*binSize for hemi in ('ipsi','contra')]
+        for i,c in zip(ipsi[:,-1],contra[:,-1]):
             if c==0:
                 d.append(0.5)
             else:
                 d.append(c/(c+i))
         meanContra.append(np.mean(d))
         semContra.append(np.std(d)/(len(d)**0.5))
-        cumContra.append(np.mean(np.cumsum(contra-ipsi,axis=1)/np.sum(contra+ipsi,axis=1)[:,None],axis=0))
+#        contraFrac = contra.copy()
+#        for i in range(contra.shape[0]):
+#            for j in range(contra.shape[1]):
+#                if contra[i,j]==0 and ipsi[i,j]==0:
+#                    contraFrac[i,j] = 0.5
+#                else:
+#                    contraFrac[i,j] = contra[i,j]/(contra[i,j]+ipsi[i,j])
+#        cumContra.append(np.mean(contraFrac,axis=0))
+        cumContra.append(np.mean(contra-ipsi,axis=0))
 ax.plot(maskOnsetTicks[1:-1],meanContra[1:-1],'ko')
 for x,m,s in zip(maskOnsetTicks[1:-1],meanContra[1:-1],semContra[1:-1]):
     ax.plot([x,x],[m-s,m+s],'k')
@@ -387,8 +395,9 @@ plt.tight_layout()
 
 
 # plot response to visual stimuli with opto
+optoStimLabels = ['targetOnly','mask','maskOnly','catch']
 optoOnset = list(np.unique(exps[0].optoOnset[~np.isnan(exps[0].optoOnset)]))+[np.nan]
-optoOnsetPsth = {stim: {hemi: {onset: [] for onset in optoOnset} for hemi in hemiLabels} for stim in stimLabels}
+optoOnsetPsth = {stim: {hemi: {onset: [] for onset in optoOnset} for hemi in hemiLabels} for stim in optoStimLabels}
 for obj in exps:
     ephysHemi = hemiLabels[::-1] if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels
     for stim in stimLabels:
@@ -422,7 +431,7 @@ cmap = np.zeros((len(optoOnset),3))
 cint = 1/(len(optoOnset)-1)
 cmap[:-1,:2] = np.arange(0,1.01-cint,cint)[:,None]
 cmap[:-1,2] = 1
-for i,(stim,stimLbl) in enumerate(zip(stimLabels,('target','target + mask','mask only','no visual stimulus'))):
+for i,(stim,stimLbl) in enumerate(zip(optoStimLabels,('target','target + mask','mask only','no visual stimulus'))):
     for j,hemi in enumerate(hemiLabels):
         if stim in ('maskOnly','catch'):
             loc = gs[i,0] if stim=='maskOnly' else gs[i-1,1]
@@ -460,7 +469,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for stim,clr,lbl in zip(stimLabels[:3],'cbk',('target only','target + mask','mask only')):
+for stim,clr,lbl in zip(optoStimLabels[:3],'cbk',('target only','target + mask','mask only')):
     respMean = []
     respSem = []
     for onset in optoOnset:
@@ -496,6 +505,7 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
                 d.append(0.5)
             else:
                 d.append(c/(c+i))
+#        d = contra-ipsi
         mean.append(np.mean(d))
         sem.append(np.std(d)/(len(d)**0.5))
     if stim=='targetOnly':
