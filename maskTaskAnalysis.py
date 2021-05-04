@@ -418,14 +418,14 @@ for n,obj in enumerate(exps):
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,s,i,j] = respTrials.sum()/trials.sum()
                     medianReacTime[n,s,i,j] = np.nanmedian(obj.reactionTime[respTrials])
-                    reacTime[n][stim][rd][mo] = obj.reactionTime[respTrials]
+                    reacTime[n][stim][rd][optoOn] = obj.reactionTime[respTrials]
                     if stim=='targetOnly':
                         correctTrials = obj.response[respTrials]==1
                         fracCorr[n,s,i,j] = correctTrials.sum()/respTrials.sum()
                         medianReacTimeCorrect[n,s,i,j] = np.nanmedian(obj.reactionTime[respTrials][correctTrials])
                         medianReacTimeIncorrect[n,s,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
-                        reacTimeCorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][correctTrials]
-                        reacTimeIncorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][~correctTrials]
+                        reacTimeCorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][correctTrials]
+                        reacTimeIncorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][~correctTrials]
 
 xticks = list((optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']

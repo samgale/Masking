@@ -15,6 +15,7 @@ import scipy.stats
 import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
+from sklearn.svm import LinearSVC
 import fileIO
 from maskTaskAnalysisUtils import MaskTaskData,getPsth
 
@@ -75,6 +76,7 @@ postTime = 0.5
 windowDur = preTime+trialTime+postTime
 
 ntrials = {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in hemiLabels} for stim in stimLabels}
+trialPsth = copy.deepcopy(ntrials)
 psth = copy.deepcopy(ntrials)
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
@@ -96,6 +98,7 @@ for obj in exps:
                     trials = stimTrials & respTrials & (obj.maskOnset==mo)
                     if mo not in ntrials[stim][hemi][resp]:
                         ntrials[stim][hemi][resp][mo] = 0
+                        trialPsth[stim][hemi][resp][mo] = []
                         psth[stim][hemi][resp][mo] = []
                         hasSpikes[stim][hemi][resp][mo] = []
                         hasResp[stim][hemi][resp][mo] = []
@@ -105,6 +108,7 @@ for obj in exps:
                     for u in obj.goodUnits:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
+                        trialPsth[stim][hemi][resp][mo].append(p)
                         m = p.mean(axis=0)
                         t -= preTime
                         psth[stim][hemi][resp][mo].append(m)
@@ -264,6 +268,63 @@ for side in ('right','top'):
 ax.tick_params(direction='out',top=False,right=False)
 ax.legend()
 plt.tight_layout()
+
+
+# decoding
+analysisWindow = (t>0) & (t<0.2)
+respCellInd = np.where(respCells)[0]
+numUnits = [1,5,10,20,40,len(respCellInd)]
+numIters = 1000
+trialsPerIter = 1000
+
+trainScore = [[] for n in numUnits]
+testScore = copy.deepcopy(trainScore)
+coef = copy.deepcopy(trainScore)
+for s,n in enumerate(numUnits):
+    units = np.random.choice(respCellInd,n,replace=False)
+    for _ in range(numIters):
+        trainInd = {hemi: {mo: [] for mo in maskOnset} for hemi in hemiLabels}
+        testInd = copy.deepcopy(trainInd)
+        for hemi in hemiLabels:
+            for mo in maskOnset:
+                stim = 'targetOnly' if mo==0 else 'mask'
+                for u in units:
+                    trials = len(trialPsth[stim][hemi]['all'][mo][u])
+                    ind = np.arange(trials)
+                    train = np.random.choice(ind,trials//2,replace=False)
+                    trainInd[hemi][mo].append(train)
+                    testInd[hemi][mo].append(np.setdiff1d(ind,train))
+        
+        X = {trialSet: [] for trialSet in ('train','test')}
+        y = [] 
+        m = []
+        for trialSet,ind in zip(('train','test'),(trainInd,testInd)):
+            for i,u in enumerate(units):
+                X[trialSet].append([])
+                for hemi,rd in zip(hemiLabels,rewardDir):
+                    for mo in maskOnset:
+                        stim = 'targetOnly' if mo==0 else 'mask'
+                        for _ in range(trialsPerIter):
+                            trial = np.random.choice(ind[hemi][mo][i])
+                            X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][u][trial][analysisWindow])
+                            if trialSet=='train' and i==0:
+                                y.append(rd)
+                                m.append(mo)
+            X[trialSet] = np.concatenate(X[trialSet],axis=1)
+        y = np.array(y)
+        m = np.array(m)
+        
+        decoder = LinearSVC(C=1.0,max_iter=1e4)
+        decoder.fit(X['train'],y)
+        trainScore[s].append(decoder.score(X['train'],y))
+        testScore[s].append([])
+        for mo in maskOnset:
+            ind = m==mo
+            testScore[s][-1].append(decoder.score(X['test'][ind],y[ind]))
+        coef[s].append(np.mean(np.reshape(np.absolute(decoder.coef_),(n,-1)),axis=0))
+        
+for s,n in enumerate(numUnits):
+    plt.plot(np.mean(testScore[s],axis=0))
 
 
 # save psth
