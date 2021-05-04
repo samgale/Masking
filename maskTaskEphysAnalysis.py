@@ -275,15 +275,19 @@ plt.tight_layout()
 analysisWindow = (t>0) & (t<0.2)
 respUnits = np.where(respCells)[0]
 nUnits = len(respUnits)
+
 unitSampleSize = [1,5,10,20,40,nUnits]
+decoderOffset = np.arange(analysisWindow.sum())
 trainTestIters = 10
 trialsPerIter = 100
 
-trainScore = [[] for n in unitSampleSize]
-testScore = copy.deepcopy(trainScore)
-coef = copy.deepcopy(trainScore)
+decoder = LinearSVC(C=1.0,max_iter=1e4)
 
-for _ in range(trainTestIters):
+trainScore = np.full((trainTestIters,len(unitSampleSize),len(decoderOffset),len(maskOnset)),np.nan)
+testScore = trainScore.copy()
+decoderCoef = np.full((trainTestIters,len(unitSampleSize),analysisWindow.sum()),np.nan)
+for iterInd in range(trainTestIters):
+    # assign trials to training and testing sets
     trainInd = {hemi: {mo: [] for mo in maskOnset} for hemi in hemiLabels}
     testInd = copy.deepcopy(trainInd)
     for hemi in hemiLabels:
@@ -295,47 +299,133 @@ for _ in range(trainTestIters):
                 train = np.random.choice(ind,n//2,replace=False)
                 trainInd[hemi][mo].append(train)
                 testInd[hemi][mo].append(np.setdiff1d(ind,train))
-
+    
     for s,sampleSize in enumerate(unitSampleSize):
         if sampleSize==1:
-            unitSamples = [[i] for i in range(nUnits)]
+            unitSamples = [[u] for u in range(nUnits)]
         elif sampleSize==nUnits:
             unitSamples = [np.arange(nUnits)]
         else:
             # >99% chance each neuron is chosen at least once
             nsamples = int(math.ceil(math.log(0.01)/math.log(1-sampleSize/nUnits)))
             unitSamples = [np.random.choice(nUnits,sampleSize,replace=False) for _ in range(nsamples)]
+            
+        trainSamples = []
+        testSamples = []
+        coefSamples = []
         for units in unitSamples:
+            # X = features, y = target side label, m = mask onset label
             X = {trialSet: [] for trialSet in ('train','test')}
             y = [] 
             m = []
-            for trialSet,ind in zip(('train','test'),(trainInd,testInd)):
-                for i,u in enumerate(units):
+            for trialSet,trialInd in zip(('train','test'),(trainInd,testInd)):
+                for uind,u in enumerate(units):
                     X[trialSet].append([])
                     for hemi,rd in zip(hemiLabels,rewardDir):
                         for mo in maskOnset:
                             stim = 'targetOnly' if mo==0 else 'mask'
                             for _ in range(trialsPerIter):
-                                trial = np.random.choice(ind[hemi][mo][u])
+                                trial = np.random.choice(trialInd[hemi][mo][u])
                                 X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][respUnits[u]][trial][analysisWindow])
-                                if trialSet=='train' and i==0:
+                                if trialSet=='train' and uind==0:
                                     y.append(rd)
                                     m.append(mo)
                 X[trialSet] = np.concatenate(X[trialSet],axis=1)
             y = np.array(y)
             m = np.array(m)
             
-            decoder = LinearSVC(C=1.0,max_iter=1e4)
-            decoder.fit(X['train'],y)
-            trainScore[s].append(decoder.score(X['train'],y))
-            testScore[s].append([])
-            for mo in maskOnset:
-                ind = m==mo
-                testScore[s][-1].append(decoder.score(X['test'][ind],y[ind]))
-            coef[s].append(np.mean(np.reshape(np.absolute(decoder.coef_),(sampleSize,-1)),axis=0))
-        
-for s,n in enumerate(unitSampleSize):
-    plt.plot(np.mean(testScore[s],axis=0))
+            train = np.full((len(decoderOffset),len(maskOnset)),np.nan)
+            test = train.copy()
+            offsets = decoderOffset if sampleSize==max(unitSampleSize) else [0]
+            for i,offset in enumerate(offsets):
+                if offset==0:
+                    Xtrain,Xtest = X['train'],X['test']
+                else:
+                    Xtrain,Xtest = [np.reshape(np.reshape(X[trialSet],(len(y),sampleSize,-1))[:,:,offset:],(len(y),-1)) for trialSet in ('train','test')]
+                decoder.fit(Xtrain,y)
+                
+                for j,mo in enumerate(maskOnset):
+                    ind = m==mo
+                    train[i][j] = decoder.score(Xtrain[ind],y[ind])
+                    test[i][j] = decoder.score(Xtest[ind],y[ind])
+                if offset==0:
+                    coef = np.mean(np.reshape(np.absolute(decoder.coef_),(sampleSize,-1)),axis=0)
+            trainSamples.append(train)
+            testSamples.append(test)
+            coefSamples.append(coef)
+        trainScore[iterInd,s] = np.mean(trainSamples,axis=0)
+        testScore[iterInd,s] = np.mean(testSamples,axis=0)
+        decoderCoef[iterInd,s] = np.mean(coefSamples,axis=0)
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for score,clr,lbl in zip((trainScore,testScore),('0.5','k'),('train','test')):
+    overallScore = score[:,:,0].mean(axis=-1)
+    mean = overallScore.mean(axis=0)
+    sem = overallScore.std(axis=0)/(trainTestIters**0.5)   
+    ax.plot(unitSampleSize,mean,'o',mec=clr,mfc=clr,label=lbl)  
+    for x,m,s in zip(unitSampleSize,mean,sem):
+        ax.plot([x,x],[m-s,m+s],clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_ylim([0.5,1.02])
+ax.set_xlabel('Number of Units')
+ax.set_ylabel('Decoder Accuracy')
+ax.legend()
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for score,clr,lbl in zip((trainScore,testScore),('0.5','k'),('train','test')):
+    d = score[:,-1,0]
+    mean = d.mean(axis=0)
+    sem = d.std(axis=0)/(trainTestIters**0.5)   
+    ax.plot(maskOnset,mean,'o',mec=clr,mfc=clr,label=lbl)  
+    for x,m,s in zip(maskOnset,mean,sem):
+        ax.plot([x,x],[m-s,m+s],clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_ylim([0.5,1.02])
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)')
+ax.set_ylabel('Decoder Accuracy')
+ax.legend()
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+m = decoderCoef[:,-1].mean(axis=0)
+s = decoderCoef[:,-1].std(axis=0)/(trainTestIters**0.5)
+ax.plot(t[analysisWindow]*1000,m,color='k')
+ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color='k',alpha=0.25)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlim([0,200])
+ax.set_xlabel('Time Relative to Target Onset (ms)')
+ax.set_ylabel('Decoder Weighting')
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for i,(mo,clr) in enumerate(zip(maskOnset,plt.cm.plasma(np.linspace(0,1,len(maskOnset))))):
+    d = testScore[:,-1,:,i]
+    m = d.mean(axis=0)
+    s = d.std(axis=0)/(trainTestIters**0.5)
+    ax.plot(t[analysisWindow]*1000,m,color=clr,label=mo)
+    ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlim([0,200])
+ax.set_ylim([0.4,1.02])
+ax.set_xlabel('Time Relative to Target Onset (ms)')
+ax.set_ylabel('Decoder Accuracy')
+ax.legend()
+plt.tight_layout()
+
+
 
 
 # save psth
