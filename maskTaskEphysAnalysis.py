@@ -6,6 +6,7 @@ Created on Mon Mar 11 12:34:44 2019
 """
 
 import copy
+import math
 import os
 import pickle
 import numpy as np
@@ -272,58 +273,68 @@ plt.tight_layout()
 
 # decoding
 analysisWindow = (t>0) & (t<0.2)
-respCellInd = np.where(respCells)[0]
-numUnits = [1,5,10,20,40,len(respCellInd)]
-numIters = 1000
-trialsPerIter = 1000
+respUnits = np.where(respCells)[0]
+nUnits = len(respUnits)
+unitSampleSize = [1,5,10,20,40,nUnits]
+trainTestIters = 10
+trialsPerIter = 100
 
-trainScore = [[] for n in numUnits]
+trainScore = [[] for n in unitSampleSize]
 testScore = copy.deepcopy(trainScore)
 coef = copy.deepcopy(trainScore)
-for s,n in enumerate(numUnits):
-    units = np.random.choice(respCellInd,n,replace=False)
-    for _ in range(numIters):
-        trainInd = {hemi: {mo: [] for mo in maskOnset} for hemi in hemiLabels}
-        testInd = copy.deepcopy(trainInd)
-        for hemi in hemiLabels:
-            for mo in maskOnset:
-                stim = 'targetOnly' if mo==0 else 'mask'
-                for u in units:
-                    trials = len(trialPsth[stim][hemi]['all'][mo][u])
-                    ind = np.arange(trials)
-                    train = np.random.choice(ind,trials//2,replace=False)
-                    trainInd[hemi][mo].append(train)
-                    testInd[hemi][mo].append(np.setdiff1d(ind,train))
-        
-        X = {trialSet: [] for trialSet in ('train','test')}
-        y = [] 
-        m = []
-        for trialSet,ind in zip(('train','test'),(trainInd,testInd)):
-            for i,u in enumerate(units):
-                X[trialSet].append([])
-                for hemi,rd in zip(hemiLabels,rewardDir):
-                    for mo in maskOnset:
-                        stim = 'targetOnly' if mo==0 else 'mask'
-                        for _ in range(trialsPerIter):
-                            trial = np.random.choice(ind[hemi][mo][i])
-                            X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][u][trial][analysisWindow])
-                            if trialSet=='train' and i==0:
-                                y.append(rd)
-                                m.append(mo)
-            X[trialSet] = np.concatenate(X[trialSet],axis=1)
-        y = np.array(y)
-        m = np.array(m)
-        
-        decoder = LinearSVC(C=1.0,max_iter=1e4)
-        decoder.fit(X['train'],y)
-        trainScore[s].append(decoder.score(X['train'],y))
-        testScore[s].append([])
+
+for _ in range(trainTestIters):
+    trainInd = {hemi: {mo: [] for mo in maskOnset} for hemi in hemiLabels}
+    testInd = copy.deepcopy(trainInd)
+    for hemi in hemiLabels:
         for mo in maskOnset:
-            ind = m==mo
-            testScore[s][-1].append(decoder.score(X['test'][ind],y[ind]))
-        coef[s].append(np.mean(np.reshape(np.absolute(decoder.coef_),(n,-1)),axis=0))
+            stim = 'targetOnly' if mo==0 else 'mask'
+            for u in respUnits:
+                n = len(trialPsth[stim][hemi]['all'][mo][u])
+                ind = np.arange(n)
+                train = np.random.choice(ind,n//2,replace=False)
+                trainInd[hemi][mo].append(train)
+                testInd[hemi][mo].append(np.setdiff1d(ind,train))
+
+    for s,sampleSize in enumerate(unitSampleSize):
+        if sampleSize==1:
+            unitSamples = [[i] for i in range(nUnits)]
+        elif sampleSize==nUnits:
+            unitSamples = [np.arange(nUnits)]
+        else:
+            # >99% chance each neuron is chosen at least once
+            nsamples = int(math.ceil(math.log(0.01)/math.log(1-sampleSize/nUnits)))
+            unitSamples = [np.random.choice(nUnits,sampleSize,replace=False) for _ in range(nsamples)]
+        for units in unitSamples:
+            X = {trialSet: [] for trialSet in ('train','test')}
+            y = [] 
+            m = []
+            for trialSet,ind in zip(('train','test'),(trainInd,testInd)):
+                for i,u in enumerate(units):
+                    X[trialSet].append([])
+                    for hemi,rd in zip(hemiLabels,rewardDir):
+                        for mo in maskOnset:
+                            stim = 'targetOnly' if mo==0 else 'mask'
+                            for _ in range(trialsPerIter):
+                                trial = np.random.choice(ind[hemi][mo][u])
+                                X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][respUnits[u]][trial][analysisWindow])
+                                if trialSet=='train' and i==0:
+                                    y.append(rd)
+                                    m.append(mo)
+                X[trialSet] = np.concatenate(X[trialSet],axis=1)
+            y = np.array(y)
+            m = np.array(m)
+            
+            decoder = LinearSVC(C=1.0,max_iter=1e4)
+            decoder.fit(X['train'],y)
+            trainScore[s].append(decoder.score(X['train'],y))
+            testScore[s].append([])
+            for mo in maskOnset:
+                ind = m==mo
+                testScore[s][-1].append(decoder.score(X['test'][ind],y[ind]))
+            coef[s].append(np.mean(np.reshape(np.absolute(decoder.coef_),(sampleSize,-1)),axis=0))
         
-for s,n in enumerate(numUnits):
+for s,n in enumerate(unitSampleSize):
     plt.plot(np.mean(testScore[s],axis=0))
 
 
