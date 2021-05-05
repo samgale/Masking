@@ -318,7 +318,7 @@ class MaskTaskData():
         wp = self.wheelPos-self.wheelPos[:,self.earlyMoveFrames][:,None]
         wp[:,:self.earlyMoveFrames] = 0
         self.reactionTime = np.full(self.ntrials,np.nan)
-        for i,(w,s) in enumerate(zip(wp,self.stimStart)):
+        for i,(w,s) in enumerate(zip(wp,self.stimStart+self.frameDisplayLag)):
             frameIntervals = self.behavFrameIntervals[s:s+w.size]
             frameIntervals[0] = 0
             t = np.cumsum(frameIntervals)

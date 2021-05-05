@@ -16,7 +16,7 @@ import nidaqmx
 class TaskControl():
     
     def __init__(self,rigName):
-        assert(rigName in ('pilot','box5'))
+        assert(rigName in ('pilot','box5','sam'))
         self.rigName = rigName
         self.subjectName = None
         self.saveParams = True # if True, saves all attributes not starting with underscore
@@ -57,7 +57,20 @@ class TaskControl():
             self.diodeBoxPosition = (935,-515)
             self.nidaqDevices = ('USB-6001',)
             self.nidaqDeviceNames = ('Dev1',)
-        
+        elif self.rigName=='sam':
+            self.saveDir = r'C:\Users\svc_ccg\Desktop\Data'
+            self.screen = 0 # monitor to present stimuli on
+            self.monWidth = 53.34 # cm
+            self.monDistance = 21.59 # cm
+            self.monGamma = 2.1 # float or None
+            self.monSizePix = (1920,1080)
+            self.flipScreenHorz = False
+            self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
+            self.warpFile = None
+            self.diodeBoxSize = 50
+            self.diodeBoxPosition = (935,-515)
+            self.nidaqDevices = ('USB-6009',)
+            self.nidaqDeviceNames = ('Dev1',)
     
     def prepareSession(self):
         self._win = None
@@ -234,17 +247,18 @@ class TaskControl():
         
         # Dev1 analog outputs
         # AO0: water reward solenoid
-        aoSampleRate = 1000
-        self._rewardOutput = nidaqmx.Task()
-        self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[0]+'/ao0',min_val=0,max_val=5)
-        self._rewardOutput.write(0)
-        self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate)
-        self._nidaqTasks.append(self._rewardOutput)
+        if self.nidaqDevices[0]=='USB-6001':
+            aoSampleRate = 1000
+            self._rewardOutput = nidaqmx.Task()
+            self._rewardOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[0]+'/ao0',min_val=0,max_val=5)
+            self._rewardOutput.write(0)
+            self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate)
+            self._nidaqTasks.append(self._rewardOutput)
         
         # Dev2 analog outputs
         # AO0: led1
         # AO1: led2
-        if len(self.nidaqDevices)>1:
+        if len(self.nidaqDevices)>1 and self.nidaqDevices[1]=='USB-6001':
             self._optoOutput = nidaqmx.Task()
             self._optoOutput.ao_channels.add_ao_voltage_chan(self.nidaqDeviceNames[1]+'/ao0:1',min_val=0,max_val=5)
             self._optoOutput.write([0,0])

@@ -314,7 +314,7 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,an
     
     return trainScore,testScore,coef
 
-
+maskOnset = [2,3,4,6,0]
 analysisWindow = (t>0) & (t<0.2)
 respUnits = np.where(respCells)[0]
 nUnits = len(respUnits)
