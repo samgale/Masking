@@ -272,7 +272,7 @@ plt.tight_layout()
 
 
 # decoding
-def getDecoderResult(units,trialPsth,trainInd,testInd,trialsPerIter,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir):
+def getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir):
     # X = features, y = target side label, m = mask onset label
     X = {trialSet: [] for trialSet in ('train','test')}
     y = [] 
@@ -283,7 +283,9 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,trialsPerIter,analysisWind
             for hemi,rd in zip(hemiLabels,rewardDir):
                 for mo in maskOnset:
                     stim = 'targetOnly' if mo==0 else 'mask'
-                    for _ in range(trialsPerIter):
+                    ind = trialInd[hemi][mo][u]
+                    trials =  np.random.choice(ind,trialsPerIter) if minTrials is None else ind[:minTrials]
+                    for trial in trials:
                         trial = np.random.choice(trialInd[hemi][mo][u])
                         X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][respUnits[u]][trial][analysisWindow])
                         if trialSet=='train' and uind==0:
@@ -354,15 +356,21 @@ for iterInd in range(trainTestIters):
                     # >99% chance each neuron is chosen at least once
                     nsamples = int(math.ceil(math.log(0.01)/math.log(1-sampleSize/nUnits)))
                     unitSamples = [np.random.choice(nUnits,sampleSize,replace=False) for _ in range(nsamples)]
+                minTrials = None
             else:
                 unitSamples = [np.where(unitSessionInd==s)[0]]
+                minTrials = 10000
+                for trialSet,trialInd in zip(('train','test'),(trainInd,testInd)):
+                    for hemi,rd in zip(hemiLabels,rewardDir):
+                        for mo in maskOnset:
+                            minTrials = min(minTrials,len(trialInd[hemi][mo][unitSamples[0][0]]))
                 
             trainSamples = []
             testSamples = []
             coefSamples = []
             for units in unitSamples:
                 offsets = decoderOffset if src=='session' or sampleSize==max(unitSampleSize[src]) else [0]
-                train,test,coef = getDecoderResult(units,trialPsth,trainInd,testInd,trialsPerIter,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir)
+                train,test,coef = getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir)
                 trainSamples.append(train)
                 testSamples.append(test)
                 coefSamples.append(coef)
@@ -373,12 +381,13 @@ for iterInd in range(trainTestIters):
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for score,clr,lbl in zip((trainScore,testScore),('0.5','k'),('train','test')):
-    overallScore = score[:,:,0].mean(axis=-1)
-    mean = overallScore.mean(axis=0)
-    sem = overallScore.std(axis=0)/(trainTestIters**0.5)   
-    ax.plot(unitSampleSize,mean,'o',mec=clr,mfc=clr,label=lbl)  
-    for x,m,s in zip(unitSampleSize,mean,sem):
-        ax.plot([x,x],[m-s,m+s],clr)
+    for src in unitSource:
+        overallScore = score[src][:,:,0].mean(axis=-1)
+        mean = overallScore.mean(axis=0)
+        sem = overallScore.std(axis=0)/(trainTestIters**0.5)   
+        ax.plot(unitSampleSize[src],mean,'o',mec=clr,mfc=clr,label=lbl)  
+        for x,m,s in zip(unitSampleSize[src],mean,sem):
+            ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
