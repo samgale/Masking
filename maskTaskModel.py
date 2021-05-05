@@ -240,7 +240,7 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 1000
+trialsPerCondition = 200
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [2,3,4,6,np.nan,0]
 optoOnset = [np.nan]
@@ -325,7 +325,7 @@ fractionCorrect = outOfSampleFracCorr
     
 
 # compare fit to data
-xticks = [mo*dt for mo in maskOnset[:-2]]+[67,83,100]
+xticks = [mo/120*1000 for mo in maskOnset[:-2]]+[67,83,100]
 xticklabels = [str(int(round(x))) for x in xticks[:-3]]+['target\nonly','mask\nonly','no\nstimulus']
 xlim = [8,108]
 
@@ -350,7 +350,7 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
 
 
 # example model traces
-trialInd = 1
+trialInd = 0
 for side,lbl in zip((1,0),('target right','no stim')):
     sideTrials = trialTargetSide==side
     maskOn = [np.nan] if side==0 else maskOnset
@@ -408,7 +408,7 @@ for side in targetSide:
     maskOn = [np.nan] if side==0 else maskOnset
     for mo in maskOn:
         for optoOn in optoOnset:
-            rt.append(dt*np.mean(result[side][mo][optoOn]['responseTime']))
+            rt.append(dt*np.median(result[side][mo][optoOn]['responseTime']))
 ax.plot(xticks,rt,'ko')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
@@ -417,7 +417,7 @@ ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
 ax.set_xlabel('Mask onset relative to target onset (ms)')
-ax.set_ylabel('Mean decision time (ms)')
+ax.set_ylabel('Median decision time (ms)')
 plt.tight_layout()
 
 fig = plt.figure()

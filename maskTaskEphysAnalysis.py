@@ -302,19 +302,19 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,an
         if offset==0:
             Xtrain,Xtest = X['train'],X['test']
         else:
-            Xtrain,Xtest = [np.reshape(np.reshape(X[trialSet],(len(y),len(units),-1))[:,:,offset:],(len(y),-1)) for trialSet in ('train','test')]
+            Xtrain,Xtest = [np.reshape(np.reshape(X[trialSet],(len(y),len(units),-1))[:,:,:offset],(len(y),-1)) for trialSet in ('train','test')]
         decoder.fit(Xtrain,y)
         
         for j,mo in enumerate(maskOnset):
             ind = m==mo
             trainScore[i][j] = decoder.score(Xtrain[ind],y[ind])
             testScore[i][j] = decoder.score(Xtest[ind],y[ind])
-        if offset==0:
+        if offset==offsets[-1]:
             coef = np.mean(np.reshape(np.absolute(decoder.coef_),(len(units),-1)),axis=0)
     
     return trainScore,testScore,coef
 
-maskOnset = [2,3,4,6,0]
+maskOnset = [0,2,3,4,6]
 analysisWindow = (t>0) & (t<0.2)
 respUnits = np.where(respCells)[0]
 nUnits = len(respUnits)
@@ -323,7 +323,7 @@ unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj
 unitSampleSize = {}
 unitSampleSize['session'] = [np.sum(unitSessionInd==i) for i in range(len(exps))]
 unitSampleSize['pooled'] = [1,5,10,20,40,nUnits]
-decoderOffset = np.arange(analysisWindow.sum())
+decoderOffset = np.arange(1,analysisWindow.sum()+1)
 trainTestIters = 10
 trialsPerIter = 100
 
@@ -380,12 +380,13 @@ for iterInd in range(trainTestIters):
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for score,clr,lbl in zip((trainScore,testScore),('0.5','k'),('train','test')):
-    for src in unitSource:
-        overallScore = score[src][:,:,0].mean(axis=-1)
+for score,clr,trialSet in zip((trainScore,testScore),('0.5','k'),('train','test')):
+    for src,mfc in zip(unitSource,(clr,'none')):
+        overallScore = score[src][:,:,-1].mean(axis=-1)
         mean = overallScore.mean(axis=0)
-        sem = overallScore.std(axis=0)/(trainTestIters**0.5)   
-        ax.plot(unitSampleSize[src],mean,'o',mec=clr,mfc=clr,label=lbl)  
+        sem = overallScore.std(axis=0)/(trainTestIters**0.5)
+        lbl = trialSet+', '+src
+        ax.plot(unitSampleSize[src],mean,'o',mec=clr,mfc=mfc,label=lbl)  
         for x,m,s in zip(unitSampleSize[src],mean,sem):
             ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
@@ -399,16 +400,20 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
+xticks = np.concatenate(([8],maskOnset[1:]))/frameRate*1000
+xticklabels = ['target only']+[str(int(round(x))) for x in xticks[1:]]
 for score,clr,lbl in zip((trainScore,testScore),('0.5','k'),('train','test')):
-    d = score[:,-1,0]
+    d = score['pooled'][:,-1,-1]
     mean = d.mean(axis=0)
     sem = d.std(axis=0)/(trainTestIters**0.5)   
-    ax.plot(maskOnset,mean,'o',mec=clr,mfc=clr,label=lbl)  
-    for x,m,s in zip(maskOnset,mean,sem):
+    ax.plot(xticks,mean,'o',mec=clr,mfc=clr,label=lbl)  
+    for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
 ax.set_ylim([0.5,1.02])
 ax.set_xlabel('Mask Onset Relative to Target Onset (ms)')
 ax.set_ylabel('Decoder Accuracy')
@@ -417,8 +422,9 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-m = decoderCoef[:,-1].mean(axis=0)
-s = decoderCoef[:,-1].std(axis=0)/(trainTestIters**0.5)
+d = decoderCoef['pooled'][:,-1]
+m = d.mean(axis=0)
+s = d.std(axis=0)/(trainTestIters**0.5)
 ax.plot(t[analysisWindow]*1000,m,color='k')
 ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color='k',alpha=0.25)
 for side in ('right','top'):
@@ -432,7 +438,7 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for i,(mo,clr) in enumerate(zip(maskOnset,plt.cm.plasma(np.linspace(0,1,len(maskOnset))))):
-    d = testScore[:,-1,:,i]
+    d = testScore['pooled'][:,-1,:,i]
     m = d.mean(axis=0)
     s = d.std(axis=0)/(trainTestIters**0.5)
     ax.plot(t[analysisWindow]*1000,m,color=clr,label=mo)
