@@ -167,6 +167,20 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
             ax.set_title('target '+hemi)
     for ax in axs:
         ax.set_ylim([1.05*ymin,1.05*ymax])
+
+
+# save psth
+popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
+for cellType in ('all',):
+    for stim in stimLabels:
+        for hemi in hemiLabels:
+            p = psth[stim][hemi]['all']
+            for mo in p.keys():
+                popPsth[stim][hemi][mo] = np.array(p[mo])[respCells]
+popPsth['t'] = t
+            
+pkl = fileIO.saveFile(fileType='*.pkl')
+pickle.dump(popPsth,open(pkl,'wb'))
         
         
 #
@@ -452,22 +466,6 @@ ax.set_xlabel('Time Relative to Target Onset (ms)')
 ax.set_ylabel('Decoder Accuracy')
 ax.legend()
 plt.tight_layout()
-
-
-
-
-# save psth
-popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
-for cellType in ('all',):
-    for stim in stimLabels:
-        for hemi in hemiLabels:
-            p = psth[stim][hemi]['all']
-            for mo in p.keys():
-                popPsth[stim][hemi][mo] = np.array(p[mo])[respCells]
-popPsth['t'] = t
-            
-pkl = fileIO.saveFile(fileType='*.pkl')
-pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # plot response to optogenetic stimuluation during catch trials

@@ -240,7 +240,7 @@ class MaskTaskData():
         self.rf = False
         self.ephys = False
         self.frameDisplayLag = 2
-        self.earlyMoveFrames = 18
+        self.earlyMoveFrames = 15
         
         
     def loadBehavData(self,filePath=None):

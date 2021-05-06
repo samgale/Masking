@@ -29,6 +29,8 @@ if len(behavFiles)>0:
     for f in behavFiles:
         obj = MaskTaskData()
         obj.loadBehavData(f)
+        obj.earlyMoveFrames = 15
+        obj.calcReactionTime()
         exps.append(obj)
 
     
@@ -213,8 +215,8 @@ for n,obj in enumerate(exps):
                         reacTimeCorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][~correctTrials]
                     
-#np.save(fileIO.saveFile(fileType='*.npy'),respRate)
-#np.save(fileIO.saveFile(fileType='*.npy'),fracCorr)
+#np.save(fileIO.saveFile('Save respRate',fileType='*.npy'),respRate)
+#np.save(fileIO.saveFile('Save fracCorr',fileType='*.npy'),fracCorr)
 
 xticks = list(maskOnset/frameRate*1000)+[67,83]
 xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstimulus']
