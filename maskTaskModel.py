@@ -182,8 +182,8 @@ for sig in signalNames:
             p = popPsth[sig][hemi][mo].copy()
             p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
             p = p.mean(axis=0)
-            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
-#            p = np.interp(t,popPsth['t']*1000,p)
+#            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
+            p = np.interp(t,popPsth['t']*1000,p)
 #            p = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(p,5,3))
 #            p = np.interp(t,popPsth['t']*1000,np.convolve(p,expFilt,mode='same'))
             maskOn = np.nan if sig=='targetOnly' else mo
@@ -200,7 +200,7 @@ for sig in signals.keys():
             s /= smax
 #            i = s > 0
 #            s[i] = s[i]**nu / (alpha**nu + s[i]**nu)
-#            s *= alpha**nu + 1
+#            s[i] *= alpha**nu + 1
 
 fig = plt.figure(figsize=(4,10))
 n = 2+len(signals['mask']['contra'].keys())
@@ -248,12 +248,12 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 200
+trialsPerCondition = 500
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 
-alphaRange = slice(0.1,0.6,0.1)
+alphaRange = slice(0.05,0.5,0.05)
 nuRange = slice(2,11,1)
 sigmaRange = slice(0.2,1.3,0.1)
 decayRange = slice(0,1,1) #slice(0,0.05,0.05)
@@ -452,11 +452,11 @@ fig = plt.figure()
 ax = fig.add_subplot(2,1,2)
 clrs = np.zeros((len(maskOnset)-1,3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-2))[::-1,:3]
-lbls = xticklabels[:-3]+['target only']
-xlim = [50,150]
+lbls = xticklabels[1:-1]
+xlim = [0,150]
 ntrials = []
 rt = []
-for maskOn,clr in zip(maskOnset[:-1],clrs):
+for maskOn,clr in zip(maskOnset[1:],clrs):
     trials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
     ntrials.append(trials.sum())
     respTrials = trials & (response!=0)

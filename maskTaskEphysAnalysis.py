@@ -310,21 +310,23 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,an
     m = np.array(m)
     
     decoder = LinearSVC(C=1.0,max_iter=1e4)
-    trainScore = np.full((len(offsets),len(maskOnset)),np.nan)
+    trainScore = np.full((2,len(offsets),len(maskOnset)),np.nan)
     testScore = trainScore.copy()
-    for i,offset in enumerate(offsets):
-        if offset==0:
-            Xtrain,Xtest = X['train'],X['test']
-        else:
-            Xtrain,Xtest = [np.reshape(np.reshape(X[trialSet],(len(y),len(units),-1))[:,:,:offset],(len(y),-1)) for trialSet in ('train','test')]
-        decoder.fit(Xtrain,y)
-        
-        for j,mo in enumerate(maskOnset):
-            ind = m==mo
-            trainScore[i][j] = decoder.score(Xtrain[ind],y[ind])
-            testScore[i][j] = decoder.score(Xtest[ind],y[ind])
-        if offset==offsets[-1]:
-            coef = np.mean(np.reshape(np.absolute(decoder.coef_),(len(units),-1)),axis=0)
+    for i in (0,1):
+        for j,offset in enumerate(offsets):
+            if offset is None:
+                Xtrain,Xtest = X['train'],X['test']
+            else:
+                ind = slice(0,offset+1) if i==0 else offset
+                Xtrain,Xtest = [np.reshape(np.reshape(X[trialSet],(len(y),len(units),-1))[:,:,ind],(len(y),-1)) for trialSet in ('train','test')]
+            decoder.fit(Xtrain,y)
+            
+            for k,mo in enumerate(maskOnset):
+                ind = m==mo
+                trainScore[i][j][k] = decoder.score(Xtrain[ind],y[ind])
+                testScore[i][j][k] = decoder.score(Xtest[ind],y[ind])
+            if i==0 and offset==offsets[-1]:
+                coef = np.mean(np.reshape(np.absolute(decoder.coef_),(len(units),-1)),axis=0)
     
     return trainScore,testScore,coef
 
@@ -337,12 +339,12 @@ unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj
 unitSampleSize = {}
 unitSampleSize['session'] = [np.sum(unitSessionInd==i) for i in range(len(exps))]
 unitSampleSize['pooled'] = [1,5,10,20,40,nUnits]
-decoderOffset = np.arange(1,analysisWindow.sum()+1)
+decoderOffset = np.arange(analysisWindow.sum())
 trainTestIters = 10
 trialsPerIter = 100
 
 unitSource = ('pooled','session')
-trainScore = {src: np.full((trainTestIters,len(unitSampleSize[src]),len(decoderOffset),len(maskOnset)),np.nan) for src in unitSource}
+trainScore = {src: np.full((trainTestIters,len(unitSampleSize[src]),2,len(decoderOffset),len(maskOnset)),np.nan) for src in unitSource}
 testScore = copy.deepcopy(trainScore)
 decoderCoef = {src: np.full((trainTestIters,len(unitSampleSize[src]),analysisWindow.sum()),np.nan) for src in unitSource}
 for iterInd in range(trainTestIters):
@@ -383,7 +385,7 @@ for iterInd in range(trainTestIters):
             testSamples = []
             coefSamples = []
             for units in unitSamples:
-                offsets = decoderOffset if src=='session' or sampleSize==max(unitSampleSize[src]) else [0]
+                offsets = decoderOffset if src=='session' or sampleSize==max(unitSampleSize[src]) else [None]
                 train,test,coef = getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir)
                 trainSamples.append(train)
                 testSamples.append(test)
@@ -396,7 +398,7 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for score,clr,trialSet in zip((trainScore,testScore),('0.5','k'),('train','test')):
     for src,mfc in zip(unitSource,(clr,'none')):
-        overallScore = score[src][:,:,-1].mean(axis=-1)
+        overallScore = score[src][:,:,0,-1].mean(axis=-1)
         mean = overallScore.mean(axis=0)
         sem = overallScore.std(axis=0)/(trainTestIters**0.5)
         lbl = trialSet+', '+src
@@ -417,7 +419,7 @@ ax = fig.add_subplot(1,1,1)
 xticks = np.concatenate(([8],maskOnset[1:]))/frameRate*1000
 xticklabels = ['target only']+[str(int(round(x))) for x in xticks[1:]]
 for score,clr,lbl in zip((trainScore,testScore),('0.5','k'),('train','test')):
-    d = score['pooled'][:,-1,-1]
+    d = score['pooled'][:,-1,0,-1]
     mean = d.mean(axis=0)
     sem = d.std(axis=0)/(trainTestIters**0.5)   
     ax.plot(xticks,mean,'o',mec=clr,mfc=clr,label=lbl)  
@@ -449,23 +451,24 @@ ax.set_xlabel('Time Relative to Target Onset (ms)')
 ax.set_ylabel('Decoder Weighting')
 plt.tight_layout()
 
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-for i,(mo,clr) in enumerate(zip(maskOnset,plt.cm.plasma(np.linspace(0,1,len(maskOnset))))):
-    d = testScore['pooled'][:,-1,:,i]
-    m = d.mean(axis=0)
-    s = d.std(axis=0)/(trainTestIters**0.5)
-    ax.plot(t[analysisWindow]*1000,m,color=clr,label=mo)
-    ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xlim([0,200])
-ax.set_ylim([0.4,1.02])
-ax.set_xlabel('Time Relative to Target Onset (ms)')
-ax.set_ylabel('Decoder Accuracy')
-ax.legend()
-plt.tight_layout()
+for i in (0,1): 
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for j,(mo,clr) in enumerate(zip(maskOnset,plt.cm.plasma(np.linspace(0,1,len(maskOnset))))):
+        d = testScore['pooled'][:,-1,i,:,j]
+        m = d.mean(axis=0)
+        s = d.std(axis=0)/(trainTestIters**0.5)
+        ax.plot(t[analysisWindow]*1000,m,color=clr,label=mo)
+        ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xlim([0,200])
+    ax.set_ylim([0.4,1.02])
+    ax.set_xlabel('Time Relative to Target Onset (ms)')
+    ax.set_ylabel('Decoder Accuracy')
+    ax.legend()
+    plt.tight_layout()
 
 
 # plot response to optogenetic stimuluation during catch trials
