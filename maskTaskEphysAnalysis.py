@@ -183,101 +183,52 @@ pkl = fileIO.saveFile(fileType='*.pkl')
 pickle.dump(popPsth,open(pkl,'wb'))
         
         
-#
+# cumulative spike count and excess contralateral spikes
 maskOnset = np.unique(exps[0].maskOnset[~np.isnan(exps[0].maskOnset)])
 maskOnsetTicks = np.concatenate((maskOnset,(8,10)))/frameRate*1000
 maskOnsetLabels = ['mask only']+[str(int(round(onset))) for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
+clrs = np.zeros((len(maskOnset),3))
+clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
 
 analysisWindow = (t>0.033) & (t<0.2)
 
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-respMean = []
-respSem = []
-cumResp = []
-for stim in stimLabels:
-    for mo in maskOnset:
-        if stim!='mask' and mo>0 or stim=='mask' and mo==0:
-            continue
-        p = np.array(psth[stim]['contra']['all'][mo])[respCells]
-        b = p-p[:,t<0].mean(axis=1)[:,None]
-        r = b[:,analysisWindow].sum(axis=1)*binSize
-        respMean.append(np.mean(r))
-        respSem.append(np.std(r)/(len(r)**0.5))
-        cumResp.append(np.mean(np.cumsum(b[:,analysisWindow],axis=1)*binSize,axis=0))
-ax.plot(maskOnsetTicks,respMean,'ko')
-ymax = 0
-for x,m,s in zip(maskOnsetTicks,respMean,respSem):
-    ax.plot([x,x],[m-s,m+s],'k')
-    ymax = max(ymax,m+s)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xticks(maskOnsetTicks)
-ax.set_xticklabels(maskOnsetLabels)
-ax.set_xlim([-8,91])
-ax.set_ylim([0,1.02*ymax])
-ax.set_xlabel('Mask onset relative to target onset (ms)')
-ax.set_ylabel('Stimulus evoked spikes')
-plt.tight_layout()
-
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-clrs = plt.cm.plasma(np.linspace(0,1,len(cumResp)))
-for s,clr,lbl in zip(cumResp,clrs,maskOnsetLabels):
-    ax.plot(t[analysisWindow],s,color=clr,label=lbl)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.legend()
-plt.tight_layout()
-
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-meanContra = []
-semContra = []
 cumContra = []
+cumIpsi =[]
 for stim in stimLabels:
     for mo in maskOnset:
         if stim!='mask' and mo>0 or stim=='mask' and mo==0:
             continue
-        d = []
-        ipsi,contra = [np.cumsum(np.array(psth[stim][hemi]['all'][mo])[respCells][:,analysisWindow],axis=1)*binSize for hemi in ('ipsi','contra')]
-        for i,c in zip(ipsi[:,-1],contra[:,-1]):
-            if c==0:
-                d.append(0.5)
-            else:
-                d.append(c/(c+i))
-        meanContra.append(np.mean(d))
-        semContra.append(np.std(d)/(len(d)**0.5))
-#        contraFrac = contra.copy()
-#        for i in range(contra.shape[0]):
-#            for j in range(contra.shape[1]):
-#                if contra[i,j]==0 and ipsi[i,j]==0:
-#                    contraFrac[i,j] = 0.5
-#                else:
-#                    contraFrac[i,j] = contra[i,j]/(contra[i,j]+ipsi[i,j])
-#        cumContra.append(np.mean(contraFrac,axis=0))
-        cumContra.append(np.mean(contra-ipsi,axis=0))
-ax.plot(maskOnsetTicks[1:-1],meanContra[1:-1],'ko')
-for x,m,s in zip(maskOnsetTicks[1:-1],meanContra[1:-1],semContra[1:-1]):
-    ax.plot([x,x],[m-s,m+s],'k')
-    ymax = max(ymax,m+s)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xticks(maskOnsetTicks)
-ax.set_xticklabels(maskOnsetLabels)
-ax.set_xlim([-8,91])
-ax.set_xlabel('Mask onset relative to target onset (ms)')
-ax.set_ylabel('Fraction of spikes contralateral to target')
-plt.tight_layout()
+        cumSpikes = []
+        for hemi in ('contra','ipsi'):
+            p = np.array(psth[stim][hemi]['all'][mo])[respCells]
+            b = p-p[:,t<0].mean(axis=1)[:,None]
+            cumSpikes.append(np.cumsum(b[:,analysisWindow],axis=1)*binSize)
+        cumContra.append(cumSpikes[0])
+        cumIpsi.append(cumSpikes[1])
+
+for resp in (cumContra,cumIpsi):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    for d,clr,lbl in zip(resp[1:-1],clrs,maskOnsetLabels[1:-1]):
+        m = d.mean(axis=0)
+        s = d.std(axis=0)/(len(d)**0.5)
+        ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
+        ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.legend()
+    plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-clrs = plt.cm.plasma(np.linspace(0,1,len(cumContra)))
-for s,clr,lbl in zip(cumContra,clrs,maskOnsetLabels):
-    ax.plot(t[analysisWindow],s,color=clr,label=lbl)
+for contra,ipsi,clr,lbl in zip(cumContra[1:-1],cumIpsi[1:-1],clrs,maskOnsetLabels[1:-1]):
+    d = contra-ipsi
+    m = d.mean(axis=0)
+    s = d.std(axis=0)/(len(d)**0.5)
+    ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
+    ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
+ax.plot([40,200],[0,0],'k--')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
@@ -286,7 +237,7 @@ plt.tight_layout()
 
 
 # decoding
-def getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir):
+def getDecoderResult(units,trialPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir):
     # X = features, y = target side label, m = mask onset label
     X = {trialSet: [] for trialSet in ('train','test')}
     y = [] 
@@ -298,7 +249,7 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,an
                 for mo in maskOnset:
                     stim = 'targetOnly' if mo==0 else 'mask'
                     ind = trialInd[hemi][mo][u]
-                    trials =  np.random.choice(ind,trialsPerIter) if minTrials is None else ind[:minTrials]
+                    trials =  np.random.choice(ind,numTrials,replace=True) if randomizeTrials else ind[:numTrials]
                     for trial in trials:
                         trial = np.random.choice(trialInd[hemi][mo][u])
                         X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][respUnits[u]][trial][analysisWindow])
@@ -337,13 +288,14 @@ nUnits = len(respUnits)
 
 unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[respCells]
 unitSampleSize = {}
-unitSampleSize['session'] = [np.sum(unitSessionInd==i) for i in range(len(exps))]
+unitSampleSize['sessionCorr'] = [np.sum(unitSessionInd==i) for i in range(len(exps))]
+unitSampleSize['sessionRand'] = unitSampleSize['sessionCorr']
 unitSampleSize['pooled'] = [1,5,10,20,40,nUnits]
 decoderOffset = np.arange(analysisWindow.sum())
 trainTestIters = 10
 trialsPerIter = 100
 
-unitSource = ('pooled','session')
+unitSource = unitSampleSize.keys()
 trainScore = {src: np.full((trainTestIters,len(unitSampleSize[src]),2,len(decoderOffset),len(maskOnset)),np.nan) for src in unitSource}
 testScore = copy.deepcopy(trainScore)
 decoderCoef = {src: np.full((trainTestIters,len(unitSampleSize[src]),analysisWindow.sum()),np.nan) for src in unitSource}
@@ -354,12 +306,15 @@ for iterInd in range(trainTestIters):
     for hemi in hemiLabels:
         for mo in maskOnset:
             stim = 'targetOnly' if mo==0 else 'mask'
-            for u in respUnits:
-                n = len(trialPsth[stim][hemi]['all'][mo][u])
-                ind = np.arange(n)
-                train = np.random.choice(ind,n//2,replace=False)
-                trainInd[hemi][mo].append(train)
-                testInd[hemi][mo].append(np.setdiff1d(ind,train))
+            for session in range(len(exps)):
+                units = respUnits[unitSessionInd==session]
+                n = len(trialPsth[stim][hemi]['all'][mo][units[0]])
+                trials = np.arange(n)
+                train = np.random.choice(trials,n//2,replace=False)
+                test = np.setdiff1d(trials,train)
+                for u in units:
+                    trainInd[hemi][mo].append(train)
+                    testInd[hemi][mo].append(test)
     
     for src in unitSource:
         for s,sampleSize in enumerate(unitSampleSize[src]):
@@ -372,21 +327,23 @@ for iterInd in range(trainTestIters):
                     # >99% chance each neuron is chosen at least once
                     nsamples = int(math.ceil(math.log(0.01)/math.log(1-sampleSize/nUnits)))
                     unitSamples = [np.random.choice(nUnits,sampleSize,replace=False) for _ in range(nsamples)]
-                minTrials = None
+                numTrials = trialsPerIter
+                randomizeTrials = True
             else:
                 unitSamples = [np.where(unitSessionInd==s)[0]]
-                minTrials = 10000
+                numTrials = 10000
                 for trialSet,trialInd in zip(('train','test'),(trainInd,testInd)):
                     for hemi,rd in zip(hemiLabels,rewardDir):
                         for mo in maskOnset:
-                            minTrials = min(minTrials,len(trialInd[hemi][mo][unitSamples[0][0]]))
+                            numTrials = min(numTrials,len(trialInd[hemi][mo][unitSamples[0][0]]))
+                randomizeTrials = False if src=='sessionCorr' else True
                 
             trainSamples = []
             testSamples = []
             coefSamples = []
             for units in unitSamples:
-                offsets = decoderOffset if src=='session' or sampleSize==max(unitSampleSize[src]) else [None]
-                train,test,coef = getDecoderResult(units,trialPsth,trainInd,testInd,minTrials,trialsPerIter,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir)
+                offsets = [None] if src=='pooled' and sampleSize<max(unitSampleSize[src]) else decoderOffset
+                train,test,coef = getDecoderResult(units,trialPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,offsets,maskOnset,hemiLabels,rewardDir)
                 trainSamples.append(train)
                 testSamples.append(test)
                 coefSamples.append(coef)
@@ -397,12 +354,12 @@ for iterInd in range(trainTestIters):
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for score,clr,trialSet in zip((trainScore,testScore),('0.5','k'),('train','test')):
-    for src,mfc in zip(unitSource,(clr,'none')):
+    for src,mrk,mfc in zip(unitSource,'soo',('none','none',clr)):
         overallScore = score[src][:,:,0,-1].mean(axis=-1)
         mean = overallScore.mean(axis=0)
         sem = overallScore.std(axis=0)/(trainTestIters**0.5)
         lbl = trialSet+', '+src
-        ax.plot(unitSampleSize[src],mean,'o',mec=clr,mfc=mfc,label=lbl)  
+        ax.plot(unitSampleSize[src],mean,mrk,mec=clr,mfc=mfc,label=lbl)  
         for x,m,s in zip(unitSampleSize[src],mean,sem):
             ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
@@ -412,6 +369,21 @@ ax.set_ylim([0.5,1.02])
 ax.set_xlabel('Number of Units')
 ax.set_ylabel('Decoder Accuracy')
 ax.legend()
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+x,y =  [testScore[src][:,:,0,-1].mean(axis=(0,-1)) for src in ('sessionRand','sessionCorr')]
+ax.plot([0,1],[0,1],'--',color='0.8')
+ax.plot(x,y,'ko')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlim([0.5,1.02])
+ax.set_ylim([0.5,1.02])
+ax.set_aspect('equal')
+ax.set_xlabel('Decoder Accuracy (Shuffled Trials)')
+ax.set_ylabel('Decoder Accuracy (Correlated Trials)')
 plt.tight_layout()
 
 fig = plt.figure()
@@ -451,14 +423,17 @@ ax.set_xlabel('Time Relative to Target Onset (ms)')
 ax.set_ylabel('Decoder Weighting')
 plt.tight_layout()
 
+clrs = np.zeros((len(maskOnset),3))
+clrs[1:] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+lbls = ['target only']+xticklabels[1:len(maskOnset)]
 for i in (0,1): 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    for j,(mo,clr) in enumerate(zip(maskOnset,plt.cm.plasma(np.linspace(0,1,len(maskOnset))))):
+    for j,(mo,clr,lbl) in enumerate(zip(maskOnset,clrs,lbls)):
         d = testScore['pooled'][:,-1,i,:,j]
         m = d.mean(axis=0)
         s = d.std(axis=0)/(trainTestIters**0.5)
-        ax.plot(t[analysisWindow]*1000,m,color=clr,label=mo)
+        ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
