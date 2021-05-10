@@ -369,18 +369,19 @@ for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[[5,1,2,3,4]],clrs,lbls):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xlim([100,650])
+ax.set_xlim([100,500])
 ax.set_ylim([0,1.02])
 ax.set_ylabel('Cumulative Probability')
 ax.legend(fontsize=8,loc='upper left')
 
 ax = fig.add_subplot(2,1,2)
+ax.plot([0,650],[0.5,0.5],'--',color='0.8')
 for p,clr in zip(pc,clrs):
     ax.plot(bins[:-2]+binWidth/2,p[:-1],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xlim([100,650])
+ax.set_xlim([100,500])
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Reaction Time (ms)')
 ax.set_ylabel('Probability Correct')
