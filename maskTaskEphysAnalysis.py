@@ -41,6 +41,7 @@ exps = []
 for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     obj = MaskTaskData()
     obj.loadFromHdf5(f)
+    obj.loadBehavData(obj.behavDataPath)
     obj.loadKilosortData(os.path.join(os.path.dirname(obj.datFilePath),'kilosort_filtered'))
     exps.append(obj)
     
@@ -84,6 +85,7 @@ hasResp = copy.deepcopy(psth)
 respP = copy.deepcopy(psth)
 for obj in exps:
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
+    validTrials = ~obj.longFrameTrials
     for stim in stimLabels:
         for rd,hemi in zip((1,-1),ephysHemi):
             stimTrials = obj.trialType==stim
@@ -96,7 +98,7 @@ for obj in exps:
                     respTrials = ~np.isnan(obj.responseDir) if resp=='go' else np.isnan(obj.responseDir)
                 for mo in np.unique(obj.maskOnset[stimTrials]):
                     moTrials = obj.maskOnset==mo
-                    trials = stimTrials & respTrials & (obj.maskOnset==mo)
+                    trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo)
                     if mo not in ntrials[stim][hemi][resp]:
                         ntrials[stim][hemi][resp][mo] = 0
                         trialPsth[stim][hemi][resp][mo] = []
@@ -206,7 +208,7 @@ for stim in stimLabels:
         cumContra.append(cumSpikes[0])
         cumIpsi.append(cumSpikes[1])
 
-for resp in (cumContra,cumIpsi):
+for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for d,clr,lbl in zip(resp[1:-1],clrs,maskOnsetLabels[1:-1]):
@@ -217,6 +219,9 @@ for resp in (cumContra,cumIpsi):
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xlim([33,200])
+    ax.set_xlabel('Time Relative to Target Onset (ms)')
+    ax.set_ylabel('Cumulative Spikes '+hemi+' to Target')
     ax.legend()
     plt.tight_layout()
 
@@ -228,10 +233,13 @@ for contra,ipsi,clr,lbl in zip(cumContra[1:-1],cumIpsi[1:-1],clrs,maskOnsetLabel
     s = d.std(axis=0)/(len(d)**0.5)
     ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
     ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
-ax.plot([40,200],[0,0],'k--')
+ax.plot([33,200],[0,0],'k--')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlim([33,200])
+ax.set_xlabel('Time Relative to Target Onset (ms)')
+ax.set_ylabel('Cumulative Excess Spikes Contralateral to Target')
 ax.legend()
 plt.tight_layout()
 
@@ -450,11 +458,12 @@ for i in (0,1):
 optoPsthExample = []
 i = 0
 for obj in exps:
+    validTrials = ~obj.longFrameTrials
     optoOnsetToPlot = np.nanmin(obj.optoOnset)
     for u in obj.goodUnits:
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
         for onset in [optoOnsetToPlot]:
-            trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
+            trials = validTrials & (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
             startTimes = obj.frameSamples[obj.stimStart[trials]+int(onset)]/obj.sampleRate-preTime
             p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=True)
         t -= preTime
@@ -470,11 +479,12 @@ sustainedOptoResp = baseRate.copy()
 sustainedOptoRate = baseRate.copy()
 i = 0
 for obj in exps:
+    validTrials = ~obj.longFrameTrials
     for u in obj.goodUnits:
         p = []
         spikeTimes = obj.units[u]['samples']/obj.sampleRate
         for onset in np.unique(obj.optoOnset[~np.isnan(obj.optoOnset)]):
-            trials = (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
+            trials = validTrials & (obj.trialType=='catchOpto') & (obj.optoOnset==onset)
             startTimes = obj.frameSamples[obj.stimStart[trials]+int(onset)]/obj.sampleRate-preTime
             s,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
             p.append(s)
@@ -565,6 +575,7 @@ optoStimLabels = ['targetOnly','mask','maskOnly','catch']
 optoOnset = list(np.unique(exps[0].optoOnset[~np.isnan(exps[0].optoOnset)]))+[np.nan]
 optoOnsetPsth = {stim: {hemi: {onset: [] for onset in optoOnset} for hemi in hemiLabels} for stim in optoStimLabels}
 for obj in exps:
+    validTrials = ~obj.longFrameTrials
     ephysHemi = hemiLabels[::-1] if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels
     for stim in stimLabels:
         for hemi,rd in zip(ephysHemi,rewardDir):
@@ -574,8 +585,8 @@ for obj in exps:
             for mo in np.unique(obj.maskOnset[stimTrials]):
                 moTrials = obj.maskOnset==mo
                 for onset in optoOnset:
-                    trials = np.isnan(obj.optoOnset) if np.isnan(onset) else obj.optoOnset==onset
-                    trials = trials & stimTrials & moTrials
+                    optoTrials = np.isnan(obj.optoOnset) if np.isnan(onset) else obj.optoOnset==onset
+                    trials = validTrials & stimTrials & moTrials & optoTrials
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                     for u in obj.goodUnits:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate

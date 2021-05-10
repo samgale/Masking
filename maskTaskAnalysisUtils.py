@@ -251,6 +251,7 @@ class MaskTaskData():
         if len(self.behavDataPath)==0:
             return
         self.behav = True
+        print('\n'+self.behavDataPath)
         
         behavData = h5py.File(self.behavDataPath,'r')
         self.behavFrameIntervals = behavData['frameIntervals'][:]
@@ -283,10 +284,34 @@ class MaskTaskData():
         self.optoChan = behavData['trialOptoChan'][:self.ntrials]
         self.optoOnset = behavData['trialOptoOnset'][:self.ntrials]
         
+        self.findLongFrameTrials()
         self.findEngagedTrials()
         self.getWheelPos()
         self.findEarlyMoveTrials()
         self.calcReactionTime()
+        
+    
+    def findLongFrameTrials(self):
+        self.longFrameTrials = np.zeros(self.ntrials,dtype=bool)
+        self.targetDur = np.full(self.ntrials,np.nan)
+        self.maskOnsetDur = self.targetDur.copy()
+        self.optoOnsetDur = self.targetDur.copy()
+        tol = 0.5/self.frameRate
+        for i,s in enumerate(self.stimStart):
+            if self.trialType[i] in ('targetOnly','targetOnlyOpto','mask','maskOpto'):
+                self.targetDur[i] = self.behavFrameIntervals[s:s+self.targetFrames[i]].sum()
+                if  self.targetDur[i] > self.targetFrames[i]/self.frameRate+tol:
+                    self.longFrameTrials[i] = True
+            if self.trialType[i] in ('mask','maskOpto'):
+                self.maskOnsetDur[i] = self.behavFrameIntervals[s:s+self.maskOnset[i]].sum()
+                if self.maskOnsetDur[i] > self.maskOnset[i]/self.frameRate+tol:
+                    self.longFrameTrials[i] = True
+            if not np.isnan(self.optoOnset[i]):
+                self.optoOnsetDur[i] = self.behavFrameIntervals[s:s+int(self.optoOnset[i])].sum()
+                if self.optoOnsetDur[i] > self.optoOnset[i]/self.frameRate+tol:
+                    self.longFrameTrials[i] = True
+        print(str(round(100*np.sum(self.behavFrameIntervals > 1/self.frameRate+tol)/self.behavFrameIntervals.size,2))+' % frames long')
+        print(str(self.longFrameTrials.sum())+' / '+str(self.ntrials)+' trials had long frames')
     
     
     def findEngagedTrials(self,engagedThresh=10):
@@ -297,6 +322,7 @@ class MaskTaskData():
             if len(r)>engagedThresh:
                 if all(np.isnan(r[-engagedThresh:])):
                     self.engaged[i] = False
+        print(str(self.engaged.sum())+' / '+str(self.ntrials)+' trials engaged')
     
                 
     def getWheelPos(self,preFrames=0,postFrames=0):  
@@ -312,6 +338,7 @@ class MaskTaskData():
         if earlyMoveThresh is None:
             earlyMoveThresh = self.maxQuiescentMoveDist
         self.earlyMove = np.any(self.wheelPos[:,:self.earlyMoveFrames]>earlyMoveThresh,axis=1)
+        print(str(self.earlyMove.sum())+' / '+str(self.ntrials)+' trials early move')
     
     
     def calcReactionTime(self,moveInitThresh=0.2):

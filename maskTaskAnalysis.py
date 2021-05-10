@@ -52,7 +52,7 @@ reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in
 reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 for n,obj in enumerate(exps):
-    validTrials = obj.engaged & (~obj.earlyMove)
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for stim in stimLabels:
         stimTrials = validTrials & (obj.trialType==stim)
         for j,tf in enumerate(targetFrames):
@@ -121,7 +121,7 @@ reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in
 reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 for n,obj in enumerate(exps):
-    validTrials = obj.engaged & (~obj.earlyMove)
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for stim in stimLabels:
         stimTrials = validTrials & (obj.trialType==stim)
         for j,tc in enumerate(targetContrast):
@@ -189,7 +189,7 @@ reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in
 reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 for n,obj in enumerate(exps):
-    validTrials = obj.engaged & (~obj.earlyMove)
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for stim in stimLabels:
         stimTrials = validTrials & (obj.trialType==stim)
         for j,mo in enumerate(maskOnset):
@@ -408,7 +408,7 @@ reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in
 reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 for n,obj in enumerate(exps):
-    validTrials = obj.engaged & (~obj.earlyMove)
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for s,stim in enumerate(stimLabels):
         stimTrials = validTrials & np.in1d(obj.trialType,(stim,stim+'Opto'))
         for j,optoOn in enumerate(optoOnset):
@@ -522,7 +522,7 @@ reacTime = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in
 reacTimeCorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))]
 for n,obj in enumerate(exps):
-    validTrials = obj.engaged & (~obj.earlyMove)
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for s,stim in enumerate(stimLabels):
         mo = 2 if stim in ('mask','maskOpto') else 0
         stimTrials = validTrials & np.in1d(obj.trialType,(stim,stim+'Opto')) & (obj.maskOnset==mo)
@@ -596,7 +596,7 @@ ntrials = [{stim: [] for stim in stimLabels} for _ in range(nexps)]
 respRate = [{stim: {respDir: [] for respDir in rewardDir} for stim in stimLabels} for _ in range(nexps)]
 medianReacTime = copy.deepcopy(respRate)
 for n,obj in enumerate(exps):
-    validTrials = obj.engaged & (~obj.earlyMove)
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for stim in stimLabels:
         if stim=='no stim':
             stimTrials = validTrials & np.in1d(obj.trialType,('catch','catchOpto')) & np.isnan(obj.rewardDir)
