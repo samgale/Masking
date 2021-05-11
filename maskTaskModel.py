@@ -5,6 +5,7 @@ Created on Wed Feb  3 16:32:27 2021
 @author: svc_ccg
 """
 
+import copy
 import pickle
 import random
 import numpy as np
@@ -193,7 +194,32 @@ for sig in signalNames:
             popPsthFilt[sig][hemi][maskOn] = p
 
 
+# sythetic signals based on ephys response to target and mask only
+gamma = 0.5
+target = popPsthFilt['targetOnly']['contra'][np.nan].copy()
+mask = popPsthFilt['maskOnly']['contra'][0].copy()
+syntheticSignals = {}
+for sig in popPsthFilt:
+    syntheticSignals[sig] = {}
+    for hemi in ('contra','ipsi'):
+        syntheticSignals[sig][hemi] = {}
+        if sig=='targetOnly':
+            syntheticSignals[sig][hemi][np.nan] = popPsthFilt[sig][hemi][np.nan].copy()
+        elif sig=='maskOnly':
+            syntheticSignals[sig][hemi][0] = popPsthFilt[sig][hemi][0].copy()
+        else:
+            for mo in (2,3,4,6):
+                msk = np.zeros(mask.size)
+                msk[mo:] = mask[:-mo]
+                trg = target.copy()
+                trg[trg<0] = 0
+                syntheticSignals[sig][hemi][mo] = target+msk/(1+gamma*trg) if hemi=='contra' else msk
+                
+                
+# normalize and plot signals
 signals = copy.deepcopy(popPsthFilt)
+
+signals = copy.deepcopy(syntheticSignals)
 
 smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
 for sig in signals.keys():
@@ -211,10 +237,10 @@ axs = []
 ymin = 0
 ymax = 0
 i = 0
-for sig in signals.keys():
+for sig in signals:
     for mo in signals[sig]['contra']:
         ax = fig.add_subplot(n,1,i+1)
-        for hemi,clr in zip(('ipsi','contra'),'br'):
+        for hemi,clr in zip(('ipsi','contra','ipsi'),'br'):
             p = signals[sig][hemi][mo]
             ax.plot(t,p,clr)
             ymin = min(ymin,p.min())
