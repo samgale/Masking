@@ -278,7 +278,7 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 100
+trialsPerCondition = 200
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
@@ -288,9 +288,9 @@ nuRange = slice(0,1,1) #slice(2,11,1)
 sigmaRange = slice(0,0.6,0.1)
 decayRange = slice(0,1,1) # slice(0,0.05,0.05)
 inhibRange = slice(0,0.6,0.1)
-thresholdRange = slice(2,20,2)
-threshDecayScaleRange = slice(20,180,20)
-threshDecayShapeRange = slice(1,7,1)
+thresholdRange = slice(2,12,2)
+threshDecayScaleRange = slice(2,24,2)
+threshDecayShapeRange = slice(1,8,1)
 threshDecayAmpRange = slice(0,1.2,0.2)
 trialEndRange = slice(16,25,2)
 
@@ -333,11 +333,11 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
 
 
 plt.figure()    
-for g in [100]:
+for g in [12]:#np.arange(20,180,20):
     for k in np.arange(1,10):
-        thresh = threshold - (1 - np.exp(-(t/g)**k)) * (threshold*1)
-        plt.plot(t,thresh,label=(g,k))
-thresh = threshold - (1 - np.exp(-(t/threshDecayScale)**threshDecayShape)) * (threshold*1)
+        thresh = threshold - (1 - np.exp(-(np.arange(24)/g)**k)) * (threshold*1)
+        plt.plot(np.arange(24),thresh,label=(g,k))
+thresh = threshold - (1 - np.exp(-(t/(threshDecayScale*dt))**threshDecayShape)) * (threshold*1)
 plt.plot(t,thresh,'k',lw=2)
 plt.legend()
 
