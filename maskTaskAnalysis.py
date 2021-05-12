@@ -250,8 +250,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         meanLR = np.mean(data,axis=1)
     else:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
-    for d in meanLR:
-        ax.plot(xticks,d,color='0.8')
+    for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
+        ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks,mean,'ko')

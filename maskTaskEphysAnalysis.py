@@ -56,7 +56,19 @@ for obj in exps:
 unitPos = np.array(unitPos)
 peakToTrough = np.array(peakToTrough)
 
-fs = peakToTrough < 0.5
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+bw = 0.05
+bins = np.arange(0,peakToTrough.max()+bw,bw)
+ax.bar(x=bins[:-1]+bw/2,height=np.histogram(peakToTrough,bins=bins)[0],width=bw,color='k')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlabel('Peak to trough (ms)')
+ax.set_ylabel('Count')
+plt.tight_layout()
+
+fs = peakToTrough < 0.4
 
 
 # plot response to visual stimuli without opto
@@ -181,7 +193,7 @@ for stim in ('targetOnly','mask','maskOnly'):
     for mo in psth[stim]['contra']['all']:
         ax = fig.add_subplot(6,1,i+1)
         for hemi,clr in zip(hemiLabels,'rb'):
-            p = np.array(psth[stim][hemi]['all'][mo])[respCells]
+            p = np.array(psth[stim][hemi]['all'][mo])[respCells & ~fs]
             b = p-p[:,t<0].mean(axis=1)[:,None]
             m = np.mean(b[:,tind],axis=0)
             s = np.std(b[:,tind],axis=0)/(len(p)**0.5)
@@ -242,7 +254,7 @@ for stim in stimLabels:
             continue
         cumSpikes = []
         for hemi in ('contra','ipsi'):
-            p = np.array(psth[stim][hemi]['all'][mo])[respCells]
+            p = np.array(psth[stim][hemi]['all'][mo])[respCells & ~fs]
             b = p-p[:,t<0].mean(axis=1)[:,None]
             cumSpikes.append(np.cumsum(b[:,analysisWindow],axis=1)*binSize)
         cumContra.append(cumSpikes[0])
@@ -570,18 +582,6 @@ for k,p in enumerate((optoPsthExample,optoPsth)):
             ax.set_xlabel('Time from LED onset (s)')
         ax.set_ylabel('Spikes/s')
     plt.tight_layout()
-    
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-bw = 0.05
-bins = np.arange(0,peakToTrough.max()+bw,bw)
-ax.bar(x=bins[:-1]+bw/2,height=np.histogram(peakToTrough,bins=bins)[0],width=bw,color='k')
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xlabel('Peak to trough (ms)')
-ax.set_ylabel('Count')
-plt.tight_layout()
 
 fig = plt.figure(figsize=(8,8))
 gs = matplotlib.gridspec.GridSpec(4,2)
