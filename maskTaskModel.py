@@ -38,9 +38,9 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 
 def calcModelError(paramsToFit,*fixedParams):
-    alpha,nu,sigma,decay,inhib,threshold,threshDecayScale,threshDecayShape,threshDecayAmp,trialEnd = paramsToFit
+    alpha,nu,sigma,decay,inhib,threshold,threshDecayTiming,threshDecayShape,threshDecayAmp,trialEnd = paramsToFit
     signals,targetSide,maskOnset,optoOnset,trialsPerCondition,responseRate,fractionCorrect = fixedParams
-    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,threshDecayScale,threshDecayShape,threshDecayAmp,trialEnd,trialsPerCondition)
+    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,threshDecayTiming,threshDecayShape,threshDecayAmp,trialEnd,trialsPerCondition)
     result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
     respRateError = np.nansum((responseRate-result['responseRate'])**2)
     fracCorrError = np.nansum((2*(fractionCorrect-result['fractionCorrect']))**2)
@@ -79,7 +79,7 @@ def analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset
     return result
 
 
-def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,threshDecayScale,threshDecayShape,threshDecayAmp,trialEnd,trialsPerCondition,record=False):
+def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,threshDecayTiming,threshDecayShape,threshDecayAmp,trialEnd,trialsPerCondition,record=False):
     trialTargetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -120,7 +120,7 @@ def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib
                     trialTargetSide.append(side)
                     trialMaskOnset.append(maskOn)
                     trialOptoOnset.append(optoOn)
-                    result = runTrial(sigma,decay,inhib,threshold,threshDecayScale,threshDecayShape,threshDecayAmp,trialEnd,Linitial,Rinitial,Lsignal,Rsignal,record)
+                    result = runTrial(sigma,decay,inhib,threshold,threshDecayTiming,threshDecayShape,threshDecayAmp,trialEnd,Linitial,Rinitial,Lsignal,Rsignal,record)
                     response.append(result[0])
                     responseTime.append(result[1])
                     if record:
@@ -130,7 +130,7 @@ def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib
 
 
 @njit
-def runTrial(sigma,decay,inhib,threshold,threshDecayScale,threshDecayShape,threshDecayAmp,trialEnd,Linitial,Rinitial,Lsignal,Rsignal,record=False):
+def runTrial(sigma,decay,inhib,threshold,threshDecayTiming,threshDecayShape,threshDecayAmp,trialEnd,Linitial,Rinitial,Lsignal,Rsignal,record=False):
     if record:
         Lrecord = np.full(Lsignal.size,np.nan)
         Rrecord = Lrecord.copy()
@@ -144,7 +144,7 @@ def runTrial(sigma,decay,inhib,threshold,threshDecayScale,threshDecayShape,thres
         Lprev = L
         L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R 
         R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lprev
-        thresh = threshold if threshDecayAmp==0 else threshold - (1 - np.exp(-(t/threshDecayScale)**threshDecayShape)) * (threshold * threshDecayAmp) 
+        thresh = threshold if threshDecayAmp==0 else threshold - (1 - np.exp(-(t/threshDecayTiming)**threshDecayShape)) * (threshold * threshDecayAmp)
         if record:
             Lrecord[t] = L
             Rrecord[t] = R
@@ -286,22 +286,22 @@ optoOnset = [np.nan]
 alphaRange = slice(0,1,1) # slice(0.05,0.5,0.05)
 nuRange = slice(0,1,1) #slice(2,11,1)
 sigmaRange = slice(0,0.6,0.1)
-decayRange = slice(0,1,1) # slice(0,0.05,0.05)
+decayRange = slice(0,0.6,0.1)
 inhibRange = slice(0,0.6,0.1)
 thresholdRange = slice(2,12,2)
-threshDecayScaleRange = slice(2,24,2)
-threshDecayShapeRange = slice(1,8,1)
+threshDecayTimingRange = slice(2,24,2)
+threshDecayShapeRange = slice(0.5,6,0.5)
 threshDecayAmpRange = slice(0,1.2,0.2)
-trialEndRange = slice(16,25,2)
+trialEndRange = slice(16,26,2)
 
-fitParamRanges = (alphaRange,nuRange,sigmaRange,decayRange,inhibRange,thresholdRange,threshDecayScaleRange,threshDecayShapeRange,threshDecayAmpRange,trialEndRange)
+fitParamRanges = (alphaRange,nuRange,sigmaRange,decayRange,inhibRange,thresholdRange,threshDecayTimingRange,threshDecayShapeRange,threshDecayAmpRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
 
 fit = fitModel(fitParamRanges,fixedParams)
 
-alpha,nu,sigma,decay,inhib,threshold,threshDecayScale,threshDecayShape,threshDecayAmp,trialEnd = fit
+alpha,nu,sigma,decay,inhib,threshold,threshDecayTiming,threshDecayShape,threshDecayAmp,trialEnd = fit
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,threshDecayScale,threshDecayShape,threshDecayAmp,trialEnd,trialsPerCondition=10000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,threshDecayTiming,threshDecayShape,threshDecayAmp,trialEnd,trialsPerCondition=10000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 responseRate = result['responseRate']
@@ -332,14 +332,37 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
     plt.tight_layout()
 
 
-plt.figure()    
-for g in [12]:#np.arange(20,180,20):
-    for k in np.arange(1,10):
-        thresh = threshold - (1 - np.exp(-(np.arange(24)/g)**k)) * (threshold*1)
-        plt.plot(np.arange(24),thresh,label=(g,k))
-thresh = threshold - (1 - np.exp(-(t/(threshDecayScale*dt))**threshDecayShape)) * (threshold*1)
-plt.plot(t,thresh,'k',lw=2)
-plt.legend()
+# plot collapsing boundary
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+x = np.arange(t.size)
+times = np.arange(2,24,2)  
+for decayTiming,clr in zip(times,plt.cm.plasma(np.linspace(0,1,len(times)))):
+    for decayShape in [3]:
+        thresh = 1 - (1 - np.exp(-(x/decayTiming)**decayShape)) * (1*1)
+        ax.plot(t,thresh,color=clr,label='decayTiming='+str(int(decayTiming*dt))+', decayShape='+str(decayShape))
+ax.legend(fontsize=8)
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+shapes = np.arange(0.5,6.5,0.5)  
+for decayTiming in [12]:
+    for decayShape,clr in zip(shapes,plt.cm.plasma(np.linspace(0,1,len(shapes)))):
+        thresh = 1 - (1 - np.exp(-(x/decayTiming)**decayShape)) * (1*1)
+        ax.plot(t,thresh,color=clr,label='decayTiming='+str(int(decayTiming*dt))+', decayShape='+str(decayShape))
+ax.legend(fontsize=8)
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+initVals,times,shapes,amps = [np.arange(s.start,s.stop,s.step) for s in (thresholdRange,threshDecayTimingRange,threshDecayShapeRange,threshDecayAmpRange)] 
+for initVal in initVals:
+    for decayTiming in times:
+        for decayShape in shapes:
+            for decayAmp in amps:
+                thresh = initVal - (1 - np.exp(-(x/decayTiming)**decayShape)) * (initVal*decayAmp)
+                ax.plot(t,thresh,color='0.8',alpha=0.25)
+thresh = threshold - (1 - np.exp(-(x/threshDecayTiming)**threshDecayShape)) * (threshold*threshDecayAmp)
+ax.plot(t,thresh,'k',lw=2)
 
 
 # out of sample fits

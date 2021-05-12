@@ -29,8 +29,6 @@ if len(behavFiles)>0:
     for f in behavFiles:
         obj = MaskTaskData()
         obj.loadBehavData(f)
-        obj.earlyMoveFrames = 15
-        obj.calcReactionTime()
         exps.append(obj)
 
     
@@ -229,6 +227,11 @@ for n in range(len(exps)):
         ax = fig.add_subplot(3,1,i+1)
         for d,clr in zip(data,'rb'):
             ax.plot(xticks,d,'o',color=clr)
+        if i==0:
+            meanLR = np.mean(data,axis=0)
+        else:
+            meanLR = np.sum(data*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+        ax.plot(xticks,meanLR,'ko')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)

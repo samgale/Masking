@@ -46,7 +46,6 @@ for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     exps.append(obj)
     
 
-
 unitPos = []
 peakToTrough = []
 for obj in exps:
@@ -224,19 +223,6 @@ for ax in axs:
 plt.tight_layout()
 
 
-# save psth
-popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
-for stim in stimLabels:
-    for hemi in hemiLabels:
-        p = psth[stim][hemi]['all']
-        for mo in p.keys():
-            popPsth[stim][hemi][mo] = np.array(p[mo])[respCells]
-popPsth['t'] = t
-            
-pkl = fileIO.saveFile(fileType='*.pkl')
-pickle.dump(popPsth,open(pkl,'wb'))
-        
-        
 # cumulative spike count and excess contralateral spikes
 maskOnset = np.unique(exps[0].maskOnset[~np.isnan(exps[0].maskOnset)])
 maskOnsetTicks = np.concatenate((maskOnset,(8,10)))/frameRate*1000
@@ -294,6 +280,19 @@ ax.set_xlabel('Time Relative to Target Onset (ms)')
 ax.set_ylabel('Cumulative Excess Spikes Contralateral to Target')
 ax.legend()
 plt.tight_layout()
+
+
+# save psth
+popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
+for stim in stimLabels:
+    for hemi in hemiLabels:
+        p = psth[stim][hemi]['all']
+        for mo in p.keys():
+            popPsth[stim][hemi][mo] = np.array(p[mo])[respCells]
+popPsth['t'] = t
+            
+pkl = fileIO.saveFile(fileType='*.pkl')
+pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # decoding
