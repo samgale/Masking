@@ -359,8 +359,11 @@ class MaskTaskData():
                     self.reactionTime[i] = tinterp[initInd[-1]]+1
     
     
-    def loadRFData(self):    
-        self.rfDataPath = fileIO.getFile('Select rf mapping data file',fileType='*.hdf5')
+    def loadRFData(self,filePath=None):
+        if filePath is None:
+            self.rfDataPath = fileIO.getFile('Select rf mapping data file',fileType='*.hdf5')
+        else:
+            self.rfDataPath = filePath
         if len(self.rfDataPath)==0:
             return
         self.rf = True
@@ -388,7 +391,6 @@ class MaskTaskData():
             return
         self.ephys = True
 
-          
         probeData,analogInData = loadDatData(self.datFilePath)
         
         self.sampleRate = 30000

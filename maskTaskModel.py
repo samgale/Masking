@@ -141,9 +141,9 @@ def runTrial(sigma,decay,inhib,threshold,threshDecayTiming,threshDecayShape,thre
     t = 0
     response = 0
     while t<trialEnd and response==0:
-        Lprev = L
-        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R 
-        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lprev
+        Lprev,Rprev = L,R
+        L += random.gauss(0,sigma) + Lsignal[t] - decay*Lprev - inhib*Rprev
+        R += random.gauss(0,sigma) + Rsignal[t] - decay*Rprev - inhib*Lprev
         thresh = threshold if threshDecayAmp==0 else threshold - (1 - np.exp(-(t/threshDecayTiming)**threshDecayShape)) * (threshold * threshDecayAmp)
         if record:
             Lrecord[t] = L
@@ -278,21 +278,21 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 200
+trialsPerCondition = 1000
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 
-alphaRange = slice(0,1,1) # slice(0.05,0.5,0.05)
-nuRange = slice(0,1,1) #slice(2,11,1)
-sigmaRange = slice(0,0.6,0.1)
-decayRange = slice(0,0.6,0.1)
-inhibRange = slice(0,0.6,0.1)
-thresholdRange = slice(2,12,2)
-threshDecayTimingRange = slice(2,24,2)
-threshDecayShapeRange = slice(0.5,6,0.5)
-threshDecayAmpRange = slice(0,1.2,0.2)
-trialEndRange = slice(16,26,2)
+alphaRange = slice(0,0.45,0.05)
+nuRange = slice(2,11,1)
+sigmaRange = slice(0.6,2,0.1)
+decayRange = slice(0,0.5,0.05)
+inhibRange = slice(0,0.5,0.05)
+thresholdRange = slice(2,12,1)
+threshDecayTimingRange = slice(0,1,1) # slice(2,24,2)
+threshDecayShapeRange = slice(0,1,1) # slice(0.5,6,0.5)
+threshDecayAmpRange = slice(0,1,1) # slice(0,1.2,0.2)
+trialEndRange = slice(16,25,1)
 
 fitParamRanges = (alphaRange,nuRange,sigmaRange,decayRange,inhibRange,thresholdRange,threshDecayTimingRange,threshDecayShapeRange,threshDecayAmpRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
@@ -519,7 +519,7 @@ ax = fig.add_subplot(2,1,2)
 clrs = np.zeros((len(maskOnset)-1,3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-2))[::-1,:3]
 lbls = xticklabels[1:-1]
-xlim = [0,150]
+xlim = [0,200]
 ntrials = []
 rt = []
 for maskOn,clr in zip(maskOnset[1:],clrs):

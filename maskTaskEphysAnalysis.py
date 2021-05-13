@@ -18,7 +18,7 @@ matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 from sklearn.svm import LinearSVC
 import fileIO
-from maskTaskAnalysisUtils import MaskTaskData,getPsth
+from maskTaskAnalysisUtils import MaskTaskData,getPsth,loadDatData
 
 
 
@@ -93,7 +93,6 @@ trialPsth = copy.deepcopy(ntrials)
 psth = copy.deepcopy(ntrials)
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
-respP = copy.deepcopy(psth)
 for obj in exps:
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
     validTrials = ~obj.longFrameTrials
@@ -116,7 +115,6 @@ for obj in exps:
                         psth[stim][hemi][resp][mo] = []
                         hasSpikes[stim][hemi][resp][mo] = []
                         hasResp[stim][hemi][resp][mo] = []
-                        respP[stim][hemi][resp][mo] = []
                     ntrials[stim][hemi][resp][mo] += trials.sum()
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                     for u in obj.goodUnits:
@@ -745,68 +743,109 @@ plt.tight_layout()
 
 
 
+# LFP
+import scipy.io
+f = fileIO.getFile('load channel map',fileType='*.mat')
+channelMapData = scipy.io.loadmat(f)
+channelMap = channelMapData['chanMap0ind'].flatten()
+ycoords = channelMapData['ycoords']
+
+unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])
+
+for i,obj in enumerate(exps):
+    probeData,analogInData = loadDatData(obj.datFilePath)
+    
+    preSamples = int(0*obj.sampleRate)
+    postSamples = int(0.2*obj.sampleRate)
+    resp = np.zeros((128,preSamples+postSamples))
+    trials = obj.trialType=='maskOnly'
+    startSamples = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]
+    for n,s in enumerate(startSamples):
+        resp += probeData[channelMap[:128],s-preSamples:s+postSamples]
+    resp /= n+1
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    xticks = np.arange(0,preSamples+postSamples,int(0.05*obj.sampleRate))
+    xticklabels = (xticks-preSamples)/obj.sampleRate
+    ax.imshow(resp,aspect='auto')
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    
+    print(np.unique([obj.units[u]['peakChan'] for u in np.array(obj.goodUnits)[respCells[unitSessionInd==i]]]))
+
+
+
 # rf mapping
-azi,ele = [np.unique(p) for p in obj.rfStimPos.T]
-ori = obj.rfOris
-contrast = np.unique(obj.rfStimContrast)
-dur = np.unique(obj.rfStimFrames)
-binSize = 1/obj.frameRate
-preTime = 0.1
-postTime = 0.6
-nbins = np.arange(0,preTime+postTime+binSize,binSize).size-1
-units =obj.sortedUnits
-rfMap = np.zeros((units.size,nbins,ele.size,azi.size,ori.shape[0],contrast.size,dur.size))
-for i,y in enumerate(ele):
-    eleTrials = obj.rfStimPos[:,1]==y
-    for j,x in enumerate(azi):
-        aziTrials = obj.rfStimPos[:,0]==x
-        for k,o in enumerate(ori):
-            oriTrials = obj.rfStimOri[:,0]==o[0]
-            if np.isnan(o[1]):
-                oriTrials = oriTrials & np.isnan(obj.rfStimOri[:,1])
+rfExps = []
+while True:
+    f = fileIO.getFile('choose rf data file',fileType='*.hdf5')
+    if f=='':
+        break
+    else:
+        obj = MaskTaskData()
+        obj.loadEphysData(led=False)
+        obj.loadKilosortData(os.path.join(os.path.dirname(obj.datFilePath),'kilosort'))
+        obj.loadRFData(f)
+        rfExps.append(obj)
+
+
+for obj in rfExps:
+    azi,ele = [np.unique(p) for p in obj.rfStimPos.T]
+    ori = obj.rfOris
+    contrast = np.unique(obj.rfStimContrast)
+    dur = np.unique(obj.rfStimFrames)
+    binSize = 1/obj.frameRate
+    preTime = 0.1
+    postTime = 0.6
+    nbins = np.arange(0,preTime+postTime+binSize,binSize).size-1
+    units =obj.sortedUnits
+    rfMap = np.zeros((units.size,nbins,ele.size,azi.size,ori.shape[0],contrast.size,dur.size))
+    for i,y in enumerate(ele):
+        eleTrials = obj.rfStimPos[:,1]==y
+        for j,x in enumerate(azi):
+            aziTrials = obj.rfStimPos[:,0]==x
+            for k,o in enumerate(ori):
+                oriTrials = obj.rfStimOri[:,0]==o[0]
+                if np.isnan(o[1]):
+                    oriTrials = oriTrials & np.isnan(obj.rfStimOri[:,1])
+                else:
+                    oriTrials = oriTrials & (obj.rfStimOri[:,1]==o[1])
+                for l,c in enumerate(contrast):
+                    contrastTrials = obj.rfStimContrast==c
+                    for m,d in enumerate(dur):
+                        trials = eleTrials & aziTrials & oriTrials & contrastTrials & (obj.rfStimFrames==d)
+                        startTimes = obj.frameSamples[obj.rfStimStart[trials]]/obj.sampleRate
+                        for n,u in enumerate(units):
+                            spikeTimes = obj.units[u]['samples']/obj.sampleRate
+                            p,t = getPsth(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
+                            t -= preTime
+    #                        p -= p[t<0].mean()
+                            rfMap[n,:,i,j,k,l,m] = p
+    
+    fig = plt.figure()
+    gs = matplotlib.gridspec.GridSpec(ele.size,azi.size)
+    m = rfMap.mean(axis=(0,4,5,6))
+    ymax = m.max()
+    for i,y in enumerate(ele):
+        for j,x in enumerate(azi):
+            ax = fig.add_subplot(gs[ele.size-1-i,j])
+            ax.plot(t,m[:,i,j],'k')
+            for side in ('right','top'):
+                ax.spines[side].set_visible(False)
+            if i==0 and j==1:
+                ax.set_xlabel('Time from stim onset (s)')
             else:
-                oriTrials = oriTrials & (obj.rfStimOri[:,1]==o[1])
-            for l,c in enumerate(contrast):
-                contrastTrials = obj.rfStimContrast==c
-                for m,d in enumerate(dur):
-                    trials = eleTrials & aziTrials & oriTrials & contrastTrials & (obj.rfStimFrames==d)
-                    startTimes = obj.frameSamples[obj.rfStimStart[trials]]/obj.sampleRate
-                    for n,u in enumerate(units):
-                        spikeTimes = obj.units[u]['samples']/obj.sampleRate
-                        p,t = getPsth(spikeTimes,startTimes-preTime,preTime+postTime,binSize=binSize,avg=True)
-                        t -= preTime
-#                        p -= p[t<0].mean()
-                        rfMap[n,:,i,j,k,l,m] = p
+                ax.set_xticklabels([])
+            if i==1 and j==0:
+                ax.set_ylabel('Spikes/s')
+            else:
+                ax.set_yticklabels([])
+            ax.set_xticks([0,0.5])
+            ax.set_yticks([0,10,20,30])
+            ax.set_ylim([0,1.02*ymax])
+    plt.tight_layout()
 
-
-fig = plt.figure()
-gs = matplotlib.gridspec.GridSpec(ele.size,azi.size)
-m = rfMap.mean(axis=(0,4,5,6))
-ymax = m.max()
-for i,y in enumerate(ele):
-    for j,x in enumerate(azi):
-        ax = fig.add_subplot(gs[ele.size-1-i,j])
-        ax.plot(t,m[:,i,j],'k')
-        for side in ('right','top'):
-            ax.spines[side].set_visible(False)
-        if i==0 and j==1:
-            ax.set_xlabel('Time from stim onset (s)')
-        else:
-            ax.set_xticklabels([])
-        if i==1 and j==0:
-            ax.set_ylabel('Spikes/s')
-        else:
-            ax.set_yticklabels([])
-        ax.set_xticks([0,0.5])
-        ax.set_yticks([0,10,20,30])
-        ax.set_ylim([0,1.02*ymax])
-plt.tight_layout()
-
-
-plt.figure()
-for i,o in enumerate(ori):
-    plt.plot(t,rfMap.mean(axis=(0,2,3,5,6))[:,i],label=o)
-plt.legend()
 
 
 # spike rate autocorrelation
