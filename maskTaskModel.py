@@ -485,11 +485,11 @@ ax = fig.add_subplot(2,1,2)
 clrs = np.zeros((len(maskOnset)-1,3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-2))[::-1,:3]
 lbls = xticklabels[1:-1]
-xlim = [0,200]
 ntrials = []
 rt = []
 for maskOn,clr in zip(maskOnset[1:],clrs):
     trials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
+    trials = trials & (trialTargetSide>0)
     ntrials.append(trials.sum())
     respTrials = trials & (response!=0)
     rt.append(responseTime[respTrials].astype(float)*dt)
@@ -502,8 +502,8 @@ for maskOn,clr in zip(maskOnset[1:],clrs):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xticks([50,100,150])
-ax.set_xlim(xlim)
+ax.set_xticks([0,50,100,150,200])
+ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Model decision time (ms)')
 ax.set_ylabel('Probability Correct')
@@ -516,8 +516,8 @@ for r,n,clr,lbl in zip(rt,ntrials,clrs,lbls):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)
-ax.set_xticks([50,100,150])
-ax.set_xlim(xlim)
+ax.set_xticks([0,50,100,150,200])
+ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
 ax.set_ylabel('Cumulative Probability')
 ax.legend(fontsize=8,loc='upper left')
