@@ -185,18 +185,17 @@ axs = []
 ymin = 0
 ymax = 0
 i = 0
-tind = (t>0) & (t<0.2)
 for stim in ('targetOnly','mask','maskOnly'):
     for mo in psth[stim]['contra']['all']:
         ax = fig.add_subplot(6,1,i+1)
         for hemi,clr in zip(hemiLabels,'rb'):
             p = np.array(psth[stim][hemi]['all'][mo])[respCells & ~fs]
             b = p-p[:,t<0].mean(axis=1)[:,None]
-            m = np.mean(b[:,tind],axis=0)
-            s = np.std(b[:,tind],axis=0)/(len(p)**0.5)
+            m = np.mean(b,axis=0)
+            s = np.std(b,axis=0)/(len(p)**0.5)
             clr,lbl = ('k','none') if stim=='maskOnly' else (clr,hemi)
-            ax.plot(t[tind]*1000,m,color=clr,label=hemi)
-            ax.fill_between(t[tind]*1000,m+s,m-s,color=clr,alpha=0.25)
+            ax.plot(t*1000,m,color=clr,label=hemi)
+            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
             ymin = min(ymin,np.min(m-s))
             ymax = max(ymax,np.max(m+s))
         if i==5:
@@ -209,6 +208,54 @@ for stim in ('targetOnly','mask','maskOnly'):
             title = title+' onset '+str(round(mo/120*1000,1))+' ms'
         ax.set_title(title)
         if i==0:
+            ax.legend()
+        axs.append(ax)
+        i += 1
+for ax in axs:
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xlim([0,200])
+    ax.set_ylim([1.05*ymin,1.05*ymax])
+plt.tight_layout()
+
+
+# predicted response to target + mask
+fig = plt.figure(figsize=(4,9))
+axs = []
+ymin = 0
+ymax = 0
+i = 0
+unitInd = [respCells & ~fs]
+target = np.array(psth['targetOnly']['contra']['all'][0])[unitInd]
+for stim in ('targetOnly','mask','maskOnly'):
+    for mo in psth[stim]['contra']['all']:
+        ax = fig.add_subplot(6,1,i+1)
+        for lbl,clr,ls in zip(('actual','predicted'),('k','0.5'),('-','--')):
+            if lbl=='actual':
+                p = np.array(psth[stim]['contra']['all'][mo])[unitInd]
+            elif stim=='mask':
+                mask = np.array(psth['mask']['ipsi']['all'][mo])[unitInd]
+                p = target+mask
+            else:
+                continue
+            b = p-p[:,t<0].mean(axis=1)[:,None]
+            m = np.mean(b,axis=0)
+            s = np.std(b,axis=0)/(len(p)**0.5)
+            ax.plot(t*1000,m,ls,color=clr,label=lbl)
+            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
+            ymin = min(ymin,np.min(m-s))
+            ymax = max(ymax,np.max(m+s))
+        if i==5:
+            ax.set_xlabel('Time (ms)')
+        else:
+            ax.set_xticklabels([])
+        ax.set_ylabel('Spikes/s')
+        title = stim
+        if stim=='mask':
+            title = title+' onset '+str(round(mo/120*1000,1))+' ms'
+        ax.set_title(title)
+        if i==1:
             ax.legend()
         axs.append(ax)
         i += 1

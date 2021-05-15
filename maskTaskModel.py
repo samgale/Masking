@@ -85,7 +85,6 @@ def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib
     responseTime = []
     Lrecord = []
     Rrecord = []
-    Linitial = Rinitial = 0
     for side in targetSide:
         mo = [np.nan] if side==0 else maskOnset
         for maskOn in mo:
@@ -118,7 +117,7 @@ def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib
                     trialTargetSide.append(side)
                     trialMaskOnset.append(maskOn)
                     trialOptoOnset.append(optoOn)
-                    result = runTrial(sigma,decay,inhib,threshold,trialEnd,Linitial,Rinitial,Lsignal,Rsignal,record)
+                    result = runTrial(sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
                     response.append(result[0])
                     responseTime.append(result[1])
                     if record:
@@ -128,14 +127,14 @@ def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib
 
 
 @njit
-def runTrial(sigma,decay,inhib,threshold,trialEnd,Linitial,Rinitial,Lsignal,Rsignal,record=False):
+def runTrial(sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
     if record:
         Lrecord = np.full(Lsignal.size,np.nan)
         Rrecord = Lrecord.copy()
     else:
         Lrecord = Rrecord = None
-    L = Linitial
-    R = Rinitial
+    L = 0
+    R = 0
     t = 0
     response = 0
     while t<trialEnd and response==0:
@@ -184,42 +183,18 @@ for sig in signalNames:
             p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
             p = p.mean(axis=0)
             
-#            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
-            p = np.interp(t,popPsth['t']*1000,p)
+            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
+#            p = np.interp(t,popPsth['t']*1000,p)
 #            p = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(p,5,3))
 #            p = np.interp(t,popPsth['t']*1000,np.convolve(p,expFilt,mode='same'))
             
             p -= p[t<30].mean()
             maskOn = np.nan if sig=='targetOnly' else mo
             popPsthFilt[sig][hemi][maskOn] = p
-
-
-# sythetic signals based on ephys response to target and mask only
-gamma = 0.5
-target = popPsthFilt['targetOnly']['contra'][np.nan].copy()
-mask = popPsthFilt['maskOnly']['contra'][0].copy()
-syntheticSignals = {}
-for sig in popPsthFilt:
-    syntheticSignals[sig] = {}
-    for hemi in ('contra','ipsi'):
-        syntheticSignals[sig][hemi] = {}
-        if sig=='targetOnly':
-            syntheticSignals[sig][hemi][np.nan] = popPsthFilt[sig][hemi][np.nan].copy()
-        elif sig=='maskOnly':
-            syntheticSignals[sig][hemi][0] = popPsthFilt[sig][hemi][0].copy()
-        else:
-            for mo in (2,3,4,6):
-                msk = np.zeros(mask.size)
-                msk[mo:] = mask[:-mo]
-                trg = target.copy()
-                trg[trg<0] = 0
-                syntheticSignals[sig][hemi][mo] = target+msk/(1+gamma*trg) if hemi=='contra' else msk
                 
                 
 # normalize and plot signals
 signals = copy.deepcopy(popPsthFilt)
-
-#signals = copy.deepcopy(syntheticSignals)
 
 smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
 for sig in signals.keys():
@@ -227,9 +202,9 @@ for sig in signals.keys():
         for mo in signals[sig][hemi]:
             s = signals[sig][hemi][mo]
             s /= smax
-            i = s > 0
-            s[i] = s[i]**nu / (alpha**nu + s[i]**nu)
-            s[i] *= alpha**nu + 1
+#            i = s > 0
+#            s[i] = s[i]**nu / (alpha**nu + s[i]**nu)
+#            s[i] *= alpha**nu + 1
 
 fig = plt.figure(figsize=(4,10))
 n = 2+len(signals['mask']['contra'].keys())
@@ -317,7 +292,7 @@ optoOnset = [np.nan]
 
 alphaRange = slice(0,0.5,0.05)
 nuRange = slice(2,12,1)
-sigmaRange = slice(0.2,2,0.1)
+sigmaRange = slice(0.1,2,0.1)
 decayRange = slice(0,0.5,0.05)
 inhibRange = slice(0,0.5,0.05)
 thresholdRange = slice(4,18,1)
@@ -336,11 +311,6 @@ result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMask
 responseRate = result['responseRate']
 fractionCorrect = result['fractionCorrect']
 
-#fit = scipy.optimize.brute(calcModelError,fitParamRanges,args=fixedParams,full_output=False,finish=None,workers=-1)
-#finalFit = scipy.optimize.minimize(calcModelError,fit,args=fixedParams,method='Nelder-Mead')
-#
-#
-#fit = scipy.optimize.dual_annealing(calcModelError,fitParamRanges,args=fixedParams,maxiter=1000,local_search_options={'method': 'Nelder-Mead'})
 
 # compare fit to data
 xticks = [mo/120*1000 for mo in maskOnset[:-1]]+[67,83]
