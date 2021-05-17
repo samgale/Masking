@@ -180,26 +180,50 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
         ax.set_ylim([1.05*ymin,1.05*ymax])
 
 
+cellsToUse = respCells & ~fs
+
 fig = plt.figure(figsize=(4,9))
 axs = []
 ymin = 0
 ymax = 0
 i = 0
+target = np.array(psth['targetOnly']['contra']['all'][0])[cellsToUse]
 for stim in ('targetOnly','mask','maskOnly'):
     for mo in psth[stim]['contra']['all']:
         ax = fig.add_subplot(6,1,i+1)
+        
         for hemi,clr in zip(hemiLabels,'rb'):
-            p = np.array(psth[stim][hemi]['all'][mo])[respCells & ~fs]
+            p = np.array(psth[stim][hemi]['all'][mo])[cellsToUse]
             b = p-p[:,t<0].mean(axis=1)[:,None]
             m = np.mean(b,axis=0)
             s = np.std(b,axis=0)/(len(p)**0.5)
-            clr,lbl = ('k','none') if stim=='maskOnly' else (clr,hemi)
-            ax.plot(t*1000,m,color=clr,label=hemi)
+            if stim=='targetOnly':
+                lbl = hemi+'lateral target'
+            elif stim=='maskOnly':
+                if hemi=='contra':
+                    clr = 'k'
+                    lbl = 'no target'
+                else:
+                    continue
+            else:
+                lbl = None
+            ax.plot(t*1000,m,color=clr,label=lbl)
             ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
             ymin = min(ymin,np.min(m-s))
             ymax = max(ymax,np.max(m+s))
+        
+        if stim=='mask':
+            mask = np.array(psth['mask']['ipsi']['all'][mo])[cellsToUse]
+            p = target+mask
+            b = p-p[:,t<0].mean(axis=1)[:,None]
+            m = np.mean(b,axis=0)
+            s = np.std(b,axis=0)/(len(p)**0.5)
+            ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
+            ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
+            ymin = min(ymin,np.min(m-s))
+            ymax = max(ymax,np.max(m+s))
         if i==5:
-            ax.set_xlabel('Time (ms)')
+            ax.set_xlabel('Time from stimulus onset (ms)')
         else:
             ax.set_xticklabels([])
         ax.set_ylabel('Spikes/s')
@@ -207,8 +231,8 @@ for stim in ('targetOnly','mask','maskOnly'):
         if stim=='mask':
             title = title+' onset '+str(round(mo/120*1000,1))+' ms'
         ax.set_title(title)
-        if i==0:
-            ax.legend()
+        if i in (0,1,5):
+            ax.legend(fontsize=8)
         axs.append(ax)
         i += 1
 for ax in axs:
@@ -226,16 +250,15 @@ axs = []
 ymin = 0
 ymax = 0
 i = 0
-unitInd = [respCells & ~fs]
-target = np.array(psth['targetOnly']['contra']['all'][0])[unitInd]
+target = np.array(psth['targetOnly']['contra']['all'][0])[cellsToUse]
 for stim in ('targetOnly','mask','maskOnly'):
     for mo in psth[stim]['contra']['all']:
         ax = fig.add_subplot(6,1,i+1)
         for lbl,clr,ls in zip(('actual','predicted'),('k','0.5'),('-','--')):
             if lbl=='actual':
-                p = np.array(psth[stim]['contra']['all'][mo])[unitInd]
+                p = np.array(psth[stim]['contra']['all'][mo])[cellsToUse]
             elif stim=='mask':
-                mask = np.array(psth['mask']['ipsi']['all'][mo])[unitInd]
+                mask = np.array(psth['mask']['ipsi']['all'][mo])[cellsToUse]
                 p = target+mask
             else:
                 continue
