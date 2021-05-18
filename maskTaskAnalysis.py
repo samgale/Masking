@@ -318,7 +318,7 @@ plt.tight_layout()
 # reaction time on correct and incorrect trials
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for data,clr,lbl in zip((medianReacTimeCorrect,medianReacTimeIncorrect,medianReacTime),['k','0.8','k'],('correct','incorrect','other')):
+for data,clr,lbl in zip((medianReacTimeCorrect,medianReacTimeIncorrect,medianReacTime),('k','0.8','k'),('correct','incorrect','other')):
     meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)

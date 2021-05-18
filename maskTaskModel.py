@@ -183,8 +183,8 @@ for sig in signalNames:
             p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
             p = p.mean(axis=0)
             
-            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
-#            p = np.interp(t,popPsth['t']*1000,p)
+#            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
+            p = np.interp(t,popPsth['t']*1000,p)
 #            p = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(p,5,3))
 #            p = np.interp(t,popPsth['t']*1000,np.convolve(p,expFilt,mode='same'))
             
@@ -285,7 +285,7 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 5000
+trialsPerCondition = 1000
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
@@ -296,7 +296,7 @@ sigmaRange = slice(0.1,2,0.1)
 decayRange = slice(0,0.5,0.05)
 inhibRange = slice(0,0.5,0.05)
 thresholdRange = slice(4,18,1)
-trialEndRange = slice(24,25,1)
+trialEndRange = slice(18,19,1)
 
 fitParamRanges = (alphaRange,nuRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
@@ -457,17 +457,23 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for respTime,clr,lbl in zip(('responseTimeCorrect','responseTimeIncorrect'),('k','0.5'),('correct','incorrect')):
+for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','responseTime',),('k','0.8','k'),('k','0.8','none'),('correct','incorrect','other')):
     rt = []
     for side in targetSide:
         maskOn = [np.nan] if side==0 else maskOnset
         for mo in maskOn:
             for optoOn in optoOnset:
-                if side!=0 and mo!=0:
-                    rt.append(dt*np.median(result[side][mo][optoOn][respTime]))
+                if side==0 or mo==0:
+                    if respTime=='responseTime':
+                        rt.append(dt*np.median(result[side][mo][optoOn][respTime]))
+                    else:
+                        rt.append(np.nan)
                 else:
-                    rt.append(np.nan)
-    ax.plot(xticks,rt,'o',color=clr,label=lbl)
+                    if respTime=='responseTime':
+                        rt.append(np.nan)
+                    else:
+                        rt.append(dt*np.median(result[side][mo][optoOn][respTime]))
+    ax.plot(xticks,rt,'o',mec=mec,mfc=mfc,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)

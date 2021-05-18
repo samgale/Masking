@@ -83,7 +83,6 @@ stimLabels = ('maskOnly','mask','targetOnly','catch')
 hemiLabels = ('contra','ipsi')
 rewardDir = (-1,1)
 behavRespLabels = ('all','go','nogo')
-cellTypeLabels = ('all','FS','RS')
 preTime = 0.5
 postTime = 0.5
 windowDur = preTime+trialTime+postTime
@@ -132,19 +131,18 @@ for obj in exps:
                         pval = 1 if np.sum(r-b)==0 else scipy.stats.wilcoxon(b,r)[1] 
                         hasResp[stim][hemi][resp][mo].append(peak>respThresh*m[t<0].std() and pval<0.05)                     
 
-activeCells = np.array(hasSpikes['targetOnly']['contra']['all'][0]) | np.array(hasSpikes['maskOnly']['contra']['all'][0])
-respCells = np.array(hasResp['targetOnly']['contra']['all'][0]) | np.array(hasResp['maskOnly']['contra']['all'][0])
-targetRespCells = np.array(hasResp['targetOnly']['contra']['all'][0])
+activeUnits = np.array(hasSpikes['targetOnly']['contra']['all'][0]) | np.array(hasSpikes['maskOnly']['contra']['all'][0])
+targetRespUnits = np.array(hasResp['targetOnly']['contra']['all'][0])
+maskRespUnits = np.array(hasResp['maskOnly']['contra']['all'][0])
+respUnits = targetRespUnits | maskRespUnits
 
 xlim = [-0.1,0.4]
-for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
-    if cellType!='all':
-        continue
+for units in (respUnits,):
     axs = []
     ymin = ymax = 0
     for resp in ('all',): #behavRespLabels:
         fig = plt.figure(figsize=(10,5))
-        fig.text(0.5,0.99,cellType+' (n='+str(respCells[ct].sum())+' cells)',ha='center',va='top',fontsize=12)
+        fig.text(0.5,0.99,'n='+str(units.sum())+' units)',ha='center',va='top',fontsize=12)
         for i,hemi in enumerate(hemiLabels):
             ax = fig.add_subplot(1,2,i+1)
             axs.append(ax)
@@ -157,7 +155,7 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
                 else:
                     cmap = [clr]
                 for mo,c in zip(mskOn,cmap):
-                    p = np.array(psth[stim][hemi][resp][mo])[ct & respCells]
+                    p = np.array(psth[stim][hemi][resp][mo])[units]
                     m = np.mean(p,axis=0)
                     s = np.std(p,axis=0)/(len(p)**0.5)
                     lbl = 'target+mask, SOA '+str(round(1000*mo/frameRate,1))+' ms' if stim=='mask' else stim
@@ -178,117 +176,96 @@ for ct,cellType in zip((np.ones(fs.size,dtype=bool),fs,~fs),cellTypeLabels):
             ax.set_title('target '+hemi)
     for ax in axs:
         ax.set_ylim([1.05*ymin,1.05*ymax])
-
-
-cellsToUse = respCells & ~fs
-
-fig = plt.figure(figsize=(4,9))
-axs = []
-ymin = 0
-ymax = 0
-i = 0
-target = np.array(psth['targetOnly']['contra']['all'][0])[cellsToUse]
-for stim in ('targetOnly','mask','maskOnly'):
-    for mo in psth[stim]['contra']['all']:
-        ax = fig.add_subplot(6,1,i+1)
         
-        for hemi,clr in zip(hemiLabels,'rb'):
-            p = np.array(psth[stim][hemi]['all'][mo])[cellsToUse]
-            b = p-p[:,t<0].mean(axis=1)[:,None]
-            m = np.mean(b,axis=0)
-            s = np.std(b,axis=0)/(len(p)**0.5)
-            if stim=='targetOnly':
-                lbl = hemi+'lateral target'
-            elif stim=='maskOnly':
-                if hemi=='contra':
-                    clr = 'k'
-                    lbl = 'no target'
+
+#
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ymax = 0
+ax.plot([0,1000],[0,1000],'--',color='0.8')
+for units,clr,lbl in zip((respUnits,),'k',(None,)):
+    peakResp = []
+    for stim in ('targetOnly','maskOnly'):
+        p = np.array(psth[stim]['contra']['all'][0])[units]
+        b = p-p[:,t<0].mean(axis=1)[:,None]
+        peakResp.append(b.max(axis=1))
+    ax.plot(peakResp[0],peakResp[1],'o',mec=clr,mfc='none',label=lbl)
+    ymax = max(ymax,np.max(peakResp))
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xlim([0,1.05*ymax])
+ax.set_ylim([0,1.05*ymax])
+ax.set_aspect('equal')
+ax.set_xlabel('Peak response to target (spikes/s)')
+ax.set_ylabel('Peak response to mask (spikes/s)')
+#ax.legend()
+plt.tight_layout()
+
+
+# compare contra, ipsi, and predicted response to target + mask
+for units in (respUnits,targetRespUnits,maskRespUnits & ~targetRespUnits):
+    units = units & ~fs
+    fig = plt.figure(figsize=(4,9))
+    axs = []
+    ymin = 0
+    ymax = 0
+    i = 0
+    target = np.array(psth['targetOnly']['contra']['all'][0])[units]
+    for stim in ('targetOnly','mask','maskOnly'):
+        for mo in psth[stim]['contra']['all']:
+            ax = fig.add_subplot(6,1,i+1)
+            
+            for hemi,clr in zip(hemiLabels,'rb'):
+                p = np.array(psth[stim][hemi]['all'][mo])[units]
+                b = p-p[:,t<0].mean(axis=1)[:,None]
+                m = np.mean(b,axis=0)
+                s = np.std(b,axis=0)/(len(p)**0.5)
+                if stim=='targetOnly':
+                    lbl = hemi+'lateral target'
+                elif stim=='maskOnly':
+                    if hemi=='contra':
+                        clr = 'k'
+                        lbl = 'no target'
+                    else:
+                        continue
                 else:
-                    continue
-            else:
-                lbl = None
-            ax.plot(t*1000,m,color=clr,label=lbl)
-            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
-            ymin = min(ymin,np.min(m-s))
-            ymax = max(ymax,np.max(m+s))
-        
-        if stim=='mask':
-            mask = np.array(psth['mask']['ipsi']['all'][mo])[cellsToUse]
-            p = target+mask
-            b = p-p[:,t<0].mean(axis=1)[:,None]
-            m = np.mean(b,axis=0)
-            s = np.std(b,axis=0)/(len(p)**0.5)
-            ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
-            ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
-            ymin = min(ymin,np.min(m-s))
-            ymax = max(ymax,np.max(m+s))
-        if i==5:
-            ax.set_xlabel('Time from stimulus onset (ms)')
-        else:
-            ax.set_xticklabels([])
-        ax.set_ylabel('Spikes/s')
-        title = stim
-        if stim=='mask':
-            title = title+' onset '+str(round(mo/120*1000,1))+' ms'
-        ax.set_title(title)
-        if i in (0,1,5):
-            ax.legend(fontsize=8)
-        axs.append(ax)
-        i += 1
-for ax in axs:
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xlim([0,200])
-    ax.set_ylim([1.05*ymin,1.05*ymax])
-plt.tight_layout()
-
-
-# predicted response to target + mask
-fig = plt.figure(figsize=(4,9))
-axs = []
-ymin = 0
-ymax = 0
-i = 0
-target = np.array(psth['targetOnly']['contra']['all'][0])[cellsToUse]
-for stim in ('targetOnly','mask','maskOnly'):
-    for mo in psth[stim]['contra']['all']:
-        ax = fig.add_subplot(6,1,i+1)
-        for lbl,clr,ls in zip(('actual','predicted'),('k','0.5'),('-','--')):
-            if lbl=='actual':
-                p = np.array(psth[stim]['contra']['all'][mo])[cellsToUse]
-            elif stim=='mask':
-                mask = np.array(psth['mask']['ipsi']['all'][mo])[cellsToUse]
+                    lbl = None
+                ax.plot(t*1000,m,color=clr,label=lbl)
+                ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
+                ymin = min(ymin,np.min(m-s))
+                ymax = max(ymax,np.max(m+s))
+            
+            if stim=='mask':
+                mask = np.array(psth['mask']['ipsi']['all'][mo])[units]
                 p = target+mask
+                b = p-p[:,t<0].mean(axis=1)[:,None]
+                m = np.mean(b,axis=0)
+                s = np.std(b,axis=0)/(len(p)**0.5)
+                ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
+                ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
+                ymin = min(ymin,np.min(m-s))
+                ymax = max(ymax,np.max(m+s))
+            if i==5:
+                ax.set_xlabel('Time from stimulus onset (ms)')
             else:
-                continue
-            b = p-p[:,t<0].mean(axis=1)[:,None]
-            m = np.mean(b,axis=0)
-            s = np.std(b,axis=0)/(len(p)**0.5)
-            ax.plot(t*1000,m,ls,color=clr,label=lbl)
-            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
-            ymin = min(ymin,np.min(m-s))
-            ymax = max(ymax,np.max(m+s))
-        if i==5:
-            ax.set_xlabel('Time (ms)')
-        else:
-            ax.set_xticklabels([])
-        ax.set_ylabel('Spikes/s')
-        title = stim
-        if stim=='mask':
-            title = title+' onset '+str(round(mo/120*1000,1))+' ms'
-        ax.set_title(title)
-        if i==1:
-            ax.legend()
-        axs.append(ax)
-        i += 1
-for ax in axs:
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xlim([0,200])
-    ax.set_ylim([1.05*ymin,1.05*ymax])
-plt.tight_layout()
+                ax.set_xticklabels([])
+            ax.set_ylabel('Spikes/s')
+            title = stim
+            if stim=='mask':
+                title = title+' onset '+str(round(mo/120*1000,1))+' ms'
+            ax.set_title(title)
+            if i in (0,1,5):
+                ax.legend(fontsize=8)
+            axs.append(ax)
+            i += 1
+    for ax in axs:
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False)
+        ax.set_xlim([0,200])
+        ax.set_ylim([1.05*ymin,1.05*ymax])
+    plt.tight_layout()
 
 
 # cumulative spike count and excess contralateral spikes
@@ -298,6 +275,7 @@ maskOnsetLabels = ['mask only']+[str(int(round(onset))) for onset in maskOnsetTi
 clrs = np.zeros((len(maskOnset),3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
 
+units = respUnits & ~fs
 analysisWindow = (t>0.033) & (t<0.2)
 
 cumContra = []
@@ -308,7 +286,7 @@ for stim in stimLabels:
             continue
         cumSpikes = []
         for hemi in ('contra','ipsi'):
-            p = np.array(psth[stim][hemi]['all'][mo])[respCells & ~fs]
+            p = np.array(psth[stim][hemi]['all'][mo])[units]
             b = p-p[:,t<0].mean(axis=1)[:,None]
             cumSpikes.append(np.cumsum(b[:,analysisWindow],axis=1)*binSize)
         cumContra.append(cumSpikes[0])
@@ -350,17 +328,19 @@ ax.legend()
 plt.tight_layout()
 
 
+
 # save psth
 popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
 for stim in stimLabels:
     for hemi in hemiLabels:
         p = psth[stim][hemi]['all']
         for mo in p.keys():
-            popPsth[stim][hemi][mo] = np.array(p[mo])[respCells]
+            popPsth[stim][hemi][mo] = np.array(p[mo])[respUnits]
 popPsth['t'] = t
             
 pkl = fileIO.saveFile(fileType='*.pkl')
 pickle.dump(popPsth,open(pkl,'wb'))
+
 
 
 # decoding
@@ -410,10 +390,10 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,numTrials,randomizeTrials,
 
 maskOnset = [0,2,3,4,6]
 analysisWindow = (t>0) & (t<0.2)
-respUnits = np.where(respCells)[0]
+respUnits = np.where(respUnits)[0]
 nUnits = len(respUnits)
 
-unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[respCells]
+unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[respUnits]
 unitSampleSize = {}
 unitSampleSize['sessionCorr'] = [np.sum(unitSessionInd==i) for i in range(len(exps))]
 unitSampleSize['sessionRand'] = unitSampleSize['sessionCorr']
@@ -573,6 +553,7 @@ for i in (0,1):
     plt.tight_layout()
 
 
+
 # plot response to optogenetic stimuluation during catch trials
 optoPsthExample = []
 i = 0
@@ -620,16 +601,16 @@ optoPsth = np.array(optoPsth)
 
 peakThresh = 5*stdBaseRate
 sustainedThresh = stdBaseRate
-excit = activeCells & (sustainedOptoResp>sustainedThresh)
-transient = activeCells & (~excit) & (transientOptoResp>peakThresh)
-inhib = activeCells & (~transient) & (sustainedOptoResp<sustainedThresh)
-noResp = activeCells & (~(excit | inhib | transient))
+excit = activeUnits & (sustainedOptoResp>sustainedThresh)
+transient = activeUnits & (~excit) & (transientOptoResp>peakThresh)
+inhib = activeUnits & (~transient) & (sustainedOptoResp<sustainedThresh)
+noResp = activeUnits & (~(excit | inhib | transient))
 
 for k,p in enumerate((optoPsthExample,optoPsth)):
     fig = plt.figure(figsize=(6,8))
     for i,(units,lbl) in enumerate(zip((excit,transient,inhib | noResp),('Excited','Transient','Inhibited'))):
         ax = fig.add_subplot(3,1,i+1)
-        units = units & activeCells
+        units = units & activeUnits
         m = p[units].mean(axis=0)
         s = p[units].std(axis=0)/(units.sum()**0.5)
         ax.plot(t,m,'k')
@@ -677,6 +658,7 @@ for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to troug
 plt.tight_layout()
 
 
+
 # plot response to visual stimuli with opto
 optoStimLabels = ['targetOnly','mask','maskOnly','catch']
 optoOnset = list(np.unique(exps[0].optoOnset[~np.isnan(exps[0].optoOnset)]))+[np.nan]
@@ -703,7 +685,7 @@ t -= preTime
 
 analysisWindow = (t>0.04) & (t<0.1)
           
-units = ~(transient | excit) & respCells
+units = ~(transient | excit) & respUnits
                 
 optoOnsetTicks = list(1000*(np.array(optoOnset[:-1])-exps[0].frameDisplayLag)/frameRate) + [100]
 optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no opto']
@@ -842,7 +824,7 @@ for i,obj in enumerate(exps):
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     
-    print(np.unique([obj.units[u]['peakChan'] for u in np.array(obj.goodUnits)[respCells[unitSessionInd==i]]]))
+    print(np.unique([obj.units[u]['peakChan'] for u in np.array(obj.goodUnits)[respUnits[unitSessionInd==i]]]))
 
 
 
@@ -971,7 +953,4 @@ ax.set_yticks([0,0.01,0.02,0.03,0.04])
 ax.set_xlabel('Lag (ms)')
 ax.set_ylabel('Autocorrelation')
 plt.tight_layout()
-
-                
-                
 
