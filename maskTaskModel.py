@@ -36,12 +36,12 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 
 def calcModelError(paramsToFit,*fixedParams):
-    alpha,nu,sigma,decay,inhib,threshold,trialEnd = paramsToFit
+    alpha,eta,sigma,decay,inhib,threshold,trialEnd = paramsToFit
     signals,targetSide,maskOnset,optoOnset,trialsPerCondition,responseRate,fractionCorrect = fixedParams
-    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
+    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
     result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
     respRateError = np.nansum((responseRate-result['responseRate'])**2)
-    fracCorrError = np.nansum((2*(fractionCorrect-result['fractionCorrect']))**2)
+    fracCorrError = np.nansum((fractionCorrect-result['fractionCorrect'])**2)
     return respRateError + fracCorrError
 
 
@@ -77,7 +77,7 @@ def analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset
     return result
 
 
-def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,record=False):
+def runSession(signals,targetSide,maskOnset,optoOnset,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,record=False):
     trialTargetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -111,8 +111,8 @@ def runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib
                 if alpha > 0:
                     for s in (Lsignal,Rsignal):
                         i = s > 0
-                        s[i] = s[i]**nu / (alpha**nu + s[i]**nu)
-                        s *= alpha**nu + 1
+                        s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
+                        s *= alpha**eta + 1
                 for _ in range(trialsPerCondition):
                     trialTargetSide.append(side)
                     trialMaskOnset.append(maskOn)
@@ -155,10 +155,11 @@ def runTrial(sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
     return response,responseTime,Lrecord,Rrecord
 
 
+
 # fixed parameters
 dt = 1/120*1000
 trialEndTimeMax = 200
-trialEndMax = int(round(trialEndTimeMax/dt))
+trialEndMax = int(round(trialEndTimeMax/dt))+1
 
 
 # create model input signals from population ephys responses
@@ -182,13 +183,9 @@ for sig in signalNames:
             p = popPsth[sig][hemi][mo].copy()
             p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
             p = p.mean(axis=0)
-            
-#            p = p[(popPsth['t']>0) & (popPsth['t']<0.2)]
-            p = np.interp(t,popPsth['t']*1000,p)
-#            p = np.interp(t,popPsth['t']*1000,scipy.signal.savgol_filter(p,5,3))
-#            p = np.interp(t,popPsth['t']*1000,np.convolve(p,expFilt,mode='same'))
-            
+            p = np.interp(t,popPsth['t']*1000,p)           
             p -= p[t<30].mean()
+            p[0] = 0
             maskOn = np.nan if sig=='targetOnly' else mo
             popPsthFilt[sig][hemi][maskOn] = p
                 
@@ -202,9 +199,10 @@ for sig in signals.keys():
         for mo in signals[sig][hemi]:
             s = signals[sig][hemi][mo]
             s /= smax
+            
 #            i = s > 0
-#            s[i] = s[i]**nu / (alpha**nu + s[i]**nu)
-#            s[i] *= alpha**nu + 1
+#            s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
+#            s[i] *= alpha**eta + 1
 
 fig = plt.figure(figsize=(4,10))
 n = 2+len(signals['mask']['contra'].keys())
@@ -290,22 +288,22 @@ targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 
-alphaRange = slice(0,0.5,0.05)
-nuRange = slice(2,12,1)
-sigmaRange = slice(0.1,2,0.1)
+alphaRange = slice(0,0.5,0.1)
+etaRange = slice(1,3.5,0.5)
+sigmaRange = slice(0.2,2,0.1)
 decayRange = slice(0,0.5,0.05)
 inhibRange = slice(0,0.5,0.05)
-thresholdRange = slice(4,18,1)
-trialEndRange = slice(18,19,1)
+thresholdRange = slice(2,17,1)
+trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
-fitParamRanges = (alphaRange,nuRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
+fitParamRanges = (alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
 
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
-alpha,nu,sigma,decay,inhib,threshold,trialEnd = fit
+alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,nu,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 responseRate = result['responseRate']
@@ -392,7 +390,7 @@ for side,lbl in zip((1,0),('target right','no stim')):
     for mo in maskOn:
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        ax.plot([0,150],[threshold,threshold],'k--')
+        ax.plot([0,trialEndTimeMax],[threshold,threshold],'k--')
         maskTrials = np.isnan(trialMaskOnset) if np.isnan(mo) else trialMaskOnset==mo
         trial = np.where(sideTrials & maskTrials)[0][trialInd]
         ax.plot(t,Rrecord[trial],'r',label='R')
@@ -400,9 +398,8 @@ for side,lbl in zip((1,0),('target right','no stim')):
         for axside in ('right','top','left','bottom'):
             ax.spines[axside].set_visible(False)
         ax.tick_params(direction='out',right=False,top=False,left=False)
-        ax.set_xticks([0,50,100,150,200])
         ax.set_yticks([])
-        ax.set_xlim([0,150])
+        ax.set_xlim([0,trialEndTimeMax])
         ax.set_ylim([-1.05*threshold,1.05*threshold])
         ax.set_xlabel('Time (ms)')
         title = lbl

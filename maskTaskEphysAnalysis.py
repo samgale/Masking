@@ -84,7 +84,7 @@ hemiLabels = ('contra','ipsi')
 rewardDir = (-1,1)
 behavRespLabels = ('all','go','nogo')
 preTime = 0.5
-postTime = 0.5
+postTime = 1
 windowDur = preTime+trialTime+postTime
 
 ntrials = {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in hemiLabels} for stim in stimLabels}
@@ -136,7 +136,7 @@ targetRespUnits = np.array(hasResp['targetOnly']['contra']['all'][0])
 maskRespUnits = np.array(hasResp['maskOnly']['contra']['all'][0])
 respUnits = targetRespUnits | maskRespUnits
 
-xlim = [-0.1,0.4]
+xlim = [-0.1,0.65]
 for units in (respUnits,):
     axs = []
     ymin = ymax = 0
@@ -263,7 +263,7 @@ for units in (respUnits,targetRespUnits,maskRespUnits & ~targetRespUnits):
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-        ax.set_xlim([0,200])
+        ax.set_xlim([0,650])
         ax.set_ylim([1.05*ymin,1.05*ymax])
     plt.tight_layout()
 
@@ -330,12 +330,13 @@ plt.tight_layout()
 
 
 # save psth
+units = respUnits & ~fs
 popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
 for stim in stimLabels:
     for hemi in hemiLabels:
         p = psth[stim][hemi]['all']
         for mo in p.keys():
-            popPsth[stim][hemi][mo] = np.array(p[mo])[respUnits]
+            popPsth[stim][hemi][mo] = np.array(p[mo])[units]
 popPsth['t'] = t
             
 pkl = fileIO.saveFile(fileType='*.pkl')
