@@ -36,9 +36,9 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 
 def calcModelError(paramsToFit,*fixedParams):
-    alpha,eta,sigma,decay,inhib,threshold,trialEnd = paramsToFit
+    iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = paramsToFit
     signals,targetSide,maskOnset,optoOnset,trialsPerCondition,responseRate,fractionCorrect = fixedParams
-    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
+    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
     result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
     respRateError = np.nansum((responseRate-result['responseRate'])**2)
     fracCorrError = np.nansum((fractionCorrect-result['fractionCorrect'])**2)
@@ -77,7 +77,7 @@ def analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset
     return result
 
 
-def runSession(signals,targetSide,maskOnset,optoOnset,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,record=False):
+def runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,record=False):
     trialTargetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -108,16 +108,16 @@ def runSession(signals,targetSide,maskOnset,optoOnset,alpha,eta,sigma,decay,inhi
                 if not np.isnan(optoOn):
                     Lsignal[int(optoOn):] = 0
                     Rsignal[int(optoOn):] = 0
-                if alpha > 0:
-                    for s in (Lsignal,Rsignal):
-                        i = s > 0
-                        s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
-                        s *= alpha**eta + 1
+#                if alpha > 0:
+#                    for s in (Lsignal,Rsignal):
+#                        i = s > 0
+#                        s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
+#                        s *= alpha**eta + 1
                 for _ in range(trialsPerCondition):
                     trialTargetSide.append(side)
                     trialMaskOnset.append(maskOn)
                     trialOptoOnset.append(optoOn)
-                    result = runTrial(sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
+                    result = runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
                     response.append(result[0])
                     responseTime.append(result[1])
                     if record:
@@ -141,6 +141,40 @@ def runTrial(sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
         Lprev,Rprev = L,R
         L += random.gauss(0,sigma) + Lsignal[t] - decay*Lprev - inhib*Rprev
         R += random.gauss(0,sigma) + Rsignal[t] - decay*Rprev - inhib*Lprev
+        if record:
+            Lrecord[t] = L
+            Rrecord[t] = R
+        if L > threshold and R > threshold:
+            response = -1 if L > R else 1
+        elif L > threshold:
+            response = -1
+        elif R > threshold:
+            response = 1
+        t += 1
+    responseTime = t-1
+    return response,responseTime,Lrecord,Rrecord
+
+
+@njit
+def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+    if record:
+        Lrecord = np.full(Lsignal.size,np.nan)
+        Rrecord = Lrecord.copy()
+    else:
+        Lrecord = Rrecord = None
+    L = R = 0
+    iL = iR = 0
+    t = 0
+    response = 0
+    while t<trialEnd and response==0:
+        iLprev,iRprev = iL,iR
+        iL += Lsignal[t] - iDecay*iLprev
+        iR += Rsignal[t] - iDecay*iRprev
+        Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if alpha > 0 and iL > 0 else Lsignal[t]
+        Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if alpha > 0 and iR > 0 else Rsignal[t]
+        Lprev,Rprev = L,R
+        L += random.gauss(0,sigma) + Lsig - decay*Lprev - inhib*Rprev
+        R += random.gauss(0,sigma) + Rsig - decay*Rprev - inhib*Lprev
         if record:
             Lrecord[t] = L
             Rrecord[t] = R
@@ -203,6 +237,12 @@ for sig in signals.keys():
 #            i = s > 0
 #            s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
 #            s[i] *= alpha**eta + 1
+            
+#            I = 0
+#            for i in range(s.size):
+#                I += s[i]- iDecay*I
+#                if alpha>0 and I>0:
+#                    s[i] = (s[i]**eta) / (alpha**eta + I**eta)
 
 fig = plt.figure(figsize=(4,10))
 n = 2+len(signals['mask']['contra'].keys())
@@ -283,27 +323,28 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 1000
+trialsPerCondition = 200
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 
-alphaRange = slice(0,0.5,0.1)
-etaRange = slice(1,3.5,0.5)
-sigmaRange = slice(0.2,2,0.1)
-decayRange = slice(0,0.5,0.05)
-inhibRange = slice(0,0.5,0.05)
-thresholdRange = slice(2,17,1)
+iDecayRange = slice(0,0.9,0.1)
+alphaRange = slice(0,0.4,0.05)
+etaRange = slice(1,5,0.5)
+sigmaRange = slice(0.2,1.2,0.2)
+decayRange = slice(0,0.9,0.1)
+inhibRange = slice(0,0.5,0.1)
+thresholdRange = slice(1,5,0.5)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
-fitParamRanges = (alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
+fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
 
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
-alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
+iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 responseRate = result['responseRate']
@@ -529,9 +570,9 @@ plt.tight_layout()
 
 # opto masking
 maskOnset = [0,2,np.nan]
-optoOnset = [0,2,4,6,8,10,12,14,16,np.nan]
+optoOnset = [0,2,4,6,8,10,12,14,16,18,20,np.nan]
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=10000)
+trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
 
