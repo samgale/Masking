@@ -204,7 +204,7 @@ plt.tight_layout()
 
 
 # compare contra, ipsi, and predicted response to target + mask
-for units in (respUnits,targetRespUnits,maskRespUnits & ~targetRespUnits):
+for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
     units = units & ~fs
     fig = plt.figure(figsize=(4,9))
     axs = []
@@ -263,7 +263,7 @@ for units in (respUnits,targetRespUnits,maskRespUnits & ~targetRespUnits):
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False)
-        ax.set_xlim([0,650])
+        ax.set_xlim([0,200])
         ax.set_ylim([1.05*ymin,1.05*ymax])
     plt.tight_layout()
 

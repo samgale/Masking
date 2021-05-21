@@ -37,15 +37,15 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 def calcModelError(paramsToFit,*fixedParams):
     iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = paramsToFit
-    signals,targetSide,maskOnset,optoOnset,trialsPerCondition,responseRate,fractionCorrect = fixedParams
-    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
-    result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+    signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,responseRate,fractionCorrect = fixedParams
+    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
+    result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
     respRateError = np.nansum((responseRate-result['responseRate'])**2)
     fracCorrError = np.nansum((fractionCorrect-result['fractionCorrect'])**2)
     return respRateError + fracCorrError
 
 
-def analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime):
+def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime):
     result = {}
     responseRate = []
     fractionCorrect = []
@@ -57,30 +57,33 @@ def analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset
             result[side][maskOn] = {}
             maskTrials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
             for optoOn in optoOnset:
-                optoTrials = np.isnan(trialOptoOnset) if np.isnan(optoOn) else trialOptoOnset==optoOn
-                trials = sideTrials & maskTrials & optoTrials
-                responded = response[trials]!=0
-                responseRate.append(np.sum(responded)/np.sum(trials))
                 result[side][maskOn][optoOn] = {}
-                result[side][maskOn][optoOn]['responseRate'] = responseRate[-1]
-                result[side][maskOn][optoOn]['responseTime'] = responseTime[trials][responded]
-                if side!=0 and maskOn!=0:
-                    correct = response[trials]==side
-                    fractionCorrect.append(np.sum(correct[responded])/np.sum(responded))
-                    result[side][maskOn][optoOn]['fractionCorrect'] = fractionCorrect[-1]
-                    result[side][maskOn][optoOn]['responseTimeCorrect'] = responseTime[trials][responded & correct]
-                    result[side][maskOn][optoOn]['responseTimeIncorrect'] = responseTime[trials][responded & (~correct)]
-                else:
-                    fractionCorrect.append(np.nan)
+                for opSide in optoSide:
+                    optoTrials = np.isnan(trialOptoOnset) if np.isnan(optoOn) else (trialOptoOnset==optoOn) & (trialOptoSide==opSide)
+                    trials = sideTrials & maskTrials & optoTrials
+                    responded = response[trials]!=0
+                    responseRate.append(np.sum(responded)/np.sum(trials))
+                    result[side][maskOn][optoOn][opSide] = {}
+                    result[side][maskOn][optoOn][opSide]['responseRate'] = responseRate[-1]
+                    result[side][maskOn][optoOn][opSide]['responseTime'] = responseTime[trials][responded]
+                    if side!=0 and maskOn!=0:
+                        correct = response[trials]==side
+                        fractionCorrect.append(np.sum(correct[responded])/np.sum(responded))
+                        result[side][maskOn][optoOn][opSide]['fractionCorrect'] = fractionCorrect[-1]
+                        result[side][maskOn][optoOn][opSide]['responseTimeCorrect'] = responseTime[trials][responded & correct]
+                        result[side][maskOn][optoOn][opSide]['responseTimeIncorrect'] = responseTime[trials][responded & (~correct)]
+                    else:
+                        fractionCorrect.append(np.nan)
     result['responseRate'] = np.array(responseRate)
     result['fractionCorrect'] = np.array(fractionCorrect)
     return result
 
 
-def runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,record=False):
+def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,optoLatency=0,record=False):
     trialTargetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
+    trialOptoSide = []
     response = []
     responseTime = []
     Lrecord = []
@@ -96,63 +99,39 @@ def runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,dec
             else:
                 sig = 'mask'
             for optoOn in optoOnset:
-                if side==0:
-                    Lsignal = np.zeros(signals[sig]['ipsi'][maskOn].size)
-                    Rsignal = Lsignal.copy()
-                elif side<0:
-                    Lsignal = signals[sig]['contra'][maskOn].copy()
-                    Rsignal = signals[sig]['ipsi'][maskOn].copy()
-                else:
-                    Lsignal = signals[sig]['ipsi'][maskOn].copy()
-                    Rsignal = signals[sig]['contra'][maskOn].copy()
-                if not np.isnan(optoOn):
-                    Lsignal[int(optoOn):] = 0
-                    Rsignal[int(optoOn):] = 0
-#                if alpha > 0:
-#                    for s in (Lsignal,Rsignal):
-#                        i = s > 0
-#                        s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
-#                        s *= alpha**eta + 1
-                for _ in range(trialsPerCondition):
-                    trialTargetSide.append(side)
-                    trialMaskOnset.append(maskOn)
-                    trialOptoOnset.append(optoOn)
-                    result = runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
-                    response.append(result[0])
-                    responseTime.append(result[1])
-                    if record:
-                        Lrecord.append(result[2])
-                        Rrecord.append(result[3])
-    return np.array(trialTargetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(response),np.array(responseTime),Lrecord,Rrecord
-
-
-@njit
-def runTrial(sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
-    if record:
-        Lrecord = np.full(Lsignal.size,np.nan)
-        Rrecord = Lrecord.copy()
-    else:
-        Lrecord = Rrecord = None
-    L = 0
-    R = 0
-    t = 0
-    response = 0
-    while t<trialEnd and response==0:
-        Lprev,Rprev = L,R
-        L += random.gauss(0,sigma) + Lsignal[t] - decay*Lprev - inhib*Rprev
-        R += random.gauss(0,sigma) + Rsignal[t] - decay*Rprev - inhib*Lprev
-        if record:
-            Lrecord[t] = L
-            Rrecord[t] = R
-        if L > threshold and R > threshold:
-            response = -1 if L > R else 1
-        elif L > threshold:
-            response = -1
-        elif R > threshold:
-            response = 1
-        t += 1
-    responseTime = t-1
-    return response,responseTime,Lrecord,Rrecord
+                for opSide in optoSide:
+                    if side==0:
+                        Lsignal = np.zeros(signals[sig]['ipsi'][maskOn].size)
+                        Rsignal = Lsignal.copy()
+                    elif side<0:
+                        Lsignal = signals[sig]['contra'][maskOn].copy()
+                        Rsignal = signals[sig]['ipsi'][maskOn].copy()
+                    else:
+                        Lsignal = signals[sig]['ipsi'][maskOn].copy()
+                        Rsignal = signals[sig]['contra'][maskOn].copy()
+                    if not np.isnan(optoOn):
+                        i = int(optoOn+optoLatency)
+                        if opSide <= 0:
+                            Lsignal[i:] = 0
+                        if opSide >= 0:
+                            Rsignal[i:] = 0
+                    if iDecay==0 and alpha > 0:
+                        for s in (Lsignal,Rsignal):
+                            i = s > 0
+                            s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
+                            s *= alpha**eta + 1
+                    for _ in range(trialsPerCondition):
+                        trialTargetSide.append(side)
+                        trialMaskOnset.append(maskOn)
+                        trialOptoOnset.append(optoOn)
+                        trialOptoSide.append(opSide)
+                        result = runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
+                        response.append(result[0])
+                        responseTime.append(result[1])
+                        if record:
+                            Lrecord.append(result[2])
+                            Rrecord.append(result[3])
+    return np.array(trialTargetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(trialOptoSide),np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
 @njit
@@ -167,14 +146,6 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
     t = 0
     response = 0
     while t<trialEnd and response==0:
-        iLprev,iRprev = iL,iR
-        iL += Lsignal[t] - iDecay*iLprev
-        iR += Rsignal[t] - iDecay*iRprev
-        Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if alpha > 0 and iL > 0 else Lsignal[t]
-        Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if alpha > 0 and iR > 0 else Rsignal[t]
-        Lprev,Rprev = L,R
-        L += random.gauss(0,sigma) + Lsig - decay*Lprev - inhib*Rprev
-        R += random.gauss(0,sigma) + Rsig - decay*Rprev - inhib*Lprev
         if record:
             Lrecord[t] = L
             Rrecord[t] = R
@@ -184,23 +155,28 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
             response = -1
         elif R > threshold:
             response = 1
+        Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if iDecay>0 and alpha>0 and iL>=0 else Lsignal[t]
+        Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if iDecay>0 and alpha>0 and iR>=0 else Rsignal[t]
+        Lnow = L
+        L += random.gauss(0,sigma) + Lsig - decay*L - inhib*R
+        R += random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow
+        iL += Lsignal[t] - iDecay*iL
+        iR += Rsignal[t] - iDecay*iR
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
 
 
 
-# fixed parameters
-dt = 1/120*1000
-trialEndTimeMax = 200
-trialEndMax = int(round(trialEndTimeMax/dt))+1
-
-
 # create model input signals from population ephys responses
 popPsthFilePath = fileIO.getFile(fileType='*.pkl')
 popPsth = pickle.load(open(popPsthFilePath,'rb'))
 
-t = np.arange(0,trialEndMax*dt,dt)
+dt = 1/120*1000
+trialEndTimeMax = 200
+trialEndMax = int(round(trialEndTimeMax/dt))
+
+t = np.arange(0,trialEndMax*dt+dt,dt)
 signalNames = ('targetOnly','maskOnly','mask')
 
 filtPts = t.size
@@ -240,11 +216,12 @@ for sig in signals.keys():
             
 #            I = 0
 #            for i in range(s.size):
-#                I += s[i]- iDecay*I
-#                if alpha>0 and I>0:
-#                    s[i] = (s[i]**eta) / (alpha**eta + I**eta)
+#                Inow = I
+#                I += s[i] - iDecay*I
+#                if alpha>0 and Inow>=0:
+#                    s[i] = (s[i]**eta) / (alpha**eta + Inow**eta)
 
-fig = plt.figure(figsize=(4,10))
+fig = plt.figure(figsize=(4,9))
 n = 2+len(signals['mask']['contra'].keys())
 axs = []
 ymin = 0
@@ -323,30 +300,31 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 200
+trialsPerCondition = 1000
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
+optoSide = [0]
 
-iDecayRange = slice(0,0.9,0.1)
-alphaRange = slice(0,0.4,0.05)
-etaRange = slice(1,5,0.5)
-sigmaRange = slice(0.2,1.2,0.2)
-decayRange = slice(0,0.9,0.1)
+iDecayRange = slice(0.1,1,0.1)
+alphaRange = slice(0.05,0.4,0.05)
+etaRange = slice(0.5,4,0.5)
+sigmaRange = slice(0.2,2,0.2)
+decayRange = slice(0,1,0.1)
 inhibRange = slice(0,0.5,0.1)
-thresholdRange = slice(1,5,0.5)
+thresholdRange = slice(1,12,1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
 fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
-fixedParams = (signals,targetSide,maskOnset,optoOnset,trialsPerCondition,respRateMean,fracCorrMean)
+fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,fracCorrMean)
 
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
 
-result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 responseRate = result['responseRate']
 fractionCorrect = result['fractionCorrect']
 
@@ -390,15 +368,15 @@ for i in range(nconditions):
         ts = targetSide
         mo = [m for j,m in enumerate(maskOnset) if j!=i]
         rr,fc = [np.array([d for j,d in enumerate(data) if j!=i]) for data in (respRateMean,fracCorrMean)]
-    fixedParams=(signals,ts,mo,optoOnset,trialsPerCondition,rr,fc)
+    fixedParams=(signals,ts,mo,optoOnset,optoSide,trialsPerCondition,rr,fc)
     leaveOneOutFits.append(fitModel(fitParamRanges,fixedParams,finish=False))
 
 outOfSampleRespRate = []
 outOfSampleFracCorr = []    
 for i in range(nconditions):
-    sigma,decay,inhib,threshold,trialEnd = leaveOneOutFits[i]
-    trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
-    result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+    iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = leaveOneOutFits[i]
+    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+    result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
     outOfSampleRespRate.append(result['responseRate'][i])
     outOfSampleFracCorr.append(result['fractionCorrect'][i])
 
@@ -480,8 +458,7 @@ rt = []
 for side in targetSide:
     maskOn = [np.nan] if side==0 else maskOnset
     for mo in maskOn:
-        for optoOn in optoOnset:
-            rt.append(dt*np.median(result[side][mo][optoOn]['responseTime']))
+        rt.append(dt*np.median(result[side][mo][optoOnset[0]][optoSide[0]]['responseTime']))
 ax.plot(xticks,rt,'ko')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
@@ -500,17 +477,16 @@ for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','
     for side in targetSide:
         maskOn = [np.nan] if side==0 else maskOnset
         for mo in maskOn:
-            for optoOn in optoOnset:
-                if side==0 or mo==0:
-                    if respTime=='responseTime':
-                        rt.append(dt*np.median(result[side][mo][optoOn][respTime]))
-                    else:
-                        rt.append(np.nan)
+            if side==0 or mo==0:
+                if respTime=='responseTime':
+                    rt.append(dt*np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
                 else:
-                    if respTime=='responseTime':
-                        rt.append(np.nan)
-                    else:
-                        rt.append(dt*np.median(result[side][mo][optoOn][respTime]))
+                    rt.append(np.nan)
+            else:
+                if respTime=='responseTime':
+                    rt.append(np.nan)
+                else:
+                    rt.append(dt*np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
     ax.plot(xticks,rt,'o',mec=mec,mfc=mfc,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
@@ -571,10 +547,11 @@ plt.tight_layout()
 # opto masking
 maskOnset = [0,2,np.nan]
 optoOnset = [0,2,4,6,8,10,12,14,16,18,20,np.nan]
+optoSide = [0]
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=1)
 
-result = analyzeSession(targetSide,maskOnset,optoOnset,trialTargetSide,trialMaskOnset,trialOptoOnset,response,responseTime)
+result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 
 xticks = np.array(optoOnset)*dt
 xticks[-1] = xticks[-2] + 2*dt
@@ -586,10 +563,10 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
         if measure!='fractionCorrect' or 'target' in lbl:
             d = []
             for optoOn in optoOnset:
-                    if measure=='responseTime':
-                        d.append(dt*np.mean(result[side][mo][optoOn][measure]))
-                    else:
-                        d.append(result[side][mo][optoOn][measure])
+                if measure=='responseTime':
+                    d.append(dt*np.mean(result[side][mo][optoOn][optoSide[0]][measure]))
+                else:
+                    d.append(result[side][mo][optoOn][optoSide[0]][measure])
             ax.plot(xticks[:-1],d[:-1],color=clr,label=lbl)
             ax.plot(xticks[-1],d[-1],'o',color=clr)
     for side in ('right','top'):
@@ -610,6 +587,13 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
 # unilateral opto
 maskOnset = [np.nan]
 optoOnset = [0]
+optoSide = [-1,0,1]
+
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000)
+
+result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
+
+
 
 
 
