@@ -70,8 +70,6 @@ for n,obj in enumerate(exps):
                         medianReacTimeIncorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
                         reacTimeCorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][~correctTrials]
-                    else:
-                        break
                     
 xticks = list(targetFrames/frameRate*1000)
 xticklabels = ['no\nstimulus'] + [str(int(round(x))) for x in xticks[1:]]
@@ -84,25 +82,24 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         meanLR = np.mean(data,axis=1)
     else:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
-    for d in meanLR:
-        ax.plot(xticks[0],d[0],'o',mec='0.8',mfc='none')
-        ax.plot(xticks[1:],d[1:],color='0.8')
+    for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
+        ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks[0],mean[0],'ko')
-    ax.plot(xticks[1:],mean[1:],'ko-')
+    ax.plot(xticks[1:],mean[1:],'ko')
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k-')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Target Duration (ms)')
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Target Duration (ms)',fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=12)
     plt.tight_layout() 
 
 
@@ -151,25 +148,24 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         meanLR = np.mean(data,axis=1)
     else:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
-    for d in meanLR:
-        ax.plot(xticks[0],d[0],'o',mec='0.8',mfc='none')
-        ax.plot(xticks[1:],d[1:],color='0.8')
+    for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
+        ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks[0],mean[0],'ko')
-    ax.plot(xticks[1:],mean[1:],'ko-')
+    ax.plot(xticks[1:],mean[1:],'ko')
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k-')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Target Contrast (ms)')
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Target Contrast (ms)',fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=12)
     plt.tight_layout()                  
     
 
@@ -262,19 +258,27 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         ax.plot([x,x],[m-s,m+s],'k-')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    ax.set_xlabel('Mask onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=12)
     plt.tight_layout()
+    
+# spearman correlation of accuracy vs mask onset
+rs = []
+ps = []
+for fc in np.sum(fracCorr*respRate,axis=1)/np.sum(respRate,axis=1):
+    r,p = scipy.stats.spearmanr(np.arange(5),fc[1:6])
+    rs.append(r)
+    ps.append(p)
     
 # performance by target side
 clrs = np.zeros((len(maskOnset),3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
-lbls = xticklabels[1:len(maskOnset)]+['target only']
+lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
 for data,ylabel in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -283,14 +287,14 @@ for data,ylabel in zip((respRate,fracCorr),('Response Rate','Fraction Correct'))
         ax.plot(data[:,0,i],data[:,1,i],'o',mec=clr,mfc=clr,label=lbl)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xlim([0,1.02])
     ax.set_ylim([0,1.02])
     ax.set_aspect('equal')
-    ax.set_xlabel('Target Left '+ylabel)
-    ax.set_ylabel('Target Right '+ylabel)
+    ax.set_xlabel('Target Left '+ylabel,fontsize=12)
+    ax.set_ylabel('Target Right '+ylabel,fontsize=12)
     if ylabel=='Response Rate':
-        ax.legend(fontsize=8,loc='upper left')
+        ax.legend(title='mask onset',loc='upper left',fontsize=8)
     plt.tight_layout()
 
 fig = plt.figure()
@@ -303,16 +307,16 @@ for i,clr,lbl in zip(range(1,6),clrs,lbls):
     ax.plot(x,y,'o',mec=clr,mfc=clr)
     slope,yint,rval,pval,stderr = scipy.stats.linregress(x,y)
     rx = np.array([min(x),max(x)])
-    ax.plot(rx,slope*rx+yint,'-',color=clr,label=lbl+', r='+str(round(rval,2))+', p='+str(round(pval,3)))
+    ax.plot(rx,slope*rx+yint,'-',color=clr,label=lbl+'(r='+str(round(rval,2))+', p='+str(round(pval,3))+')')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xlim([0,1.02])
 ax.set_ylim([0,1.02])
 ax.set_aspect('equal')
-ax.set_xlabel('Prob. Go Right (Mask Only)')
-ax.set_ylabel('Prob. Go Right (Target Either Side)')
-ax.legend(fontsize=8,loc='upper left')
+ax.set_xlabel('Prob. Go Right (Mask Only)',fontsize=12)
+ax.set_ylabel('Prob. Go Right (Target Either Side)',fontsize=12)
+ax.legend(title='mask onset',loc='upper left',fontsize=8)
 plt.tight_layout()
     
 # reaction time on correct and incorrect trials
@@ -333,12 +337,12 @@ for data,clr,lbl in zip((medianReacTimeCorrect,medianReacTimeIncorrect,medianRea
             ax.plot([x,x],[m-s,m+s],'-',color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
-ax.set_xlabel('Mask onset relative to target onset (ms)')
-ax.set_ylabel('Median reaction time (ms)')
+ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
+ax.set_ylabel('Median reaction time (ms)',fontsize=12)
 ax.legend(loc='upper left')
 plt.tight_layout()
 
@@ -347,7 +351,7 @@ binWidth = 50
 bins = np.arange(0,650,binWidth)
 rt = []
 pc = []
-for mo in maskOnset:
+for mo in [2,3,4,6,0]:
     stim = 'mask' if mo>0 else 'targetOnly'
     rt.append([])
     correct = np.zeros(bins.size-1)
@@ -363,19 +367,19 @@ for mo in maskOnset:
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
 clrs = np.zeros((len(maskOnset),3))
-clrs[1:] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
-lbls = ['target only']+xticklabels[1:len(maskOnset)]
-for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[[5,1,2,3,4]],clrs,lbls):
+clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
+for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[1:6],clrs,lbls):
     s = np.sort(r)
     c = [np.sum(r<=i)/n for i in s]
     ax.plot(s,c,'-',color=clr,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False)
+ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xlim([100,500])
 ax.set_ylim([0,1.02])
-ax.set_ylabel('Cumulative Probability')
-ax.legend(fontsize=8,loc='upper left')
+ax.set_ylabel('Cumulative Probability',fontsize=12)
+ax.legend(title='mask onset',loc='upper left',fontsize=8)
 
 ax = fig.add_subplot(2,1,2)
 ax.plot([0,650],[0.5,0.5],'--',color='0.8')
@@ -383,20 +387,12 @@ for p,clr in zip(pc,clrs):
     ax.plot(bins[:-2]+binWidth/2,p[:-1],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False)
+ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xlim([100,500])
 ax.set_ylim([0,1.02])
-ax.set_xlabel('Reaction Time (ms)')
-ax.set_ylabel('Probability Correct')
+ax.set_xlabel('Reaction Time (ms)',fontsize=12)
+ax.set_ylabel('Probability Correct',fontsize=12)
 plt.tight_layout()
-
-# spearman correlation of accuracy vs mask onset
-rs = []
-ps = []
-for fc in np.sum(fracCorr*respRate,axis=1)/np.sum(respRate,axis=1):
-    r,p = scipy.stats.spearmanr(np.arange(5),fc[1:6])
-    rs.append(r)
-    ps.append(p)
 
 
 # opto timing
@@ -439,7 +435,7 @@ xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target only','no stim'),'cm')):
+    for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target only','no stim'),'km')):
         if data is respRate:
             meanLR = np.mean(data[:,i],axis=1)
         else:
@@ -463,37 +459,28 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Opto onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=12)
     if data is respRate:
         ax.legend(loc='upper left')
     plt.tight_layout()
 
 # fraction correct vs response rate
 rr = np.mean(respRate[:,0]-respRate[:,1],axis=1)
-fc,rt = [np.sum(d[:,0]*respRate[:,0],axis=1)/np.sum(respRate[:,0],axis=1) for d in (fracCorr,medianReacTime)]
-    
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-ax.plot(rr,fc,'ko')
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xlabel('Response Rate Relative to Chance')
-ax.set_ylabel('Fraction Correct')
-plt.tight_layout()
+fc,rt = [np.nansum(d[:,0]*respRate[:,0],axis=1)/np.sum(respRate[:,0],axis=1) for d in (fracCorr,medianReacTime)]
 
-for data,ylim,ylabel in zip((fc,rt),((0.4,1),None),('Fraction Correct','Reaction Time')):
+bw = 0.2
+bins = np.arange(0,1.01,bw)
+for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Reaction Time')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    bw = 0.2
-    bins = np.arange(-0.1,1.01,bw)
+    ax.plot(rr,data,'o',mec='0.8',mfc='none')
     ind = np.digitize(rr,bins)
     for i,b in enumerate(bins[:-1]):
         bi = ind==i+1
@@ -504,12 +491,12 @@ for data,ylim,ylabel in zip((fc,rt),((0.4,1),None),('Fraction Correct','Reaction
         ax.plot([x,x],[m-s,m+s],'k')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xlim([-0.1,0.9])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Response Rate Relative to Chance')
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Response Rate Above Chance',fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=12)
     plt.tight_layout()
 
 
@@ -579,14 +566,14 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Opto onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=12)
     if data is respRate:
         ax.legend(loc='upper left')
     plt.tight_layout()
@@ -595,7 +582,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
 # unilateral opto
 nexps = len(exps)
 stimLabels = ('target left','target right','no stim')
-optoSide = ('left','right','both','none')
+optoSide = ('left','right','both','no opto')
 ntrials = [{stim: [] for stim in stimLabels} for _ in range(nexps)]
 respRate = [{stim: {respDir: [] for respDir in rewardDir} for stim in stimLabels} for _ in range(nexps)]
 medianReacTime = copy.deepcopy(respRate)
@@ -634,19 +621,17 @@ for i,stim in enumerate(stimLabels):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xticks(xticks)
-    ax.set_xticklabels(optoSide)
     ax.set_xlim([-0.25,len(optoSide)-0.75])
     if i==2:
-        ax.set_xlabel('Optogenetic Stimulus Side')
-        ax.set_yticks(np.arange(0,1,0.1))
-        ax.set_ylim([0,0.75])
+        ax.set_xticklabels(optoSide)
+        ax.set_xlabel('Optogenetic Stimulus Side',fontsize=12)
     else:
         ax.set_xticklabels([])
-        ax.set_yticks(np.arange(0,1,0.2))
-        ax.set_ylim([0,0.75])
-    ax.set_ylabel('Probability')
+    ax.set_yticks(np.arange(0,1,0.2))
+    ax.set_ylim([0,0.75])
+    ax.set_ylabel('Probability',fontsize=12)
     if i==0:
         ax.legend()
     ax.set_title(stim)

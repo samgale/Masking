@@ -271,7 +271,7 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
 # cumulative spike count and excess contralateral spikes
 maskOnset = np.unique(exps[0].maskOnset[~np.isnan(exps[0].maskOnset)])
 maskOnsetTicks = np.concatenate((maskOnset,(8,10)))/frameRate*1000
-maskOnsetLabels = ['mask only']+[str(int(round(onset))) for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
+maskOnsetLabels = ['mask only']+[str(int(round(onset)))+' ms' for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
 clrs = np.zeros((len(maskOnset),3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
 
@@ -302,11 +302,15 @@ for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xlim([33,200])
-    ax.set_xlabel('Time Relative to Target Onset (ms)')
-    ax.set_ylabel('Cumulative Spikes '+hemi+' to Target')
-    ax.legend()
+    ax.set_yticks([0,0.5,1,1.5])
+    ax.set_ylim([-0.05,1.5])
+    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
+    ax.set_ylabel('Cumulative Spikes',fontsize=12)
+    ax.set_title(hemi+' Target',fontsize=12)
+    if hemi=='Contralateral':
+        ax.legend(title='mask onset',loc='upper left')
     plt.tight_layout()
 
 fig = plt.figure()
@@ -320,11 +324,11 @@ for contra,ipsi,clr,lbl in zip(cumContra[1:-1],cumIpsi[1:-1],clrs,maskOnsetLabel
 ax.plot([33,200],[0,0],'k--')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xlim([33,200])
-ax.set_xlabel('Time Relative to Target Onset (ms)')
-ax.set_ylabel('Cumulative Excess Spikes Contralateral to Target')
-ax.legend()
+ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
+ax.set_ylabel('Cumulative Spikes',fontsize=12)
+ax.set_title('Contralateral - Ipsilateral',fontsize=12)
 plt.tight_layout()
 
 

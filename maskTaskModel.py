@@ -155,13 +155,13 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
             response = -1
         elif R > threshold:
             response = 1
+        iL += Lsignal[t] - iDecay*iL
+        iR += Rsignal[t] - iDecay*iR
         Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if iDecay>0 and alpha>0 and iL>=0 else Lsignal[t]
         Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if iDecay>0 and alpha>0 and iR>=0 else Rsignal[t]
         Lnow = L
         L += random.gauss(0,sigma) + Lsig - decay*L - inhib*R
         R += random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow
-        iL += Lsignal[t] - iDecay*iL
-        iR += Rsignal[t] - iDecay*iR
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
@@ -220,6 +220,12 @@ for sig in signals.keys():
 #                I += s[i] - iDecay*I
 #                if alpha>0 and Inow>=0:
 #                    s[i] = (s[i]**eta) / (alpha**eta + Inow**eta)
+            
+#            I = 0
+#            for i in range(s.size):
+#                I += s[i] - iDecay*I
+#                if alpha>0 and I>=0:
+#                    s[i] = (s[i]**eta) / (alpha**eta + I**eta)
 
 fig = plt.figure(figsize=(4,9))
 n = 2+len(signals['mask']['contra'].keys())
@@ -312,7 +318,7 @@ etaRange = slice(0.5,4,0.5)
 sigmaRange = slice(0.2,2,0.2)
 decayRange = slice(0,1,0.1)
 inhibRange = slice(0,0.5,0.1)
-thresholdRange = slice(1,12,1)
+thresholdRange = slice(1,11,1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
 fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
@@ -321,6 +327,8 @@ fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerConditio
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
+
+# (0.9, 0.15000000000000002, 1.0, 0.8, 0.2, 0.2, 4.0, 24.0) 5/21
 
 trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
 
