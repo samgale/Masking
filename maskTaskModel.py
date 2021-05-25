@@ -41,7 +41,7 @@ def calcModelError(paramsToFit,*fixedParams):
     trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
     result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
     respRateError = np.nansum((responseRate-result['responseRate'])**2)
-    fracCorrError = np.nansum((fractionCorrect-result['fractionCorrect'])**2)
+    fracCorrError = np.nansum((2*(fractionCorrect-result['fractionCorrect']))**2)
     return respRateError + fracCorrError
 
 
@@ -155,13 +155,14 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
             response = -1
         elif R > threshold:
             response = 1
-        iL += Lsignal[t] - iDecay*iL
-        iR += Rsignal[t] - iDecay*iR
-        Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if iDecay>0 and alpha>0 and iL>=0 else Lsignal[t]
-        Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if iDecay>0 and alpha>0 and iR>=0 else Rsignal[t]
+        if iDecay > 0 and alpha > 0:
+            Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
+            Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
         Lnow = L
         L += random.gauss(0,sigma) + Lsig - decay*L - inhib*R
         R += random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow
+        iL += Lsignal[t] - iDecay*iL
+        iR += Rsignal[t] - iDecay*iR
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
@@ -193,7 +194,7 @@ for sig in signalNames:
             p = popPsth[sig][hemi][mo].copy()
             p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
             p = p.mean(axis=0)
-            p = np.interp(t,popPsth['t']*1000,p)           
+            p = np.interp(t,popPsth['t']*1000,p)
             p -= p[t<30].mean()
             p[0] = 0
             maskOn = np.nan if sig=='targetOnly' else mo
@@ -210,22 +211,19 @@ for sig in signals.keys():
             s = signals[sig][hemi][mo]
             s /= smax
             
-#            i = s > 0
-#            s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
-#            s[i] *= alpha**eta + 1
-            
-#            I = 0
-#            for i in range(s.size):
-#                Inow = I
-#                I += s[i] - iDecay*I
-#                if alpha>0 and Inow>=0:
-#                    s[i] = (s[i]**eta) / (alpha**eta + Inow**eta)
-            
-#            I = 0
-#            for i in range(s.size):
-#                I += s[i] - iDecay*I
-#                if alpha>0 and I>=0:
-#                    s[i] = (s[i]**eta) / (alpha**eta + I**eta)
+#            if alpha>0:
+#                if iDecay==0:
+#                    i = s > 0
+#                    s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
+#                    s[i] *= alpha**eta + 1
+#                else:
+#                    I = 0
+#                    for i in range(s.size):
+#                        Inow = I
+#                        I += s[i] - iDecay*I
+#                        if s[i]>0 and alpha>0 and Inow>=0:
+#                            s[i] = (s[i]**eta) / (alpha**eta + Inow**eta)
+
 
 fig = plt.figure(figsize=(4,9))
 n = 2+len(signals['mask']['contra'].keys())
@@ -306,19 +304,19 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 1000
+trialsPerCondition = 500
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 optoSide = [0]
 
-iDecayRange = slice(0.1,1,0.1)
+iDecayRange = slice(0.6,1,0.05)
 alphaRange = slice(0.05,0.4,0.05)
-etaRange = slice(0.5,4,0.5)
-sigmaRange = slice(0.2,2,0.2)
-decayRange = slice(0,1,0.1)
-inhibRange = slice(0,0.5,0.1)
-thresholdRange = slice(1,11,1)
+etaRange = slice(0.5,3.5,0.5)
+sigmaRange = slice(0.5,1,0.05)
+decayRange = slice(0.1,0.45,0.05)
+inhibRange = slice(0.1,0.45,0.05)
+thresholdRange = slice(1.5,6,0.5)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
 fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
@@ -326,11 +324,20 @@ fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerConditio
 
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
+
+# (0.9, 0.15, 1.0, 0.8, 0.2, 0.2, 4.0, 24.0) 5/21
+
+# (0.8, 0.15, 1.0, 0.6, 0.5, 0.3, 2.0, 24.0) 5/22
+
+# (0.8, 0.25, 1.0, 0.6, 0.2, 0.2, 3.0, 24.0) 5/23
+
+# (0.95, 0.1, 1.0, 0.7, 0.2, 0.2, 4.0, 24.0) 5/24
+
+# (0.95, 0.15, 1.0, 0.7, 0.15, 0.15, 4.0, 24.0) 5/25
+
 iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
 
-# (0.9, 0.15000000000000002, 1.0, 0.8, 0.2, 0.2, 4.0, 24.0) 5/21
-
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=1000000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 responseRate = result['responseRate']
@@ -554,7 +561,7 @@ plt.tight_layout()
 
 # opto masking
 maskOnset = [0,2,np.nan]
-optoOnset = [0,2,4,6,8,10,12,14,16,18,20,np.nan]
+optoOnset = [0,2,4,6,8,10,12,14,16,np.nan]
 optoSide = [0]
 
 trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=1)
