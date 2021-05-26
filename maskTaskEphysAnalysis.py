@@ -236,16 +236,16 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
                 ymin = min(ymin,np.min(m-s))
                 ymax = max(ymax,np.max(m+s))
             
-            if stim=='mask':
-                mask = np.array(psth['mask']['ipsi']['all'][mo])[units]
-                p = target+mask
-                b = p-p[:,t<0].mean(axis=1)[:,None]
-                m = np.mean(b,axis=0)
-                s = np.std(b,axis=0)/(len(p)**0.5)
-                ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
-                ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
-                ymin = min(ymin,np.min(m-s))
-                ymax = max(ymax,np.max(m+s))
+#            if stim=='mask':
+#                mask = np.array(psth['mask']['ipsi']['all'][mo])[units]
+#                p = target+mask
+#                b = p-p[:,t<0].mean(axis=1)[:,None]
+#                m = np.mean(b,axis=0)
+#                s = np.std(b,axis=0)/(len(p)**0.5)
+#                ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
+#                ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
+#                ymin = min(ymin,np.min(m-s))
+#                ymax = max(ymax,np.max(m+s))
             if i==5:
                 ax.set_xlabel('Time from stimulus onset (ms)')
             else:
@@ -635,12 +635,12 @@ for k,p in enumerate((optoPsthExample,optoPsth)):
         ax.text(0.5,1,lbl+' (n = '+n+')',transform=ax.transAxes,color='k',ha='center',va='bottom')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
-        ax.tick_params(direction='out',top=False,right=False)
-        ax.set_xlim([-preTime,trialTime+postTime])
+        ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+        ax.set_xlim([-preTime,trialTime+preTime])
         ax.set_ylim([0,ylim[1]])
         if i==2:
-            ax.set_xlabel('Time from LED onset (s)')
-        ax.set_ylabel('Spikes/s')
+            ax.set_xlabel('Time from LED onset (s)',fontsize=12)
+        ax.set_ylabel('Spikes/s',fontsize=12)
     plt.tight_layout()
 
 fig = plt.figure(figsize=(8,8))
@@ -658,12 +658,12 @@ for j,(xdata,xlbl) in enumerate(zip((peakToTrough,unitPos),('Spike peak to troug
             ax.plot(xdata[ind],y[ind],'o',mec=clr,mfc='none')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
-        ax.tick_params(direction='out',top=False,right=False)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=10)
         ax.set_xlim(xlim)
         if i==3:
-            ax.set_xlabel(xlbl)
+            ax.set_xlabel(xlbl,fontsize=12)
         if j==0:
-            ax.set_ylabel(ylbl)
+            ax.set_ylabel(ylbl,fontsize=12)
         if i==0 and j==0:
             for x,lbl,clr in zip((0.25,0.75),('FS','RS'),'mg'):
                 ax.text(x,1.05,lbl,transform=ax.transAxes,color=clr,fontsize=12,ha='center',va='bottom')
@@ -695,7 +695,7 @@ for obj in exps:
                         optoOnsetPsth[stim][hemi][onset].append(p)                      
 t -= preTime
 
-analysisWindow = (t>0.04) & (t<0.1)
+analysisWindow = (t>0.04) & (t<0.12)
           
 units = ~(transient | excit) & respUnits
                 
@@ -726,13 +726,13 @@ for i,(stim,stimLbl) in enumerate(zip(optoStimLabels,('target','target + mask','
             ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
-        ax.tick_params(direction='out',top=False,right=False)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=10)
         ax.set_xticks(np.arange(-50,201,50))
         ax.set_xlim([-25,175])
         if i>1:
-            ax.set_xlabel('Time from stimulus onset (ms)')
+            ax.set_xlabel('Time from stimulus onset (ms)',fontsize=12)
         if j==0:
-            ax.set_ylabel('Spikes/s')
+            ax.set_ylabel('Spikes/s',fontsize=12)
         if i==0 and j==1:
             ax.legend(loc='upper right',title='opto onset',fontsize=8)
         title = hemi+' '+stimLbl if stim in ('targetOnly','mask') else stimLbl
@@ -761,12 +761,12 @@ for stim,clr,lbl in zip(optoStimLabels[:3],'cbk',('target only','target + mask',
         ax.plot([x,x],[m-s,m+s],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
-ax.set_xlabel('Opto onset relative to target onset (ms)')
-ax.set_ylabel('Stimulus evoked spikes per neuron per trial')
+ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+ax.set_ylabel('Stimulus evoked spikes per neuron per trial',fontsize=12)
 #ax.legend(loc='upper left')
 plt.tight_layout()
 
@@ -795,14 +795,14 @@ for stim,clr in zip(('targetOnly','mask'),'cb'):
         ax.plot([x,x],[m-s,m+s],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_yticks(np.arange(0.4,1,0.1))
 ax.set_xlim([8,108])
 ax.set_ylim([0.4,0.8])
-ax.set_xlabel('Opto onset relative to target onset (ms)')
-ax.set_ylabel('Fraction of spikes contralateral to target')
+ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+ax.set_ylabel('Fraction of spikes contralateral to target',fontsize=12)
 plt.tight_layout()
 
 

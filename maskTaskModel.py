@@ -167,38 +167,41 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
 
-#@njit
-#def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
-#    if record:
-#        Lrecord = np.full(Lsignal.size,np.nan)
-#        Rrecord = Lrecord.copy()
-#    else:
-#        Lrecord = Rrecord = None
-#    L = R = 0
-#    iL = iR = 0
-#    t = 0
-#    response = 0
-#    while t<trialEnd and response==0:
-#        if record:
-#            Lrecord[t] = L
-#            Rrecord[t] = R
-#        if L > threshold and R > threshold:
-#            response = -1 if L > R else 1
-#        elif L > threshold:
-#            response = -1
-#        elif R > threshold:
-#            response = 1
-#        if iDecay > 0 and alpha > 0:
-#            Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
-#            Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
-#        Lnow = L
-#        L += random.gauss(0,sigma) + Lsig - decay*L - inhib*R
-#        R += random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow
-#        iL += Lsignal[t] - iDecay*iL
-#        iR += Rsignal[t] - iDecay*iR
-#        t += 1
-#    responseTime = t-1
-#    return response,responseTime,Lrecord,Rrecord
+@njit
+def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+    if record:
+        Lrecord = np.full(Lsignal.size,np.nan)
+        Rrecord = Lrecord.copy()
+    else:
+        Lrecord = Rrecord = None
+    L = R = 0
+    iL = iR = 0
+    t = 0
+    response = 0
+    while t<trialEnd and response==0:
+        if record:
+            Lrecord[t] = L
+            Rrecord[t] = R
+        if L > threshold and R > threshold:
+            response = -1 if L > R else 1
+        elif L > threshold:
+            response = -1
+        elif R > threshold:
+            response = 1
+        if iDecay > 0 and alpha > 0:
+            Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
+            Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
+        else:
+            Lsig = Lsignal[t]
+            Rsig = Rsignal[t]
+        Lnow = L
+        L += random.gauss(0,sigma) + Lsig - decay*L - inhib*R
+        R += random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow
+        iL += Lsignal[t] - iDecay*iL
+        iR += Rsignal[t] - iDecay*iR
+        t += 1
+    responseTime = t-1
+    return response,responseTime,Lrecord,Rrecord
 
 
 
@@ -343,13 +346,22 @@ maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 optoSide = [0]
 
-iDecayRange = slice(0.2,1.8,0.2) #slice(0.6,1,0.05)
-alphaRange = slice(0.05,0.3,0.05) #slice(0.05,0.4,0.05)
-etaRange = slice(1,2,1) #slice(0.8,1.2,0.2) # slice(1,3.5,0.5)
-sigmaRange = slice(0.6,1.3,0.1) #slice(0.5,1,0.05)
-decayRange = slice(2,8.5,0.5) # slice(0.1,0.45,0.05)
-inhibRange = slice(0.5,1.05,0.05) #slice(0.1,0.45,0.05)
-thresholdRange = slice(0.5,1.4,0.1) #slice(1.5,6,0.5)
+iDecayRange = slice(0,1,1)
+alphaRange = slice(0,1,1)
+etaRange = slice(0,1,1)
+sigmaRange = slice(0,0.6,0.05)
+decayRange = slice(0,0.45,0.05)
+inhibRange = slice(0,0.45,0.05)
+thresholdRange = slice(1,11,1)
+trialEndRange = slice(trialEndMax,trialEndMax+1,1)
+
+iDecayRange = slice(0.2,1.4,0.2)
+alphaRange = slice(0.05,0.35,0.05)
+etaRange = slice(1,2,1)
+sigmaRange = slice(0.1,1.3,0.1)
+decayRange = slice(0.5,8,0.5)
+inhibRange = slice(0.5,1.05,0.05)
+thresholdRange = slice(0.5,2,0.1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
 fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
@@ -367,6 +379,12 @@ fit = fitModel(fitParamRanges,fixedParams,finish=False)
 # (0.95, 0.1, 1.0, 0.7, 0.2, 0.2, 4.0, 24.0) 5/24
 
 # (0.95, 0.15, 1.0, 0.7, 0.15, 0.15, 4.0, 24.0) 5/25
+
+# (0.6, 0.05, 1.0, 1.1, 4.0, 0.85, 1.2, 24.0) 5/26
+
+# (0.6, 0.2, 1.0, 0.4, 1.0, 0.7, 1.4, 24.0) # 5/26 "un-masked"
+
+
 
 iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
 
@@ -550,9 +568,10 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,2)
+ax.plot([0,200],[0.5,0.5],'--',color='0.8')
 clrs = np.zeros((len(maskOnset)-1,3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-2))[::-1,:3]
-lbls = xticklabels[1:-1]
+lbls = [lbl+' ms' for lbl in xticklabels[1:-2]]+['target only']
 ntrials = []
 rt = []
 for maskOn,clr in zip(maskOnset[1:],clrs):
@@ -563,10 +582,10 @@ for maskOn,clr in zip(maskOnset[1:],clrs):
     rt.append(responseTime[respTrials].astype(float)*dt)
     c = (trialTargetSide==response)[respTrials]
     p = []
-    for i in t:
+    for i in t[t>30]:
         j = (rt[-1]>=i) & (rt[-1]<i+dt)
         p.append(np.sum(c[j])/np.sum(j))
-    ax.plot(t+dt/2,p,'-',color=clr)
+    ax.plot(t[t>30]+dt/2,p,'-',color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=10)
@@ -588,13 +607,13 @@ ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
 ax.set_ylabel('Cumulative Probability',fontsize=12)
-ax.legend(fontsize=8,loc='upper left')
+ax.legend(title='mask onset',fontsize=8,loc='upper left')
 plt.tight_layout()
 
 
 # opto masking
 maskOnset = [0,2,np.nan]
-optoOnset = [0,2,4,6,8,10,12,14,16,np.nan]
+optoOnset = [0,2,4,6,8,10,12,np.nan]
 optoSide = [0]
 
 trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=1)

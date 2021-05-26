@@ -549,9 +549,9 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
             if stim=='targetOnly':
-                firstValid = 0
+                firstValid = 3
             elif stim=='mask':
-                firstValid = 0
+                firstValid = 2
             else:
                 firstValid = 0
         else:
