@@ -467,19 +467,26 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for score,clr,trialSet in zip((trainScore,testScore),('0.5','k'),('train','test')):
     for src,mrk,mfc in zip(unitSource,'soo',('none','none',clr)):
-        overallScore = score[src][:,:,0,-1].mean(axis=-1)
-        mean = overallScore.mean(axis=0)
-        sem = overallScore.std(axis=0)/(trainTestIters**0.5)
-        lbl = trialSet+', '+src
-        ax.plot(unitSampleSize[src],mean,mrk,mec=clr,mfc=mfc,label=lbl)  
-        for x,m,s in zip(unitSampleSize[src],mean,sem):
-            ax.plot([x,x],[m-s,m+s],clr)
+        if src=='pooled':
+            overallScore = score[src][:,:,0,-1].mean(axis=-1)
+            mean = overallScore.mean(axis=0)
+            sem = overallScore.std(axis=0)/(trainTestIters**0.5)
+            if src=='sessionCorr':
+                srcLabel = 'session'
+            elif src=='sessionRand':
+                srcLabel = 'session, shuffled'
+            else:
+                srcLabel = src
+            lbl = trialSet+', '+srcLabel
+            ax.plot(unitSampleSize[src],mean,mrk,mec=clr,mfc=mfc,label=lbl)  
+            for x,m,s in zip(unitSampleSize[src],mean,sem):
+                ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_ylim([0.5,1.02])
-ax.set_xlabel('Number of Units')
-ax.set_ylabel('Decoder Accuracy')
+ax.set_xlabel('Number of Units',fontsize=12)
+ax.set_ylabel('Decoder Accuracy',fontsize=12)
 ax.legend()
 plt.tight_layout()
 
@@ -490,12 +497,12 @@ ax.plot([0,1],[0,1],'--',color='0.8')
 ax.plot(x,y,'ko')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xlim([0.5,1.02])
-ax.set_ylim([0.5,1.02])
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.set_xlim([0.5,1])
+ax.set_ylim([0.5,1])
 ax.set_aspect('equal')
-ax.set_xlabel('Decoder Accuracy (Shuffled Trials)')
-ax.set_ylabel('Decoder Accuracy (Correlated Trials)')
+ax.set_xlabel('Decoder Accuracy (Shuffled Trials)',fontsize=12)
+ax.set_ylabel('Decoder Accuracy (Correlated Trials)',fontsize=12)
 plt.tight_layout()
 
 fig = plt.figure()
@@ -511,12 +518,12 @@ for score,clr,lbl in zip((trainScore,testScore),('0.5','k'),('train','test')):
         ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_ylim([0.5,1.02])
-ax.set_xlabel('Mask Onset Relative to Target Onset (ms)')
-ax.set_ylabel('Decoder Accuracy')
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=12)
+ax.set_ylabel('Decoder Accuracy',fontsize=12)
 ax.legend()
 plt.tight_layout()
 
@@ -529,15 +536,15 @@ ax.plot(t[analysisWindow]*1000,m,color='k')
 ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color='k',alpha=0.25)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xlim([0,200])
-ax.set_xlabel('Time Relative to Target Onset (ms)')
-ax.set_ylabel('Decoder Weighting')
+ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
+ax.set_ylabel('Decoder Weighting',fontsize=12)
 plt.tight_layout()
 
 clrs = np.zeros((len(maskOnset),3))
 clrs[1:] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
-lbls = ['target only']+xticklabels[1:len(maskOnset)]
+lbls = ['target only']+[lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]
 for i in (0,1): 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -549,12 +556,12 @@ for i in (0,1):
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xlim([0,200])
     ax.set_ylim([0.4,1.02])
-    ax.set_xlabel('Time Relative to Target Onset (ms)')
-    ax.set_ylabel('Decoder Accuracy')
-    ax.legend()
+    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
+    ax.set_ylabel('Decoder Accuracy',fontsize=12)
+    ax.legend(title='mask onset',fontsize=10)
     plt.tight_layout()
 
 

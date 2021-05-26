@@ -159,13 +159,46 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
             Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
             Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
         Lnow = L
-        L += random.gauss(0,sigma) + Lsig - decay*L - inhib*R
-        R += random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow
-        iL += Lsignal[t] - iDecay*iL
-        iR += Rsignal[t] - iDecay*iR
+        L += (random.gauss(0,sigma) + Lsig - L - inhib*R) / decay
+        R += (random.gauss(0,sigma) + Rsig - R - inhib*Lnow) / decay
+        iL += (Lsignal[t] - iL) / iDecay
+        iR += (Rsignal[t] - iR) / iDecay
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
+
+#@njit
+#def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+#    if record:
+#        Lrecord = np.full(Lsignal.size,np.nan)
+#        Rrecord = Lrecord.copy()
+#    else:
+#        Lrecord = Rrecord = None
+#    L = R = 0
+#    iL = iR = 0
+#    t = 0
+#    response = 0
+#    while t<trialEnd and response==0:
+#        if record:
+#            Lrecord[t] = L
+#            Rrecord[t] = R
+#        if L > threshold and R > threshold:
+#            response = -1 if L > R else 1
+#        elif L > threshold:
+#            response = -1
+#        elif R > threshold:
+#            response = 1
+#        if iDecay > 0 and alpha > 0:
+#            Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
+#            Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
+#        Lnow = L
+#        L += random.gauss(0,sigma) + Lsig - decay*L - inhib*R
+#        R += random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow
+#        iL += Lsignal[t] - iDecay*iL
+#        iR += Rsignal[t] - iDecay*iR
+#        t += 1
+#    responseTime = t-1
+#    return response,responseTime,Lrecord,Rrecord
 
 
 
@@ -221,7 +254,7 @@ for sig in signals.keys():
 #                    for i in range(s.size):
 #                        Inow = I
 #                        I += s[i] - iDecay*I
-#                        if s[i]>0 and alpha>0 and Inow>=0:
+#                        if s[i]>0 and Inow>=0:
 #                            s[i] = (s[i]**eta) / (alpha**eta + Inow**eta)
 
 
@@ -304,19 +337,19 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 500
+trialsPerCondition = 1000
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 optoSide = [0]
 
-iDecayRange = slice(0.6,1,0.05)
-alphaRange = slice(0.05,0.4,0.05)
-etaRange = slice(0.5,3.5,0.5)
-sigmaRange = slice(0.5,1,0.05)
-decayRange = slice(0.1,0.45,0.05)
-inhibRange = slice(0.1,0.45,0.05)
-thresholdRange = slice(1.5,6,0.5)
+iDecayRange = slice(0.2,1.8,0.2) #slice(0.6,1,0.05)
+alphaRange = slice(0.05,0.3,0.05) #slice(0.05,0.4,0.05)
+etaRange = slice(1,2,1) #slice(0.8,1.2,0.2) # slice(1,3.5,0.5)
+sigmaRange = slice(0.6,1.3,0.1) #slice(0.5,1,0.05)
+decayRange = slice(2,8.5,0.5) # slice(0.1,0.45,0.05)
+inhibRange = slice(0.5,1.05,0.05) #slice(0.1,0.45,0.05)
+thresholdRange = slice(0.5,1.4,0.1) #slice(1.5,6,0.5)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
 fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
@@ -337,7 +370,7 @@ fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=1000000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 responseRate = result['responseRate']
@@ -358,13 +391,13 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
     ax.plot(xticks,model,'o',mec='r',mfc='none',ms=8,mew=2,label='model')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False)
+    ax.tick_params(direction='out',right=False,labelsize=10)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    ax.set_xlabel('Mask onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=12)
     ax.legend()
     plt.tight_layout()
 
@@ -505,12 +538,12 @@ for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','
     ax.plot(xticks,rt,'o',mec=mec,mfc=mfc,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False)
+ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
-ax.set_xlabel('Mask onset relative to target onset (ms)')
-ax.set_ylabel('Median decision time (ms)')
+ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
+ax.set_ylabel('Median decision time (ms)',fontsize=12)
 ax.legend()
 plt.tight_layout()
 
@@ -536,12 +569,12 @@ for maskOn,clr in zip(maskOnset[1:],clrs):
     ax.plot(t+dt/2,p,'-',color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False)
+ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
-ax.set_xlabel('Model decision time (ms)')
-ax.set_ylabel('Probability Correct')
+ax.set_xlabel('Model decision time (ms)',fontsize=12)
+ax.set_ylabel('Probability Correct',fontsize=12)
 
 ax = fig.add_subplot(2,1,1)
 for r,n,clr,lbl in zip(rt,ntrials,clrs,lbls):
@@ -550,11 +583,11 @@ for r,n,clr,lbl in zip(rt,ntrials,clrs,lbls):
     ax.plot(s,c,'-',color=clr,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False)
+ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
-ax.set_ylabel('Cumulative Probability')
+ax.set_ylabel('Cumulative Probability',fontsize=12)
 ax.legend(fontsize=8,loc='upper left')
 plt.tight_layout()
 
@@ -586,14 +619,14 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
             ax.plot(xticks[-1],d[-1],'o',color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False)
+    ax.tick_params(direction='out',right=False,labelsize=10)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim([0,xticks[-1]+dt])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Opto onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+    ax.set_ylabel(ylabel,fontsize=12)
     if measure=='responseRate':
         ax.legend(loc='upper left')
     plt.tight_layout()
