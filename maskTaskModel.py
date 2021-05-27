@@ -158,6 +158,9 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
         if iDecay > 0 and alpha > 0:
             Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
             Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
+        else:
+            Lsig = Lsignal[t]
+            Rsig = Rsignal[t]
         Lnow = L
         L += (random.gauss(0,sigma) + Lsig - L - inhib*R) / decay
         R += (random.gauss(0,sigma) + Rsig - R - inhib*Lnow) / decay
@@ -167,6 +170,8 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
 
+
+# simple model version
 @njit
 def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
     if record:
@@ -175,7 +180,6 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
     else:
         Lrecord = Rrecord = None
     L = R = 0
-    iL = iR = 0
     t = 0
     response = 0
     while t<trialEnd and response==0:
@@ -188,17 +192,9 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
             response = -1
         elif R > threshold:
             response = 1
-        if iDecay > 0 and alpha > 0:
-            Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
-            Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
-        else:
-            Lsig = Lsignal[t]
-            Rsig = Rsignal[t]
         Lnow = L
-        L += random.gauss(0,sigma) + Lsig - decay*L - inhib*R
-        R += random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow
-        iL += Lsignal[t] - iDecay*iL
-        iR += Rsignal[t] - iDecay*iR
+        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R
+        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lnow
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
@@ -253,12 +249,13 @@ for sig in signals.keys():
 #                    s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
 #                    s[i] *= alpha**eta + 1
 #                else:
+#                    sraw = s.copy()
 #                    I = 0
 #                    for i in range(s.size):
-#                        Inow = I
-#                        I += s[i] - iDecay*I
-#                        if s[i]>0 and Inow>=0:
-#                            s[i] = (s[i]**eta) / (alpha**eta + Inow**eta)
+#                        if i > 0:
+#                            I += (sraw[i-1] - I) / iDecay
+#                        if s[i]>0 and I>=0:
+#                            s[i] = (s[i]**eta) / (alpha**eta + I**eta)
 
 
 fig = plt.figure(figsize=(4,9))
@@ -382,7 +379,7 @@ fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 # (0.6, 0.05, 1.0, 1.1, 4.0, 0.85, 1.2, 24.0) 5/26
 
-# (0.6, 0.2, 1.0, 0.4, 1.0, 0.7, 1.4, 24.0) # 5/26 "un-masked"
+# (0.6, 0.3, 1.0, 0.4, 2.0, 0.75, 0.8, 24.0) # 5/26 "un-masked"
 
 
 

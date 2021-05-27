@@ -545,7 +545,7 @@ plt.tight_layout()
 clrs = np.zeros((len(maskOnset),3))
 clrs[1:] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
 lbls = ['target only']+[lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]
-for i in (0,1): 
+for i,xlbl in zip((0,1),('"Inhibition" Onset','Time')): 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for j,(mo,clr,lbl) in enumerate(zip(maskOnset,clrs,lbls)):
@@ -559,7 +559,7 @@ for i in (0,1):
     ax.tick_params(direction='out',top=False,right=False,labelsize=10)
     ax.set_xlim([0,200])
     ax.set_ylim([0.4,1.02])
-    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
+    ax.set_xlabel(xlbl+' Relative to Target Onset (ms)',fontsize=12)
     ax.set_ylabel('Decoder Accuracy',fontsize=12)
     ax.legend(title='mask onset',fontsize=10)
     plt.tight_layout()
