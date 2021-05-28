@@ -444,7 +444,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
             if stim=='targetOnly':
-                firstValid = 2
+                firstValid = 0 #2
             else:
                 firstValid = 0
         else:
@@ -474,21 +474,30 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
 # fraction correct vs response rate
 rr = np.mean(respRate[:,0]-respRate[:,1],axis=1)
 fc,rt = [np.nansum(d[:,0]*respRate[:,0],axis=1)/np.sum(respRate[:,0],axis=1) for d in (fracCorr,medianReacTime)]
+n = np.sum(ntrials[:,0]*respRate[:,0],axis=1)
 
 bw = 0.2
-bins = np.arange(0,1.01,bw)
+bins = np.arange(-0.1,1.01,bw)
 for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Reaction Time')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    if ylabel=='Fraction Correct':
+        ax.plot([bins[0],1],[0.5,0.5],'k:')
     ax.plot(rr,data,'o',mec='0.8',mfc='none')
     ind = np.digitize(rr,bins)
     for i,b in enumerate(bins[:-1]):
         bi = ind==i+1
         x = b+0.5*bw
         m = np.nanmean(data[bi])
-        s = np.nanstd(data[bi])/(bi.sum()**0.5)
+        if ylabel=='Fraction Correct':
+            ntotal = n[bi].sum()
+            s = [c/ntotal for c in scipy.stats.binom.interval(0.95,ntotal,m)]
+#            ax.plot([x,x],[c/ntotal for c in scipy.stats.binom.interval(0.95,ntotal,0.5)],'r-')
+        else:
+            s = np.nanstd(data[bi])/(bi.sum()**0.5)
+            s = [m-s,m+s]
         ax.plot(x,m,'ko')
-        ax.plot([x,x],[m-s,m+s],'k')
+        ax.plot([x,x],s,'k')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=10)

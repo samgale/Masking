@@ -307,7 +307,7 @@ for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
     ax.set_yticks([0,0.5,1,1.5])
     ax.set_ylim([-0.05,1.5])
     ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
-    ax.set_ylabel('Cumulative Spikes',fontsize=12)
+    ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=12)
     ax.set_title(hemi+' Target',fontsize=12)
     if hemi=='Contralateral':
         ax.legend(title='mask onset',loc='upper left')
@@ -327,7 +327,7 @@ for side in ('right','top'):
 ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xlim([33,200])
 ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
-ax.set_ylabel('Cumulative Spikes',fontsize=12)
+ax.set_ylabel('Cumulative Spike Count Difference',fontsize=12)
 ax.set_title('Contralateral - Ipsilateral',fontsize=12)
 plt.tight_layout()
 
@@ -363,8 +363,7 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,numTrials,randomizeTrials,
                     ind = trialInd[hemi][mo][u]
                     trials =  np.random.choice(ind,numTrials,replace=True) if randomizeTrials else ind[:numTrials]
                     for trial in trials:
-                        trial = np.random.choice(trialInd[hemi][mo][u])
-                        X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][respUnits[u]][trial][analysisWindow])
+                        X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][respUnitInd[u]][trial][analysisWindow])
                         if trialSet=='train' and uind==0:
                             y.append(rd)
                             m.append(mo)
@@ -373,15 +372,24 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,numTrials,randomizeTrials,
     m = np.array(m)
     
     decoder = LinearSVC(C=1.0,max_iter=1e4)
-    trainScore = np.full((2,len(offsets),len(maskOnset)),np.nan)
+    trainScore = np.full((3,len(offsets),len(maskOnset)),np.nan)
     testScore = trainScore.copy()
-    for i in (0,1):
+    for i in range(3):
         for j,offset in enumerate(offsets):
             if offset is None:
-                Xtrain,Xtest = X['train'],X['test']
+                if i==0:
+                    Xtrain,Xtest = X['train'],X['test']
+                else:
+                    break
             else:
-                ind = slice(0,offset+1) if i==0 else offset
-                Xtrain,Xtest = [np.reshape(np.reshape(X[trialSet],(len(y),len(units),-1))[:,:,ind],(len(y),-1)) for trialSet in ('train','test')]
+                ind = offset if i==1 else slice(0,offset+1)
+                Xdata = []
+                for trialSet in ('train','test'):
+                    d = np.reshape(X[trialSet],(len(y),len(units),-1))[:,:,ind]
+                    if i==2:
+                        d = d.sum(axis=2)*binSize
+                    Xdata.append(np.reshape(d,(len(y),-1)))
+                Xtrain,Xtest = Xdata
             decoder.fit(Xtrain,y)
             
             for k,mo in enumerate(maskOnset):
@@ -395,20 +403,20 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,numTrials,randomizeTrials,
 
 maskOnset = [0,2,3,4,6]
 analysisWindow = (t>0) & (t<0.2)
-respUnits = np.where(respUnits)[0]
-nUnits = len(respUnits)
+respUnitInd = np.where(respUnits)[0]
+nUnits = len(respUnitInd)
 
-unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[respUnits]
+unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[respUnitInd]
 unitSampleSize = {}
 unitSampleSize['sessionCorr'] = [np.sum(unitSessionInd==i) for i in range(len(exps))]
 unitSampleSize['sessionRand'] = unitSampleSize['sessionCorr']
 unitSampleSize['pooled'] = [1,5,10,20,40,nUnits]
 decoderOffset = np.arange(analysisWindow.sum())
-trainTestIters = 10
+trainTestIters = 100
 trialsPerIter = 100
 
 unitSource = unitSampleSize.keys()
-trainScore = {src: np.full((trainTestIters,len(unitSampleSize[src]),2,len(decoderOffset),len(maskOnset)),np.nan) for src in unitSource}
+trainScore = {src: np.full((trainTestIters,len(unitSampleSize[src]),3,len(decoderOffset),len(maskOnset)),np.nan) for src in unitSource}
 testScore = copy.deepcopy(trainScore)
 decoderCoef = {src: np.full((trainTestIters,len(unitSampleSize[src]),analysisWindow.sum()),np.nan) for src in unitSource}
 for iterInd in range(trainTestIters):
@@ -419,7 +427,7 @@ for iterInd in range(trainTestIters):
         for mo in maskOnset:
             stim = 'targetOnly' if mo==0 else 'mask'
             for session in range(len(exps)):
-                units = respUnits[unitSessionInd==session]
+                units = respUnitInd[unitSessionInd==session]
                 n = len(trialPsth[stim][hemi]['all'][mo][units[0]])
                 trials = np.arange(n)
                 train = np.random.choice(trials,n//2,replace=False)
@@ -467,20 +475,19 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for score,clr,trialSet in zip((trainScore,testScore),('0.5','k'),('train','test')):
     for src,mrk,mfc in zip(unitSource,'soo',('none','none',clr)):
-        if src=='pooled':
-            overallScore = score[src][:,:,0,-1].mean(axis=-1)
-            mean = overallScore.mean(axis=0)
-            sem = overallScore.std(axis=0)/(trainTestIters**0.5)
-            if src=='sessionCorr':
-                srcLabel = 'session'
-            elif src=='sessionRand':
-                srcLabel = 'session, shuffled'
-            else:
-                srcLabel = src
-            lbl = trialSet+', '+srcLabel
-            ax.plot(unitSampleSize[src],mean,mrk,mec=clr,mfc=mfc,label=lbl)  
-            for x,m,s in zip(unitSampleSize[src],mean,sem):
-                ax.plot([x,x],[m-s,m+s],clr)
+        overallScore = score[src][:,:,0,-1].mean(axis=-1)
+        mean = overallScore.mean(axis=0)
+        sem = overallScore.std(axis=0)/(trainTestIters**0.5)
+        if src=='sessionCorr':
+            srcLabel = 'session'
+        elif src=='sessionRand':
+            srcLabel = 'session, shuffled'
+        else:
+            srcLabel = src
+        lbl = trialSet+', '+srcLabel
+        ax.plot(unitSampleSize[src],mean,mrk,mec=clr,mfc=mfc,label=lbl)  
+        for x,m,s in zip(unitSampleSize[src],mean,sem):
+            ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=10)
@@ -492,7 +499,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-x,y =  [testScore[src][:,:,0,-1].mean(axis=(0,-1)) for src in ('sessionRand','sessionCorr')]
+x,y =  [testScore[src][:,:,0,-1].mean(axis=(0,-1)) for src in ('sessionCorr','sessionRand')]
 ax.plot([0,1],[0,1],'--',color='0.8')
 ax.plot(x,y,'ko')
 for side in ('right','top'):
@@ -501,8 +508,8 @@ ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xlim([0.5,1])
 ax.set_ylim([0.5,1])
 ax.set_aspect('equal')
-ax.set_xlabel('Decoder Accuracy (Shuffled Trials)',fontsize=12)
-ax.set_ylabel('Decoder Accuracy (Correlated Trials)',fontsize=12)
+ax.set_xlabel('Decoder Accuracy (Correlated Trials)',fontsize=12)
+ax.set_ylabel('Decoder Accuracy (Shuffled Trials)',fontsize=12)
 plt.tight_layout()
 
 fig = plt.figure()
@@ -545,7 +552,7 @@ plt.tight_layout()
 clrs = np.zeros((len(maskOnset),3))
 clrs[1:] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
 lbls = ['target only']+[lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]
-for i,xlbl in zip((0,1),('"Inhibition" Onset','Time')): 
+for i,xlbl in enumerate(('End of Decoding Window','Time','End of Integration Window')): 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for j,(mo,clr,lbl) in enumerate(zip(maskOnset,clrs,lbls)):
@@ -766,7 +773,7 @@ ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
 ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
-ax.set_ylabel('Stimulus evoked spikes per neuron per trial',fontsize=12)
+ax.set_ylabel('Stimulus evoked spikes per neuron',fontsize=12)
 #ax.legend(loc='upper left')
 plt.tight_layout()
 
