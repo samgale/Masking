@@ -129,7 +129,7 @@ for obj in exps:
                         r = p[:,analysisWindow].mean(axis=1)
                         peak = (m-b.mean())[analysisWindow].max()
                         pval = 1 if np.sum(r-b)==0 else scipy.stats.wilcoxon(b,r)[1] 
-                        hasResp[stim][hemi][resp][mo].append(peak>respThresh*m[t<0].std() and pval<0.05)                     
+                        hasResp[stim][hemi][resp][mo].append(peak>respThresh*m[t<0].std() and pval<0.05)
 
 activeUnits = np.array(hasSpikes['targetOnly']['contra']['all'][0]) | np.array(hasSpikes['maskOnly']['contra']['all'][0])
 targetRespUnits = np.array(hasResp['targetOnly']['contra']['all'][0])
@@ -410,9 +410,9 @@ unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj
 unitSampleSize = {}
 unitSampleSize['sessionCorr'] = [np.sum(unitSessionInd==i) for i in range(len(exps))]
 unitSampleSize['sessionRand'] = unitSampleSize['sessionCorr']
-unitSampleSize['pooled'] = [1,5,10,20,40,nUnits]
+unitSampleSize['pooled'] = [nUnits] #[1,5,10,20,40,nUnits]
 decoderOffset = np.arange(analysisWindow.sum())
-trainTestIters = 100
+trainTestIters = 10
 trialsPerIter = 100
 
 unitSource = unitSampleSize.keys()
@@ -570,7 +570,6 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Integration Win
     ax.set_ylabel('Decoder Accuracy',fontsize=12)
     ax.legend(title='mask onset',fontsize=10)
     plt.tight_layout()
-
 
 
 # plot response to optogenetic stimuluation during catch trials

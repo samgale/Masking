@@ -200,6 +200,35 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
     return response,responseTime,Lrecord,Rrecord
 
 
+@njit
+def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+    if record:
+        Lrecord = np.full(Lsignal.size,np.nan)
+        Rrecord = Lrecord.copy()
+    else:
+        Lrecord = Rrecord = None
+    L = R = 0
+    G = 0
+    t = 0
+    response = 0
+    while t<trialEnd and response==0:
+        if record:
+            Lrecord[t] = L
+            Rrecord[t] = R
+        if L > threshold and R > threshold:
+            response = -1 if L > R else 1
+        elif L > threshold:
+            response = -1
+        elif R > threshold:
+            response = 1
+        L += (random.gauss(0,sigma) + Lsignal[t]/(alpha+G) - L) / decay
+        R += (random.gauss(0,sigma) + Rsignal[t]/(alpha+G) - R) / decay
+        G += (inhib*(Lsignal[t] + Rsignal[t]) - G) / iDecay
+        t += 1
+    responseTime = t-1
+    return response,responseTime,Lrecord,Rrecord
+
+
 
 # create model input signals from population ephys responses
 popPsthFilePath = fileIO.getFile(fileType='*.pkl')
@@ -337,7 +366,7 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 1000
+trialsPerCondition = 100
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
@@ -357,7 +386,7 @@ alphaRange = slice(0.05,0.35,0.05)
 etaRange = slice(1,2,1)
 sigmaRange = slice(0.1,1.3,0.1)
 decayRange = slice(0.5,8,0.5)
-inhibRange = slice(0.5,1.05,0.05)
+inhibRange = slice(0.1,1.1,0.1) # slice(0.5,1.05,0.05)
 thresholdRange = slice(0.5,2,0.1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 

@@ -488,11 +488,11 @@ for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Rea
     for i,b in enumerate(bins[:-1]):
         bi = ind==i+1
         x = b+0.5*bw
-        m = np.nanmean(data[bi])
+        ntotal = n[bi].sum()
+        m = np.nansum(data[bi]*n[bi]/ntotal)
         if ylabel=='Fraction Correct':
-            ntotal = n[bi].sum()
             s = [c/ntotal for c in scipy.stats.binom.interval(0.95,ntotal,m)]
-#            ax.plot([x,x],[c/ntotal for c in scipy.stats.binom.interval(0.95,ntotal,0.5)],'r-')
+#            ax.plot([x,x],[c/ntotal for c in scipy.stats.binom.interval(0.95,ntotal,0.5)],'r')
         else:
             s = np.nanstd(data[bi])/(bi.sum()**0.5)
             s = [m-s,m+s]
