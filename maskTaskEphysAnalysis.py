@@ -363,7 +363,7 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,numTrials,randomizeTrials,
                     ind = trialInd[hemi][mo][u]
                     trials =  np.random.choice(ind,numTrials,replace=True) if randomizeTrials else ind[:numTrials]
                     for trial in trials:
-                        X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][respUnitInd[u]][trial][analysisWindow])
+                        X[trialSet][-1].append(trialPsth[stim][hemi]['all'][mo][unitInd[u]][trial][analysisWindow])
                         if trialSet=='train' and uind==0:
                             y.append(rd)
                             m.append(mo)
@@ -403,16 +403,16 @@ def getDecoderResult(units,trialPsth,trainInd,testInd,numTrials,randomizeTrials,
 
 maskOnset = [0,2,3,4,6]
 analysisWindow = (t>0) & (t<0.2)
-respUnitInd = np.where(respUnits)[0]
-nUnits = len(respUnitInd)
+unitInd = np.where(respUnits & ~fs)[0]
+nUnits = len(unitInd)
 
-unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[respUnitInd]
+unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[unitInd]
 unitSampleSize = {}
 unitSampleSize['sessionCorr'] = [np.sum(unitSessionInd==i) for i in range(len(exps))]
 unitSampleSize['sessionRand'] = unitSampleSize['sessionCorr']
-unitSampleSize['pooled'] = [nUnits] #[1,5,10,20,40,nUnits]
+unitSampleSize['pooled'] = [1,5,10,20,40,nUnits]
 decoderOffset = np.arange(analysisWindow.sum())
-trainTestIters = 10
+trainTestIters = 100
 trialsPerIter = 100
 
 unitSource = unitSampleSize.keys()
@@ -427,7 +427,7 @@ for iterInd in range(trainTestIters):
         for mo in maskOnset:
             stim = 'targetOnly' if mo==0 else 'mask'
             for session in range(len(exps)):
-                units = respUnitInd[unitSessionInd==session]
+                units = unitInd[unitSessionInd==session]
                 n = len(trialPsth[stim][hemi]['all'][mo][units[0]])
                 trials = np.arange(n)
                 train = np.random.choice(trials,n//2,replace=False)

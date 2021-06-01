@@ -134,6 +134,36 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,
     return np.array(trialTargetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(trialOptoSide),np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
+# simple model
+@njit
+def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+    if record:
+        Lrecord = np.full(Lsignal.size,np.nan)
+        Rrecord = Lrecord.copy()
+    else:
+        Lrecord = Rrecord = None
+    L = R = 0
+    t = 0
+    response = 0
+    while t<trialEnd and response==0:
+        if record:
+            Lrecord[t] = L
+            Rrecord[t] = R
+        if L > threshold and R > threshold:
+            response = -1 if L > R else 1
+        elif L > threshold:
+            response = -1
+        elif R > threshold:
+            response = 1
+        Lnow = L
+        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R
+        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lnow
+        t += 1
+    responseTime = t-1
+    return response,responseTime,Lrecord,Rrecord
+
+
+# divisive normalization of input signal
 @njit
 def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
     if record:
@@ -171,62 +201,34 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
     return response,responseTime,Lrecord,Rrecord
 
 
-# simple model version
-@njit
-def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
-    if record:
-        Lrecord = np.full(Lsignal.size,np.nan)
-        Rrecord = Lrecord.copy()
-    else:
-        Lrecord = Rrecord = None
-    L = R = 0
-    t = 0
-    response = 0
-    while t<trialEnd and response==0:
-        if record:
-            Lrecord[t] = L
-            Rrecord[t] = R
-        if L > threshold and R > threshold:
-            response = -1 if L > R else 1
-        elif L > threshold:
-            response = -1
-        elif R > threshold:
-            response = 1
-        Lnow = L
-        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R
-        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lnow
-        t += 1
-    responseTime = t-1
-    return response,responseTime,Lrecord,Rrecord
-
-
-@njit
-def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
-    if record:
-        Lrecord = np.full(Lsignal.size,np.nan)
-        Rrecord = Lrecord.copy()
-    else:
-        Lrecord = Rrecord = None
-    L = R = 0
-    G = 0
-    t = 0
-    response = 0
-    while t<trialEnd and response==0:
-        if record:
-            Lrecord[t] = L
-            Rrecord[t] = R
-        if L > threshold and R > threshold:
-            response = -1 if L > R else 1
-        elif L > threshold:
-            response = -1
-        elif R > threshold:
-            response = 1
-        L += (random.gauss(0,sigma) + Lsignal[t]/(alpha+G) - L) / decay
-        R += (random.gauss(0,sigma) + Rsignal[t]/(alpha+G) - R) / decay
-        G += (inhib*(Lsignal[t] + Rsignal[t]) - G) / iDecay
-        t += 1
-    responseTime = t-1
-    return response,responseTime,Lrecord,Rrecord
+# divisive normalization of integrators (Keung et al. 2020)
+#@njit
+#def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+#    if record:
+#        Lrecord = np.full(Lsignal.size,np.nan)
+#        Rrecord = Lrecord.copy()
+#    else:
+#        Lrecord = Rrecord = None
+#    L = R = 0
+#    G = 0
+#    t = 0
+#    response = 0
+#    while t<trialEnd and response==0:
+#        if record:
+#            Lrecord[t] = L
+#            Rrecord[t] = R
+#        if L > threshold and R > threshold:
+#            response = -1 if L > R else 1
+#        elif L > threshold:
+#            response = -1
+#        elif R > threshold:
+#            response = 1
+#        L += (random.gauss(0,sigma) + Lsignal[t]/(alpha+G) - L) / decay
+#        R += (random.gauss(0,sigma) + Rsignal[t]/(alpha+G) - R) / decay
+#        G += (inhib*(Lsignal[t] + Rsignal[t]) - G) / iDecay
+#        t += 1
+#    responseTime = t-1
+#    return response,responseTime,Lrecord,Rrecord
 
 
 
@@ -394,22 +396,6 @@ fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRan
 fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,fracCorrMean)
 
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
-
-
-# (0.9, 0.15, 1.0, 0.8, 0.2, 0.2, 4.0, 24.0) 5/21
-
-# (0.8, 0.15, 1.0, 0.6, 0.5, 0.3, 2.0, 24.0) 5/22
-
-# (0.8, 0.25, 1.0, 0.6, 0.2, 0.2, 3.0, 24.0) 5/23
-
-# (0.95, 0.1, 1.0, 0.7, 0.2, 0.2, 4.0, 24.0) 5/24
-
-# (0.95, 0.15, 1.0, 0.7, 0.15, 0.15, 4.0, 24.0) 5/25
-
-# (0.6, 0.05, 1.0, 1.1, 4.0, 0.85, 1.2, 24.0) 5/26
-
-# (0.6, 0.3, 1.0, 0.4, 2.0, 0.75, 0.8, 24.0) # 5/26 "un-masked"
-
 
 
 iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
