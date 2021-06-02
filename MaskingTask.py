@@ -260,6 +260,11 @@ class MaskingTask(TaskControl):
             self.optoOnset = [4]
             self.optoPulseDur = [0.05]
             
+        elif name == 'human contrast':
+            self.setDefaultParams('testing',taskVersion)
+            self.targetContrast = [0.02,0.04,0.08,0.16]
+            self.probCatch = 1 / (1 + 2*len(self.targetContrast))
+            
         else:
             print(str(name)+' is not a recognized set of default parameters')
     
@@ -709,8 +714,8 @@ class MaskingTask(TaskControl):
                         if self._sessionFrame == self.trialResponseFrame[-1]:
                             target.ori = initTargetOri + rewardMove * -rewardDir
                         target.draw()
-                elif not np.isnan(optoOnset) and self._trialFrame < self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
-                    pass # wait until end of response window to turn off opto
+                elif (self.showVisibilityRating or not np.isnan(optoOnset)) and self._trialFrame < self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] + self.maxResponseWaitFrames:
+                    pass # wait until end of response window
                 elif self.showVisibilityRating and visRating is None:
                     if len(self.visRatingStartFrame) < len(self.trialStartFrame):
                         self.visRatingStartFrame.append(self._sessionFrame)

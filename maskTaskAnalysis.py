@@ -81,7 +81,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
@@ -147,7 +147,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
@@ -226,7 +226,7 @@ for n in range(len(exps)):
         if i==0:
             meanLR = np.mean(data,axis=0)
         else:
-            meanLR = np.sum(data*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+            meanLR = np.nansum(data*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
         ax.plot(xticks,meanLR,'ko')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
@@ -248,7 +248,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
@@ -323,7 +323,7 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for data,clr,lbl in zip((medianReacTimeCorrect,medianReacTimeIncorrect,medianReacTime),('k','0.8','k'),('correct','incorrect','other')):
-    meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+    meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     if lbl=='other':
@@ -439,7 +439,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         if data is respRate:
             meanLR = np.mean(data[:,i],axis=1)
         else:
-            meanLR = np.sum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
+            meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
@@ -553,7 +553,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         if data is respRate:
             meanLR = np.mean(data[:,i],axis=1)
         else:
-            meanLR = np.sum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
+            meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
@@ -647,28 +647,5 @@ for i,stim in enumerate(stimLabels):
 plt.tight_layout()
 
 
-# SAC figure for Shawn
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-meanLR = np.nanmean(fracCorr,axis=1)
-mean = np.nanmean(meanLR,axis=0)
-sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-ax.plot(xticks,mean,'ko',ms=12)
-for x,m,s in zip(xticks,mean,sem):
-    ax.plot([x,x],[m-s,m+s],'k-')
-ax.plot(xticks[1],optoMean[2],'co',ms=12)
-ax.plot([xticks[1]]*2,[optoMean[2]-optoSem[2],optoMean[2]+optoSem[2]],color='c')
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xticks(xticks)
-ax.set_xticklabels(xticklabels)
-ax.set_xlim([8,75])
-ax.set_ylim([0.5,1])
-ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=16)
-ax.set_ylabel('Fraction Correct',fontsize=16)
-plt.tight_layout()
-
-                
 
 

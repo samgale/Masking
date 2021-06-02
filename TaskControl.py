@@ -24,9 +24,9 @@ class TaskControl():
         self.drawDiodeBox = True
         self.monBackgroundColor = 0
         self.wheelRadius = 30.0 # mm
-        self.wheelPolarity = -1 # 1 or -1
         self.minWheelAngleChange = 0 # radians per frame
         self.maxWheelAngleChange = 0.5 # radians per frame
+        self.rewardsEnabled = True
         self.spacebarRewardsEnabled = True
         self.solenoidOpenTime = 0.05 # seconds
         if self.rigName=='pilot':
@@ -41,6 +41,7 @@ class TaskControl():
             self.warpFile = None
             self.diodeBoxSize = 50
             self.diodeBoxPosition = (935,-515)
+            self.wheelPolarity = -1
             self.nidaqDevices = ('USB-6001','USB-6001')
             self.nidaqDeviceNames = ('Dev1','Dev2')
         elif self.rigName=='box5':
@@ -55,6 +56,7 @@ class TaskControl():
             self.warpFile = None
             self.diodeBoxSize = 50
             self.diodeBoxPosition = (935,-515)
+            self.wheelPolarity = -1
             self.nidaqDevices = ('USB-6001',)
             self.nidaqDeviceNames = ('Dev1',)
         elif self.rigName=='sam':
@@ -67,10 +69,11 @@ class TaskControl():
             self.flipScreenHorz = False
             self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
             self.warpFile = None
-            self.diodeBoxSize = 50
-            self.diodeBoxPosition = (935,-515)
+            self.drawDiodeBox = False
+            self.wheelPolarity = 1
             self.nidaqDevices = ('USB-6009',)
             self.nidaqDeviceNames = ('Dev1',)
+            self.rewardsEnabled = False
     
     def prepareSession(self):
         self._win = None
@@ -83,14 +86,15 @@ class TaskControl():
         self.pixelsPerDeg = 0.5 * self.monSizePix[0] / math.degrees(math.atan(0.5 * self.monWidth / self.monDistance))
         
         self.prepareWindow()
-
-        self._diodeBox = visual.Rect(self._win,
-                                     units='pix',
-                                     width=self.diodeBoxSize,
-                                     height=self.diodeBoxSize,
-                                     lineColor=0,
-                                     fillColor=1, 
-                                     pos=self.diodeBoxPosition)
+        
+        if self.drawDiodeBox:
+            self._diodeBox = visual.Rect(self._win,
+                                         units='pix',
+                                         width=self.diodeBoxSize,
+                                         height=self.diodeBoxSize,
+                                         lineColor=0,
+                                         fillColor=1, 
+                                         pos=self.diodeBoxPosition)
         
         self._keys = [] # list of keys pressed since previous frame
         self._mouse = event.Mouse(win=self._win)
@@ -190,7 +194,7 @@ class TaskControl():
             self.optoPulse(**self._opto)
             self._opto = False
         
-        if self._reward:
+        if self._reward and self.rewardsEnabled:
             self.triggerReward(self._reward)
             self.rewardFrames.append(self._sessionFrame)
             self.rewardSize.append(self._reward)
