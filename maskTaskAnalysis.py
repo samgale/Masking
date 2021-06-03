@@ -105,7 +105,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
 
 # target contrast
 stimLabels = ('targetOnly','catch')
-targetContrast = np.array([0,0.2,0.4,0.6,1])
+targetContrast = np.unique(exps[0].targetContrast)
 ntrials = np.full((len(exps),len(rewardDir),len(targetContrast)),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
@@ -139,7 +139,7 @@ for n,obj in enumerate(exps):
                     
 xticks = targetContrast
 xticklabels = ['no\nstimulus'] + [str(x) for x in targetContrast[1:]]
-xlim = [-0.05,1.05]
+xlim = [-0.05*targetContrast.max(),1.05*targetContrast.max()]
 
 for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
@@ -166,7 +166,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         ax.set_ylim(ylim)
     ax.set_xlabel('Target Contrast (ms)',fontsize=12)
     ax.set_ylabel(ylabel,fontsize=12)
-    plt.tight_layout()                  
+    plt.tight_layout()
     
 
 # masking

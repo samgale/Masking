@@ -17,7 +17,10 @@ class MaskingTask(TaskControl):
     def __init__(self,rigName):
         TaskControl.__init__(self,rigName)
         
+        self.showFixationPoint = False # fixation point for humans
+        self.fixationPointRadius = 4 # pixels
         self.showVisibilityRating = False # target visiiblity rating for humans
+        
         self.equalSampling = False # equal sampling of trial parameter combinations
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
         self.probCatch = 0 # fraction of catch trials with no target and no reward
@@ -260,10 +263,29 @@ class MaskingTask(TaskControl):
             self.optoOnset = [4]
             self.optoPulseDur = [0.05]
             
+        elif name == 'human practice':
+            self.setDefaultParams('training2',taskVersion)
+            self.incorrectTrialRepeats = 0
+            self.wheelRewardDistance = 20
+            self.targetContrast = [0.16]
+            self.maxResponseWaitFrames = 222
+            self.showFixationPoint = True
+            self.showVisibilityRating = True
+            
         elif name == 'human contrast':
             self.setDefaultParams('testing',taskVersion)
             self.targetContrast = [0.02,0.04,0.08,0.16]
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
+            self.showFixationPoint = True
+            self.maxResponseWaitFrames = 222
+            
+        elif name == 'human masking':
+            self.setDefaultParams('masking',taskVersion)
+            self.targetContrast = [0.08]
+            self.maskContrast = [0.08]
+            self.maxResponseWaitFrames = 222
+            self.showFixationPoint = True
+            self.showVisibilityRating = True
             
         else:
             print(str(name)+' is not a recognized set of default parameters')
@@ -347,15 +369,22 @@ class MaskingTask(TaskControl):
                                     fillColor=0.5)
                                     for pos in targetPosPix]]
         
-        # create target visibility rating scale for humans
-        # if text not positioned correct, try pip install pyglet==1.3.2
+        # create fixation point and target visibility rating scale for humans
+        if self.showFixationPoint:
+            fixationPoint = visual.Circle(win=self._win,
+                                          units='pix',
+                                          radius=self.fixationPointRadius,
+                                          lineColor=-1,
+                                          fillColor=-1)
+        
         if self.showVisibilityRating:
+            # if text not positioned correct, try pip install pyglet==1.3.2
             ratingTitle = visual.TextStim(win=self._win,
                                           units='pix',
                                           color=-1,
                                           height=20,
                                           pos=(0,0.1*self.monSizePix[1]),
-                                          text='Did you see the target?')
+                                          text='Did you see the target side?')
             
             buttonSpacing = 0.125
             buttonSize = (buttonSpacing / 6) * self.monSizePix[0]
@@ -574,6 +603,9 @@ class MaskingTask(TaskControl):
                 self.trialOptoOnset.append(optoOnset)
                 self.trialOptoPulseDur.append(optoPulseDur)
                 hasResponded = False
+                
+            if self.showFixationPoint and not hasResponded:
+                fixationPoint.draw()
             
             # extend pre stim gray frames if wheel moving during quiescent period
             if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
