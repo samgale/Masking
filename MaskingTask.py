@@ -267,22 +267,25 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('training2',taskVersion)
             self.incorrectTrialRepeats = 0
             self.wheelRewardDistance = 20
-            self.targetContrast = [0.16]
+            self.targetContrast = [0.1]
             self.maxResponseWaitFrames = 222
             self.showFixationPoint = True
             self.showVisibilityRating = True
             
         elif name == 'human contrast':
             self.setDefaultParams('testing',taskVersion)
-            self.targetContrast = [0.02,0.04,0.08,0.16]
+            self.targetContrast = [0.02,0.04,0.06,0.08,0.1]
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
             self.showFixationPoint = True
             self.maxResponseWaitFrames = 222
             
         elif name == 'human masking':
             self.setDefaultParams('masking',taskVersion)
-            self.targetContrast = [0.08]
+            self.maskOnset = [2,3,4,6,8]
+            self.probMask = 0.8
+            self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             self.maskContrast = [0.08]
+            self.targetContrast = [0.08]
             self.maxResponseWaitFrames = 222
             self.showFixationPoint = True
             self.showVisibilityRating = True
