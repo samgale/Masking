@@ -222,6 +222,7 @@ class MaskingTask(TaskControl):
         elif name == 'opto timing':
             self.setDefaultParams('testing',taskVersion)
             self.probOpto = 0.6
+            self.optoAmp = 1.2
             self.optoChan = [(True,True)]
             self.optoOnset = [4,6,8,10,12]
             self.optoPulseDur = [0]
@@ -236,6 +237,7 @@ class MaskingTask(TaskControl):
         elif name == 'opto masking':
             self.setDefaultParams('masking',taskVersion)
             self.probOpto = 0.6
+            self.optoAmp = 1.2
             self.optoChan = [(True,True)]
             self.optoOnset = [4,6,8,10,12]
             self.optoPulseDur = [0]
@@ -250,16 +252,19 @@ class MaskingTask(TaskControl):
             
         elif name == 'opto pulse timing':
             self.setDefaultParams('opto timing',taskVersion)
+            self.optoAmp = 5
             self.optoOnset = [6,8,10,12,14]
             self.optoPulseDur = [0.05]
         
         elif name == 'opto pulse masking':
             self.setDefaultParams('opto masking',taskVersion)
+            self.optoAmp = 5
             self.optoOnset = [6,8,10,12,14]
             self.optoPulseDur = [0.05]
             
         elif name == 'opto pulse unilateral':
             self.setDefaultParams('opto unilateral',taskVersion)
+            self.optoAmp = 5
             self.optoOnset = [4]
             self.optoPulseDur = [0.05]
             
