@@ -286,11 +286,12 @@ class MaskingTask(TaskControl):
             
         elif name == 'human masking':
             self.setDefaultParams('masking',taskVersion)
-            self.maskOnset = [2,3,4,6,8]
+            self.maskOnset = [2,3,4,6]
             self.probMask = 0.8
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
-            self.maskContrast = [0.08]
-            self.targetContrast = [0.08]
+            self.targetContrast = [0.04]
+            self.maskContrast = [0.04]
+            self.maxConsecutiveMaskTrials = 100
             self.maxResponseWaitFrames = 222
             self.showFixationPoint = True
             self.showVisibilityRating = True
