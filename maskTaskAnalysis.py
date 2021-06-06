@@ -175,7 +175,8 @@ maskOnset = np.array([0,2,3,4,6])
 ntrials = np.full((len(exps),len(rewardDir),len(maskOnset)+2),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
-probGoRight = ntrials.copy()
+probGoRight = respRate.copy()
+visRating = respRate.copy()
 medianReacTime = respRate.copy()
 medianReacTimeCorrect = respRate.copy()
 medianReacTimeIncorrect = respRate.copy()
@@ -201,6 +202,8 @@ for n,obj in enumerate(exps):
                     probGoRight[n,i,j] = np.sum(obj.responseDir[respTrials]==1)/respTrials.sum()
                     medianReacTime[n,i,j] = np.nanmedian(obj.reactionTime[respTrials])
                     reacTime[n][stim][rd][mo] = obj.reactionTime[respTrials]
+                    if hasattr(obj,'visRating'):
+                        visRating[n,i,j] = obj.visRatingScore[trials].mean()
                     if stim in ('targetOnly','mask'):
                         correctTrials = obj.response[respTrials]==1
                         fracCorr[n,i,j] = correctTrials.sum()/respTrials.sum()
@@ -393,6 +396,27 @@ ax.set_ylim([0,1.02])
 ax.set_xlabel('Reaction Time (ms)',fontsize=12)
 ax.set_ylabel('Probability Correct',fontsize=12)
 plt.tight_layout()
+
+# visibility rating
+for n in range(len(exps)):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(xlim,[0,0],'--',color='0.8')
+    for d,clr in zip(visRating[n],'rb'):
+        ax.plot(xticks,d,'o',color=clr)
+    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+    ax.plot(xticks,meanLR,'ko')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_yticks([-1,0,1])
+    ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+    ax.set_xlim(xlim)
+    ax.set_ylim([-1,1])
+    ax.set_xlabel('Mask onset relative to target onset (ms)')
+    plt.tight_layout()
 
 
 # opto timing
