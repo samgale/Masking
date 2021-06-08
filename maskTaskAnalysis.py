@@ -222,7 +222,7 @@ xlim = [-8,92]
 # single experiment
 for n in range(len(exps)):
     fig = plt.figure(figsize=(6,9))
-    for i,(data,ylim,ylabel) in enumerate(zip((respRate[n],fracCorr[n],medianReacTime[n]),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)'))):
+    for i,(data,ylim,ylabel) in enumerate(zip((respRate[n],fracCorr[n],medianReacTime[n]),((0,1.02),(0.4,1.02),None),('Response Rate','Fraction Correct','Median reaction time (ms)'))):
         ax = fig.add_subplot(3,1,i+1)
         for d,clr in zip(data,'rb'):
             ax.plot(xticks,d,'o',color=clr)
@@ -402,9 +402,10 @@ for n in range(len(exps)):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot(xlim,[0,0],'--',color='0.8')
-    for d,clr in zip(visRating[n],'rb'):
-        ax.plot(xticks,d,'o',color=clr)
-    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+#    for d,clr in zip(visRating[n],'rb'):
+#        ax.plot(xticks,d,'o',color=clr)
+#    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+    meanLR = np.mean(visRating[n],axis=0)
     ax.plot(xticks,meanLR,'ko')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
@@ -414,7 +415,7 @@ for n in range(len(exps)):
     ax.set_yticks([-1,0,1])
     ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
     ax.set_xlim(xlim)
-    ax.set_ylim([-1,1])
+    ax.set_ylim([-1.02,1.02])
     ax.set_xlabel('Mask onset relative to target onset (ms)')
     plt.tight_layout()
 
@@ -535,7 +536,7 @@ for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Rea
 
 # opto masking
 stimLabels = ('mask','targetOnly','maskOnly','catch')
-optoOnset = np.array([4,6,8,10,12,np.nan])
+optoOnset = [4,6,8,10,12,np.nan]
 ntrials = np.full((len(exps),len(stimLabels),len(rewardDir),len(optoOnset)),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
@@ -548,18 +549,18 @@ reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels}
 for n,obj in enumerate(exps):
     validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for s,stim in enumerate(stimLabels):
-        mo = 2 if stim in ('mask','maskOpto') else 0
+        mo = 2 if stim=='mask' else 0
         stimTrials = validTrials & np.in1d(obj.trialType,(stim,stim+'Opto')) & (obj.maskOnset==mo)
         for j,optoOn in enumerate(optoOnset):
             optoTrials = stimTrials & np.isnan(obj.optoOnset) if np.isnan(optoOn) else stimTrials & (obj.optoOnset==optoOn)
             for i,rd in enumerate(rewardDir):
-                trials = optoTrials & (obj.rewardDir==rd) if stim in ('targetOnly','targetOnlyOpto','mask','maskOpto') else optoTrials
+                trials = optoTrials & (obj.rewardDir==rd) if stim in ('targetOnly','mask') else optoTrials
                 ntrials[n,s,i,j] = trials.sum()
                 respTrials = trials & (~np.isnan(obj.responseDir))
                 respRate[n,s,i,j] = respTrials.sum()/trials.sum()
                 medianReacTime[n,s,i,j] = np.nanmedian(obj.reactionTime[respTrials])
                 reacTime[n][stim][rd][optoOn] = obj.reactionTime[respTrials]
-                if stim in ('targetOnly','targetOnlyOpto','mask','maskOpto'):
+                if stim in ('targetOnly','mask'):
                     correctTrials = obj.response[respTrials]==1
                     fracCorr[n,s,i,j] = correctTrials.sum()/respTrials.sum()
                     medianReacTimeCorrect[n,s,i,j] = np.nanmedian(obj.reactionTime[respTrials][correctTrials])
@@ -567,7 +568,7 @@ for n,obj in enumerate(exps):
                     reacTimeCorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][correctTrials]
                     reacTimeIncorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][~correctTrials]
 
-xticks = list((optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
+xticks = list((np.array(optoOnset)[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 
 for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
@@ -609,6 +610,60 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax.set_ylabel(ylabel,fontsize=12)
     if data is respRate:
         ax.legend(loc='upper left')
+    plt.tight_layout()
+    
+# fraction correct vs reaction time
+binWidth = 50
+bins = np.arange(0,650,binWidth)
+for ind,stim in enumerate(('mask','targetOnly')):
+    rt = []
+    pc = []
+    for optoOn in optoOnset:
+        rt.append([])
+        correct = np.zeros(bins.size-1)
+        incorrect = correct.copy()
+        for i in range(len(exps)):
+            for rd in rewardDir:
+                rt[-1].extend(reacTime[i][stim][rd][optoOn])
+                c,ic = [np.histogram(rt[i][stim][rd][optoOn],bins)[0] for rt in (reacTimeCorrect,reacTimeIncorrect)]
+                correct += c
+                incorrect += ic
+        pc.append(correct/(correct+incorrect))
+
+    fig = plt.figure()
+    ax = fig.add_subplot(2,1,1)
+    clrs = np.zeros((len(optoOnset),3))
+    clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(optoOnset)-1))[::-1,:3]
+    
+    clrs = np.zeros((len(optoOnset),3))
+    cint = 1/(len(optoOnset)-1)
+    clrs[:-1,:2] = np.arange(0,1.01-cint,cint)[:,None]
+    clrs[:-1,2] = 1
+    
+    lbls = [lbl+' ms' for lbl in xticklabels[:-1]]+[xticklabels[-1]]
+    for r,n,clr,lbl in zip(rt,ntrials[:,ind].sum(axis=(0,1)),clrs,lbls):
+        s = np.sort(r)
+        c = [np.sum(r<=i)/n for i in s]
+        ax.plot(s,c,'-',color=clr,label=lbl)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',right=False,labelsize=10)
+    ax.set_xlim([100,500])
+    ax.set_ylim([0,1.02])
+    ax.set_ylabel('Cumulative Probability',fontsize=12)
+    ax.legend(title='opto onset',loc='upper left',fontsize=8)
+    
+    ax = fig.add_subplot(2,1,2)
+    ax.plot([0,650],[0.5,0.5],'--',color='0.8')
+    for p,clr in zip(pc,clrs):
+        ax.plot(bins[:-2]+binWidth/2,p[:-1],color=clr)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',right=False,labelsize=10)
+    ax.set_xlim([100,500])
+    ax.set_ylim([0,1.02])
+    ax.set_xlabel('Reaction Time (ms)',fontsize=12)
+    ax.set_ylabel('Probability Correct',fontsize=12)
     plt.tight_layout()
 
 
