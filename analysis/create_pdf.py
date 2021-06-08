@@ -86,9 +86,12 @@ def create_daily_summary(d, INR):
     sessionText.setFont('Helvetica', 9)
     sessionText.setLeading(12)
     sessionText.setWordSpace(1)
-    session = session_stats(d, ignoreNoRespAfter=INR, returnAs='str_array')
-    for stat in session:
-        sessionText.textLine(stat)
+    try:
+        session = session_stats(d, ignoreNoRespAfter=INR, returnAs='str_array')
+        for stat in session:
+            sessionText.textLine(stat)
+    except:
+        pass
     c.drawText(sessionText)
     
     noResponse = c.beginText()

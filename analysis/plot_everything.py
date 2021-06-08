@@ -15,17 +15,16 @@ import qualityControl
 from percentCorrect import session_stats
 from catchTrials import catch_trials
 import matplotlib.pyplot as plt
-
-
 from save_plots import save_daily_plots
 from create_pdf import create_daily_summary
 from dataAnalysis import import_data
+
+
 
 d = import_data()
 save_daily_plots(d, 10)  #num is the max number of consecutive no responses you want to include in analysis
 create_daily_summary(d, 10)
 d.close()
-
 
 
 # choose mouse file

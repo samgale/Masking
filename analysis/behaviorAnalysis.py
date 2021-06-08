@@ -71,8 +71,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     else:
         ylabel = 'Wheel Position (pix)'
     
-    preStimFrames = d['trialStimStartFrame'][:trialEndFrames.size]-trialStartFrames if 'trialStimStartFrame' in d else\
-        np.array([d['preStimFrames'][:]]*trialStartFrames.size)
+    preStimFrames = d['trialStimStartFrame'][:end]-trialStartFrames if 'trialStimStartFrame' in d else np.zeros(trialEndFrames.size)+d['preStimFrames'][()]
     
     trialStartFrames += preStimFrames    
     
