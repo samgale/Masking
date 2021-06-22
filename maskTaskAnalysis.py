@@ -309,7 +309,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
     cb.set_ticks(clim)
     cb.set_ticklabels(lim)
-    ax.set_title(title+' Comparisons (p val)')
+    ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
     
 # spearman correlation of accuracy vs mask onset
@@ -532,7 +532,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+    ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
     ax.set_ylabel(ylabel,fontsize=12)
     if data is respRate:
         ax.legend(loc='upper left')
@@ -540,7 +540,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
 
 # fraction correct vs response rate
 rr = np.mean(respRate[:,0]-respRate[:,1],axis=1)
-fc,rt = [np.sum(d[:,0]*respRate[:,0],axis=1)/np.sum(respRate[:,0],axis=1) for d in (fracCorr,medianReacTime)]
+fc,rt = [np.nansum(d[:,0]*respRate[:,0],axis=1)/np.nansum(respRate[:,0],axis=1) for d in (fracCorr,medianReacTime)]
 n = np.sum(ntrials[:,0]*respRate[:,0],axis=1)
 
 bw = 0.2
@@ -577,7 +577,7 @@ for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Rea
 
 
 # opto masking
-stimLabels = ('mask','targetOnly','maskOnly','catch')
+stimLabels = ('targetOnly','mask','maskOnly','catch')
 optoOnset = [4,6,8,10,12,np.nan]
 ntrials = np.full((len(exps),len(stimLabels),len(rewardDir),len(optoOnset)),np.nan)
 respRate = ntrials.copy()
@@ -616,7 +616,7 @@ xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target + mask','target only','mask only','no stim'),'bckm')):
+    for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target only','target + mask','mask only','no stim'),'kbgm')):
         if data is respRate:
             meanLR = np.mean(data[:,i],axis=1)
         else:
@@ -625,9 +625,9 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
             if stim=='targetOnly':
-                firstValid = 0 #3
+                firstValid = 3
             elif stim=='mask':
-                firstValid = 0 #2
+                firstValid = 2
             else:
                 firstValid = 0
         else:
@@ -648,7 +648,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+    ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
     ax.set_ylabel(ylabel,fontsize=12)
     if data is respRate:
         ax.legend(loc='upper left')
@@ -738,7 +738,7 @@ for n,obj in enumerate(exps):
                 respRate[n][stim][respDir].append(respTrials.sum()/optoTrials.sum())
                 medianReacTime[n][stim][respDir].append(np.nanmedian(obj.reactionTime[respTrials]))
                     
-fig = plt.figure(figsize=(6,6))
+fig = plt.figure(figsize=(6,9))
 xticks = np.arange(len(optoSide))
 for i,stim in enumerate(stimLabels):    
     ax = fig.add_subplot(len(stimLabels),1,i+1)

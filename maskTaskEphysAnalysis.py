@@ -236,25 +236,25 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
                 ymin = min(ymin,np.min(m-s))
                 ymax = max(ymax,np.max(m+s))
             
-#            if stim=='mask':
-#                mask = np.array(psth['mask']['ipsi']['all'][mo])[units]
-#                p = target+mask
-#                b = p-p[:,t<0].mean(axis=1)[:,None]
-#                m = np.mean(b,axis=0)
-#                s = np.std(b,axis=0)/(len(p)**0.5)
-#                ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
-#                ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
-#                ymin = min(ymin,np.min(m-s))
-#                ymax = max(ymax,np.max(m+s))
+            if stim=='mask':
+                mask = np.array(psth['mask']['ipsi']['all'][mo])[units]
+                p = target+mask
+                b = p-p[:,t<0].mean(axis=1)[:,None]
+                m = np.mean(b,axis=0)
+                s = np.std(b,axis=0)/(len(p)**0.5)
+                ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
+                ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
+                ymin = min(ymin,np.min(m-s))
+                ymax = max(ymax,np.max(m+s))
             if i==5:
-                ax.set_xlabel('Time from stimulus onset (ms)')
+                ax.set_xlabel('Time from stimulus onset (ms)',fontsize=12)
             else:
                 ax.set_xticklabels([])
-            ax.set_ylabel('Spikes/s')
+            ax.set_ylabel('Spikes/s',fontsize=12)
             title = stim
             if stim=='mask':
                 title = title+' onset '+str(round(mo/120*1000,1))+' ms'
-            ax.set_title(title)
+            ax.set_title(title,fontsize=12)
             if i in (0,1,5):
                 ax.legend(fontsize=8)
             axs.append(ax)
@@ -262,7 +262,7 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
     for ax in axs:
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
-        ax.tick_params(direction='out',top=False,right=False)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=10)
         ax.set_xlim([0,200])
         ax.set_ylim([1.05*ymin,1.05*ymax])
     plt.tight_layout()
@@ -645,7 +645,7 @@ for k,p in enumerate((optoPsthExample,optoPsth)):
         ax.set_xlim([-preTime,trialTime+preTime])
         ax.set_ylim([0,ylim[1]])
         if i==2:
-            ax.set_xlabel('Time from LED onset (s)',fontsize=12)
+            ax.set_xlabel('Time from optogenetic light onset (s)',fontsize=12)
         ax.set_ylabel('Spikes/s',fontsize=12)
     plt.tight_layout()
 
@@ -706,7 +706,7 @@ analysisWindow = (t>0.04) & (t<0.12)
 units = ~(transient | excit) & respUnits
                 
 optoOnsetTicks = list(1000*(np.array(optoOnset[:-1])-exps[0].frameDisplayLag)/frameRate) + [100]
-optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no opto']
+optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no\nopto']
 
 fig = plt.figure(figsize=(6,8))
 gs = matplotlib.gridspec.GridSpec(3,2)
@@ -753,7 +753,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for stim,clr,lbl in zip(optoStimLabels[:3],'cbk',('target only','target + mask','mask only')):
+for stim,clr,lbl in zip(optoStimLabels[:3],'kbg',('target only','target + mask','mask only')):
     respMean = []
     respSem = []
     for onset in optoOnset:
@@ -771,14 +771,14 @@ ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
-ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
 ax.set_ylabel('Stimulus evoked spikes per neuron',fontsize=12)
-#ax.legend(loc='upper left')
+ax.legend(loc='upper left')
 plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for stim,clr in zip(('targetOnly','mask'),'cb'):
+for stim,clr in zip(('targetOnly','mask'),'kb'):
     mean = []
     sem = []
     for onset in optoOnset:
@@ -807,7 +807,7 @@ ax.set_xticklabels(optoOnsetLabels)
 ax.set_yticks(np.arange(0.4,1,0.1))
 ax.set_xlim([8,108])
 ax.set_ylim([0.4,0.8])
-ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
 ax.set_ylabel('Fraction of spikes contralateral to target',fontsize=12)
 plt.tight_layout()
 
