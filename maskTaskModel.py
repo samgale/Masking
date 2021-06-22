@@ -134,35 +134,6 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,
     return np.array(trialTargetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(trialOptoSide),np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
-# simple model
-@njit
-def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
-    if record:
-        Lrecord = np.full(Lsignal.size,np.nan)
-        Rrecord = Lrecord.copy()
-    else:
-        Lrecord = Rrecord = None
-    L = R = 0
-    t = 0
-    response = 0
-    while t<trialEnd and response==0:
-        if record:
-            Lrecord[t] = L
-            Rrecord[t] = R
-        if L > threshold and R > threshold:
-            response = -1 if L > R else 1
-        elif L > threshold:
-            response = -1
-        elif R > threshold:
-            response = 1
-        Lnow = L
-        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R
-        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lnow
-        t += 1
-    responseTime = t-1
-    return response,responseTime,Lrecord,Rrecord
-
-
 # divisive normalization of input signal
 @njit
 def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
@@ -196,6 +167,35 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
         R += (random.gauss(0,sigma) + Rsig - R - inhib*Lnow) / decay
         iL += (Lsignal[t] - iL) / iDecay
         iR += (Rsignal[t] - iR) / iDecay
+        t += 1
+    responseTime = t-1
+    return response,responseTime,Lrecord,Rrecord
+
+
+# simple model
+@njit
+def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+    if record:
+        Lrecord = np.full(Lsignal.size,np.nan)
+        Rrecord = Lrecord.copy()
+    else:
+        Lrecord = Rrecord = None
+    L = R = 0
+    t = 0
+    response = 0
+    while t<trialEnd and response==0:
+        if record:
+            Lrecord[t] = L
+            Rrecord[t] = R
+        if L > threshold and R > threshold:
+            response = -1 if L > R else 1
+        elif L > threshold:
+            response = -1
+        elif R > threshold:
+            response = 1
+        Lnow = L
+        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R
+        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lnow
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
@@ -579,7 +579,7 @@ plt.tight_layout()
 
 
 fig = plt.figure()
-ax = fig.add_subplot(2,1,2)
+ax = fig.add_subplot(1,1,1)
 ax.plot([0,200],[0.5,0.5],'--',color='0.8')
 clrs = np.zeros((len(maskOnset)-1,3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-2))[::-1,:3]
@@ -604,10 +604,12 @@ ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
-ax.set_xlabel('Model decision time (ms)',fontsize=12)
+ax.set_xlabel('Decision Time (ms)',fontsize=12)
 ax.set_ylabel('Probability Correct',fontsize=12)
+plt.tight_layout()
 
-ax = fig.add_subplot(2,1,1)
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
 for r,n,clr,lbl in zip(rt,ntrials,clrs,lbls):
     s = np.sort(r)
     c = [np.sum(r<=i)/n for i in s]
@@ -618,6 +620,7 @@ ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
+ax.set_xlabel('Decision Time (ms)',fontsize=12)
 ax.set_ylabel('Cumulative Probability',fontsize=12)
 ax.legend(title='mask onset',fontsize=8,loc='upper left')
 plt.tight_layout()
@@ -625,7 +628,7 @@ plt.tight_layout()
 
 # opto masking
 maskOnset = [0,2,np.nan]
-optoOnset = [0,2,4,6,8,10,12,np.nan]
+optoOnset = list(range(13))+[np.nan]
 optoSide = [0]
 
 trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=1)
@@ -634,11 +637,12 @@ result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,
 
 xticks = np.array(optoOnset)*dt
 xticks[-1] = xticks[-2] + 2*dt
-xticklabels = [int(round(x)) for x in xticks[:-1]]+['no\nopto']
+xticksplot = np.concatenate((xticks[::2],[xticks[-1]]))
+xticklabels = [int(round(x)) for x in xticksplot[:-1]]+['no\nopto']
 for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean decision time (ms)')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    for lbl,side,mo,clr in zip(('target only','target + mask','mask only','no stim'),(1,1,1,0),(np.nan,2,0,np.nan),'cbkm'):
+    for lbl,side,mo,clr in zip(('target only','target + mask','mask only','no stim'),(1,1,1,0),(np.nan,2,0,np.nan),'kbgm'):
         if measure!='fractionCorrect' or 'target' in lbl:
             d = []
             for optoOn in optoOnset:
@@ -651,12 +655,12 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False,labelsize=10)
-    ax.set_xticks(xticks)
+    ax.set_xticks(xticksplot)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim([0,xticks[-1]+dt])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+    ax.set_xlabel('Inhibition onset relative to target onset (ms)',fontsize=12)
     ax.set_ylabel(ylabel,fontsize=12)
     if measure=='responseRate':
         ax.legend(loc='upper left')

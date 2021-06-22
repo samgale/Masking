@@ -410,7 +410,7 @@ for mo in [2,3,4,6,0]:
     pc.append(correct/(correct+incorrect))
 
 fig = plt.figure()
-ax = fig.add_subplot(2,1,1)
+ax = fig.add_subplot(1,1,1)
 clrs = np.zeros((len(maskOnset),3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
 lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
@@ -423,10 +423,13 @@ for side in ('right','top'):
 ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xlim([100,500])
 ax.set_ylim([0,1.02])
+ax.set_xlabel('Reaction Time (ms)',fontsize=12)
 ax.set_ylabel('Cumulative Probability',fontsize=12)
 ax.legend(title='mask onset',loc='upper left',fontsize=8)
+plt.tight_layout()
 
-ax = fig.add_subplot(2,1,2)
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
 ax.plot([0,650],[0.5,0.5],'--',color='0.8')
 for p,clr in zip(pc,clrs):
     ax.plot(bins[:-2]+binWidth/2,p[:-1],color=clr)
