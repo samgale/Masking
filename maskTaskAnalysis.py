@@ -509,12 +509,12 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         if data is respRate:
             meanLR = np.mean(data[:,i],axis=1)
         else:
-            meanLR = np.sum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
+            meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
             if stim=='targetOnly':
-                firstValid = 0 #2
+                firstValid = 2
             else:
                 firstValid = 0
         else:
@@ -539,6 +539,48 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax.set_ylabel(ylabel,fontsize=12)
     if data is respRate:
         ax.legend(loc='upper left')
+    plt.tight_layout()
+
+# stats
+alpha = 0.05
+for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):       
+    if data is respRate:
+        meanLR = np.mean(data,axis=2)
+    else:
+        meanLR = np.nansum(data*respRate,axis=2)/np.sum(respRate,axis=2)
+    meanLR = np.reshape(meanLR,(meanLR.shape[0],meanLR.shape[1]*meanLR.shape[2]))
+    p = scipy.stats.kruskal(*meanLR.T,nan_policy='omit')[1]
+    pmat = np.full((meanLR.shape[1],)*2,np.nan)
+    for i,x in enumerate(meanLR.T):
+        for j,y in enumerate(meanLR.T):
+            if j>i and np.nansum(x)>0 and np.nansum(y)>0:
+                pmat[i,j] = scipy.stats.wilcoxon(x,y)[1]
+                
+    pvals = pmat.flatten()
+    notnan = ~np.isnan(pvals)
+    pvals[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
+    pmatCorr = np.reshape(pvals,pmat.shape)
+    
+    fig = plt.figure(facecolor='w')
+    ax = fig.subplots(1)
+    lim = (10**np.floor(np.log10(np.nanmin(pvals))),alpha)
+    clim = np.log10(lim)
+    cmap = matplotlib.cm.gray
+    cmap.set_bad(color=np.array((255, 251, 204))/255)
+    im = ax.imshow(np.log10(pmatCorr),cmap=cmap,clim=clim)
+    ax.tick_params(labelsize=10)
+    ax.set_xticks(np.arange(2*len(xticklabels)))
+    ax.set_xticklabels(2*xticklabels)
+    ax.set_yticks(np.arange(2*len(xticklabels)))
+    ax.set_yticklabels(2*xticklabels)
+    ax.set_xlim([-0.5,2*len(xticklabels)-0.5])
+    ax.set_ylim([-0.5,2*len(xticklabels)-0.5])
+    ax.set_xlabel('Optogenetic light onset (ms)',fontsize=12)
+    ax.set_ylabel('Optogenetic light onset (ms)',fontsize=12)
+    cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
+    cb.set_ticks(clim)
+    cb.set_ticklabels(lim)
+    ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
 
 # fraction correct vs response rate
@@ -623,7 +665,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         if data is respRate:
             meanLR = np.mean(data[:,i],axis=1)
         else:
-            meanLR = np.sum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
+            meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
@@ -655,6 +697,48 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax.set_ylabel(ylabel,fontsize=12)
     if data is respRate:
         ax.legend(loc='upper left')
+    plt.tight_layout()
+    
+# stats
+alpha = 0.05
+for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):       
+    if data is respRate:
+        meanLR = np.mean(data,axis=2)
+    else:
+        meanLR = np.nansum(data*respRate,axis=2)/np.sum(respRate,axis=2)
+    meanLR = np.reshape(meanLR,(meanLR.shape[0],meanLR.shape[1]*meanLR.shape[2]))
+    p = scipy.stats.kruskal(*meanLR.T,nan_policy='omit')[1]
+    pmat = np.full((meanLR.shape[1],)*2,np.nan)
+    for i,x in enumerate(meanLR.T):
+        for j,y in enumerate(meanLR.T):
+            if j>i and np.nansum(x)>0 and np.nansum(y)>0:
+                pmat[i,j] = scipy.stats.wilcoxon(x,y)[1]
+                
+    pvals = pmat.flatten()
+    notnan = ~np.isnan(pvals)
+    pvals[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
+    pmatCorr = np.reshape(pvals,pmat.shape)
+    
+    fig = plt.figure(facecolor='w')
+    ax = fig.subplots(1)
+    lim = (10**np.floor(np.log10(np.nanmin(pvals))),alpha)
+    clim = np.log10(lim)
+    cmap = matplotlib.cm.gray
+    cmap.set_bad(color=np.array((255, 251, 204))/255)
+    im = ax.imshow(np.log10(pmatCorr),cmap=cmap,clim=clim)
+    ax.tick_params(labelsize=10)
+    ax.set_xticks(np.arange(4*len(xticklabels)))
+    ax.set_xticklabels(4*xticklabels)
+    ax.set_yticks(np.arange(4*len(xticklabels)))
+    ax.set_yticklabels(4*xticklabels)
+    ax.set_xlim([-0.5,4*len(xticklabels)-0.5])
+    ax.set_ylim([-0.5,4*len(xticklabels)-0.5])
+    ax.set_xlabel('Optogenetic light onset (ms)',fontsize=12)
+    ax.set_ylabel('Optogenetic light onset (ms)',fontsize=12)
+    cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
+    cb.set_ticks(clim)
+    cb.set_ticklabels(lim)
+    ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
     
 # fraction correct vs reaction time
