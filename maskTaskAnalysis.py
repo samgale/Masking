@@ -6,6 +6,7 @@ Created on Mon Mar 11 12:34:44 2019
 """
 
 import copy
+import random
 import numpy as np
 import scipy.stats
 from statsmodels.stats.multitest import multipletests
@@ -498,6 +499,7 @@ for n,obj in enumerate(exps):
                         medianReacTimeIncorrect[n,s,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
                         reacTimeCorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][~correctTrials]
+    
 
 xticks = list((optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
@@ -655,6 +657,17 @@ for n,obj in enumerate(exps):
                     reacTimeCorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][correctTrials]
                     reacTimeIncorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][~correctTrials]
 
+respAboveChancePval = np.full((len(exps),len(stimLabels)-1,len(optoOnset)),np.nan)                   
+for i in range(len(exps)):
+    chanceRespRate = respRate[i,-1,0,-1]
+    for s in range(len(stimLabels)-1):
+        for j in range(len(optoOnset)):
+            n = int(ntrials[i,s,:,j].sum())
+            r = [sum([random.random()<chanceRespRate for _ in range(n)])/n for _ in range(1000)]
+            p = 1-scipy.stats.percentileofscore(r,respRate[i,s,:,j].mean())/100
+            respAboveChancePval[i,s,j] = multipletests(p,alpha=0.05,method='fdr_bh')[1]
+
+
 xticks = list((np.array(optoOnset)[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 
@@ -666,21 +679,23 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
             meanLR = np.mean(data[:,i],axis=1)
         else:
             meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
+            if stim!='catch':
+                meanLR[respAboveChancePval[:,i]>0.05] = np.nan
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if data is fracCorr:
             if stim=='targetOnly':
-                firstValid = 3
+                firstValid = 0 #3
             elif stim=='mask':
-                firstValid = 2
+                firstValid = 0 #2
             else:
                 firstValid = 0
         else:
             firstValid = 0
         lbl = stimLbl if data is respRate else None
-#        for d in meanLR:
-#            ax.plot(xticks[firstValid:-1],d[firstValid:-1],color=clr,alpha=0.2)
-#            ax.plot(xticks[-1],d[-1],'o',mec=clr,mfc='none',alpha=0.2)
+        for d in meanLR:
+            ax.plot(xticks[firstValid:-1],d[firstValid:-1],color=clr,alpha=0.2)
+            ax.plot(xticks[-1],d[-1],'o',mec=clr,mfc='none',alpha=0.2)
         ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',color=clr)
         ax.plot(xticks[-1],mean[-1],'o',color=clr,label=lbl)
         for x,m,s in zip(xticks[firstValid:],mean[firstValid:],sem[firstValid:]):
