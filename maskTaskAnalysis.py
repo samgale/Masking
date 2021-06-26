@@ -6,7 +6,6 @@ Created on Mon Mar 11 12:34:44 2019
 """
 
 import copy
-import random
 import numpy as np
 import scipy.stats
 from statsmodels.stats.multitest import multipletests
@@ -288,8 +287,9 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
                 
     pvals = pmat.flatten()
     notnan = ~np.isnan(pvals)
-    pvals[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
-    pmatCorr = np.reshape(pvals,pmat.shape)
+    pvalsCorr = np.full(pvals.size,np.nan)
+    pvalsCorr[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
+    pmatCorr = np.reshape(pvalsCorr,pmat.shape)
     
     fig = plt.figure(facecolor='w')
     ax = fig.subplots(1)
@@ -499,7 +499,14 @@ for n,obj in enumerate(exps):
                         medianReacTimeIncorrect[n,s,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
                         reacTimeCorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][~correctTrials]
-    
+ 
+respAboveChancePval = np.full((len(exps),len(optoOnset)),np.nan)            
+for i in range(len(exps)):
+    chanceRespRate = respRate[i,-1,0,-1]
+    for j in range(len(optoOnset)):
+        n = ntrials[i,0,:,j].sum()
+        respAboveChancePval[i,j] = scipy.stats.binom.sf(n*respRate[i,0,:,j].mean(),n,chanceRespRate)
+
 
 xticks = list((optoOnset[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
@@ -512,22 +519,16 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
             meanLR = np.mean(data[:,i],axis=1)
         else:
             meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
+            if stim=='targetOnly':
+                meanLR[respAboveChancePval>=0.05] = np.nan
+                meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<2] = np.nan
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-        if data is fracCorr:
-            if stim=='targetOnly':
-                firstValid = 2
-            else:
-                firstValid = 0
-        else:
-            firstValid = 0
         lbl = stimLbl if data is respRate else None
         for d in meanLR:
-            ax.plot(xticks[firstValid:-1],d[firstValid:-1],color=clr,alpha=0.2)
-            ax.plot(xticks[-1],d[-1],'o',mec=clr,mfc='none',alpha=0.2)
-        ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',color=clr)
-        ax.plot(xticks[-1],mean[-1],'o',color=clr,label=lbl)
-        for x,m,s in zip(xticks[firstValid:],mean[firstValid:],sem[firstValid:]):
+            ax.plot(xticks,d,color=clr,alpha=0.2)
+        ax.plot(xticks,mean,'o',color=clr,label=lbl)
+        for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
@@ -550,18 +551,21 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
         meanLR = np.mean(data,axis=2)
     else:
         meanLR = np.nansum(data*respRate,axis=2)/np.sum(respRate,axis=2)
+        meanLR[:,0][respAboveChancePval>=0.05] = np.nan
+        meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<2] = np.nan
     meanLR = np.reshape(meanLR,(meanLR.shape[0],meanLR.shape[1]*meanLR.shape[2]))
     p = scipy.stats.kruskal(*meanLR.T,nan_policy='omit')[1]
     pmat = np.full((meanLR.shape[1],)*2,np.nan)
     for i,x in enumerate(meanLR.T):
         for j,y in enumerate(meanLR.T):
             if j>i and np.nansum(x)>0 and np.nansum(y)>0:
-                pmat[i,j] = scipy.stats.wilcoxon(x,y)[1]
+                pmat[i,j] = scipy.stats.mannwhitneyu(x,y)[1]
                 
     pvals = pmat.flatten()
     notnan = ~np.isnan(pvals)
-    pvals[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
-    pmatCorr = np.reshape(pvals,pmat.shape)
+    pvalsCorr = np.full(pvals.size,np.nan)
+    pvalsCorr[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
+    pmatCorr = np.reshape(pvalsCorr,pmat.shape)
     
     fig = plt.figure(facecolor='w')
     ax = fig.subplots(1)
@@ -606,7 +610,6 @@ for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Rea
         m = np.nansum(data[bi]*n[bi]/ntotal)
         if ylabel=='Fraction Correct':
             s = [c/ntotal for c in scipy.stats.binom.interval(0.95,ntotal,m)]
-#            ax.plot([x,x],[c/ntotal for c in scipy.stats.binom.interval(0.95,ntotal,0.5)],'r')
         else:
             s = np.nanstd(data[bi])/(bi.sum()**0.5)
             s = [m-s,m+s]
@@ -657,15 +660,14 @@ for n,obj in enumerate(exps):
                     reacTimeCorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][correctTrials]
                     reacTimeIncorrect[n][stim][rd][optoOn] = obj.reactionTime[respTrials][~correctTrials]
 
-respAboveChancePval = np.full((len(exps),len(stimLabels)-1,len(optoOnset)),np.nan)                   
+respAboveChancePval = np.full((len(exps),len(stimLabels)-2,len(optoOnset)),np.nan)
+p = respAboveChancePval.copy()             
 for i in range(len(exps)):
     chanceRespRate = respRate[i,-1,0,-1]
-    for s in range(len(stimLabels)-1):
+    for s in range(len(stimLabels)-2):
         for j in range(len(optoOnset)):
-            n = int(ntrials[i,s,:,j].sum())
-            r = [sum([random.random()<chanceRespRate for _ in range(n)])/n for _ in range(1000)]
-            p = 1-scipy.stats.percentileofscore(r,respRate[i,s,:,j].mean())/100
-            respAboveChancePval[i,s,j] = multipletests(p,alpha=0.05,method='fdr_bh')[1]
+            n = ntrials[i,s,:,j].sum()
+            respAboveChancePval[i,s,j] = scipy.stats.binom.sf(n*respRate[i,s,:,j].mean(),n,chanceRespRate)
 
 
 xticks = list((np.array(optoOnset)[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
@@ -679,26 +681,16 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
             meanLR = np.mean(data[:,i],axis=1)
         else:
             meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
-            if stim!='catch':
-                meanLR[respAboveChancePval[:,i]>0.05] = np.nan
+            if stim in ('targetOnly','mask'):
+                meanLR[respAboveChancePval[:,i]>=0.05] = np.nan
+                meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<2] = np.nan
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-        if data is fracCorr:
-            if stim=='targetOnly':
-                firstValid = 0 #3
-            elif stim=='mask':
-                firstValid = 0 #2
-            else:
-                firstValid = 0
-        else:
-            firstValid = 0
         lbl = stimLbl if data is respRate else None
         for d in meanLR:
-            ax.plot(xticks[firstValid:-1],d[firstValid:-1],color=clr,alpha=0.2)
-            ax.plot(xticks[-1],d[-1],'o',mec=clr,mfc='none',alpha=0.2)
-        ax.plot(xticks[firstValid:-1],mean[firstValid:-1],'o',color=clr)
-        ax.plot(xticks[-1],mean[-1],'o',color=clr,label=lbl)
-        for x,m,s in zip(xticks[firstValid:],mean[firstValid:],sem[firstValid:]):
+            ax.plot(xticks,d,color=clr,alpha=0.2)
+        ax.plot(xticks,mean,'o',color=clr,label=lbl)
+        for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
@@ -721,18 +713,21 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
         meanLR = np.mean(data,axis=2)
     else:
         meanLR = np.nansum(data*respRate,axis=2)/np.sum(respRate,axis=2)
+        meanLR[:,:2][respAboveChancePval>=0.05] = np.nan
+        meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<2] = np.nan
     meanLR = np.reshape(meanLR,(meanLR.shape[0],meanLR.shape[1]*meanLR.shape[2]))
     p = scipy.stats.kruskal(*meanLR.T,nan_policy='omit')[1]
     pmat = np.full((meanLR.shape[1],)*2,np.nan)
     for i,x in enumerate(meanLR.T):
         for j,y in enumerate(meanLR.T):
             if j>i and np.nansum(x)>0 and np.nansum(y)>0:
-                pmat[i,j] = scipy.stats.wilcoxon(x,y)[1]
+                pmat[i,j] = scipy.stats.mannwhitneyu(x,y)[1]
                 
     pvals = pmat.flatten()
     notnan = ~np.isnan(pvals)
-    pvals[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
-    pmatCorr = np.reshape(pvals,pmat.shape)
+    pvalsCorr = np.full(pvals.size,np.nan)
+    pvalsCorr[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
+    pmatCorr = np.reshape(pvalsCorr,pmat.shape)
     
     fig = plt.figure(facecolor='w')
     ax = fig.subplots(1)
