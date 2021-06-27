@@ -283,7 +283,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     for i,x in enumerate(meanLR.T):
         for j,y in enumerate(meanLR.T):
             if j>i and not np.all(np.isnan(x+y)):
-                pmat[i,j] = scipy.stats.wilcoxon(x,y)[1]
+                pmat[i,j] = scipy.stats.ranksums(x,y)[1]
                 
     pvals = pmat.flatten()
     notnan = ~np.isnan(pvals)
@@ -293,7 +293,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     
     fig = plt.figure(facecolor='w')
     ax = fig.subplots(1)
-    lim = (10**np.floor(np.log10(np.nanmin(pvals))),alpha)
+    lim = (10**np.floor(np.log10(np.nanmin(pvalsCorr))),alpha)
     clim = np.log10(lim)
     cmap = matplotlib.cm.gray
     cmap.set_bad(color=np.array((255, 251, 204))/255)
@@ -559,7 +559,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     for i,x in enumerate(meanLR.T):
         for j,y in enumerate(meanLR.T):
             if j>i and np.nansum(x)>0 and np.nansum(y)>0:
-                pmat[i,j] = scipy.stats.mannwhitneyu(x,y)[1]
+                pmat[i,j] = scipy.stats.ranksums(x,y)[1]
                 
     pvals = pmat.flatten()
     notnan = ~np.isnan(pvals)
@@ -569,7 +569,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     
     fig = plt.figure(facecolor='w')
     ax = fig.subplots(1)
-    lim = (10**np.floor(np.log10(np.nanmin(pvals))),alpha)
+    lim = (10**np.floor(np.log10(np.nanmin(pvalsCorr))),alpha)
     clim = np.log10(lim)
     cmap = matplotlib.cm.gray
     cmap.set_bad(color=np.array((255, 251, 204))/255)
@@ -590,7 +590,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     plt.tight_layout()
 
 # fraction correct vs response rate
-rr = np.mean(respRate[:,0]-respRate[:,1],axis=1)
+rr = np.mean(respRate[:,0]-respRate[:,1,0,-1][:,None,None],axis=1)
 fc,rt = [np.nansum(d[:,0]*respRate[:,0],axis=1)/np.nansum(respRate[:,0],axis=1) for d in (fracCorr,medianReacTime)]
 n = np.sum(ntrials[:,0]*respRate[:,0],axis=1)
 
@@ -621,7 +621,7 @@ for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Rea
     ax.set_xlim([-0.1,0.9])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Response Rate Above Chance',fontsize=12)
+    ax.set_xlabel('Response Rate Relative to Chance',fontsize=12)
     ax.set_ylabel(ylabel,fontsize=12)
     plt.tight_layout()
 
@@ -721,7 +721,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     for i,x in enumerate(meanLR.T):
         for j,y in enumerate(meanLR.T):
             if j>i and np.nansum(x)>0 and np.nansum(y)>0:
-                pmat[i,j] = scipy.stats.mannwhitneyu(x,y)[1]
+                pmat[i,j] = scipy.stats.ranksums(x,y)[1]
                 
     pvals = pmat.flatten()
     notnan = ~np.isnan(pvals)
@@ -731,7 +731,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     
     fig = plt.figure(facecolor='w')
     ax = fig.subplots(1)
-    lim = (10**np.floor(np.log10(np.nanmin(pvals))),alpha)
+    lim = (10**np.floor(np.log10(np.nanmin(pvalsCorr))),alpha)
     clim = np.log10(lim)
     cmap = matplotlib.cm.gray
     cmap.set_bad(color=np.array((255, 251, 204))/255)
