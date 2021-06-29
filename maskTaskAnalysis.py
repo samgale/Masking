@@ -309,7 +309,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     ax.set_ylabel('Mask onset (ms)',fontsize=12)
     cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
     cb.set_ticks(clim)
-    cb.set_ticklabels(lim)
+    cb.set_ticklabels(["{:.0e}".format(lim[0]),lim[1]])
     ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
     
@@ -585,7 +585,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     ax.set_ylabel('Optogenetic light onset (ms)',fontsize=12)
     cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
     cb.set_ticks(clim)
-    cb.set_ticklabels(lim)
+    cb.set_ticklabels(["{:.0e}".format(lim[0]),lim[1]])
     ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
 
@@ -729,7 +729,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     pvalsCorr[notnan] = multipletests(pvals[notnan],alpha=alpha,method='fdr_bh')[1]
     pmatCorr = np.reshape(pvalsCorr,pmat.shape)
     
-    fig = plt.figure(facecolor='w')
+    fig = plt.figure(facecolor='w',figsize=(8,7))
     ax = fig.subplots(1)
     lim = (10**np.floor(np.log10(np.nanmin(pvalsCorr))),alpha)
     clim = np.log10(lim)
@@ -747,7 +747,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     ax.set_ylabel('Optogenetic light onset (ms)',fontsize=12)
     cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
     cb.set_ticks(clim)
-    cb.set_ticklabels(lim)
+    cb.set_ticklabels(["{:.0e}".format(lim[0]),lim[1]])
     ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
     
