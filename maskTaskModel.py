@@ -642,6 +642,8 @@ xticklabels = [int(round(x)) for x in xticksplot[:-1]]+['no\nopto']
 for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean decision time (ms)')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    if measure is 'fractionCorrect':
+        ax.plot([0,xticks[-1]+dt],[0.5,0.5],'k--')
     for lbl,side,mo,clr in zip(('target only','target + mask','mask only','no stim'),(1,1,1,0),(np.nan,2,0,np.nan),'kbgm'):
         if measure!='fractionCorrect' or 'target' in lbl:
             d = []

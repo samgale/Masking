@@ -87,8 +87,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-    ax.plot(xticks[0],mean[0],'ko')
-    ax.plot(xticks[1:],mean[1:],'ko')
+    ax.plot(xticks,mean,'ko',ms=12)
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k-')
     for side in ('right','top'):
@@ -153,8 +152,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-    ax.plot(xticks[0],mean[0],'ko')
-    ax.plot(xticks[1:],mean[1:],'ko')
+    ax.plot(xticks,mean,'ko',ms=12)
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k-')
     for side in ('right','top'):
@@ -249,6 +247,8 @@ for n in range(len(exps)):
 for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    if data is fracCorr:
+        ax.plot(xlim,[0.5,0.5],'k--')
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
@@ -257,7 +257,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         ax.plot(xticks,d,color=clr,alpha=0.25)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-    ax.plot(xticks,mean,'ko')
+    ax.plot(xticks,mean,'ko',ms=12)
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k-')
     for side in ('right','top'):
@@ -514,6 +514,8 @@ xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    if data is fracCorr:
+        ax.plot([8,108],[0.5,0.5],'k--')
     for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target only','no stim'),'km')):
         if data is respRate:
             meanLR = np.mean(data[:,i],axis=1)
@@ -527,7 +529,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         lbl = stimLbl if data is respRate else None
         for d in meanLR:
             ax.plot(xticks,d,color=clr,alpha=0.2)
-        ax.plot(xticks,mean,'o',color=clr,label=lbl)
+        ax.plot(xticks,mean,'o',color=clr,ms=12,label=lbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
@@ -600,8 +602,8 @@ for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Rea
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     if ylabel=='Fraction Correct':
-        ax.plot([bins[0],1],[0.5,0.5],'k:')
-    ax.plot(rr,data,'o',mec='0.8',mfc='none')
+        ax.plot([bins[0],1],[0.5,0.5],'k--')
+    ax.plot(rr,data,'o',mec='0.6',mfc='none',ms=10)
     ind = np.digitize(rr,bins)
     for i,b in enumerate(bins[:-1]):
         bi = ind==i+1
@@ -613,7 +615,7 @@ for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Rea
         else:
             s = np.nanstd(data[bi])/(bi.sum()**0.5)
             s = [m-s,m+s]
-        ax.plot(x,m,'ko')
+        ax.plot(x,m,'ko',ms=12)
         ax.plot([x,x],s,'k')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
@@ -673,9 +675,11 @@ for i in range(len(exps)):
 xticks = list((np.array(optoOnset)[:-1]-exps[0].frameDisplayLag)/frameRate*1000)+[100]
 xticklabels = [str(int(round(x))) for x in xticks[:-1]]+['no\nopto']
 
-for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
+for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    if data is fracCorr:
+        ax.plot([8,108],[0.5,0.5],'k--')
     for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels,('target only','target + mask','mask only','no stim'),'kbgm')):
         if data is respRate:
             meanLR = np.mean(data[:,i],axis=1)
@@ -683,13 +687,13 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
             meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
             if stim in ('targetOnly','mask'):
                 meanLR[respAboveChancePval[:,i]>=0.05] = np.nan
-                meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<2] = np.nan
+                meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<3] = np.nan
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         lbl = stimLbl if data is respRate else None
         for d in meanLR:
             ax.plot(xticks,d,color=clr,alpha=0.2)
-        ax.plot(xticks,mean,'o',color=clr,label=lbl)
+        ax.plot(xticks,mean,'o',color=clr,ms=12,label=lbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
@@ -714,7 +718,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     else:
         meanLR = np.nansum(data*respRate,axis=2)/np.sum(respRate,axis=2)
         meanLR[:,:2][respAboveChancePval>=0.05] = np.nan
-        meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<2] = np.nan
+        meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<3] = np.nan
     meanLR = np.reshape(meanLR,(meanLR.shape[0],meanLR.shape[1]*meanLR.shape[2]))
     p = scipy.stats.kruskal(*meanLR.T,nan_policy='omit')[1]
     pmat = np.full((meanLR.shape[1],)*2,np.nan)
