@@ -308,8 +308,9 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     ax.set_xlabel('Mask onset (ms)',fontsize=12)
     ax.set_ylabel('Mask onset (ms)',fontsize=12)
     cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
-    cb.set_ticks(clim)
-    cb.set_ticklabels(["{:.0e}".format(lim[0]),lim[1]])
+    legticks = np.concatenate((np.arange(clim[0],clim[-1]),[clim[-1]]))
+    cb.set_ticks(legticks)
+    cb.set_ticklabels(['$10^{'+str(int(lt))+'}$' for lt in legticks[:-1]]+[r'$\geq0.05$'])
     ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
     
@@ -397,6 +398,7 @@ binWidth = 50
 bins = np.arange(0,650,binWidth)
 rt = []
 pc = []
+bintrials = []
 for mo in [2,3,4,6,0]:
     stim = 'mask' if mo>0 else 'targetOnly'
     rt.append([])
@@ -409,11 +411,12 @@ for mo in [2,3,4,6,0]:
             correct += c
             incorrect += ic
     pc.append(correct/(correct+incorrect))
+    bintrials.append(correct+incorrect)
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 clrs = np.zeros((len(maskOnset),3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+clrs[:-1] = plt.cm.plasma(np.linspace(0,0.9,len(maskOnset)-1))[::-1,:3]
 lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
 for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[1:6],clrs,lbls):
     s = np.sort(r)
@@ -432,15 +435,17 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,650],[0.5,0.5],'--',color='0.8')
-for p,clr in zip(pc,clrs):
-    ax.plot(bins[:-2]+binWidth/2,p[:-1],color=clr)
+for p,n,clr in zip(pc,bintrials,clrs):
+    ax.plot(bins[:-1]+binWidth/2,p,color=clr)
+    s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
+    ax.fill_between(bins[:-1]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=10)
 ax.set_xlim([100,500])
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Reaction Time (ms)',fontsize=12)
-ax.set_ylabel('Probability Correct',fontsize=12)
+ax.set_ylabel('Fraction Correct',fontsize=12)
 plt.tight_layout()
 
 # visibility rating
@@ -523,7 +528,9 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
             meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
             if stim=='targetOnly':
                 meanLR[respAboveChancePval>=0.05] = np.nan
-                meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<2] = np.nan
+                nAboveChance = np.sum(~np.isnan(meanLR),axis=0)
+                print(nAboveChance)
+                meanLR[:,nAboveChance<2] = np.nan
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         lbl = stimLbl if data is respRate else None
@@ -586,16 +593,37 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     ax.set_xlabel('Optogenetic light onset (ms)',fontsize=12)
     ax.set_ylabel('Optogenetic light onset (ms)',fontsize=12)
     cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
-    cb.set_ticks(clim)
-    cb.set_ticklabels(["{:.0e}".format(lim[0]),lim[1]])
+    legticks = np.concatenate((np.arange(clim[0],clim[-1]),[clim[-1]]))
+    cb.set_ticks(legticks)
+    cb.set_ticklabels(['$10^{'+str(int(lt))+'}$' for lt in legticks[:-1]]+[r'$\geq0.05$'])
     ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
 
-# fraction correct vs response rate
-rr = np.mean(respRate[:,0]-respRate[:,1,0,-1][:,None,None],axis=1)
+# pooled trials fraction correct
 fc,rt = [np.nansum(d[:,0]*respRate[:,0],axis=1)/np.nansum(respRate[:,0],axis=1) for d in (fracCorr,medianReacTime)]
-n = np.sum(ntrials[:,0]*respRate[:,0],axis=1)
+nresp = np.sum(ntrials[:,0]*respRate[:,0],axis=1)
 
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([8,108],[0.5,0.5],'k--')
+ntotal = nresp.sum(axis=0)
+m = np.nansum(fc*nresp/ntotal,axis=0)
+ax.plot(xticks,m,'o',color='k',ms=12,label=lbl)
+for x,n,p in zip(xticks,ntotal,m):
+    s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
+    ax.plot([x,x],s,color='k')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_xlim([8,108])
+ax.set_ylim([0,1])
+ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
+ax.set_ylabel('Fraction Correct',fontsize=12)
+plt.tight_layout()
+
+rr = np.mean(respRate[:,0]-respRate[:,1,0,-1][:,None,None],axis=1)
 bw = 0.2
 bins = np.arange(-0.1,1.01,bw)
 for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Reaction Time')):
@@ -608,10 +636,11 @@ for data,ylim,ylabel in zip((fc,rt),((-0.02,1.02),None),('Fraction Correct','Rea
     for i,b in enumerate(bins[:-1]):
         bi = ind==i+1
         x = b+0.5*bw
-        ntotal = n[bi].sum()
-        m = np.nansum(data[bi]*n[bi]/ntotal)
+        ntotal = nresp[bi].sum()
+        m = np.nansum(data[bi]*nresp[bi]/ntotal)
         if ylabel=='Fraction Correct':
             s = [c/ntotal for c in scipy.stats.binom.interval(0.95,ntotal,m)]
+            print(s,ntotal)
         else:
             s = np.nanstd(data[bi])/(bi.sum()**0.5)
             s = [m-s,m+s]
@@ -750,10 +779,35 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     ax.set_xlabel('Optogenetic light onset (ms)',fontsize=12)
     ax.set_ylabel('Optogenetic light onset (ms)',fontsize=12)
     cb = plt.colorbar(im,ax=ax,fraction=0.026,pad=0.04)
-    cb.set_ticks(clim)
-    cb.set_ticklabels(["{:.0e}".format(lim[0]),lim[1]])
+    legticks = np.concatenate((np.arange(clim[0],clim[-1]),[clim[-1]]))
+    cb.set_ticks(legticks)
+    cb.set_ticklabels(['$10^{'+str(int(lt))+'}$' for lt in legticks[:-1]]+[r'$\geq0.05$'])
     ax.set_title(title+' Comparisons (p value)')
     plt.tight_layout()
+    
+# pooled trials fraction correct
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([8,108],[0.5,0.5],'k--')
+for i,(stim,stimLbl,clr) in enumerate(zip(stimLabels[:2],('target only','target + mask'),'kb')):
+    fc = np.nansum(fracCorr[:,i]*respRate[:,i],axis=1)/np.nansum(respRate[:,i],axis=1)
+    nresp = np.sum(ntrials[:,i]*respRate[:,i],axis=1)
+    ntotal = nresp.sum(axis=0)
+    m = np.nansum(fc*nresp/ntotal,axis=0)
+    ax.plot(xticks,m,'o',color=clr,ms=12,label=lbl)
+    for x,n,p in zip(xticks,ntotal,m):
+        s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
+        ax.plot([x,x],s,color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_xlim([8,108])
+ax.set_ylim([0.4,1])
+ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
+ax.set_ylabel('Fraction Correct (pooled trials)',fontsize=12)
+plt.tight_layout()
     
 # fraction correct vs reaction time
 binWidth = 50

@@ -605,7 +605,7 @@ ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Decision Time (ms)',fontsize=12)
-ax.set_ylabel('Probability Correct',fontsize=12)
+ax.set_ylabel('Fraction Correct',fontsize=12)
 plt.tight_layout()
 
 fig = plt.figure()
