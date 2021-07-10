@@ -369,17 +369,17 @@ plt.tight_layout()
 # reaction time on correct and incorrect trials
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for data,clr,lbl in zip((medianReacTimeCorrect,medianReacTimeIncorrect,medianReacTime),('k','0.8','k'),('correct','incorrect','other')):
+for data,clr,lbl in zip((medianReacTimeCorrect,medianReacTimeIncorrect,medianReacTime),('k','0.5','k'),('correct','incorrect','other')):
     meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     if lbl=='other':
         xt = [xticks[0],xticks[-1]]
-        ax.plot(xt,mean[[0,-1]],'o',mec=clr,mfc='none',label=lbl)
+        ax.plot(xt,mean[[0,-1]],'o',mec=clr,mfc='none',ms=12,label=lbl)
         for x,m,s in zip(xt,mean[[0,-1]],sem[[0,-1]]):
             ax.plot([x,x],[m-s,m+s],'-',color=clr)
     else:
-        ax.plot(xticks,mean,'o',color=clr,label=lbl)
+        ax.plot(xticks,mean,'o',color=clr,ms=12,label=lbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],'-',color=clr)
 for side in ('right','top'):
@@ -393,31 +393,61 @@ ax.set_ylabel('Median reaction time (ms)',fontsize=12)
 ax.legend(loc='upper left')
 plt.tight_layout()
 
+clrs = np.zeros((len(maskOnset),3))
+clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
+lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([0,600],[0,600],'--',color='0.8')
+rc,ri = [np.sum(d*respRate,axis=1)/np.sum(respRate,axis=1) for d in (medianReacTimeCorrect,medianReacTimeIncorrect)]
+for j,(clr,lbl) in enumerate(zip(clrs,lbls)):
+    ax.plot(rc[:,j+1],ri[:,j+1],'o',color=clr,label=lbl)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.set_xlim([150,410])
+ax.set_ylim([150,410])
+ax.set_aspect('equal')
+ax.set_xlabel('Median Correct Reaction Time (ms)',fontsize=12)
+ax.set_ylabel('Median Incorrect Reaction Time (ms)',fontsize=12)
+ax.legend(loc='lower right')
+plt.tight_layout()
+
 # fraction correct vs reaction time
 binWidth = 50
 bins = np.arange(0,650,binWidth)
 rt = []
-pc = []
+rtCorrect = []
+rtIncorrect = []
+fc = []
 bintrials = []
 for mo in [2,3,4,6,0]:
     stim = 'mask' if mo>0 else 'targetOnly'
     rt.append([])
+    rtCorrect.append([])
+    rtIncorrect.append([])
     correct = np.zeros(bins.size-1)
     incorrect = correct.copy()
     for i in range(len(exps)):
         for rd in rewardDir:
             rt[-1].extend(reacTime[i][stim][rd][mo])
-            c,ic = [np.histogram(rt[i][stim][rd][mo],bins)[0] for rt in (reacTimeCorrect,reacTimeIncorrect)]
+            rtCorrect[-1].extend(reacTimeCorrect[i][stim][rd][mo])
+            rtIncorrect[-1].extend(reacTimeIncorrect[i][stim][rd][mo])
+            c,ic = [np.histogram(r[i][stim][rd][mo],bins)[0] for r in (reacTimeCorrect,reacTimeIncorrect)]
             correct += c
             incorrect += ic
-    pc.append(correct/(correct+incorrect))
+    fc.append(correct/(correct+incorrect))
     bintrials.append(correct+incorrect)
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-clrs = np.zeros((len(maskOnset),3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,0.9,len(maskOnset)-1))[::-1,:3]
-lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
+for stim,lbl,clr,ls in zip(('catch','maskOnly'),('no stimulus','mask only'),('k','0.5'),('--','-')):
+    n = ntrials[:,0,0].sum() if stim=='maskOnly' else ntrials[:,0,-1].sum()
+    r = np.concatenate([reacTime[i][stim][1][0] for i in range(len(exps))])
+    s = np.sort(r)
+    c = [np.sum(r<=i)/n for i in s]
+    ax.plot(s,c,ls,color=clr,label=lbl)
 for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[1:6],clrs,lbls):
     s = np.sort(r)
     c = [np.sum(r<=i)/n for i in s]
@@ -425,7 +455,7 @@ for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[1:6],clrs,lbls):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=10)
-ax.set_xlim([100,500])
+ax.set_xlim([100,625])
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Reaction Time (ms)',fontsize=12)
 ax.set_ylabel('Cumulative Probability',fontsize=12)
@@ -434,8 +464,28 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
+for rc,ri,clr,lbl in zip(rtCorrect,rtIncorrect,clrs,lbls):
+    for r,ls in zip((rc,ri),('-','--')):
+        s = np.sort(r)
+        c = [np.sum(r<=i)/len(s) for i in s]
+        l = lbl if ls=='-' else None
+        ax.plot(s,c,ls,color=clr,label=l)
+ax.plot(-1,-1,'-',color='0.5',label='correct')
+ax.plot(-1,-1,'--',color='0.5',label='incorrect')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False,labelsize=10)
+ax.set_xlim([100,625])
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Reaction Time (ms)',fontsize=12)
+ax.set_ylabel('Cumulative Probability',fontsize=12)
+ax.legend(title='mask onset',loc='lower right',fontsize=8)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
 ax.plot([0,650],[0.5,0.5],'--',color='0.8')
-for p,n,clr in zip(pc,bintrials,clrs):
+for p,n,clr in zip(fc,bintrials,clrs):
     ax.plot(bins[:-1]+binWidth/2,p,color=clr)
     s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
     ax.fill_between(bins[:-1]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)

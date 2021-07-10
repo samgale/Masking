@@ -628,22 +628,26 @@ plt.tight_layout()
 
 # opto masking
 maskOnset = [0,2,np.nan]
-optoOnset = list(range(13))+[np.nan]
+optoOnset = list(range(2,11))+[np.nan]
 optoSide = [0]
+optoLatency = 1
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=1)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=optoLatency)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 
-xticks = np.array(optoOnset)*dt
-xticks[-1] = xticks[-2] + 2*dt
-xticksplot = np.concatenate((xticks[::2],[xticks[-1]]))
-xticklabels = [int(round(x)) for x in xticksplot[:-1]]+['no\nopto']
+xticks = [x*dt for x in optoOnset[::2]]+[100]
+xticklabels = [int(round(x)) for x in xticks[:-1]]+['no\nopto']
+x = np.array(optoOnset)*dt
+x[-1] = 100
 for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean decision time (ms)')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    if measure is 'fractionCorrect':
+    if measure=='fractionCorrect':
+        j = 2
         ax.plot([0,xticks[-1]+dt],[0.5,0.5],'k--')
+    else:
+        j = 0
     for lbl,side,mo,clr in zip(('target only','target + mask','mask only','no stim'),(1,1,1,0),(np.nan,2,0,np.nan),'kbgm'):
         if measure!='fractionCorrect' or 'target' in lbl:
             d = []
@@ -652,17 +656,17 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
                     d.append(dt*np.mean(result[side][mo][optoOn][optoSide[0]][measure]))
                 else:
                     d.append(result[side][mo][optoOn][optoSide[0]][measure])
-            ax.plot(xticks[:-1],d[:-1],color=clr,label=lbl)
-            ax.plot(xticks[-1],d[-1],'o',color=clr)
+            ax.plot(x[:-1],d[:-1],color=clr,label=lbl)
+            ax.plot(xticks[j:],np.array(d)[np.in1d(x,xticks)][j:],'o',color=clr,ms=12)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False,labelsize=10)
-    ax.set_xticks(xticksplot)
+    ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
-    ax.set_xlim([0,xticks[-1]+dt])
+    ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Inhibition onset relative to target onset (ms)',fontsize=12)
+    ax.set_xlabel('Simulated optogenetic light onset relative to target onset (ms)',fontsize=12)
     ax.set_ylabel(ylabel,fontsize=12)
     if measure=='responseRate':
         ax.legend(loc='upper left')
