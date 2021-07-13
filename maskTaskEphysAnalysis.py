@@ -206,7 +206,7 @@ plt.tight_layout()
 # compare contra, ipsi, and predicted response to target + mask
 for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
     units = units & ~fs
-    fig = plt.figure(figsize=(4,9))
+    fig = plt.figure(figsize=(4,6))
     axs = []
     ymin = 0
     ymax = 0
@@ -247,14 +247,19 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
                 ymin = min(ymin,np.min(m-s))
                 ymax = max(ymax,np.max(m+s))
             if i==5:
-                ax.set_xlabel('Time from stimulus onset (ms)',fontsize=12)
+                ax.set_xlabel('Time From Stimulus Onset (ms)',fontsize=12)
             else:
                 ax.set_xticklabels([])
-            ax.set_ylabel('Spikes/s',fontsize=12)
+            if i==0:
+                ax.set_ylabel('Spikes/s',fontsize=12)
             title = stim
-            if stim=='mask':
-                title = title+' onset '+str(round(mo/120*1000,1))+' ms'
-            ax.set_title(title,fontsize=12)
+            if stim=='targetOnly':
+                title = 'target only'
+            elif stim=='maskOnly':
+                title = 'mask only'
+            elif stim=='mask':
+                title = title+' onset\n'+str(int(round(mo/120*1000)))+' ms'
+            ax.text(0.15,0.99,title,transform=ax.transAxes,color='k',fontsize=10,ha='center',va='top')
             if i in (0,1,5):
                 ax.legend(fontsize=8)
             axs.append(ax)
@@ -273,7 +278,7 @@ maskOnset = np.unique(exps[0].maskOnset[~np.isnan(exps[0].maskOnset)])
 maskOnsetTicks = np.concatenate((maskOnset,(8,10)))/frameRate*1000
 maskOnsetLabels = ['mask only']+[str(int(round(onset)))+' ms' for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
 clrs = np.zeros((len(maskOnset),3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
 
 units = respUnits & ~fs
 analysisWindow = (t>0.033) & (t<0.2)
@@ -302,15 +307,15 @@ for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
     ax.set_xlim([33,200])
     ax.set_yticks([0,0.5,1,1.5])
     ax.set_ylim([-0.05,1.5])
-    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
-    ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=12)
-    ax.set_title(hemi+' Target',fontsize=12)
+    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=14)
+    ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=14)
+#    ax.set_title(hemi+' Target',fontsize=14)
     if hemi=='Contralateral':
-        ax.legend(title='mask onset',loc='upper left')
+        ax.legend(title='mask onset',loc='upper left',fontsize=12)
     plt.tight_layout()
 
 fig = plt.figure()
@@ -324,11 +329,11 @@ for contra,ipsi,clr,lbl in zip(cumContra[1:-1],cumIpsi[1:-1],clrs,maskOnsetLabel
 ax.plot([33,200],[0,0],'k--')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.tick_params(direction='out',top=False,right=False,labelsize=12)
 ax.set_xlim([33,200])
-ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
-ax.set_ylabel('Cumulative Spike Count Difference',fontsize=12)
-ax.set_title('Contralateral - Ipsilateral',fontsize=12)
+ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=14)
+ax.set_ylabel('Cumulative Spike Count Difference',fontsize=14)
+ax.set_title('Contralateral - Ipsilateral',fontsize=14)
 plt.tight_layout()
 
 
@@ -550,11 +555,12 @@ ax.set_ylabel('Decoder Weighting',fontsize=12)
 plt.tight_layout()
 
 clrs = np.zeros((len(maskOnset),3))
-clrs[1:] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+clrs[1:] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
 lbls = ['target only']+[lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]
-for i,xlbl in enumerate(('End of Decoding Window','Time','End of Integration Window')): 
+for i,xlbl in enumerate(('End of Decoding Window','Time','End of Spike Integration Window')): 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    ax.plot([0,200],[0.5,0.5],'k--')
     for j,(mo,clr,lbl) in enumerate(zip(maskOnset,clrs,lbls)):
         d = testScore['pooled'][:,-1,i,:,j]
         m = d.mean(axis=0)
@@ -563,12 +569,12 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Integration Win
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
     ax.set_xlim([0,200])
-    ax.set_ylim([0.4,1.02])
-    ax.set_xlabel(xlbl+' Relative to Target Onset (ms)',fontsize=12)
-    ax.set_ylabel('Decoder Accuracy',fontsize=12)
-    ax.legend(title='mask onset',fontsize=10)
+    ax.set_ylim([0.4,1])
+    ax.set_xlabel(xlbl+' (ms)',fontsize=14)
+    ax.set_ylabel('Target Side Decoding Accuracy',fontsize=14)
+#    ax.legend(title='mask onset',fontsize=12)
     plt.tight_layout()
 
 

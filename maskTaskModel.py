@@ -415,20 +415,24 @@ xlim = [-8,92]
 for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,fracCorrSem),(responseRate,fractionCorrect),((0,1.02),(0.4,1)),('Response Rate','Fraction Correct')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot(xticks,mean,'o',mec='k',mfc='none',ms=8,mew=2,label='mice')
+    ax.plot(xticks,mean,'o',mec='k',mfc='none',ms=12,mew=2,label='mice')
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k')
-    ax.plot(xticks,model,'o',mec='r',mfc='none',ms=8,mew=2,label='model')
+    ax.plot(xticks,model,'o',mec='r',mfc='none',ms=12,mew=2,label='model')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False,labelsize=10)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
+    ax.tick_params(direction='out',right=False,labelsize=12)
+    if ylabel=='Fraction Correct':
+        ax.set_xticks(xticks[1:-1])
+        ax.set_xticklabels(xticklabels[1:-1])
+    else:
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
+        ax.legend()
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
-    ax.set_ylabel(ylabel,fontsize=12)
-    ax.legend()
+    ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=14)
+    ax.set_ylabel(ylabel,fontsize=14)
     plt.tight_layout()
 
 
@@ -550,7 +554,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','responseTime',),('k','0.8','k'),('k','0.8','none'),('correct','incorrect','other')):
+for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','responseTime',),('k','0.5','k'),('k','0.5','none'),('correct','incorrect','other')):
     rt = []
     for side in targetSide:
         maskOn = [np.nan] if side==0 else maskOnset
@@ -565,24 +569,24 @@ for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','
                     rt.append(np.nan)
                 else:
                     rt.append(dt*np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
-    ax.plot(xticks,rt,'o',mec=mec,mfc=mfc,label=lbl)
+    ax.plot(xticks,rt,'o',mec=mec,mfc=mfc,ms=12,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
+ax.tick_params(direction='out',right=False,labelsize=12)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
-ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
-ax.set_ylabel('Median decision time (ms)',fontsize=12)
-ax.legend()
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=14)
+ax.set_ylabel('Median Decision Time (ms)',fontsize=14)
+#ax.legend()
 plt.tight_layout()
 
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot([0,200],[0.5,0.5],'--',color='0.8')
+ax.plot([0,200],[0.5,0.5],'k--')
 clrs = np.zeros((len(maskOnset)-1,3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-2))[::-1,:3]
+clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-2))[::-1,:3]
 lbls = [lbl+' ms' for lbl in xticklabels[1:-2]]+['target only']
 ntrials = []
 rt = []
@@ -594,18 +598,18 @@ for maskOn,clr in zip(maskOnset[1:],clrs):
     rt.append(responseTime[respTrials].astype(float)*dt)
     c = (trialTargetSide==response)[respTrials]
     p = []
-    for i in t[t>30]:
+    for i in t[t>45]:
         j = (rt[-1]>=i) & (rt[-1]<i+dt)
         p.append(np.sum(c[j])/np.sum(j))
-    ax.plot(t[t>30]+dt/2,p,'-',color=clr)
+    ax.plot(t[t>45]+dt/2,p,'-',color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
+ax.tick_params(direction='out',right=False,labelsize=12)
 ax.set_xticks([0,50,100,150,200])
-ax.set_xlim([0,200])
-ax.set_ylim([0,1.02])
-ax.set_xlabel('Decision Time (ms)',fontsize=12)
-ax.set_ylabel('Fraction Correct',fontsize=12)
+ax.set_xlim([50,200])
+ax.set_ylim([0.2,1])
+ax.set_xlabel('Decision Time (ms)',fontsize=14)
+ax.set_ylabel('Fraction Correct',fontsize=14)
 plt.tight_layout()
 
 fig = plt.figure()

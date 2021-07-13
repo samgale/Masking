@@ -262,13 +262,17 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         ax.plot([x,x],[m-s,m+s],'k-')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+    if data is fracCorr:
+        ax.set_xticks(xticks[1:-1])
+        ax.set_xticklabels(xticklabels[1:-1])
+    else:
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
-    ax.set_ylabel(ylabel,fontsize=12)
+    ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=14)
+    ax.set_ylabel(ylabel,fontsize=14)
     plt.tight_layout()
     
 # stats
@@ -384,12 +388,12 @@ for data,clr,lbl in zip((medianReacTimeCorrect,medianReacTimeIncorrect,medianRea
             ax.plot([x,x],[m-s,m+s],'-',color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.tick_params(direction='out',top=False,right=False,labelsize=12)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
-ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
-ax.set_ylabel('Median reaction time (ms)',fontsize=12)
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=14)
+ax.set_ylabel('Median Reaction Time (ms)',fontsize=14)
 ax.legend(loc='upper left')
 plt.tight_layout()
 
@@ -454,12 +458,12 @@ for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[1:6],clrs,lbls):
     ax.plot(s,c,'-',color=clr,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
+ax.tick_params(direction='out',right=False,labelsize=12)
 ax.set_xlim([100,625])
 ax.set_ylim([0,1.02])
-ax.set_xlabel('Reaction Time (ms)',fontsize=12)
-ax.set_ylabel('Cumulative Probability',fontsize=12)
-ax.legend(title='mask onset',loc='upper left',fontsize=8)
+ax.set_xlabel('Reaction Time (ms)',fontsize=14)
+ax.set_ylabel('Cumulative Probability',fontsize=14)
+ax.legend(title='mask onset',loc='upper left',fontsize=10)
 plt.tight_layout()
 
 fig = plt.figure()
@@ -474,28 +478,28 @@ ax.plot(-1,-1,'-',color='0.5',label='correct')
 ax.plot(-1,-1,'--',color='0.5',label='incorrect')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
+ax.tick_params(direction='out',right=False,labelsize=12)
 ax.set_xlim([100,625])
-ax.set_ylim([0,1.02])
-ax.set_xlabel('Reaction Time (ms)',fontsize=12)
-ax.set_ylabel('Cumulative Probability',fontsize=12)
-ax.legend(title='mask onset',loc='lower right',fontsize=8)
+ax.set_ylim([0,1])
+ax.set_xlabel('Reaction Time (ms)',fontsize=14)
+ax.set_ylabel('Cumulative Probability',fontsize=14)
+ax.legend(title='mask onset',loc='lower right',fontsize=10)
 plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot([0,650],[0.5,0.5],'--',color='0.8')
+ax.plot([0,650],[0.5,0.5],'k--')
 for p,n,clr in zip(fc,bintrials,clrs):
     ax.plot(bins[:-1]+binWidth/2,p,color=clr)
     s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
     ax.fill_between(bins[:-1]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
-ax.set_xlim([100,500])
-ax.set_ylim([0,1.02])
-ax.set_xlabel('Reaction Time (ms)',fontsize=12)
-ax.set_ylabel('Fraction Correct',fontsize=12)
+ax.tick_params(direction='out',right=False,labelsize=12)
+ax.set_xlim([100,400])
+ax.set_ylim([0.2,1])
+ax.set_xlabel('Reaction Time (ms)',fontsize=14)
+ax.set_ylabel('Fraction Correct',fontsize=14)
 plt.tight_layout()
 
 # visibility rating
@@ -591,14 +595,14 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
-    ax.set_ylabel(ylabel,fontsize=12)
+    ax.set_xlabel('Optogenetic Light Onset Relative to Target Onset (ms)',fontsize=14)
+    ax.set_ylabel(ylabel,fontsize=14)
     if data is respRate:
         ax.legend(loc='upper left')
     plt.tight_layout()
@@ -664,13 +668,13 @@ for x,n,p in zip(xticks,ntotal,m):
     ax.plot([x,x],s,color='k')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.tick_params(direction='out',top=False,right=False,labelsize=12)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim([8,108])
-ax.set_ylim([0,1])
-ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
-ax.set_ylabel('Fraction Correct',fontsize=12)
+ax.set_ylim([0.4,1])
+ax.set_xlabel('Optogenetic Light Onset Relative to Target Onset (ms)',fontsize=14)
+ax.set_ylabel('Fraction Correct (pooled trials)',fontsize=14)
 plt.tight_layout()
 
 rr = np.mean(respRate[:,0]-respRate[:,1,0,-1][:,None,None],axis=1)
