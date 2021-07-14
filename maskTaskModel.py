@@ -428,7 +428,7 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
     else:
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
-        ax.legend()
+        ax.legend(fontsize=12)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=14)
@@ -484,38 +484,41 @@ fractionCorrect = outOfSampleFracCorr
 
 
 # example model traces
-trialInd = 0
-for side,lbl in zip((1,0),('target right','no stim')):
+for side,lbl in zip((1,),('target right',)):#((1,0),('target right','no stim')):
     sideTrials = trialTargetSide==side
     maskOn = [np.nan] if side==0 else maskOnset
-    for mo in maskOn:
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-        ax.plot([0,trialEndTimeMax],[threshold,threshold],'k--')
+    for mo in [np.nan]:#maskOn:
         maskTrials = np.isnan(trialMaskOnset) if np.isnan(mo) else trialMaskOnset==mo
-        trial = np.where(sideTrials & maskTrials)[0][trialInd]
-        ax.plot(t,Rrecord[trial],'r',label='R')
-        ax.plot(t,Lrecord[trial],'b',label='L')
-        for axside in ('right','top','left','bottom'):
-            ax.spines[axside].set_visible(False)
-        ax.tick_params(direction='out',right=False,top=False,left=False)
-        ax.set_yticks([])
-        ax.set_xlim([0,trialEndTimeMax])
-        ax.set_ylim([-1.05*threshold,1.05*threshold])
-        ax.set_xlabel('Time (ms)')
-        title = lbl
-        if not np.isnan(mo):
-            title += ' + mask (' + str(int(round(mo*dt))) + ' ms)'
-        title += ', decision = '
-        if response[trial]==-1:
-            title += 'left'
-        elif response[trial]==1:
-            title += 'right'
-        else:
-            title += 'none'
-        ax.set_title(title)
-        ax.legend(loc='right')
-        plt.tight_layout()
+        trials = np.where(sideTrials & maskTrials)[0]
+        for trial in trials[5:7]:
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1)
+            ax.plot([0,trialEndTimeMax],[threshold,threshold],'k--')
+            ax.plot(t,Lrecord[trial],'b',lw=2,label='Ipsilateral')
+            ax.plot(t,Rrecord[trial],'r',lw=2,label='Contralateral')
+            for axside in ('right','top','left'):
+                ax.spines[axside].set_visible(False)
+            ax.tick_params(direction='out',right=False,top=False,left=False,labelsize=16)
+            ax.set_xticks([0,50,100,150,200])
+            ax.set_yticks([0,threshold])
+            ax.set_yticklabels([0,'threshold'])
+            ax.set_xlim([0,trialEndTimeMax])
+            ax.set_ylim([-1.05*threshold,1.05*threshold])
+            ax.set_xlabel('Time (ms)',fontsize=18)
+            ax.set_ylabel('Decision Variable',fontsize=18)
+            title = lbl
+            if not np.isnan(mo):
+                title += ' + mask (' + str(int(round(mo*dt))) + ' ms)'
+            title += ', decision = '
+            if response[trial]==-1:
+                title += 'left'
+            elif response[trial]==1:
+                title += 'right'
+            else:
+                title += 'none'
+#            ax.set_title(title)
+            ax.legend(loc='lower right',fontsize=16)
+            plt.tight_layout()
 
 
 # masking reaction time
@@ -664,16 +667,16 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
             ax.plot(xticks[j:],np.array(d)[np.in1d(x,xticks)][j:],'o',color=clr,ms=12)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False,labelsize=10)
+    ax.tick_params(direction='out',right=False,labelsize=13)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Simulated optogenetic light onset relative to target onset (ms)',fontsize=12)
-    ax.set_ylabel(ylabel,fontsize=12)
-    if measure=='responseRate':
-        ax.legend(loc='upper left')
+    ax.set_xlabel('Simulated Inhibition Relative to Target Onset (ms)',fontsize=14)
+    ax.set_ylabel(ylabel,fontsize=14)
+#    if measure=='responseRate':
+#        ax.legend(loc='upper left',fontsize=12)
     plt.tight_layout()
 
 

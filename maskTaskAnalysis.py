@@ -781,16 +781,16 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
-    ax.set_ylabel(ylabel,fontsize=12)
+    ax.set_xlabel('Optogenetic Light Onset Relative to Target Onset (ms)',fontsize=14)
+    ax.set_ylabel(ylabel,fontsize=14)
     if data is respRate:
-        ax.legend(loc='upper left')
+        ax.legend(loc='upper left',fontsize=12)
     plt.tight_layout()
     
 # stats
