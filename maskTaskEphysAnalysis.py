@@ -307,15 +307,16 @@ for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
     ax.set_xlim([33,200])
     ax.set_yticks([0,0.5,1,1.5])
     ax.set_ylim([-0.05,1.5])
-    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=14)
-    ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=14)
+    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=16)
 #    ax.set_title(hemi+' Target',fontsize=14)
     if hemi=='Contralateral':
-        ax.legend(title='mask onset',loc='upper left',fontsize=12)
+        leg = ax.legend(title='mask onset',loc='upper left',fontsize=12)
+        plt.setp(leg.get_title(),fontsize=12)
     plt.tight_layout()
 
 fig = plt.figure()
@@ -329,10 +330,10 @@ for contra,ipsi,clr,lbl in zip(cumContra[1:-1],cumIpsi[1:-1],clrs,maskOnsetLabel
 ax.plot([33,200],[0,0],'k--')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim([33,200])
-ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=14)
-ax.set_ylabel('Cumulative Spike Count Difference',fontsize=14)
+ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Spike Count Difference',fontsize=16)
 ax.set_title('Contralateral - Ipsilateral',fontsize=14)
 plt.tight_layout()
 
@@ -569,11 +570,11 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Spike Integrati
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
     ax.set_xlim([0,200])
     ax.set_ylim([0.4,1])
-    ax.set_xlabel(xlbl+' (ms)',fontsize=14)
-    ax.set_ylabel('Target Side Decoding Accuracy',fontsize=14)
+    ax.set_xlabel(xlbl+' (ms)',fontsize=16)
+    ax.set_ylabel('Target Side Decoding Accuracy',fontsize=16)
 #    ax.legend(title='mask onset',fontsize=12)
     plt.tight_layout()
 

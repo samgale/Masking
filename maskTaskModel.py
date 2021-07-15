@@ -421,7 +421,7 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
     ax.plot(xticks,model,'o',mec='r',mfc='none',ms=12,mew=2,label='model')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False,labelsize=12)
+    ax.tick_params(direction='out',right=False,labelsize=14)
     if ylabel=='Fraction Correct':
         ax.set_xticks(xticks[1:-1])
         ax.set_xticklabels(xticklabels[1:-1])
@@ -431,8 +431,8 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
         ax.legend(fontsize=12)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=14)
-    ax.set_ylabel(ylabel,fontsize=14)
+    ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
 
 
@@ -575,12 +575,12 @@ for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','
     ax.plot(xticks,rt,'o',mec=mec,mfc=mfc,ms=12,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=12)
+ax.tick_params(direction='out',right=False,labelsize=14)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
-ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=14)
-ax.set_ylabel('Median Decision Time (ms)',fontsize=14)
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Median Decision Time (ms)',fontsize=16)
 #ax.legend()
 plt.tight_layout()
 
@@ -604,15 +604,15 @@ for maskOn,clr in zip(maskOnset[1:],clrs):
     for i in t[t>45]:
         j = (rt[-1]>=i) & (rt[-1]<i+dt)
         p.append(np.sum(c[j])/np.sum(j))
-    ax.plot(t[t>45]+dt/2,p,'-',color=clr)
+    ax.plot(t[t>45]+dt/2,p,'-',color=clr,lw=2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=12)
+ax.tick_params(direction='out',right=False,labelsize=14)
 ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([50,200])
 ax.set_ylim([0.2,1])
-ax.set_xlabel('Decision Time (ms)',fontsize=14)
-ax.set_ylabel('Fraction Correct',fontsize=14)
+ax.set_xlabel('Decision Time (ms)',fontsize=16)
+ax.set_ylabel('Fraction Correct',fontsize=16)
 plt.tight_layout()
 
 fig = plt.figure()
@@ -667,14 +667,14 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
             ax.plot(xticks[j:],np.array(d)[np.in1d(x,xticks)][j:],'o',color=clr,ms=12)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False,labelsize=13)
+    ax.tick_params(direction='out',right=False,labelsize=14)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Simulated Inhibition Relative to Target Onset (ms)',fontsize=14)
-    ax.set_ylabel(ylabel,fontsize=14)
+    ax.set_xlabel('Simulated Inhibition Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel(ylabel,fontsize=16)
 #    if measure=='responseRate':
 #        ax.legend(loc='upper left',fontsize=12)
     plt.tight_layout()
