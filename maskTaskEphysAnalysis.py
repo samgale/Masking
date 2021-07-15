@@ -632,26 +632,31 @@ noResp = activeUnits & (~(excit | inhib | transient))
 
 for k,p in enumerate((optoPsthExample,optoPsth)):
     fig = plt.figure(figsize=(6,8))
-    for i,(units,lbl) in enumerate(zip((excit,transient,inhib | noResp),('Excited','Transient','Inhibited'))):
-        ax = fig.add_subplot(3,1,i+1)
+    for i,(units,lbl) in enumerate(zip((excit,transient,inhib,inhib),('Excited','Transient','Inhibited',''))):
+        ax = fig.add_subplot(4,1,i+1)
         units = units & activeUnits
         m = p[units].mean(axis=0)
         s = p[units].std(axis=0)/(units.sum()**0.5)
         ax.plot(t,m,'k')
         ax.fill_between(t,m+s,m-s,color='k',alpha=0.25)
         ylim = plt.get(ax,'ylim')
+        if i==2:
+            for x in (-0.01,0.05):
+                ax.plot([x,x],[0,100],'--',color='0.5',zorder=1)
         if k==0:
-            poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime,ylim[1]),(0,ylim[1])])
+            poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime-optoOnsetToPlot/obj.frameRate,ylim[1]),(0,ylim[1])])
             ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.1))
-        n = str(np.sum(units & fs))+' FS, '+str(np.sum(units & ~fs))+' RS'
-        ax.text(0.5,1,lbl+' (n = '+n+')',transform=ax.transAxes,color='k',ha='center',va='bottom')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False,labelsize=10)
-        ax.set_xlim([-preTime,trialTime+preTime])
+        if i<3:
+            n = str(np.sum(units & fs))+' FS, '+str(np.sum(units & ~fs))+' RS'
+            ax.text(0.5,1,lbl+' (n = '+n+')',transform=ax.transAxes,color='k',ha='center',va='top',fontsize=12)
+            ax.set_xlim([-0.2,1])
+        else:
+            ax.set_xlabel('Time From Optogenetic Light Onset (s)',fontsize=12)
+            ax.set_xlim([-0.01,0.05])
         ax.set_ylim([0,ylim[1]])
-        if i==2:
-            ax.set_xlabel('Time from optogenetic light onset (s)',fontsize=12)
         ax.set_ylabel('Spikes/s',fontsize=12)
     plt.tight_layout()
 
@@ -733,7 +738,7 @@ for i,(stim,stimLbl) in enumerate(zip(optoStimLabels,('target','target + mask','
             p = np.array(optoOnsetPsth[stim][hemi][onset])[units]
             m = np.mean(p,axis=0)
             s = np.std(p,axis=0)/(len(p)**0.5)
-            lbl = lbl if np.isnan(onset) else lbl+' ms'
+            lbl = lbl.replace('\n',' ') if np.isnan(onset) else lbl+' ms'
             ax.plot(t*1000,m,color=clr,label=lbl)
             ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
         for side in ('right','top'):
@@ -741,14 +746,14 @@ for i,(stim,stimLbl) in enumerate(zip(optoStimLabels,('target','target + mask','
         ax.tick_params(direction='out',top=False,right=False,labelsize=10)
         ax.set_xticks(np.arange(-50,201,50))
         ax.set_xlim([-25,175])
-        if i>1:
-            ax.set_xlabel('Time from stimulus onset (ms)',fontsize=12)
-        if j==0:
+        if i==2 and j==0:
+            ax.set_xlabel('Time From Visual Stimulus Onset (ms)',fontsize=12)
+        if i==1 and j==0:
             ax.set_ylabel('Spikes/s',fontsize=12)
         if i==0 and j==1:
             ax.legend(loc='upper right',title='opto onset',fontsize=8)
         title = hemi+' '+stimLbl if stim in ('targetOnly','mask') else stimLbl
-        ax.set_title(title)
+        ax.text(0.05,1,title,transform=ax.transAxes,color='k',ha='left',va='top',fontsize=12)
         if stim in ('maskOnly','catch'):
             break
 ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
