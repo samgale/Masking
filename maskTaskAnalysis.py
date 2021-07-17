@@ -819,7 +819,9 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
             meanLR = np.nansum(data[:,i]*respRate[:,i],axis=1)/np.sum(respRate[:,i],axis=1)
             if stim in ('targetOnly','mask'):
                 meanLR[respAboveChancePval[:,i]>=0.05] = np.nan
-                meanLR[:,np.sum(~np.isnan(meanLR),axis=0)<3] = np.nan
+                nAboveChance = np.sum(~np.isnan(meanLR),axis=0)
+                print(nAboveChance)
+                meanLR[:,nAboveChance<3] = np.nan
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         lbl = stimLbl if data is respRate else None
