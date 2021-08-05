@@ -271,6 +271,8 @@ class MaskTaskData():
         self.maxQuiescentMoveDist = behavData['maxQuiescentMoveDist'][()]
         self.deltaWheelPos = behavData['deltaWheelPos'][()]
         self.trialType = behavData['trialType'][:self.ntrials]
+        self.trialStartFrame = behavData['trialStartFrame'][:self.ntrials]
+        self.trialEndFrame = behavData['trialEndFrame'][:self.ntrials]
         self.stimStart = behavData['trialStimStartFrame'][:self.ntrials]
         self.targetContrast = behavData['trialTargetContrast'][:self.ntrials]
         self.targetFrames = behavData['trialTargetFrames'][:self.ntrials]

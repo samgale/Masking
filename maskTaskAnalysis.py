@@ -32,6 +32,21 @@ if len(behavFiles)>0:
         obj.loadBehavData(f)
         exps.append(obj)
 
+
+totalTrials = sum(obj.ntrials for obj in exps)
+longFrames = sum(obj.longFrameTrials.sum() for obj in exps)/totalTrials
+notEngaged = sum(np.sum(~obj.engaged) for obj in exps)/totalTrials
+earlyMove = sum(obj.earlyMove.sum() for obj in exps)/totalTrials
+
+sessionDur = []
+for obj in exps:
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
+    sessionDur.append(obj.behavFrameIntervals[:obj.trialEndFrame[validTrials][-1]-1].sum()/60)
+np.median(sessionDur)
+min(sessionDur)
+max(sessionDur)
+
+
     
 frameRate = 120
 targetSide = ('left','right')
@@ -71,6 +86,13 @@ for n,obj in enumerate(exps):
                         medianReacTimeIncorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
                         reacTimeCorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][~correctTrials]
+
+ntable = [[],[]]
+for i,(med,mn,mx) in enumerate(zip(np.median(ntrials,axis=0),np.min(ntrials,axis=0),np.max(ntrials,axis=0))):
+    for j in range(ntrials.shape[-1]):
+        ntable[i].append(str(int(round(med[j])))+' ('+str(int(mn[j]))+'-'+str(int(mx[j]))+')')
+ntable = np.array(ntable)
+ntotal = ntrials.sum(axis=(1,2))
                     
 xticks = list(targetFrames/frameRate*1000)
 xticklabels = ['no\nstimulus'] + [str(int(round(x))) for x in xticks[1:]]
@@ -222,7 +244,14 @@ for n,obj in enumerate(exps):
                         medianReacTimeIncorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
                         reacTimeCorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][correctTrials]
                         reacTimeIncorrect[n][stim][rd][mo] = obj.reactionTime[respTrials][~correctTrials]
-                    
+
+ntable = [[],[]]
+for i,(med,mn,mx) in enumerate(zip(np.median(ntrials,axis=0),np.min(ntrials,axis=0),np.max(ntrials,axis=0))):
+    for j in range(ntrials.shape[-1]):
+        ntable[i].append(str(int(round(med[j])))+' ('+str(int(mn[j]))+'-'+str(int(mx[j]))+')')
+ntable = np.array(ntable)
+ntotal = ntrials.sum(axis=(1,2))
+
 #np.save(fileIO.saveFile('Save respRate',fileType='*.npy'),respRate)
 #np.save(fileIO.saveFile('Save fracCorr',fileType='*.npy'),fracCorr)
 
