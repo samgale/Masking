@@ -352,6 +352,7 @@ class MaskTaskData():
         wp = self.wheelPos-self.wheelPos[:,self.earlyMoveFrames][:,None]
         wp[:,:self.earlyMoveFrames] = 0
         self.reactionTime = np.full(self.ntrials,np.nan)
+        self.movementVelocity = self.reactionTime.copy()
         for i,(w,s) in enumerate(zip(wp,self.stimStart+self.frameDisplayLag)):
             frameIntervals = self.behavFrameIntervals[s:s+w.size]
             frameIntervals[0] = 0
@@ -361,9 +362,11 @@ class MaskTaskData():
             winterp = np.interp(tinterp,t,np.absolute(w[:t.size]))
             respInd = np.where(winterp>=self.wheelRewardDistance)[0]
             if len(respInd)>0:
-                initInd = np.where(winterp[:respInd[0]]<=moveInitThresh)[0]
-                if len(initInd)>0:
-                    self.reactionTime[i] = tinterp[initInd[-1]]+1
+                belowThresh = np.where(winterp[:respInd[0]]<moveInitThresh)[0]
+                if len(belowThresh)>0:
+                    initInd = belowThresh[-1]+1
+                    self.reactionTime[i] = tinterp[initInd]
+                    self.movementVelocity[i] = 1000*(self.wheelRewardDistance-moveInitThresh)/(tinterp[respInd[0]]-tinterp[initInd])
     
     
     def loadRFData(self,filePath=None):

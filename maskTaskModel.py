@@ -522,21 +522,6 @@ for side,lbl in zip((1,),('target right',)):#((1,0),('target right','no stim')):
 
 
 # masking reaction time
-for data,ylim,ylabel in  zip((responseRate,fractionCorrect),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot(xticks,data,'ko')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_xlabel('Mask onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel)
-    plt.tight_layout()
-
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 rt = []
@@ -593,18 +578,22 @@ clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-2))[::-1,:3]
 lbls = [lbl+' ms' for lbl in xticklabels[1:-2]]+['target only']
 ntrials = []
 rt = []
+rtCorrect = []
+rtIncorrect = []
 for maskOn,clr in zip(maskOnset[1:],clrs):
     trials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
     trials = trials & (trialTargetSide>0)
     ntrials.append(trials.sum())
     respTrials = trials & (response!=0)
-    rt.append(responseTime[respTrials].astype(float)*dt)
     c = (trialTargetSide==response)[respTrials]
-    p = []
+    rt.append(responseTime[respTrials].astype(float)*dt)
+    rtCorrect.append(responseTime[respTrials][c].astype(float)*dt)
+    rtIncorrect.append(responseTime[respTrials][~c].astype(float)*dt)
+    fc = []
     for i in t[t>45]:
         j = (rt[-1]>=i) & (rt[-1]<i+dt)
-        p.append(np.sum(c[j])/np.sum(j))
-    ax.plot(t[t>45]+dt/2,p,'-',color=clr,lw=2)
+        fc.append(np.sum(c[j])/np.sum(j))
+    ax.plot(t[t>45]+dt/2,fc,'-',color=clr,lw=2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
@@ -623,13 +612,41 @@ for r,n,clr,lbl in zip(rt,ntrials,clrs,lbls):
     ax.plot(s,c,'-',color=clr,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
+ax.tick_params(direction='out',right=False,labelsize=14)
 ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
-ax.set_xlabel('Decision Time (ms)',fontsize=12)
-ax.set_ylabel('Cumulative Probability',fontsize=12)
-ax.legend(title='mask onset',fontsize=8,loc='upper left')
+ax.set_xlabel('Decision Time (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Probability',fontsize=16)
+ax.legend(title='mask onset',fontsize=11,loc='upper left')
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for lbl,clr in zip(('no stim','mask only'),('0.5','g')):
+    trials = trialTargetSide==0 if lbl=='no stim' else trialMaskOnset==0
+    respTrials = trials & (response!=0)
+    r = responseTime[respTrials].astype(float)*dt
+    s = np.sort(r)
+    c = [np.sum(r<=i)/len(s) for i in s]
+    ax.plot(s,c,color=clr,label=lbl)
+for rc,ri,clr,lbl in zip(rtCorrect,rtIncorrect,clrs,lbls):
+    for r,ls in zip((rc,ri),('-','--')):
+        s = np.sort(r)
+        c = [np.sum(r<=i)/len(s) for i in s]
+        l = lbl+', correct' if ls=='-' else lbl+', incorrect'
+        ax.plot(s,c,ls,color=clr,label=l)
+#ax.plot(-1,-1,'-',color='0.5',label='correct')
+#ax.plot(-1,-1,'--',color='0.5',label='incorrect')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False,labelsize=14)
+ax.set_xticks([0,50,100,150,200])
+ax.set_xlim([0,200])
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Model Decision Time (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Probability',fontsize=16)
+#ax.legend(loc='lower right',fontsize=11)
 plt.tight_layout()
 
 
