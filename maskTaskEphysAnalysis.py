@@ -55,19 +55,36 @@ for obj in exps:
 unitPos = np.array(unitPos)
 peakToTrough = np.array(peakToTrough)
 
+fs = peakToTrough < 0.4
+
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-bw = 0.05
+bw = 0.1
 bins = np.arange(0,peakToTrough.max()+bw,bw)
 ax.bar(x=bins[:-1]+bw/2,height=np.histogram(peakToTrough,bins=bins)[0],width=bw,color='k')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xlabel('Peak to trough (ms)')
-ax.set_ylabel('Count')
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([0,1.6])
+ax.set_xlabel('Spike Peak-to-Trough Duration (ms)',fontsize=16)
+ax.set_ylabel('# Units',fontsize=16)
 plt.tight_layout()
 
-fs = peakToTrough < 0.4
+fpRate = np.array([obj.units[u]['fpRate'] for obj in exps for u in obj.sortedUnits if obj.units[u]['label']!='noise' and len(obj.units[u]['samples'])/(obj.totalSamples/obj.sampleRate)>0.1])
+fpRate[fpRate>1] = 1
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+bw = 0.1
+bins = np.arange(0,1.05,bw)
+ax.bar(x=bins[:-1]+bw/2,height=np.histogram(fpRate,bins=bins)[0],width=bw,color='k')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([0,1])
+ax.set_xlabel('False-Positive Rate',fontsize=16)
+ax.set_ylabel('# Units',fontsize=16)
+plt.tight_layout()
 
 
 # plot response to visual stimuli without opto
@@ -626,16 +643,15 @@ optoPsth = np.array(optoPsth)
 
 peakThresh = 5*stdBaseRate
 sustainedThresh = stdBaseRate
-excit = activeUnits & (sustainedOptoResp>sustainedThresh)
-transient = activeUnits & (~excit) & (transientOptoResp>peakThresh)
-inhib = activeUnits & (~transient) & (sustainedOptoResp<sustainedThresh)
-noResp = activeUnits & (~(excit | inhib | transient))
+excit = sustainedOptoResp>sustainedThresh
+transient = (~excit) & (transientOptoResp>peakThresh)
+inhib = (~transient) & (sustainedOptoResp<sustainedThresh)
+noResp = ~(excit | inhib | transient)
 
 for k,p in enumerate((optoPsthExample,optoPsth)):
     fig = plt.figure(figsize=(6,8))
-    for i,(units,lbl) in enumerate(zip((excit,transient,inhib,inhib),('Excited','Transient','Inhibited',''))):
+    for i,(units,lbl) in enumerate(zip((excit,transient,inhib,inhib),('Excited','Transiently Excited','Inhibited',''))):
         ax = fig.add_subplot(4,1,i+1)
-        units = units & activeUnits
         m = p[units].mean(axis=0)
         s = p[units].std(axis=0)/(units.sum()**0.5)
         ax.plot(t,m,'k')

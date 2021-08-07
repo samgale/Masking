@@ -98,7 +98,7 @@ xticks = list(targetFrames/frameRate*1000)
 xticklabels = ['no\nstimulus'] + [str(int(round(x))) for x in xticks[1:]]
 xlim = [-5,105]
 
-for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
+for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),[125,475]),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     if data is fracCorr:
@@ -156,14 +156,14 @@ for n,obj in enumerate(exps):
                     respTrials = trials & (~np.isnan(obj.responseDir))
                     respRate[n,i,j] = respTrials.sum()/trials.sum()
                     medianReacTime[n,i,j] = np.nanmedian(obj.reactionTime[respTrials])
-                    reacTime[n][stim][rd][tf] = obj.reactionTime[respTrials]
+                    reacTime[n][stim][rd][tc] = obj.reactionTime[respTrials]
                     if stim=='targetOnly':
                         correctTrials = obj.response[respTrials]==1
                         fracCorr[n,i,j] = correctTrials.sum()/respTrials.sum()
                         medianReacTimeCorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][correctTrials])
                         medianReacTimeIncorrect[n,i,j] = np.nanmedian(obj.reactionTime[respTrials][~correctTrials])
-                        reacTimeCorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][correctTrials]
-                        reacTimeIncorrect[n][stim][rd][tf] = obj.reactionTime[respTrials][~correctTrials]
+                        reacTimeCorrect[n][stim][rd][tc] = obj.reactionTime[respTrials][correctTrials]
+                        reacTimeIncorrect[n][stim][rd][tc] = obj.reactionTime[respTrials][~correctTrials]
 
 ntable = [[],[]]
 for i,(med,mn,mx) in enumerate(zip(np.median(ntrials,axis=0),np.min(ntrials,axis=0),np.max(ntrials,axis=0))):
@@ -177,7 +177,7 @@ xticks = targetContrast
 xticklabels = ['no\nstimulus'] + [str(x) for x in targetContrast[1:]]
 xlim = [-0.05*targetContrast.max(),1.05*targetContrast.max()]
 
-for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
+for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),[125,475]),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     if data is fracCorr:
@@ -344,10 +344,10 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         meanLR = np.mean(data,axis=1)
     else:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
-    for i,mfc in zip((slice(0,8),slice(8,16)),('k','none')):
+    for i,mfc,lbl in zip((slice(0,8),slice(8,16)),('k','none'),('VGAT-ChR2','Wild-type')):
         mean = np.nanmean(meanLR[i],axis=0)
         sem = np.nanstd(meanLR[i],axis=0)/(meanLR[i].shape[0]**0.5)
-        ax.plot(xticks,mean,'o',mec='k',mfc=mfc,ms=12)
+        ax.plot(xticks,mean,'o',mec='k',mfc=mfc,ms=12,label=lbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],'k-')
     for side in ('right','top'):
@@ -363,6 +363,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     ax.set_ylim(ylim)
     ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
     ax.set_ylabel(ylabel,fontsize=16)
+    if ylabel=='Response Rate':
+        ax.legend()
     plt.tight_layout()
     
 # stats
@@ -911,10 +913,9 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
                 meanLR[:,nAboveChance<3] = np.nan
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-        lbl = stimLbl if data is respRate else None
         for d in meanLR:
             ax.plot(xticks,d,color=clr,alpha=0.2)
-        ax.plot(xticks,mean,'o',color=clr,ms=12,label=lbl)
+        ax.plot(xticks,mean,'o',color=clr,ms=12,label=stimLbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
@@ -929,6 +930,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     ax.set_ylabel(ylabel,fontsize=16)
     if data is respRate:
         ax.legend(loc='upper left',fontsize=14)
+#    if data is fracCorr:
+#        ax.legend(loc='upper center',fontsize=11)
     plt.tight_layout()
     
 # stats

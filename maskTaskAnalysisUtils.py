@@ -485,9 +485,8 @@ class MaskTaskData():
             self.units[u]['fpRate'] = violationRate/totalRate
    
          
-    def getGoodUnits(self,fpThresh=0.5):
-        self.goodUnits = [u for u in self.sortedUnits if self.units[u]['label']!='noise' and self.units[u]['fpRate']<fpThresh]
-
+    def getGoodUnits(self,fpThresh=0.5,minRate=0.1):
+        self.goodUnits = [u for u in self.sortedUnits if self.units[u]['label']!='noise' and self.units[u]['fpRate']<fpThresh and len(self.units[u]['samples'])/(self.totalSamples/self.sampleRate)>minRate]
         
     def saveToHdf5(self,filePath=None):
         fileIO.objToHDF5(self,filePath)
