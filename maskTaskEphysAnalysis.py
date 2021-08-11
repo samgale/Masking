@@ -68,7 +68,7 @@ ax.bar(x=bins[:-1]+bw/2,height=h,width=bw,color='k')
 ymax = plt.get(ax,'ylim')[1]
 ax.plot([fsThresh]*2,[0,ymax],'--',color='0.5')
 for x,lbl in zip((0.2,1),('FS','RS')):
-    ax.text(x,ymax,lbl,color='0.5',fontsize=12,ha='center',va='top')
+    ax.text(x,ymax,lbl,color='0.5',fontsize=14,ha='center',va='top')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -88,7 +88,7 @@ ax.bar(x=bins[:-1]+bw/2,height=h,width=bw,color='k')
 ymax = plt.get(ax,'ylim')[1]
 ax.plot([0.5]*2,[0,ymax],'--',color='0.5')
 for x,lbl in zip((0.25,0.75),('accepted','rejected')):
-    ax.text(x,ymax,lbl,color='0.5',fontsize=12,ha='center',va='top')
+    ax.text(x,ymax,lbl,color='0.5',fontsize=14,ha='center',va='top')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -219,7 +219,7 @@ for units in (respUnits,):
         ax.set_ylim([1.05*ymin,1.05*ymax])
         
 
-#
+# peak response and latency
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ymax = 0
@@ -237,7 +237,7 @@ ax.set_xlim([0,150])
 ax.set_ylim([0,42])
 ax.set_xlabel('Time From Stimulus Onset (ms)',fontsize=16)
 ax.set_ylabel('Spikes/s',fontsize=16)
-ax.legend(loc='upper left',fontsize=12)
+ax.legend(loc='upper right',fontsize=14)
 plt.tight_layout()
 
 fig = plt.figure()
@@ -254,7 +254,7 @@ ax.set_xlim([0,150])
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Time To First Spike (ms)',fontsize=16)
 ax.set_ylabel('Cumulative Probability',fontsize=16)
-#ax.legend(loc='upper left',fontsize=12)
+#ax.legend(loc='upper right',fontsize=14)
 plt.tight_layout()
 
 for data,amax,albl,alblunits in zip((peakResp,timeToFirstSpike),(200,150),('Peak Response To','Time To First Spike After'),('spikes/s','ms')):
@@ -277,7 +277,8 @@ for data,amax,albl,alblunits in zip((peakResp,timeToFirstSpike),(200,150),('Peak
     ax.set_aspect('equal')
     ax.set_xlabel(albl+' Target ('+alblunits+')',fontsize=16)
     ax.set_ylabel(albl+' Mask ('+alblunits+')',fontsize=16)
-    ax.legend(fontsize=12)
+    if 'Peak Response' in albl:
+        ax.legend(loc='lower right',fontsize=14)
     plt.tight_layout()
 
 for data in (peakResp,timeToFirstSpike):   
