@@ -55,14 +55,20 @@ for obj in exps:
 unitPos = np.array(unitPos)
 peakToTrough = np.array(peakToTrough)
 
-fs = peakToTrough < 0.4
+fsThresh = 0.4
+fs = peakToTrough < fsThresh
 
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 bw = 0.1
 bins = np.arange(0,peakToTrough.max()+bw,bw)
-ax.bar(x=bins[:-1]+bw/2,height=np.histogram(peakToTrough,bins=bins)[0],width=bw,color='k')
+h = np.histogram(peakToTrough,bins=bins)[0]
+ax.bar(x=bins[:-1]+bw/2,height=h,width=bw,color='k')
+ymax = plt.get(ax,'ylim')[1]
+ax.plot([fsThresh]*2,[0,ymax],'--',color='0.5')
+for x,lbl in zip((0.2,1),('FS','RS')):
+    ax.text(x,ymax,lbl,color='0.5',fontsize=12,ha='center',va='top')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -77,7 +83,12 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 bw = 0.1
 bins = np.arange(0,1.05,bw)
-ax.bar(x=bins[:-1]+bw/2,height=np.histogram(fpRate,bins=bins)[0],width=bw,color='k')
+h = np.histogram(fpRate,bins=bins)[0]
+ax.bar(x=bins[:-1]+bw/2,height=h,width=bw,color='k')
+ymax = plt.get(ax,'ylim')[1]
+ax.plot([0.5]*2,[0,ymax],'--',color='0.5')
+for x,lbl in zip((0.25,0.75),('accepted','rejected')):
+    ax.text(x,ymax,lbl,color='0.5',fontsize=12,ha='center',va='top')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -109,6 +120,8 @@ trialPsth = copy.deepcopy(ntrials)
 psth = copy.deepcopy(ntrials)
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
+peakResp = copy.deepcopy(psth)
+timeToFirstSpike = copy.deepcopy(psth)
 for obj in exps:
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
     validTrials = ~obj.longFrameTrials
@@ -131,6 +144,8 @@ for obj in exps:
                         psth[stim][hemi][resp][mo] = []
                         hasSpikes[stim][hemi][resp][mo] = []
                         hasResp[stim][hemi][resp][mo] = []
+                        peakResp[stim][hemi][resp][mo] = []
+                        timeToFirstSpike[stim][hemi][resp][mo] = []
                     ntrials[stim][hemi][resp][mo] += trials.sum()
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                     for u in obj.goodUnits:
@@ -147,6 +162,15 @@ for obj in exps:
                         peak = (m-b.mean())[analysisWindow].max()
                         pval = 1 if np.sum(r-b)==0 else scipy.stats.wilcoxon(b,r)[1] 
                         hasResp[stim][hemi][resp][mo].append(peak>respThresh*m[t<0].std() and pval<0.05)
+                        peakResp[stim][hemi][resp][mo].append(peak)
+                        lat = []
+                        for st in startTimes:
+                            firstSpike = np.where((spikeTimes > st+0.03) & (spikeTimes < st+0.15))[0]
+                            if len(firstSpike)>0:
+                                lat.append(spikeTimes[firstSpike[0]]-st)
+                            else:
+                                lat.append(np.nan)
+                        timeToFirstSpike[stim][hemi][resp][mo].append(np.nanmedian(lat)*1000)
 
 activeUnits = np.array(hasSpikes['targetOnly']['contra']['all'][0]) | np.array(hasSpikes['maskOnly']['contra']['all'][0])
 targetRespUnits = np.array(hasResp['targetOnly']['contra']['all'][0])
@@ -199,24 +223,80 @@ for units in (respUnits,):
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ymax = 0
-ax.plot([0,1000],[0,1000],'--',color='0.8')
-for units,clr,lbl in zip((respUnits,),'k',(None,)):
-    peakResp = []
-    for stim in ('targetOnly','maskOnly'):
-        p = np.array(psth[stim]['contra']['all'][0])[units]
-        b = p-p[:,t<0].mean(axis=1)[:,None]
-        peakResp.append(b.max(axis=1))
-    ax.plot(peakResp[0],peakResp[1],'o',mec=clr,mfc='none',label=lbl)
-    ymax = max(ymax,np.max(peakResp))
+for stim,clr,lbl in zip(('targetOnly','maskOnly'),'kg',('Target Only','Mask Only')):
+    p = np.array(psth[stim]['contra']['all'][0])[respUnits]
+    m = p.mean(axis=0)
+    s = p.std(axis=0)/(len(p)**0.5)
+    ax.plot(t*1000,m,color=clr,label=lbl)
+    ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
+    ymax = max(ymax,np.max(m+s))
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xlim([0,1.05*ymax])
-ax.set_ylim([0,1.05*ymax])
-ax.set_aspect('equal')
-ax.set_xlabel('Peak response to target (spikes/s)')
-ax.set_ylabel('Peak response to mask (spikes/s)')
-#ax.legend()
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([0,150])
+ax.set_ylim([0,42])
+ax.set_xlabel('Time From Stimulus Onset (ms)',fontsize=16)
+ax.set_ylabel('Spikes/s',fontsize=16)
+ax.legend(loc='upper left',fontsize=12)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for stim,clr in zip(('targetOnly','maskOnly'),'kg'):
+    d = np.array(timeToFirstSpike[stim]['contra']['all'][0])[respUnits]
+    s = np.sort(d)
+    c = [np.sum(s<=i)/len(s) for i in s]
+    ax.plot(s,c,color=clr,label=stim)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([0,150])
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Time To First Spike (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Probability',fontsize=16)
+#ax.legend(loc='upper left',fontsize=12)
+plt.tight_layout()
+
+for data,amax,albl,alblunits in zip((peakResp,timeToFirstSpike),(200,150),('Peak Response To','Time To First Spike After'),('spikes/s','ms')):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ymax = 0
+    ax.plot([0,1000],[0,1000],'--',color='0.8')
+    for cellType,clr,lbl in zip((~fs,fs),'km',('RS','FS')):
+        d = [np.array(data[stim]['contra']['all'][0])[respUnits & cellType] for stim in ('targetOnly','maskOnly')]
+        ax.plot(d[0],d[1],'o',color=clr,label=lbl)
+        ymax = max(ymax,np.nanmax(d))
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    aticks = np.arange(0,amax+1,50)
+    ax.set_xticks(aticks)
+    ax.set_yticks(aticks)
+    ax.set_xlim([0,amax])
+    ax.set_ylim([0,amax])
+    ax.set_aspect('equal')
+    ax.set_xlabel(albl+' Target ('+alblunits+')',fontsize=16)
+    ax.set_ylabel(albl+' Mask ('+alblunits+')',fontsize=16)
+    ax.legend(fontsize=12)
+    plt.tight_layout()
+
+for data in (peakResp,timeToFirstSpike):   
+    d = [np.array(data[stim]['contra']['all'][0])[respUnits] for stim in ('targetOnly','maskOnly')]
+    m = [np.nanmedian(i) for i in d]
+    pval = scipy.stats.ranksums(d[0],d[1])[1]
+    print(m,pval)
+    
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for cellType,clr,lbl in zip((~fs,fs),'km',('RS','FS')):
+    d = [np.array(data['maskOnly']['contra']['all'][0])[respUnits & cellType] for data in (timeToFirstSpike,peakResp)]
+    ax.plot(d[0],d[1],'o',color=clr,label=lbl)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlabel('Time To First Spike (ms)',fontsize=16)
+ax.set_ylabel('Peak Response To Mask (spikes/s)',fontsize=16)
+ax.legend(fontsize=12)
 plt.tight_layout()
 
 
