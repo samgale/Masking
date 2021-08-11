@@ -281,11 +281,18 @@ for data,amax,albl,alblunits in zip((peakResp,timeToFirstSpike),(200,150),('Peak
         ax.legend(loc='lower right',fontsize=14)
     plt.tight_layout()
 
-for data in (peakResp,timeToFirstSpike):   
+for data,lbl in zip((peakResp,timeToFirstSpike),('peak response','time to first spike')):   
     d = [np.array(data[stim]['contra']['all'][0])[respUnits] for stim in ('targetOnly','maskOnly')]
     m = [np.nanmedian(i) for i in d]
     pval = scipy.stats.ranksums(d[0],d[1])[1]
-    print(m,pval)
+    print(lbl,('target','mask'),m,pval)
+    
+for data,lbl in zip((peakResp,timeToFirstSpike),('peak response','time to first spike')): 
+    for stim in ('targetOnly','maskOnly'):
+        d = [np.array(data[stim]['contra']['all'][0])[respUnits & ct] for ct in (~fs,fs)]
+        m = [np.nanmedian(i) for i in d]
+        pval = scipy.stats.ranksums(d[0],d[1])[1]
+        print(lbl,stim,('RS','FS'),m,pval)
     
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
