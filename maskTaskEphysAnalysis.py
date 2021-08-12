@@ -246,18 +246,18 @@ for stim,clr in zip(('targetOnly','maskOnly'),'kg'):
     d = np.array(timeToFirstSpike[stim]['contra']['all'][0])[respUnits]
     s = np.sort(d)
     c = [np.sum(s<=i)/len(s) for i in s]
-    ax.plot(s,c,color=clr,label=stim)
+    ax.plot(s,c,color=clr,lw=2,label=stim)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim([0,150])
 ax.set_ylim([0,1.02])
-ax.set_xlabel('Time To First Spike (ms)',fontsize=16)
+ax.set_xlabel('Median Time To First Spike (ms)',fontsize=16)
 ax.set_ylabel('Cumulative Probability',fontsize=16)
 #ax.legend(loc='upper right',fontsize=14)
 plt.tight_layout()
 
-for data,amax,albl,alblunits in zip((peakResp,timeToFirstSpike),(200,150),('Peak Response To','Time To First Spike After'),('spikes/s','ms')):
+for data,amax,albl in zip((peakResp,timeToFirstSpike),(200,150),('Peak Response (spikes/s)','Median Time To First Spike (ms)')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ymax = 0
@@ -275,8 +275,9 @@ for data,amax,albl,alblunits in zip((peakResp,timeToFirstSpike),(200,150),('Peak
     ax.set_xlim([0,amax])
     ax.set_ylim([0,amax])
     ax.set_aspect('equal')
-    ax.set_xlabel(albl+' Target ('+alblunits+')',fontsize=16)
-    ax.set_ylabel(albl+' Mask ('+alblunits+')',fontsize=16)
+    ax.set_xlabel('Target',fontsize=16)
+    ax.set_ylabel('Mask',fontsize=16)
+    ax.set_title(albl,fontsize=16)
     if 'Peak Response' in albl:
         ax.legend(loc='lower right',fontsize=14)
     plt.tight_layout()
