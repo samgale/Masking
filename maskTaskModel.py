@@ -134,35 +134,6 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,
     return np.array(trialTargetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(trialOptoSide),np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
-# simple model
-@njit
-def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
-    if record:
-        Lrecord = np.full(Lsignal.size,np.nan)
-        Rrecord = Lrecord.copy()
-    else:
-        Lrecord = Rrecord = None
-    L = R = 0
-    t = 0
-    response = 0
-    while t<trialEnd and response==0:
-        if record:
-            Lrecord[t] = L
-            Rrecord[t] = R
-        if L > threshold and R > threshold:
-            response = -1 if L > R else 1
-        elif L > threshold:
-            response = -1
-        elif R > threshold:
-            response = 1
-        Lnow = L
-        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R
-        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lnow
-        t += 1
-    responseTime = t-1
-    return response,responseTime,Lrecord,Rrecord
-
-
 # divisive normalization of input signal
 @njit
 def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
@@ -196,6 +167,35 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
         R += (random.gauss(0,sigma) + Rsig - R - inhib*Lnow) / decay
         iL += (Lsignal[t] - iL) / iDecay
         iR += (Rsignal[t] - iR) / iDecay
+        t += 1
+    responseTime = t-1
+    return response,responseTime,Lrecord,Rrecord
+
+
+# simple model
+@njit
+def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+    if record:
+        Lrecord = np.full(Lsignal.size,np.nan)
+        Rrecord = Lrecord.copy()
+    else:
+        Lrecord = Rrecord = None
+    L = R = 0
+    t = 0
+    response = 0
+    while t<trialEnd and response==0:
+        if record:
+            Lrecord[t] = L
+            Rrecord[t] = R
+        if L > threshold and R > threshold:
+            response = -1 if L > R else 1
+        elif L > threshold:
+            response = -1
+        elif R > threshold:
+            response = 1
+        Lnow = L
+        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R
+        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lnow
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
@@ -415,20 +415,24 @@ xlim = [-8,92]
 for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,fracCorrSem),(responseRate,fractionCorrect),((0,1.02),(0.4,1)),('Response Rate','Fraction Correct')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot(xticks,mean,'o',mec='k',mfc='none',ms=8,mew=2,label='mice')
+    ax.plot(xticks,mean,'o',mec='k',mfc='none',ms=12,mew=2,label='mice')
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k')
-    ax.plot(xticks,model,'o',mec='r',mfc='none',ms=8,mew=2,label='model')
+    ax.plot(xticks,model,'o',mec='r',mfc='none',ms=12,mew=2,label='model')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False,labelsize=10)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
+    ax.tick_params(direction='out',right=False,labelsize=14)
+    if ylabel=='Fraction Correct':
+        ax.set_xticks(xticks[1:-1])
+        ax.set_xticklabels(xticklabels[1:-1])
+    else:
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
+        ax.legend(fontsize=12)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-    ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
-    ax.set_ylabel(ylabel,fontsize=12)
-    ax.legend()
+    ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
 
 
@@ -480,56 +484,44 @@ fractionCorrect = outOfSampleFracCorr
 
 
 # example model traces
-trialInd = 0
-for side,lbl in zip((1,0),('target right','no stim')):
+for side,lbl in zip((1,),('target right',)):#((1,0),('target right','no stim')):
     sideTrials = trialTargetSide==side
     maskOn = [np.nan] if side==0 else maskOnset
-    for mo in maskOn:
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
-        ax.plot([0,trialEndTimeMax],[threshold,threshold],'k--')
+    for mo in [np.nan]:#maskOn:
         maskTrials = np.isnan(trialMaskOnset) if np.isnan(mo) else trialMaskOnset==mo
-        trial = np.where(sideTrials & maskTrials)[0][trialInd]
-        ax.plot(t,Rrecord[trial],'r',label='R')
-        ax.plot(t,Lrecord[trial],'b',label='L')
-        for axside in ('right','top','left','bottom'):
-            ax.spines[axside].set_visible(False)
-        ax.tick_params(direction='out',right=False,top=False,left=False)
-        ax.set_yticks([])
-        ax.set_xlim([0,trialEndTimeMax])
-        ax.set_ylim([-1.05*threshold,1.05*threshold])
-        ax.set_xlabel('Time (ms)')
-        title = lbl
-        if not np.isnan(mo):
-            title += ' + mask (' + str(int(round(mo*dt))) + ' ms)'
-        title += ', decision = '
-        if response[trial]==-1:
-            title += 'left'
-        elif response[trial]==1:
-            title += 'right'
-        else:
-            title += 'none'
-        ax.set_title(title)
-        ax.legend(loc='right')
-        plt.tight_layout()
+        trials = np.where(sideTrials & maskTrials)[0]
+        for trial in trials[5:7]:
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1)
+            ax.plot([0,trialEndTimeMax],[threshold,threshold],'k--')
+            ax.plot(t,Lrecord[trial],'b',lw=2,label='Ipsilateral')
+            ax.plot(t,Rrecord[trial],'r',lw=2,label='Contralateral')
+            for axside in ('right','top','left'):
+                ax.spines[axside].set_visible(False)
+            ax.tick_params(direction='out',right=False,top=False,left=False,labelsize=16)
+            ax.set_xticks([0,50,100,150,200])
+            ax.set_yticks([0,threshold])
+            ax.set_yticklabels([0,'threshold'])
+            ax.set_xlim([0,trialEndTimeMax])
+            ax.set_ylim([-1.05*threshold,1.05*threshold])
+            ax.set_xlabel('Time (ms)',fontsize=18)
+            ax.set_ylabel('Decision Variable',fontsize=18)
+            title = lbl
+            if not np.isnan(mo):
+                title += ' + mask (' + str(int(round(mo*dt))) + ' ms)'
+            title += ', decision = '
+            if response[trial]==-1:
+                title += 'left'
+            elif response[trial]==1:
+                title += 'right'
+            else:
+                title += 'none'
+#            ax.set_title(title)
+            ax.legend(loc='lower right',fontsize=16)
+            plt.tight_layout()
 
 
 # masking reaction time
-for data,ylim,ylabel in  zip((responseRate,fractionCorrect),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot(xticks,data,'ko')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_xlabel('Mask onset relative to target onset (ms)')
-    ax.set_ylabel(ylabel)
-    plt.tight_layout()
-
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 rt = []
@@ -550,7 +542,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','responseTime',),('k','0.8','k'),('k','0.8','none'),('correct','incorrect','other')):
+for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','responseTime',),('k','0.5','k'),('k','0.5','none'),('correct','incorrect','other')):
     rt = []
     for side in targetSide:
         maskOn = [np.nan] if side==0 else maskOnset
@@ -565,80 +557,122 @@ for respTime,mec,mfc,lbl in zip(('responseTimeCorrect','responseTimeIncorrect','
                     rt.append(np.nan)
                 else:
                     rt.append(dt*np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
-    ax.plot(xticks,rt,'o',mec=mec,mfc=mfc,label=lbl)
+    ax.plot(xticks,rt,'o',mec=mec,mfc=mfc,ms=12,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
+ax.tick_params(direction='out',right=False,labelsize=14)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
-ax.set_xlabel('Mask onset relative to target onset (ms)',fontsize=12)
-ax.set_ylabel('Median decision time (ms)',fontsize=12)
-ax.legend()
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Median Decision Time (ms)',fontsize=16)
+#ax.legend()
 plt.tight_layout()
 
 
 fig = plt.figure()
-ax = fig.add_subplot(2,1,2)
-ax.plot([0,200],[0.5,0.5],'--',color='0.8')
+ax = fig.add_subplot(1,1,1)
+ax.plot([0,200],[0.5,0.5],'k--')
 clrs = np.zeros((len(maskOnset)-1,3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-2))[::-1,:3]
+clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-2))[::-1,:3]
 lbls = [lbl+' ms' for lbl in xticklabels[1:-2]]+['target only']
 ntrials = []
 rt = []
+rtCorrect = []
+rtIncorrect = []
 for maskOn,clr in zip(maskOnset[1:],clrs):
     trials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
     trials = trials & (trialTargetSide>0)
     ntrials.append(trials.sum())
     respTrials = trials & (response!=0)
-    rt.append(responseTime[respTrials].astype(float)*dt)
     c = (trialTargetSide==response)[respTrials]
-    p = []
-    for i in t[t>30]:
+    rt.append(responseTime[respTrials].astype(float)*dt)
+    rtCorrect.append(responseTime[respTrials][c].astype(float)*dt)
+    rtIncorrect.append(responseTime[respTrials][~c].astype(float)*dt)
+    fc = []
+    for i in t[t>45]:
         j = (rt[-1]>=i) & (rt[-1]<i+dt)
-        p.append(np.sum(c[j])/np.sum(j))
-    ax.plot(t[t>30]+dt/2,p,'-',color=clr)
+        fc.append(np.sum(c[j])/np.sum(j))
+    ax.plot(t[t>45]+dt/2,fc,'-',color=clr,lw=2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
+ax.tick_params(direction='out',right=False,labelsize=14)
 ax.set_xticks([0,50,100,150,200])
-ax.set_xlim([0,200])
-ax.set_ylim([0,1.02])
-ax.set_xlabel('Model decision time (ms)',fontsize=12)
-ax.set_ylabel('Probability Correct',fontsize=12)
+ax.set_xlim([50,200])
+ax.set_ylim([0.2,1])
+ax.set_xlabel('Decision Time (ms)',fontsize=16)
+ax.set_ylabel('Fraction Correct',fontsize=16)
+plt.tight_layout()
 
-ax = fig.add_subplot(2,1,1)
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
 for r,n,clr,lbl in zip(rt,ntrials,clrs,lbls):
     s = np.sort(r)
     c = [np.sum(r<=i)/n for i in s]
     ax.plot(s,c,'-',color=clr,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=10)
+ax.tick_params(direction='out',right=False,labelsize=14)
 ax.set_xticks([0,50,100,150,200])
 ax.set_xlim([0,200])
 ax.set_ylim([0,1.02])
-ax.set_ylabel('Cumulative Probability',fontsize=12)
-ax.legend(title='mask onset',fontsize=8,loc='upper left')
+ax.set_xlabel('Decision Time (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Probability',fontsize=16)
+ax.legend(title='mask onset',fontsize=11,loc='upper left')
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for lbl,clr in zip(('no stim','mask only'),('0.5','g')):
+    trials = trialTargetSide==0 if lbl=='no stim' else trialMaskOnset==0
+    respTrials = trials & (response!=0)
+    r = responseTime[respTrials].astype(float)*dt
+    s = np.sort(r)
+    c = [np.sum(r<=i)/len(s) for i in s]
+    ax.plot(s,c,color=clr,label=lbl)
+for rc,ri,clr,lbl in zip(rtCorrect,rtIncorrect,clrs,lbls):
+    for r,ls in zip((rc,ri),('-','--')):
+        s = np.sort(r)
+        c = [np.sum(r<=i)/len(s) for i in s]
+        l = lbl+', correct' if ls=='-' else lbl+', incorrect'
+        ax.plot(s,c,ls,color=clr,label=l)
+#ax.plot(-1,-1,'-',color='0.5',label='correct')
+#ax.plot(-1,-1,'--',color='0.5',label='incorrect')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False,labelsize=14)
+ax.set_xticks([0,50,100,150,200])
+ax.set_xlim([0,200])
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Model Decision Time (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Probability',fontsize=16)
+#ax.legend(loc='lower right',fontsize=11)
 plt.tight_layout()
 
 
 # opto masking
 maskOnset = [0,2,np.nan]
-optoOnset = [0,2,4,6,8,10,12,np.nan]
+optoOnset = list(range(2,11))+[np.nan]
 optoSide = [0]
+optoLatency = 1
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=1)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=optoLatency)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 
-xticks = np.array(optoOnset)*dt
-xticks[-1] = xticks[-2] + 2*dt
+xticks = [x*dt for x in optoOnset[::2]]+[100]
 xticklabels = [int(round(x)) for x in xticks[:-1]]+['no\nopto']
+x = np.array(optoOnset)*dt
+x[-1] = 100
 for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Mean decision time (ms)')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    for lbl,side,mo,clr in zip(('target only','target + mask','mask only','no stim'),(1,1,1,0),(np.nan,2,0,np.nan),'cbkm'):
+    if measure=='fractionCorrect':
+        j = 2
+        ax.plot([0,xticks[-1]+dt],[0.5,0.5],'k--')
+    else:
+        j = 0
+    for lbl,side,mo,clr in zip(('target only','target + mask','mask only','no stim'),(1,1,1,0),(np.nan,2,0,np.nan),'kbgm'):
         if measure!='fractionCorrect' or 'target' in lbl:
             d = []
             for optoOn in optoOnset:
@@ -646,20 +680,20 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
                     d.append(dt*np.mean(result[side][mo][optoOn][optoSide[0]][measure]))
                 else:
                     d.append(result[side][mo][optoOn][optoSide[0]][measure])
-            ax.plot(xticks[:-1],d[:-1],color=clr,label=lbl)
-            ax.plot(xticks[-1],d[-1],'o',color=clr)
+            ax.plot(x[:-1],d[:-1],color=clr,label=lbl)
+            ax.plot(xticks[j:],np.array(d)[np.in1d(x,xticks)][j:],'o',color=clr,ms=12)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',right=False,labelsize=10)
+    ax.tick_params(direction='out',right=False,labelsize=14)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
-    ax.set_xlim([0,xticks[-1]+dt])
+    ax.set_xlim([8,108])
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
-    ax.set_ylabel(ylabel,fontsize=12)
-    if measure=='responseRate':
-        ax.legend(loc='upper left')
+    ax.set_xlabel('Simulated Inhibition Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel(ylabel,fontsize=16)
+#    if measure=='responseRate':
+#        ax.legend(loc='upper left',fontsize=12)
     plt.tight_layout()
 
 

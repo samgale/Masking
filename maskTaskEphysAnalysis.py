@@ -55,19 +55,47 @@ for obj in exps:
 unitPos = np.array(unitPos)
 peakToTrough = np.array(peakToTrough)
 
+fsThresh = 0.4
+fs = peakToTrough < fsThresh
+
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-bw = 0.05
+bw = 0.1
 bins = np.arange(0,peakToTrough.max()+bw,bw)
-ax.bar(x=bins[:-1]+bw/2,height=np.histogram(peakToTrough,bins=bins)[0],width=bw,color='k')
+h = np.histogram(peakToTrough,bins=bins)[0]
+ax.bar(x=bins[:-1]+bw/2,height=h,width=bw,color='k')
+ymax = plt.get(ax,'ylim')[1]
+ax.plot([fsThresh]*2,[0,ymax],'--',color='0.5')
+for x,lbl in zip((0.2,1),('FS','RS')):
+    ax.text(x,ymax,lbl,color='0.5',fontsize=14,ha='center',va='top')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xlabel('Peak to trough (ms)')
-ax.set_ylabel('Count')
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([0,1.6])
+ax.set_xlabel('Spike Peak-to-Trough Duration (ms)',fontsize=16)
+ax.set_ylabel('# Units',fontsize=16)
 plt.tight_layout()
 
-fs = peakToTrough < 0.4
+fpRate = np.array([obj.units[u]['fpRate'] for obj in exps for u in obj.sortedUnits if obj.units[u]['label']!='noise' and len(obj.units[u]['samples'])/(obj.totalSamples/obj.sampleRate)>0.1])
+fpRate[fpRate>1] = 1
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+bw = 0.1
+bins = np.arange(0,1.05,bw)
+h = np.histogram(fpRate,bins=bins)[0]
+ax.bar(x=bins[:-1]+bw/2,height=h,width=bw,color='k')
+ymax = plt.get(ax,'ylim')[1]
+ax.plot([0.5]*2,[0,ymax],'--',color='0.5')
+for x,lbl in zip((0.25,0.75),('accepted','rejected')):
+    ax.text(x,ymax,lbl,color='0.5',fontsize=14,ha='center',va='top')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([0,1])
+ax.set_xlabel('False-Positive Rate',fontsize=16)
+ax.set_ylabel('# Units',fontsize=16)
+plt.tight_layout()
 
 
 # plot response to visual stimuli without opto
@@ -92,6 +120,8 @@ trialPsth = copy.deepcopy(ntrials)
 psth = copy.deepcopy(ntrials)
 hasSpikes = copy.deepcopy(psth)
 hasResp = copy.deepcopy(psth)
+peakResp = copy.deepcopy(psth)
+timeToFirstSpike = copy.deepcopy(psth)
 for obj in exps:
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
     validTrials = ~obj.longFrameTrials
@@ -114,6 +144,8 @@ for obj in exps:
                         psth[stim][hemi][resp][mo] = []
                         hasSpikes[stim][hemi][resp][mo] = []
                         hasResp[stim][hemi][resp][mo] = []
+                        peakResp[stim][hemi][resp][mo] = []
+                        timeToFirstSpike[stim][hemi][resp][mo] = []
                     ntrials[stim][hemi][resp][mo] += trials.sum()
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate-preTime
                     for u in obj.goodUnits:
@@ -130,6 +162,15 @@ for obj in exps:
                         peak = (m-b.mean())[analysisWindow].max()
                         pval = 1 if np.sum(r-b)==0 else scipy.stats.wilcoxon(b,r)[1] 
                         hasResp[stim][hemi][resp][mo].append(peak>respThresh*m[t<0].std() and pval<0.05)
+                        peakResp[stim][hemi][resp][mo].append(peak)
+                        lat = []
+                        for st in startTimes:
+                            firstSpike = np.where((spikeTimes > st+0.03) & (spikeTimes < st+0.15))[0]
+                            if len(firstSpike)>0:
+                                lat.append(spikeTimes[firstSpike[0]]-st)
+                            else:
+                                lat.append(np.nan)
+                        timeToFirstSpike[stim][hemi][resp][mo].append(np.nanmedian(lat)*1000)
 
 activeUnits = np.array(hasSpikes['targetOnly']['contra']['all'][0]) | np.array(hasSpikes['maskOnly']['contra']['all'][0])
 targetRespUnits = np.array(hasResp['targetOnly']['contra']['all'][0])
@@ -178,35 +219,100 @@ for units in (respUnits,):
         ax.set_ylim([1.05*ymin,1.05*ymax])
         
 
-#
+# peak response and latency
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ymax = 0
-ax.plot([0,1000],[0,1000],'--',color='0.8')
-for units,clr,lbl in zip((respUnits,),'k',(None,)):
-    peakResp = []
-    for stim in ('targetOnly','maskOnly'):
-        p = np.array(psth[stim]['contra']['all'][0])[units]
-        b = p-p[:,t<0].mean(axis=1)[:,None]
-        peakResp.append(b.max(axis=1))
-    ax.plot(peakResp[0],peakResp[1],'o',mec=clr,mfc='none',label=lbl)
-    ymax = max(ymax,np.max(peakResp))
+for stim,clr,lbl in zip(('targetOnly','maskOnly'),'kg',('Target Only','Mask Only')):
+    p = np.array(psth[stim]['contra']['all'][0])[respUnits]
+    m = p.mean(axis=0)
+    s = p.std(axis=0)/(len(p)**0.5)
+    ax.plot(t*1000,m,color=clr,label=lbl)
+    ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
+    ymax = max(ymax,np.max(m+s))
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xlim([0,1.05*ymax])
-ax.set_ylim([0,1.05*ymax])
-ax.set_aspect('equal')
-ax.set_xlabel('Peak response to target (spikes/s)')
-ax.set_ylabel('Peak response to mask (spikes/s)')
-#ax.legend()
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([0,150])
+ax.set_ylim([0,42])
+ax.set_xlabel('Time From Stimulus Onset (ms)',fontsize=16)
+ax.set_ylabel('Spikes/s',fontsize=16)
+ax.legend(loc='upper right',fontsize=14)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for stim,clr in zip(('targetOnly','maskOnly'),'kg'):
+    d = np.array(timeToFirstSpike[stim]['contra']['all'][0])[respUnits]
+    s = np.sort(d)
+    c = [np.sum(s<=i)/len(s) for i in s]
+    ax.plot(s,c,color=clr,lw=2,label=stim)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([0,150])
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Median Time To First Spike (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Probability',fontsize=16)
+#ax.legend(loc='upper right',fontsize=14)
+plt.tight_layout()
+
+for data,amax,albl in zip((peakResp,timeToFirstSpike),(200,150),('Peak Response (spikes/s)','Median Time To First Spike (ms)')):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ymax = 0
+    ax.plot([0,1000],[0,1000],'--',color='0.8')
+    for cellType,clr,lbl in zip((~fs,fs),'km',('RS','FS')):
+        d = [np.array(data[stim]['contra']['all'][0])[respUnits & cellType] for stim in ('targetOnly','maskOnly')]
+        ax.plot(d[0],d[1],'o',color=clr,label=lbl)
+        ymax = max(ymax,np.nanmax(d))
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    aticks = np.arange(0,amax+1,50)
+    ax.set_xticks(aticks)
+    ax.set_yticks(aticks)
+    ax.set_xlim([0,amax])
+    ax.set_ylim([0,amax])
+    ax.set_aspect('equal')
+    ax.set_xlabel('Target',fontsize=16)
+    ax.set_ylabel('Mask',fontsize=16)
+    ax.set_title(albl,fontsize=16)
+    if 'Peak Response' in albl:
+        ax.legend(loc='lower right',fontsize=14)
+    plt.tight_layout()
+
+for data,lbl in zip((peakResp,timeToFirstSpike),('peak response','time to first spike')):   
+    d = [np.array(data[stim]['contra']['all'][0])[respUnits] for stim in ('targetOnly','maskOnly')]
+    m = [np.nanmedian(i) for i in d]
+    pval = scipy.stats.ranksums(d[0],d[1])[1]
+    print(lbl,('target','mask'),m,pval)
+    
+for data,lbl in zip((peakResp,timeToFirstSpike),('peak response','time to first spike')): 
+    for stim in ('targetOnly','maskOnly'):
+        d = [np.array(data[stim]['contra']['all'][0])[respUnits & ct] for ct in (~fs,fs)]
+        m = [np.nanmedian(i) for i in d]
+        pval = scipy.stats.ranksums(d[0],d[1])[1]
+        print(lbl,stim,('RS','FS'),m,pval)
+    
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for cellType,clr,lbl in zip((~fs,fs),'km',('RS','FS')):
+    d = [np.array(data['maskOnly']['contra']['all'][0])[respUnits & cellType] for data in (timeToFirstSpike,peakResp)]
+    ax.plot(d[0],d[1],'o',color=clr,label=lbl)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlabel('Time To First Spike (ms)',fontsize=16)
+ax.set_ylabel('Peak Response To Mask (spikes/s)',fontsize=16)
+ax.legend(fontsize=12)
 plt.tight_layout()
 
 
 # compare contra, ipsi, and predicted response to target + mask
 for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
     units = units & ~fs
-    fig = plt.figure(figsize=(4,9))
+    fig = plt.figure(figsize=(4,6))
     axs = []
     ymin = 0
     ymax = 0
@@ -236,25 +342,30 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
                 ymin = min(ymin,np.min(m-s))
                 ymax = max(ymax,np.max(m+s))
             
-#            if stim=='mask':
-#                mask = np.array(psth['mask']['ipsi']['all'][mo])[units]
-#                p = target+mask
-#                b = p-p[:,t<0].mean(axis=1)[:,None]
-#                m = np.mean(b,axis=0)
-#                s = np.std(b,axis=0)/(len(p)**0.5)
-#                ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
-#                ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
-#                ymin = min(ymin,np.min(m-s))
-#                ymax = max(ymax,np.max(m+s))
+            if stim=='mask':
+                mask = np.array(psth['mask']['ipsi']['all'][mo])[units]
+                p = target+mask
+                b = p-p[:,t<0].mean(axis=1)[:,None]
+                m = np.mean(b,axis=0)
+                s = np.std(b,axis=0)/(len(p)**0.5)
+                ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
+                ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
+                ymin = min(ymin,np.min(m-s))
+                ymax = max(ymax,np.max(m+s))
             if i==5:
-                ax.set_xlabel('Time from stimulus onset (ms)')
+                ax.set_xlabel('Time From Stimulus Onset (ms)',fontsize=12)
             else:
                 ax.set_xticklabels([])
-            ax.set_ylabel('Spikes/s')
+            if i==0:
+                ax.set_ylabel('Spikes/s',fontsize=12)
             title = stim
-            if stim=='mask':
-                title = title+' onset '+str(round(mo/120*1000,1))+' ms'
-            ax.set_title(title)
+            if stim=='targetOnly':
+                title = 'target only'
+            elif stim=='maskOnly':
+                title = 'mask only'
+            elif stim=='mask':
+                title = title+' onset\n'+str(int(round(mo/120*1000)))+' ms'
+            ax.text(0.15,0.99,title,transform=ax.transAxes,color='k',fontsize=10,ha='center',va='top')
             if i in (0,1,5):
                 ax.legend(fontsize=8)
             axs.append(ax)
@@ -262,7 +373,7 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
     for ax in axs:
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
-        ax.tick_params(direction='out',top=False,right=False)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=10)
         ax.set_xlim([0,200])
         ax.set_ylim([1.05*ymin,1.05*ymax])
     plt.tight_layout()
@@ -273,7 +384,7 @@ maskOnset = np.unique(exps[0].maskOnset[~np.isnan(exps[0].maskOnset)])
 maskOnsetTicks = np.concatenate((maskOnset,(8,10)))/frameRate*1000
 maskOnsetLabels = ['mask only']+[str(int(round(onset)))+' ms' for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
 clrs = np.zeros((len(maskOnset),3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
 
 units = respUnits & ~fs
 analysisWindow = (t>0.033) & (t<0.2)
@@ -302,15 +413,16 @@ for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
     ax.set_xlim([33,200])
     ax.set_yticks([0,0.5,1,1.5])
     ax.set_ylim([-0.05,1.5])
-    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
-    ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=12)
-    ax.set_title(hemi+' Target',fontsize=12)
+    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=16)
+#    ax.set_title(hemi+' Target',fontsize=14)
     if hemi=='Contralateral':
-        ax.legend(title='mask onset',loc='upper left')
+        leg = ax.legend(title='mask onset',loc='upper left',fontsize=12)
+        plt.setp(leg.get_title(),fontsize=12)
     plt.tight_layout()
 
 fig = plt.figure()
@@ -324,11 +436,11 @@ for contra,ipsi,clr,lbl in zip(cumContra[1:-1],cumIpsi[1:-1],clrs,maskOnsetLabel
 ax.plot([33,200],[0,0],'k--')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim([33,200])
-ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=12)
-ax.set_ylabel('Cumulative Spike Count Difference',fontsize=12)
-ax.set_title('Contralateral - Ipsilateral',fontsize=12)
+ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Spike Count Difference',fontsize=16)
+ax.set_title('Contralateral - Ipsilateral',fontsize=14)
 plt.tight_layout()
 
 
@@ -550,11 +662,12 @@ ax.set_ylabel('Decoder Weighting',fontsize=12)
 plt.tight_layout()
 
 clrs = np.zeros((len(maskOnset),3))
-clrs[1:] = plt.cm.plasma(np.linspace(0,1,len(maskOnset)-1))[::-1,:3]
+clrs[1:] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
 lbls = ['target only']+[lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]
-for i,xlbl in enumerate(('End of Decoding Window','Time','End of Integration Window')): 
+for i,xlbl in enumerate(('End of Decoding Window','Time','End of Spike Integration Window')): 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
+    ax.plot([0,200],[0.5,0.5],'k--')
     for j,(mo,clr,lbl) in enumerate(zip(maskOnset,clrs,lbls)):
         d = testScore['pooled'][:,-1,i,:,j]
         m = d.mean(axis=0)
@@ -563,12 +676,12 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Integration Win
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
     ax.set_xlim([0,200])
-    ax.set_ylim([0.4,1.02])
-    ax.set_xlabel(xlbl+' Relative to Target Onset (ms)',fontsize=12)
-    ax.set_ylabel('Decoder Accuracy',fontsize=12)
-    ax.legend(title='mask onset',fontsize=10)
+    ax.set_ylim([0.4,1])
+    ax.set_xlabel(xlbl+' (ms)',fontsize=16)
+    ax.set_ylabel('Target Side Decoding Accuracy',fontsize=16)
+#    ax.legend(title='mask onset',fontsize=12)
     plt.tight_layout()
 
 
@@ -619,33 +732,37 @@ optoPsth = np.array(optoPsth)
 
 peakThresh = 5*stdBaseRate
 sustainedThresh = stdBaseRate
-excit = activeUnits & (sustainedOptoResp>sustainedThresh)
-transient = activeUnits & (~excit) & (transientOptoResp>peakThresh)
-inhib = activeUnits & (~transient) & (sustainedOptoResp<sustainedThresh)
-noResp = activeUnits & (~(excit | inhib | transient))
+excit = sustainedOptoResp>sustainedThresh
+transient = (~excit) & (transientOptoResp>peakThresh)
+inhib = (~transient) & (sustainedOptoResp<sustainedThresh)
+noResp = ~(excit | inhib | transient)
 
 for k,p in enumerate((optoPsthExample,optoPsth)):
     fig = plt.figure(figsize=(6,8))
-    for i,(units,lbl) in enumerate(zip((excit,transient,inhib | noResp),('Excited','Transient','Inhibited'))):
-        ax = fig.add_subplot(3,1,i+1)
-        units = units & activeUnits
+    for i,(units,lbl) in enumerate(zip((excit,transient,inhib,inhib),('Excited','Transiently Excited','Inhibited',''))):
+        ax = fig.add_subplot(4,1,i+1)
         m = p[units].mean(axis=0)
         s = p[units].std(axis=0)/(units.sum()**0.5)
         ax.plot(t,m,'k')
         ax.fill_between(t,m+s,m-s,color='k',alpha=0.25)
         ylim = plt.get(ax,'ylim')
+        if i==2:
+            for x in (-0.01,0.05):
+                ax.plot([x,x],[0,100],'--',color='0.5',zorder=1)
         if k==0:
-            poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime,ylim[1]),(0,ylim[1])])
+            poly = np.array([(0,0),(trialTime-optoOnsetToPlot/obj.frameRate+0.1,0),(trialTime-optoOnsetToPlot/obj.frameRate,ylim[1]),(0,ylim[1])])
             ax.add_patch(matplotlib.patches.Polygon(poly,fc='c',ec='none',alpha=0.1))
-        n = str(np.sum(units & fs))+' FS, '+str(np.sum(units & ~fs))+' RS'
-        ax.text(0.5,1,lbl+' (n = '+n+')',transform=ax.transAxes,color='k',ha='center',va='bottom')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False,labelsize=10)
-        ax.set_xlim([-preTime,trialTime+preTime])
+        if i<3:
+            n = str(np.sum(units & fs))+' FS, '+str(np.sum(units & ~fs))+' RS'
+            ax.text(0.5,1,lbl+' (n = '+n+')',transform=ax.transAxes,color='k',ha='center',va='top',fontsize=12)
+            ax.set_xlim([-0.2,1])
+        else:
+            ax.set_xlabel('Time From Optogenetic Light Onset (s)',fontsize=12)
+            ax.set_xlim([-0.01,0.05])
         ax.set_ylim([0,ylim[1]])
-        if i==2:
-            ax.set_xlabel('Time from LED onset (s)',fontsize=12)
         ax.set_ylabel('Spikes/s',fontsize=12)
     plt.tight_layout()
 
@@ -706,7 +823,7 @@ analysisWindow = (t>0.04) & (t<0.12)
 units = ~(transient | excit) & respUnits
                 
 optoOnsetTicks = list(1000*(np.array(optoOnset[:-1])-exps[0].frameDisplayLag)/frameRate) + [100]
-optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no opto']
+optoOnsetLabels = [str(int(round(onset))) for onset in optoOnsetTicks[:-1]] + ['no\nopto']
 
 fig = plt.figure(figsize=(6,8))
 gs = matplotlib.gridspec.GridSpec(3,2)
@@ -727,7 +844,7 @@ for i,(stim,stimLbl) in enumerate(zip(optoStimLabels,('target','target + mask','
             p = np.array(optoOnsetPsth[stim][hemi][onset])[units]
             m = np.mean(p,axis=0)
             s = np.std(p,axis=0)/(len(p)**0.5)
-            lbl = lbl if np.isnan(onset) else lbl+' ms'
+            lbl = lbl.replace('\n',' ') if np.isnan(onset) else lbl+' ms'
             ax.plot(t*1000,m,color=clr,label=lbl)
             ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
         for side in ('right','top'):
@@ -735,14 +852,14 @@ for i,(stim,stimLbl) in enumerate(zip(optoStimLabels,('target','target + mask','
         ax.tick_params(direction='out',top=False,right=False,labelsize=10)
         ax.set_xticks(np.arange(-50,201,50))
         ax.set_xlim([-25,175])
-        if i>1:
-            ax.set_xlabel('Time from stimulus onset (ms)',fontsize=12)
-        if j==0:
+        if i==2 and j==0:
+            ax.set_xlabel('Time From Visual Stimulus Onset (ms)',fontsize=12)
+        if i==1 and j==0:
             ax.set_ylabel('Spikes/s',fontsize=12)
         if i==0 and j==1:
             ax.legend(loc='upper right',title='opto onset',fontsize=8)
         title = hemi+' '+stimLbl if stim in ('targetOnly','mask') else stimLbl
-        ax.set_title(title)
+        ax.text(0.05,1,title,transform=ax.transAxes,color='k',ha='left',va='top',fontsize=12)
         if stim in ('maskOnly','catch'):
             break
 ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
@@ -753,7 +870,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for stim,clr,lbl in zip(optoStimLabels[:3],'cbk',('target only','target + mask','mask only')):
+for stim,clr,lbl in zip(optoStimLabels[:3],'kbg',('target only','target + mask','mask only')):
     respMean = []
     respSem = []
     for onset in optoOnset:
@@ -771,14 +888,14 @@ ax.tick_params(direction='out',top=False,right=False,labelsize=10)
 ax.set_xticks(optoOnsetTicks)
 ax.set_xticklabels(optoOnsetLabels)
 ax.set_xlim([8,108])
-ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
 ax.set_ylabel('Stimulus evoked spikes per neuron',fontsize=12)
-#ax.legend(loc='upper left')
+ax.legend(loc='upper left')
 plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for stim,clr in zip(('targetOnly','mask'),'cb'):
+for stim,clr in zip(('targetOnly','mask'),'kb'):
     mean = []
     sem = []
     for onset in optoOnset:
@@ -807,7 +924,7 @@ ax.set_xticklabels(optoOnsetLabels)
 ax.set_yticks(np.arange(0.4,1,0.1))
 ax.set_xlim([8,108])
 ax.set_ylim([0.4,0.8])
-ax.set_xlabel('Opto onset relative to target onset (ms)',fontsize=12)
+ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
 ax.set_ylabel('Fraction of spikes contralateral to target',fontsize=12)
 plt.tight_layout()
 
