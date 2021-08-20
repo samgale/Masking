@@ -21,9 +21,10 @@ from dataAnalysis import import_data
 
 
 
+maxConsecutiveNoResp = 10
 d = import_data()
-save_daily_plots(d, 10)  #num is the max number of consecutive no responses you want to include in analysis
-create_daily_summary(d, 10)
+save_daily_plots(d, maxConsecutiveNoResp)  
+create_daily_summary(d, maxConsecutiveNoResp)
 d.close()
 
 

@@ -55,7 +55,7 @@ def makeWheelPlot(data, returnData=False, responseFilter=[-1,0,1], ignoreRepeats
     trialEndFrames = d['trialEndFrame'][:]
     
     end_analysis = ignore_after(d, ignoreNoRespAfter)
-    end = end_analysis[0] if ignoreNoRespAfter is not None else trialEndFrames.size
+    end = trialEndFrames.size if ignoreNoRespAfter is None or end_analysis[0] < ignoreNoRespAfter else end_analysis[0]
     
     trialEndFrames = trialEndFrames[:end]
     trialStartFrames = d['trialStartFrame'][:end]
