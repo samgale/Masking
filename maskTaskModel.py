@@ -368,7 +368,7 @@ fracCorrData = np.load(fracCorrFilePath)
 fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
 fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
 
-trialsPerCondition = 100
+trialsPerCondition = 500
 targetSide = (1,0) # (-1,1,0)
 maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
@@ -383,14 +383,18 @@ inhibRange = slice(0,0.45,0.05)
 thresholdRange = slice(1,11,1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
-iDecayRange = slice(0.2,1.4,0.2)
-alphaRange = slice(0.05,0.35,0.05)
+iDecayRange = slice(0.3,1.2,0.1)
+alphaRange = slice(0.05,0.25,0.05)
 etaRange = slice(1,2,1)
-sigmaRange = slice(0.1,1.3,0.1)
-decayRange = slice(0.5,8,0.5)
-inhibRange = slice(0.1,1.1,0.1) # slice(0.5,1.05,0.05)
-thresholdRange = slice(0.5,2,0.1)
+sigmaRange = slice(0.4,1.3,0.1)
+decayRange = slice(2,8,0.5)
+inhibRange = slice(0.6,1.05,0.05)
+thresholdRange = slice(0.5,1.6,0.1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
+
+
+#[ 0.5 ,  0.05,  1.  ,  1.  ,  4.5 ,  0.8 ,  1.  , 24.  ]
+
 
 fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,fracCorrMean)
