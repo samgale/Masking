@@ -403,6 +403,13 @@ for stim in stimLabels:
         cumContra.append(cumSpikes[0])
         cumIpsi.append(cumSpikes[1])
 
+for i,lbl in enumerate(maskOnsetLabels): 
+    d = cumContra[i].max(axis=1)      
+    print(lbl,np.median(d),np.min(d),np.max(d))
+
+d = np.array(cumContra)[1:5].max(axis=2)
+print(np.median(d),np.min(d),np.max(d))
+
 for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
