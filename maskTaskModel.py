@@ -36,9 +36,9 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 
 def calcModelError(paramsToFit,*fixedParams):
-    iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = paramsToFit
+    tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd = paramsToFit
     signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,responseRate,fractionCorrect = fixedParams
-    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition)
+    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition)
     result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
     respRateError = np.nansum((responseRate-result['responseRate'])**2)
     fracCorrError = np.nansum((2*(fractionCorrect-result['fractionCorrect']))**2)
@@ -79,7 +79,7 @@ def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trial
     return result
 
 
-def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition,optoLatency=0,record=False):
+def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition,optoLatency=0,record=False):
     trialTargetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -115,7 +115,7 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,
                             Lsignal[i:] = 0
                         if opSide >= 0:
                             Rsignal[i:] = 0
-                    if iDecay==0 and alpha > 0:
+                    if tauI==0 and alpha > 0:
                         for s in (Lsignal,Rsignal):
                             i = s > 0
                             s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
@@ -125,7 +125,7 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,
                         trialMaskOnset.append(maskOn)
                         trialOptoOnset.append(optoOn)
                         trialOptoSide.append(opSide)
-                        result = runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
+                        result = runTrial(tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
                         response.append(result[0])
                         responseTime.append(result[1])
                         if record:
@@ -134,9 +134,8 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,
     return np.array(trialTargetSide),np.array(trialMaskOnset),np.array(trialOptoOnset),np.array(trialOptoSide),np.array(response),np.array(responseTime),Lrecord,Rrecord
 
 
-# divisive normalization of input signal
 @njit
-def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+def runTrial(tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
     if record:
         Lrecord = np.full(Lsignal.size,np.nan)
         Rrecord = Lrecord.copy()
@@ -156,84 +155,26 @@ def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsign
             response = -1
         elif R > threshold:
             response = 1
-        if iDecay > 0 and alpha > 0:
+        if alpha > 0:
             Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
             Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
         else:
             Lsig = Lsignal[t]
             Rsig = Rsignal[t]
         Lnow = L
-        L += (random.gauss(0,sigma) + Lsig - L - inhib*R) / decay
-        R += (random.gauss(0,sigma) + Rsig - R - inhib*Lnow) / decay
-        iL += (Lsignal[t] - iL) / iDecay
-        iR += (Rsignal[t] - iR) / iDecay
+        L += (random.gauss(0,sigma) + Lsig - L - inhib*R) / tauA
+        R += (random.gauss(0,sigma) + Rsig - R - inhib*Lnow) / tauA
+        if tauI > 0:
+            iL += (Lsignal[t] - iL) / tauI
+            iR += (Rsignal[t] - iR) / tauI
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
-
-
-# simple model
-@njit
-def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
-    if record:
-        Lrecord = np.full(Lsignal.size,np.nan)
-        Rrecord = Lrecord.copy()
-    else:
-        Lrecord = Rrecord = None
-    L = R = 0
-    t = 0
-    response = 0
-    while t<trialEnd and response==0:
-        if record:
-            Lrecord[t] = L
-            Rrecord[t] = R
-        if L > threshold and R > threshold:
-            response = -1 if L > R else 1
-        elif L > threshold:
-            response = -1
-        elif R > threshold:
-            response = 1
-        Lnow = L
-        L += random.gauss(0,sigma) + Lsignal[t] - decay*L - inhib*R
-        R += random.gauss(0,sigma) + Rsignal[t] - decay*R - inhib*Lnow
-        t += 1
-    responseTime = t-1
-    return response,responseTime,Lrecord,Rrecord
-
-
-# divisive normalization of integrators (Keung et al. 2020)
-#@njit
-#def runTrial(iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
-#    if record:
-#        Lrecord = np.full(Lsignal.size,np.nan)
-#        Rrecord = Lrecord.copy()
-#    else:
-#        Lrecord = Rrecord = None
-#    L = R = 0
-#    G = 0
-#    t = 0
-#    response = 0
-#    while t<trialEnd and response==0:
-#        if record:
-#            Lrecord[t] = L
-#            Rrecord[t] = R
-#        if L > threshold and R > threshold:
-#            response = -1 if L > R else 1
-#        elif L > threshold:
-#            response = -1
-#        elif R > threshold:
-#            response = 1
-#        L += (random.gauss(0,sigma) + Lsignal[t]/(alpha+G) - L) / decay
-#        R += (random.gauss(0,sigma) + Rsignal[t]/(alpha+G) - R) / decay
-#        G += (inhib*(Lsignal[t] + Rsignal[t]) - G) / iDecay
-#        t += 1
-#    responseTime = t-1
-#    return response,responseTime,Lrecord,Rrecord
 
 
 
 # create model input signals from population ephys responses
-popPsthFilePath = fileIO.getFile(fileType='*.pkl')
+popPsthFilePath = fileIO.getFile('Load popPsth',fileType='*.pkl')
 popPsth = pickle.load(open(popPsthFilePath,'rb'))
 
 dt = 1/120*1000
@@ -243,16 +184,11 @@ trialEndMax = int(round(trialEndTimeMax/dt))
 t = np.arange(0,trialEndMax*dt+dt,dt)
 signalNames = ('targetOnly','maskOnly','mask')
 
-filtPts = t.size
-expFilt = np.zeros(filtPts*2)
-expFilt[-filtPts:] = scipy.signal.exponential(filtPts,center=0,tau=2,sym=False)
-expFilt /= expFilt.sum()
-
-popPsthFilt = {}
+popPsthIntp = {}
 for sig in signalNames:
-    popPsthFilt[sig] = {}
+    popPsthIntp[sig] = {}
     for hemi in ('ipsi','contra'):
-        popPsthFilt[sig][hemi] = {}
+        popPsthIntp[sig][hemi] = {}
         for mo in popPsth[sig][hemi]:
             p = popPsth[sig][hemi][mo].copy()
             p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
@@ -261,11 +197,11 @@ for sig in signalNames:
             p -= p[t<30].mean()
             p[0] = 0
             maskOn = np.nan if sig=='targetOnly' else mo
-            popPsthFilt[sig][hemi][maskOn] = p
+            popPsthIntp[sig][hemi][maskOn] = p
                 
                 
 # normalize and plot signals
-signals = copy.deepcopy(popPsthFilt)
+signals = copy.deepcopy(popPsthIntp)
 
 smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
 for sig in signals.keys():
@@ -275,18 +211,13 @@ for sig in signals.keys():
             s /= smax
             
 #            if alpha>0:
-#                if iDecay==0:
-#                    i = s > 0
-#                    s[i] = s[i]**eta / (alpha**eta + s[i]**eta)
-#                    s[i] *= alpha**eta + 1
-#                else:
-#                    sraw = s.copy()
-#                    I = 0
-#                    for i in range(s.size):
-#                        if i > 0:
-#                            I += (sraw[i-1] - I) / iDecay
-#                        if s[i]>0 and I>=0:
-#                            s[i] = (s[i]**eta) / (alpha**eta + I**eta)
+#                sraw = s.copy()
+#                I = 0
+#                for i in range(s.size):
+#                    if i > 0:
+#                        I += (sraw[i-1] - I) / tauI
+#                    if s[i]>0 and I>=0:
+#                        s[i] = (s[i]**eta) / (alpha**eta + I**eta)
 
 
 fig = plt.figure(figsize=(4,9))
@@ -324,39 +255,6 @@ for ax in axs:
 plt.tight_layout()
 
 
-# plot collapsing boundary
-#fig = plt.figure()
-#ax = fig.add_subplot(1,1,1)
-#x = np.arange(t.size)
-#times = np.arange(2,24,2)  
-#for decayTiming,clr in zip(times,plt.cm.plasma(np.linspace(0,1,len(times)))):
-#    for decayShape in [3]:
-#        thresh = 1 - (1 - np.exp(-(x/decayTiming)**decayShape)) * (1*1)
-#        ax.plot(t,thresh,color=clr,label='decayTiming='+str(int(decayTiming*dt))+', decayShape='+str(decayShape))
-#ax.legend(fontsize=8)
-#
-#fig = plt.figure()
-#ax = fig.add_subplot(1,1,1)
-#shapes = np.arange(0.5,6.5,0.5)  
-#for decayTiming in [12]:
-#    for decayShape,clr in zip(shapes,plt.cm.plasma(np.linspace(0,1,len(shapes)))):
-#        thresh = 1 - (1 - np.exp(-(x/decayTiming)**decayShape)) * (1*1)
-#        ax.plot(t,thresh,color=clr,label='decayTiming='+str(int(decayTiming*dt))+', decayShape='+str(decayShape))
-#ax.legend(fontsize=8)
-#
-#fig = plt.figure()
-#ax = fig.add_subplot(1,1,1)
-#initVals,times,shapes,amps = [np.arange(s.start,s.stop,s.step) for s in (thresholdRange,threshDecayTimingRange,threshDecayShapeRange,threshDecayAmpRange)] 
-#for initVal in initVals:
-#    for decayTiming in times:
-#        for decayShape in shapes:
-#            for decayAmp in amps:
-#                thresh = initVal - (1 - np.exp(-(x/decayTiming)**decayShape)) * (initVal*decayAmp)
-#                ax.plot(t,thresh,color='0.8',alpha=0.25)
-#thresh = threshold - (1 - np.exp(-(x/threshDecayTiming)**threshDecayShape)) * (threshold*threshDecayAmp)
-#ax.plot(t,thresh,'k',lw=2)
-
-
 ## fit model parameters
 respRateFilePath = fileIO.getFile('Load respRate',fileType='*.npy')
 respRateData = np.load(respRateFilePath)
@@ -374,37 +272,39 @@ maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 optoSide = [0]
 
-iDecayRange = slice(0,1,1)
+# simple model (no normalization)
+tauIRange = slice(0,1,1)
 alphaRange = slice(0,1,1)
 etaRange = slice(0,1,1)
-sigmaRange = slice(0,0.6,0.05)
-decayRange = slice(0,0.45,0.05)
-inhibRange = slice(0,0.45,0.05)
-thresholdRange = slice(1,11,1)
+sigmaRange = slice(0.2,1.1,0.1)
+tauARange = slice(0.5,5,0.5)
+inhibRange = slice(0.5,1.05,0.05)
+thresholdRange = slice(0.1,1.5,0.1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
-iDecayRange = slice(0.3,1.2,0.1)
+# [ 0. ,  0. ,  0. ,  0.4,  2.5,  1. ,  0.7, 24. ]
+
+# with dynamic divisive normalization
+tauIRange = slice(0.3,1.2,0.1)
 alphaRange = slice(0.05,0.25,0.05)
 etaRange = slice(1,2,1)
 sigmaRange = slice(0.4,1.3,0.1)
-decayRange = slice(2,8,0.5)
+tauARange = slice(2,9,0.5)
 inhibRange = slice(0.6,1.05,0.05)
 thresholdRange = slice(0.5,1.6,0.1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
-
 #[ 0.5 ,  0.05,  1.  ,  1.  ,  4.5 ,  0.8 ,  1.  , 24.  ]
 
-
-fitParamRanges = (iDecayRange,alphaRange,etaRange,sigmaRange,decayRange,inhibRange,thresholdRange,trialEndRange)
+fitParamRanges = (tauIRange,alphaRange,etaRange,sigmaRange,tauARange,inhibRange,thresholdRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,fracCorrMean)
 
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 
-iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = fit
+tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd = fit
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 responseRate = result['responseRate']
@@ -440,7 +340,7 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
     plt.tight_layout()
 
 
-# out of sample fits
+# leave one out fits
 leaveOneOutFits = []
 nconditions = len(respRateMean)
 for i in range(nconditions):
@@ -456,15 +356,46 @@ for i in range(nconditions):
         rr,fc = [np.array([d for j,d in enumerate(data) if j!=i]) for data in (respRateMean,fracCorrMean)]
     fixedParams=(signals,ts,mo,optoOnset,optoSide,trialsPerCondition,rr,fc)
     leaveOneOutFits.append(fitModel(fitParamRanges,fixedParams,finish=False))
+    
+#[array([ 0.6 ,  0.05,  1.  ,  1.2 ,  4.  ,  0.7 ,  1.2 , 24.  ]),
+# array([ 0.6 ,  0.05,  1.  ,  1.1 ,  6.  ,  0.85,  0.9 , 24.  ]),
+# array([ 0.5 ,  0.05,  1.  ,  1.  ,  3.  ,  0.7 ,  1.3 , 24.  ]),
+# array([ 0.5 ,  0.05,  1.  ,  1.  ,  5.5 ,  0.95,  0.9 , 24.  ]),
+# array([ 0.5 ,  0.05,  1.  ,  1.1 ,  6.  ,  0.9 ,  0.9 , 24.  ]),
+# array([ 0.6 ,  0.1 ,  1.  ,  1.  ,  7.5 ,  0.95,  0.7 , 24.  ]),
+# array([ 0.6,  0.1,  1. ,  1. ,  5. ,  0.9,  0.9, 24. ])]
 
 outOfSampleRespRate = []
 outOfSampleFracCorr = []    
 for i in range(nconditions):
-    iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd = leaveOneOutFits[i]
-    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+    tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd = leaveOneOutFits[i]
+    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
     result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
     outOfSampleRespRate.append(result['responseRate'][i])
     outOfSampleFracCorr.append(result['fractionCorrect'][i])
+    
+for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,fracCorrSem),(outOfSampleRespRate,outOfSampleFracCorr),((0,1.02),(0.4,1)),('Response Rate','Fraction Correct')):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(xticks,mean,'o',mec='k',mfc='none',ms=12,mew=2,label='mice')
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'k')
+    ax.plot(xticks,model,'o',mec='r',mfc='none',ms=12,mew=2,label='model (leave-one-out fits)')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',right=False,labelsize=14)
+    if ylabel=='Fraction Correct':
+        ax.set_xticks(xticks[1:-1])
+        ax.set_xticklabels(xticklabels[1:-1])
+    else:
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
+        ax.legend(fontsize=12)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel(ylabel,fontsize=16)
+    plt.tight_layout()
 
 for diff,ylim,ylabel in  zip((outOfSampleRespRate-responseRate,outOfSampleFracCorr-fractionCorrect),([-0.2,0.2],[-0.2,0.2]),('$\Delta$ Response Rate','$\Delta$ Fraction Correct')):    
     fig = plt.figure()
@@ -482,9 +413,6 @@ for diff,ylim,ylabel in  zip((outOfSampleRespRate-responseRate,outOfSampleFracCo
     ax.set_xlabel('Mask onset relative to target onset (ms)')
     ax.set_ylabel(ylabel)
     plt.tight_layout()
-    
-responseRate = outOfSampleRespRate
-fractionCorrect = outOfSampleFracCorr
 
 
 # example model traces
@@ -660,7 +588,7 @@ optoOnset = list(range(2,11))+[np.nan]
 optoSide = [0]
 optoLatency = 1
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=optoLatency)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=optoLatency)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 
@@ -706,7 +634,7 @@ maskOnset = [np.nan]
 optoOnset = [0]
 optoSide = [-1,0,1]
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,iDecay,alpha,eta,sigma,decay,inhib,threshold,trialEnd,trialsPerCondition=100000)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 
