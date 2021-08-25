@@ -357,13 +357,13 @@ for i in range(nconditions):
     fixedParams=(signals,ts,mo,optoOnset,optoSide,trialsPerCondition,rr,fc)
     leaveOneOutFits.append(fitModel(fitParamRanges,fixedParams,finish=False))
     
-#[array([ 0.6 ,  0.05,  1.  ,  1.2 ,  4.  ,  0.7 ,  1.2 , 24.  ]),
-# array([ 0.6 ,  0.05,  1.  ,  1.1 ,  6.  ,  0.85,  0.9 , 24.  ]),
-# array([ 0.5 ,  0.05,  1.  ,  1.  ,  3.  ,  0.7 ,  1.3 , 24.  ]),
-# array([ 0.5 ,  0.05,  1.  ,  1.  ,  5.5 ,  0.95,  0.9 , 24.  ]),
-# array([ 0.5 ,  0.05,  1.  ,  1.1 ,  6.  ,  0.9 ,  0.9 , 24.  ]),
-# array([ 0.6 ,  0.1 ,  1.  ,  1.  ,  7.5 ,  0.95,  0.7 , 24.  ]),
-# array([ 0.6,  0.1,  1. ,  1. ,  5. ,  0.9,  0.9, 24. ])]
+#[array([ 0.5,  0.1,  1. ,  0.9,  4.5,  0.8,  0.9, 24. ]),
+# array([ 0.6 ,  0.1 ,  1.  ,  1.  ,  4.  ,  0.75,  1.  , 24.  ]),
+# array([ 0.6 ,  0.05,  1.  ,  1.1 ,  6.  ,  0.9 ,  0.9 , 24.  ]),
+# array([ 0.6 ,  0.05,  1.  ,  1.1 ,  6.  ,  0.9 ,  0.9 , 24.  ]),
+# array([ 0.6 ,  0.05,  1.  ,  1.1 ,  5.  ,  0.9 ,  1.  , 24.  ]),
+# array([ 0.6,  0.1,  1. ,  1. ,  7.5,  0.9,  0.7, 24. ]),
+# array([ 0.6 ,  0.05,  1.  ,  1.2 ,  5.  ,  1.  ,  1.1 , 24.  ])]
 
 outOfSampleRespRate = []
 outOfSampleFracCorr = []    

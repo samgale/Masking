@@ -534,7 +534,7 @@ decoderOffset = np.arange(analysisWindow.sum())
 trainTestIters = 100
 trialsPerIter = 100
 
-unitSource = unitSampleSize.keys()
+unitSource = list(unitSampleSize.keys())
 trainScore = {src: np.full((trainTestIters,len(unitSampleSize[src]),3,len(decoderOffset),len(maskOnset)),np.nan) for src in unitSource}
 testScore = copy.deepcopy(trainScore)
 decoderCoef = {src: np.full((trainTestIters,len(unitSampleSize[src]),analysisWindow.sum()),np.nan) for src in unitSource}
@@ -593,26 +593,28 @@ for iterInd in range(trainTestIters):
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for score,clr,trialSet in zip((trainScore,testScore),('0.5','k'),('train','test')):
-    for src,mrk,mfc in zip(unitSource,'soo',('none','none',clr)):
+#    for src,mrk,mfc in zip(unitSource,'soo',('none','none',clr)):
+    for src,mrk,mfc in zip(unitSource[1:],'oo',('none',clr)):
         overallScore = score[src][:,:,0,-1].mean(axis=-1)
         mean = overallScore.mean(axis=0)
         sem = overallScore.std(axis=0)/(trainTestIters**0.5)
-        if src=='sessionCorr':
-            srcLabel = 'session'
-        elif src=='sessionRand':
-            srcLabel = 'session, shuffled'
-        else:
-            srcLabel = src
+#        if src=='sessionCorr':
+#            srcLabel = 'session'
+#        elif src=='sessionRand':
+#            srcLabel = 'session, shuffled'
+#        else:
+#            srcLabel = src
+        srcLabel = 'individual' if src=='sessionRand' else 'pooled'
         lbl = trialSet+', '+srcLabel
-        ax.plot(unitSampleSize[src],mean,mrk,mec=clr,mfc=mfc,label=lbl)  
-        for x,m,s in zip(unitSampleSize[src],mean,sem):
-            ax.plot([x,x],[m-s,m+s],clr)
+        ax.plot(unitSampleSize[src],mean,mrk,mec=clr,mfc=mfc,mew=2,ms=12,label=lbl)  
+#        for x,m,s in zip(unitSampleSize[src],mean,sem):
+#            ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_ylim([0.5,1.02])
-ax.set_xlabel('Number of Units',fontsize=12)
-ax.set_ylabel('Decoder Accuracy',fontsize=12)
+ax.set_xlabel('Number of Units',fontsize=16)
+ax.set_ylabel('Decoder Accuracy',fontsize=16)
 ax.legend()
 plt.tight_layout()
 
@@ -620,15 +622,15 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 x,y =  [testScore[src][:,:,0,-1].mean(axis=(0,-1)) for src in ('sessionCorr','sessionRand')]
 ax.plot([0,1],[0,1],'--',color='0.8')
-ax.plot(x,y,'ko')
+ax.plot(x,y,'o',mec='k',mfc='none',mew=2,ms=12)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim([0.5,1])
 ax.set_ylim([0.5,1])
 ax.set_aspect('equal')
-ax.set_xlabel('Decoder Accuracy (Correlated Trials)',fontsize=12)
-ax.set_ylabel('Decoder Accuracy (Shuffled Trials)',fontsize=12)
+ax.set_xlabel('Decoder Accuracy (Correlations Preserved)',fontsize=16)
+ax.set_ylabel('Decoder Accuracy (Shuffled Trials)',fontsize=16)
 plt.tight_layout()
 
 fig = plt.figure()
