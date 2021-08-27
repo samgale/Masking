@@ -335,6 +335,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     plt.tight_layout()
 
 # wt vgat comparison
+vgatInd = slice(0,8)
+wtInd = slice(8,16)
 for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -344,7 +346,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         meanLR = np.mean(data,axis=1)
     else:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
-    for i,mfc,lbl in zip((slice(0,8),slice(8,16)),('k','none'),('VGAT-ChR2','Wild-type')):
+    for i,mfc,lbl in zip((vgatInd,wtInd),('k','none'),('VGAT-ChR2','Wild-type')):
         mean = np.nanmean(meanLR[i],axis=0)
         sem = np.nanstd(meanLR[i],axis=0)/(meanLR[i].shape[0]**0.5)
         ax.plot(xticks,mean,'o',mec='k',mfc=mfc,ms=12,label=lbl)
@@ -366,6 +368,18 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     if ylabel=='Response Rate':
         ax.legend()
     plt.tight_layout()
+    
+alpha = 0.05
+for data,lbl in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):        
+    if data is respRate:
+        meanLR = np.mean(data,axis=1)
+    else:
+        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+    pvals = []
+    for x,y in zip(meanLR[vgatInd].T,meanLR[wtInd].T):
+        pvals.append(scipy.stats.ranksums(x,y)[1])
+    pvalsCorr = multipletests(pvals,alpha=alpha,method='fdr_bh')[1]
+    print(lbl,pvalsCorr)
     
 # stats
 alpha = 0.05
@@ -410,6 +424,14 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     cb.set_ticklabels(['$10^{'+str(int(lt))+'}$' for lt in legticks[:-1]]+[r'$\geq0.05$'])
     ax.set_title(title+' Comparisons (p value)',fontsize=14)
     plt.tight_layout()
+    
+# comparison to chance
+meanLR = np.sum(fracCorr*respRate,axis=1)/np.sum(respRate,axis=1)
+n = ntrials.sum(axis=1)
+pval = np.full(n.shape,np.nan)
+for i in range(len(p)):
+    for j in range(1,6):
+        pval[i,j] = scipy.stats.binom.cdf(0.5*n[i,j],n[i,j],meanLR[i,j])
     
 # spearman correlation of accuracy vs mask onset
 rs = []
