@@ -429,7 +429,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
 meanLR = np.sum(fracCorr*respRate,axis=1)/np.sum(respRate,axis=1)
 n = ntrials.sum(axis=1)
 pval = np.full(n.shape,np.nan)
-for i in range(len(p)):
+for i in range(len(pval)):
     for j in range(1,6):
         pval[i,j] = scipy.stats.binom.cdf(0.5*n[i,j],n[i,j],meanLR[i,j])
     
