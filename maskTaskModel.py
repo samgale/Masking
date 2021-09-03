@@ -338,7 +338,7 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean),(respRateSem,
     ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
     ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
-
+    
 
 # leave one out fits
 leaveOneOutFits = []
@@ -627,6 +627,42 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
 #    if measure=='responseRate':
 #        ax.legend(loc='upper left',fontsize=12)
     plt.tight_layout()
+    
+# combine with masking data
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(xticks[2:],responseRate[[1,3,4,5]],'o',mec='r',mfc='none',mew=2,ms=12,label='masking') 
+d = np.array([result[1][np.nan][optoOn][optoSide[0]]['responseRate'] for optoOn in optoOnset]) 
+ax.plot(xticks,d[[0,2,4,6,8,9]],'o',mec='b',mfc='none',mew=2,ms=12,label='inhibition')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(['-17','0','17','33','50','no mask or\ninhibition'])
+ax.set_xlim([8,108])
+ax.set_ylim([0,1])
+ax.set_xlabel('Mask or Inhibition Onset (ms)',fontsize=16)
+ax.set_ylabel('Response Rate',fontsize=16)
+ax.legend(fontsize=14)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([8,108],[0.5,0.5],'k--')
+ax.plot(xticks[2:],fractionCorrect[[1,3,4,5]],'o',mec='r',mfc='none',mew=2,ms=12,label='masking')
+d = np.array([result[1][np.nan][optoOn][optoSide[0]]['fractionCorrect'] for optoOn in optoOnset])
+ax.plot(xticks,d[[0,2,4,6,8,9]],'o',mec='b',mfc='none',mew=2,ms=12,label='inhibition')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(['-17','0','17','33','50','no mask or\ninhibition'])
+ax.set_xlim([8,108])
+ax.set_ylim([0.4,1])
+ax.set_xlabel('Mask or Inhibition Onset (ms)',fontsize=16)
+ax.set_ylabel('Fraction Correct',fontsize=16)
+#ax.legend(fontsize=14)
+plt.tight_layout()
 
 
 # unilateral opto

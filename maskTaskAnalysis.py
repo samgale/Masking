@@ -334,18 +334,20 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
     
-# pooled trials fraction correct
+# pooled trials across mice
 fc = np.nansum(fracCorr*respRate,axis=1)/np.nansum(respRate,axis=1)
 nresp = np.sum(ntrials*respRate,axis=1)
+
+maskingPooledRespRate = np.sum(respRate*ntrials/ntrials.sum(axis=(0,1)),axis=(0,1))
+maskingPooledRespRateCi = [[c/n for c in scipy.stats.binom.interval(0.95,n,p)] for n,p in zip(ntrials.sum(axis=(0,1)),maskingPooledRespRate)]
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0.5,0.5],'k--')
-ntotal = nresp.sum(axis=0)
-maskingPooledFracCorr = np.nansum(fc*nresp/ntotal,axis=0)
+maskingPooledFracCorr = np.nansum(fc*nresp/nresp.sum(axis=0),axis=0)
 ax.plot(xticks,maskingPooledFracCorr,'o',color='k',ms=12)
 maskingPooledFracCorrCi = []
-for x,n,p in zip(xticks,ntotal,maskingPooledFracCorr):
+for x,n,p in zip(xticks,nresp.sum(axis=0),maskingPooledFracCorr):
     if p>0:
         s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
         ax.plot([x,x],s,color='k')
@@ -890,29 +892,50 @@ ax.set_xlabel('Optogenetic Light Onset Relative to Target Onset (ms)',fontsize=1
 ax.set_ylabel('Fraction Correct (pooled trials)',fontsize=16)
 plt.tight_layout()
 
-# pooled fraction correct combined with masking data   
+# pooled data combined with masking data
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot([8,108],[0.5,0.5],'k--')
-ax.plot(xticks[2:],maskingPooledFracCorr[[1,3,4,5]],'o',color='0.5',ms=12,label='masking')
-for x,s in zip(xticks[2:],np.array(maskingPooledFracCorrCi)[[1,3,4,5]]):
-    ax.plot([x,x],s,color='0.5')
-ntotal = nresp.sum(axis=0)
-m = np.nansum(fc*nresp/ntotal,axis=0)
-ax.plot(xticks,m,'o',color='k',ms=12,label='inhibition')
-for x,n,p in zip(xticks,ntotal,m):
+ax.plot(xticks[2:],maskingPooledRespRate[[1,3,4,5]],'o',mec='r',mfc='none',mew=2,ms=12,label='masking')
+for x,s in zip(xticks[2:],np.array(maskingPooledRespRateCi)[[1,3,4,5]]):
+    ax.plot([x,x],s,color='r')
+m = np.sum(respRate[:,0]*ntrials[:,0]/ntrials[:,0].sum(axis=(0,1)),axis=(0,1))
+ax.plot(xticks,m,'o',mec='b',mfc='none',mew=2,ms=12,label='inhibition')
+for x,n,p in zip(xticks,ntrials[:,0].sum(axis=(0,1)),m):
     s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
-    ax.plot([x,x],s,color='k')
+    ax.plot([x,x],s,color='b')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xticks(xticks)
-ax.set_xticklabels(['-17','0','17','33','50','no\nopto'])
+ax.set_xticklabels(['-17','0','17','33','50','no mask or\ninhibition'])
+ax.set_xlim([8,108])
+ax.set_ylim([0,1])
+ax.set_xlabel('Mask or Inhibition Onset (ms)',fontsize=16)
+ax.set_ylabel('Response Rate (pooled trials)',fontsize=16)
+ax.legend(fontsize=14)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([8,108],[0.5,0.5],'k--')
+ax.plot(xticks[2:],maskingPooledFracCorr[[1,3,4,5]],'o',mec='r',mfc='none',mew=2,ms=12,label='masking')
+for x,s in zip(xticks[2:],np.array(maskingPooledFracCorrCi)[[1,3,4,5]]):
+    ax.plot([x,x],s,color='r')
+m = np.nansum(fc*nresp/nresp.sum(axis=0),axis=0)
+ax.plot(xticks,m,'o',mec='b',mfc='none',mew=2,ms=12,label='inhibition')
+for x,n,p in zip(xticks,nresp.sum(axis=0),m):
+    s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
+    ax.plot([x,x],s,color='b')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(['-17','0','17','33','50','no mask or\ninhibition'])
 ax.set_xlim([8,108])
 ax.set_ylim([0.4,1])
-ax.set_xlabel('Cortical Inhibition Relative To Visual Response Onset (ms)',fontsize=16)
+ax.set_xlabel('Mask or Inhibition Onset (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct (pooled trials)',fontsize=16)
-ax.legend(fontsize=14)
+#ax.legend(fontsize=14)
 plt.tight_layout()
 
 
@@ -1079,6 +1102,55 @@ ax.set_xlim([8,108])
 ax.set_ylim([0.4,1])
 ax.set_xlabel('Optogenetic light onset relative to target onset (ms)',fontsize=12)
 ax.set_ylabel('Fraction Correct (pooled trials)',fontsize=12)
+plt.tight_layout()
+
+# pooled data combined with masking data
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(xticks[2:],maskingPooledRespRate[[1,3,4,5]],'o',mec='r',mfc='none',mew=2,ms=12,label='masking')
+for x,s in zip(xticks[2:],np.array(maskingPooledRespRateCi)[[1,3,4,5]]):
+    ax.plot([x,x],s,color='r')
+m = np.sum(respRate[:,0]*ntrials[:,0]/ntrials[:,0].sum(axis=(0,1)),axis=(0,1))
+ax.plot(xticks,m,'o',mec='b',mfc='none',mew=2,ms=12,label='inhibition')
+for x,n,p in zip(xticks,ntrials[:,0].sum(axis=(0,1)),m):
+    s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
+    ax.plot([x,x],s,color='b')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(['-17','0','17','33','50','no mask or\ninhibition'])
+ax.set_xlim([8,108])
+ax.set_ylim([0,1])
+ax.set_xlabel('Mask or Inhibition Onset (ms)',fontsize=16)
+ax.set_ylabel('Response Rate (pooled trials)',fontsize=16)
+ax.legend(fontsize=14)
+plt.tight_layout()
+
+fc = np.nansum(fracCorr[:,0]*respRate[:,0],axis=1)/np.nansum(respRate[:,0],axis=1)
+nresp = np.sum(ntrials[:,0]*respRate[:,0],axis=1)
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([8,108],[0.5,0.5],'k--')
+ax.plot(xticks[2:],maskingPooledFracCorr[[1,3,4,5]],'o',mec='r',mfc='none',mew=2,ms=12,label='masking')
+for x,s in zip(xticks[2:],np.array(maskingPooledFracCorrCi)[[1,3,4,5]]):
+    ax.plot([x,x],s,color='r')
+m = np.nansum(fc*nresp/nresp.sum(axis=0),axis=0)
+ax.plot(xticks,m,'o',mec='b',mfc='none',mew=2,ms=12,label='inhibition')
+for x,n,p in zip(xticks,nresp.sum(axis=0),m):
+    s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
+    ax.plot([x,x],s,color='b')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(['-17','0','17','33','50','no mask or\ninhibition'])
+ax.set_xlim([8,108])
+ax.set_ylim([0.4,1])
+ax.set_xlabel('Mask or Inhibition Onset (ms)',fontsize=16)
+ax.set_ylabel('Fraction Correct (pooled trials)',fontsize=16)
+#ax.legend(fontsize=14)
 plt.tight_layout()
     
 # fraction correct vs reaction time
