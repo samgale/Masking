@@ -1270,7 +1270,8 @@ for i,stim in enumerate(stimLabels):
         ax.set_xticklabels([])
     ax.set_yticks(np.arange(0,1,0.2))
     ax.set_ylim([0,0.75])
-    ax.set_ylabel('Probability',fontsize=16)
+    if i==1:
+        ax.set_ylabel('Fraction of Trials',fontsize=16)
     if i==0:
         ax.legend(fontsize=14)
     ax.set_title(stim,fontsize=16)
