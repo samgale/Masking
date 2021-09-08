@@ -451,6 +451,51 @@ ax.set_title('Contralateral - Ipsilateral',fontsize=14)
 plt.tight_layout()
 
 
+# for christof
+behavOutcomeLabels = ('correct','incorrect','no resp')
+behavTrialPsth = {stim: {resp: {} for resp in behavOutcomeLabels} for stim in stimLabels[:-1]}
+for obj in exps:
+    validTrials = ~obj.longFrameTrials & obj.engaged
+    for stim in stimLabels[:-1]:
+        stimTrials = obj.trialType==stim
+        for resp,respLbl in zip((1,-1,0),behavOutcomeLabels):
+            respTrials = obj.response==resp
+            for mo in np.unique(obj.maskOnset[stimTrials]):
+                moTrials = obj.maskOnset==mo
+                trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo)
+                if mo not in behavTrialPsth[stim][respLbl]:
+                    behavTrialPsth[stim][respLbl][mo] = []
+                startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate
+                for u in obj.goodUnits:
+                    spikeTimes = obj.units[u]['samples']/obj.sampleRate
+                    p,t = getPsth(spikeTimes,startTimes,0.15,binSize=binSize,avg=False)
+                    behavTrialPsth[stim][respLbl][mo].append(p)
+
+expInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])
+
+mo = 2
+bins = np.arange(0,20,1)
+for i in np.unique(expInd):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    xmax = 0
+    for resp,clr in zip(behavOutcomeLabels,('g','m','0.5')):
+        p = np.stack(np.array(behavTrialPsth['mask'][resp][mo])[(expInd==i) & respUnits & ~fs])
+        n = len(p)
+        s = p.sum(axis=(0,1))*binSize/n
+        h = np.histogram(s,bins=bins)[0]
+        ax.plot(bins[:-1],h,clr,lw=4,label=resp+' ('+str(p.shape[1])+')')
+        xmax = max(xmax,np.where(h>0)[0][-1])
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+    ax.set_xlim([0,xmax+1])
+    ax.set_xlabel('average spikes per unit',fontsize=14)
+    ax.set_ylabel('# trials',fontsize=14)
+    ax.set_title(str(n)+' RS units',fontsize=14)
+    ax.legend()
+
+
 
 # save psth
 units = respUnits & ~fs
