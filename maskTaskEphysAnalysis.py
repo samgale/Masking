@@ -454,10 +454,11 @@ plt.tight_layout()
 # for christof
 behavOutcomeLabels = ('correct','incorrect','no resp')
 behavTrialPsth = {stim: {resp: {} for resp in behavOutcomeLabels} for stim in stimLabels[:-1]}
+behavPsth = copy.deepcopy(behavTrialPsth)
 for obj in exps:
     validTrials = ~obj.longFrameTrials & obj.engaged
     for stim in stimLabels[:-1]:
-        stimTrials = obj.trialType==stim
+        stimTrials = (obj.trialType==stim) & (obj.rewardDir==-1)
         for resp,respLbl in zip((1,-1,0),behavOutcomeLabels):
             respTrials = obj.response==resp
             for mo in np.unique(obj.maskOnset[stimTrials]):
@@ -465,31 +466,36 @@ for obj in exps:
                 trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo)
                 if mo not in behavTrialPsth[stim][respLbl]:
                     behavTrialPsth[stim][respLbl][mo] = []
+                    behavPsth[stim][respLbl][mo] = []
                 startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate
                 for u in obj.goodUnits:
                     spikeTimes = obj.units[u]['samples']/obj.sampleRate
                     p,t = getPsth(spikeTimes,startTimes,0.15,binSize=binSize,avg=False)
                     behavTrialPsth[stim][respLbl][mo].append(p)
+                    behavPsth[stim][respLbl][mo].append(p.mean(axis=0))
 
 expInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])
 
-mo = 2
+mo = 6
 bins = np.arange(0,20,1)
 for i in np.unique(expInd):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     xmax = 0
     for resp,clr in zip(behavOutcomeLabels,('g','m','0.5')):
-        p = np.stack(np.array(behavTrialPsth['mask'][resp][mo])[(expInd==i) & respUnits & ~fs])
+        p = np.stack(np.array(behavTrialPsth['mask'][resp][mo])[(expInd==i) & respUnits])
         n = len(p)
         s = p.sum(axis=(0,1))*binSize/n
         h = np.histogram(s,bins=bins)[0]
-        ax.plot(bins[:-1],h,clr,lw=4,label=resp+' ('+str(p.shape[1])+')')
+        lbl = resp+' ('+str(p.shape[1])+')'
+        ax.plot(bins[:-1],h,clr,lw=4,label=lbl)
+        
+#        ax.plot(t,p.mean(axis=0),clr,label=lbl)
         xmax = max(xmax,np.where(h>0)[0][-1])
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=12)
-    ax.set_xlim([0,xmax+1])
+    ax.set_xlim([0,xmax])
     ax.set_xlabel('average spikes per unit',fontsize=14)
     ax.set_ylabel('# trials',fontsize=14)
     ax.set_title(str(n)+' RS units',fontsize=14)
