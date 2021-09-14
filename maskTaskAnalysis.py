@@ -918,14 +918,14 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([8,108],[0.5,0.5],'k--')
-ax.plot(xticks[2:],maskingPooledFracCorr[[1,3,4,5]],'o',mec='r',mfc='none',mew=2,ms=12,label='masking')
+ax.plot(xticks[2:],maskingPooledFracCorr[[1,3,4,5]],'o',mec='k',mfc='none',mew=2,ms=12,label='masking')
 for x,s in zip(xticks[2:],np.array(maskingPooledFracCorrCi)[[1,3,4,5]]):
-    ax.plot([x,x],s,color='r')
+    ax.plot([x,x],s,color='k')
 m = np.nansum(fc*nresp/nresp.sum(axis=0),axis=0)
-ax.plot(xticks,m,'o',mec='b',mfc='none',mew=2,ms=12,label='inhibition')
+ax.plot(xticks,m,'o',mec='k',mfc='k',mew=2,ms=12,label='inhibition')
 for x,n,p in zip(xticks,nresp.sum(axis=0),m):
     s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
-    ax.plot([x,x],s,color='b')
+    ax.plot([x,x],s,color='k')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -935,7 +935,7 @@ ax.set_xlim([8,108])
 ax.set_ylim([0.4,1])
 ax.set_xlabel('Mask or Inhibition Onset (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct (pooled trials)',fontsize=16)
-#ax.legend(fontsize=14)
+ax.legend(fontsize=14)
 plt.tight_layout()
 
 
