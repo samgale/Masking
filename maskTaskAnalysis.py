@@ -108,7 +108,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),[1
     else:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
-        ax.plot(xticks,d,color=clr,alpha=0.25)
+        ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks,mean,'ko',ms=12)
@@ -187,7 +187,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),[1
     else:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
-        ax.plot(xticks,d,color=clr,alpha=0.25)
+        ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks,mean,'ko',ms=12)
@@ -313,7 +313,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     else:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
-        ax.plot(xticks,d,color=clr,alpha=0.25)
+        ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks,mean,'ko',ms=12)
@@ -770,7 +770,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         lbl = stimLbl if data is respRate else None
         for d in meanLR:
-            ax.plot(xticks,d,color=clr,alpha=0.2)
+            ax.plot(xticks,d,color=clr,alpha=0.25)
         ax.plot(xticks,mean,'o',color=clr,ms=12,label=lbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)
@@ -1013,7 +1013,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         for d in meanLR:
-            ax.plot(xticks,d,color=clr,alpha=0.2)
+            ax.plot(xticks,d,color=clr,alpha=0.25)
         ax.plot(xticks,mean,'o',color=clr,ms=12,label=stimLbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)
