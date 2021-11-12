@@ -455,7 +455,8 @@ plt.tight_layout()
 behavOutcomeLabels = ('correct','incorrect','no resp')
 behavTrialPsth = {stim: {hemi: {resp: {} for resp in behavOutcomeLabels} for hemi in hemiLabels} for stim in ('targetOnly','mask')}
 behavPsth = copy.deepcopy(behavTrialPsth)
-for obj in exps:
+reacTime = copy.deepcopy(behavTrialPsth)
+for i,obj in enumerate(exps):
     ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
     validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for stim in ('targetOnly','mask'):
@@ -465,26 +466,34 @@ for obj in exps:
                 respTrials = obj.response==resp
                 for mo in np.unique(obj.maskOnset[stimTrials]):
                     moTrials = obj.maskOnset==mo
-                    trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo)
+                    trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo) & np.isnan(obj.optoOnset)
                     if mo not in behavTrialPsth[stim][hemi][respLbl]:
                         behavTrialPsth[stim][hemi][respLbl][mo] = []
                         behavPsth[stim][hemi][respLbl][mo] = []
-                    startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate
+                        reacTime[stim][hemi][respLbl][mo] = []
+                    reacTime[stim][hemi][respLbl][mo].append(obj.reactionTime[trials])
+                    startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate - preTime
                     for u in obj.goodUnits:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
-                        p,t = getPsth(spikeTimes,startTimes,0.15,binSize=binSize,avg=False)
+                        p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
                         behavTrialPsth[stim][hemi][respLbl][mo].append(p)
-                        behavPsth[stim][hemi][respLbl][mo].append(p.mean(axis=0))
-
+                        behavPsth[stim][hemi][respLbl][mo].append(p.mean(axis=0))                       
+t -= preTime                       
+                        
 expInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])
+
+isOptoExpUnit = np.array([np.any(~np.isnan(obj.optoOnset)) for obj in exps for unit in obj.goodUnits])
+
+behavUnits = respUnits & ~fs & ~isOptoExpUnit
     
 for mo in (2,3,4,6):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     xmax = 0
     for resp,clr in zip(behavOutcomeLabels,('g','m','0.5')):
-        p = np.stack(np.array(behavPsth['mask']['ipsi'][resp][mo])[respUnits & ~fs])
+        p = np.array(behavPsth['mask']['contra'][resp][mo])[behavUnits]
         ax.plot(t,np.nanmean(p,axis=0),color=clr,lw=2,label=resp)
+        # patch sem
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=12)
@@ -498,7 +507,7 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 xmax = 0
 for resp,clr in zip(behavOutcomeLabels,('g','m','0.5')):
-    p = np.stack(np.array(behavPsth['targetOnly']['contra'][resp][0])[respUnits & ~fs])
+    p =np.array(behavPsth['targetOnly']['contra'][resp][0])[behavUnits]
     ax.plot(t,np.nanmean(p,axis=0),color=clr,lw=2,label=resp)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
@@ -507,6 +516,26 @@ ax.set_xlim([0,0.15])
 ax.set_xlabel('Time (s)',fontsize=14)
 ax.set_ylabel('Spikes/s',fontsize=14)
 ax.legend()
+
+
+analysisWindow = (t>0.035) & (t<0.075)
+corr = np.array(behavPsth['mask']['contra']['correct'][2])[behavUnits][:,analysisWindow].sum(axis=1) * binSize
+incorr = np.array(behavPsth['mask']['contra']['incorrect'][2])[behavUnits][:,analysisWindow].sum(axis=1) * binSize
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+amax = max(np.nanmax(corr),np.nanmax(incorr))
+alim = [-0.02*amax,1.02*amax]
+ax.plot(alim,alim,'--',color='0.8')
+ax.plot(incorr,corr,'ko')
+ind = ~np.isnan(incorr) & ~np.isnan(corr)
+ax.plot(incorr[ind].mean(),corr[ind].mean(),'ro')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim(alim)
+ax.set_ylim(alim)
+ax.set_aspect('equal')
+plt.tight_layout()
 
 
 # save psth

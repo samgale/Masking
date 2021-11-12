@@ -205,7 +205,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),[1
     ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
-    ax.set_xlabel('Target Contrast (ms)',fontsize=16)
+    ax.set_xlabel('Target Contrast',fontsize=16)
     ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
     
