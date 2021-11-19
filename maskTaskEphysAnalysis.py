@@ -451,6 +451,20 @@ ax.set_title('Contralateral - Ipsilateral',fontsize=14)
 plt.tight_layout()
 
 
+# save psth
+units = respUnits & ~fs
+popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
+for stim in stimLabels:
+    for hemi in hemiLabels:
+        p = psth[stim][hemi]['all']
+        for mo in p.keys():
+            popPsth[stim][hemi][mo] = np.array(p[mo])[units]
+popPsth['t'] = t
+            
+pkl = fileIO.saveFile(fileType='*.pkl')
+pickle.dump(popPsth,open(pkl,'wb'))
+
+
 # behavior analysis
 behavOutcomeLabels = ('correct','incorrect','no resp')
 behavTrialPsth = {stim: {hemi: {resp: {} for resp in behavOutcomeLabels} for hemi in hemiLabels} for stim in ('targetOnly','mask')}
@@ -486,8 +500,10 @@ isOptoExpUnit = np.array([np.any(~np.isnan(obj.optoOnset)) for obj in exps for u
 
 behavUnits = respUnits & ~isOptoExpUnit
 
+maskOnset = (2,3,4,6,0)
+
  
-for mo in (0,2,3,4,6):
+for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     xmax = 0
@@ -505,11 +521,15 @@ for mo in (0,2,3,4,6):
     ax.set_xlim([0,0.15])
     ax.set_xlabel('Time (s)',fontsize=14)
     ax.set_ylabel('Spikes/s',fontsize=14)
-    ax.set_title(mo,fontsize=14)
+    ax.set_title(title,fontsize=14)
     ax.legend()
 
 analysisWindow = (t>0.04) & (t<0.065)
-for mo in (0,2,3,4,6):
+incorrMean = []
+corrMean = []
+incorrSem = []
+corrSem = []
+for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
     stim = 'mask' if mo>0 else 'targetOnly'
     r = []
     for resp in ('correct','incorrect'):
@@ -531,28 +551,41 @@ for mo in (0,2,3,4,6):
     ax.plot(mx,my,'ro')
     ax.plot([mx-sx,mx+sx],[my,my],'r')
     ax.plot([mx,mx],[my-sy,my+sy],'r')
+    incorrMean.append(mx)
+    corrMean.append(my)
+    incorrSem.append(sx)
+    corrSem.append(sy)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
     ax.set_xlim(alim)
     ax.set_ylim(alim)
     ax.set_aspect('equal')
+    ax.set_xlabel('Spikes on incorrect trials',fontsize=14)
+    ax.set_ylabel('Spikes on correct trials',fontsize=14)
+    ax.set_title(title,fontsize=14)
     plt.tight_layout()
 
-
-# save psth
-units = respUnits & ~fs
-popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
-for stim in stimLabels:
-    for hemi in hemiLabels:
-        p = psth[stim][hemi]['all']
-        for mo in p.keys():
-            popPsth[stim][hemi][mo] = np.array(p[mo])[units]
-popPsth['t'] = t
-            
-pkl = fileIO.saveFile(fileType='*.pkl')
-pickle.dump(popPsth,open(pkl,'wb'))
-
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+amax = 1
+alim = [-0.02*amax,1.02*amax]
+ax.plot(alim,alim,'--',color='0.8')    
+for mx,my,sx,sy,clr,lbl in zip(incorrMean,corrMean,incorrSem,corrSem,clrs,maskOnsetLabels[1:-1]):
+    ax.plot(mx,my,'o',mec=clr,mfc=clr,label=lbl)
+    ax.plot([mx-sx,mx+sx],[my,my],color=clr)
+    ax.plot([mx,mx],[my-sy,my+sy],color=clr)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    ax.set_xlim(alim)
+    ax.set_ylim(alim)
+    ax.set_aspect('equal')
+    ax.set_xlabel('Spikes on incorrect trials',fontsize=14)
+    ax.set_ylabel('Spikes on correct trials',fontsize=14)
+    leg = ax.legend(title='mask onset',loc='lower right',fontsize=12)
+    plt.setp(leg.get_title(),fontsize=12)
+    plt.tight_layout()
 
 
 # decoding
