@@ -484,16 +484,21 @@ expInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUni
 
 isOptoExpUnit = np.array([np.any(~np.isnan(obj.optoOnset)) for obj in exps for unit in obj.goodUnits])
 
-behavUnits = respUnits & ~fs & ~isOptoExpUnit
-    
-for mo in (2,3,4,6):
+behavUnits = respUnits & ~isOptoExpUnit
+
+ 
+for mo in (0,2,3,4,6):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     xmax = 0
     for resp,clr in zip(behavOutcomeLabels,('g','m','0.5')):
-        p = np.array(behavPsth['mask']['contra'][resp][mo])[behavUnits]
-        ax.plot(t,np.nanmean(p,axis=0),color=clr,lw=2,label=resp)
-        # patch sem
+        stim = 'mask' if mo>0 else 'targetOnly'
+        p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
+        b = p-p[:,(t<0) & (t>-0.15)].mean(axis=1)[:,None]
+        m = np.nanmean(b,axis=0)
+        s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
+        ax.plot(t,m,color=clr,lw=2,label=resp)
+        ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=12)
@@ -502,40 +507,37 @@ for mo in (2,3,4,6):
     ax.set_ylabel('Spikes/s',fontsize=14)
     ax.set_title(mo,fontsize=14)
     ax.legend()
-    
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-xmax = 0
-for resp,clr in zip(behavOutcomeLabels,('g','m','0.5')):
-    p =np.array(behavPsth['targetOnly']['contra'][resp][0])[behavUnits]
-    ax.plot(t,np.nanmean(p,axis=0),color=clr,lw=2,label=resp)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=12)
-ax.set_xlim([0,0.15])
-ax.set_xlabel('Time (s)',fontsize=14)
-ax.set_ylabel('Spikes/s',fontsize=14)
-ax.legend()
 
-
-analysisWindow = (t>0.035) & (t<0.075)
-corr = np.array(behavPsth['mask']['contra']['correct'][2])[behavUnits][:,analysisWindow].sum(axis=1) * binSize
-incorr = np.array(behavPsth['mask']['contra']['incorrect'][2])[behavUnits][:,analysisWindow].sum(axis=1) * binSize
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-amax = max(np.nanmax(corr),np.nanmax(incorr))
-alim = [-0.02*amax,1.02*amax]
-ax.plot(alim,alim,'--',color='0.8')
-ax.plot(incorr,corr,'ko')
-ind = ~np.isnan(incorr) & ~np.isnan(corr)
-ax.plot(incorr[ind].mean(),corr[ind].mean(),'ro')
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xlim(alim)
-ax.set_ylim(alim)
-ax.set_aspect('equal')
-plt.tight_layout()
+analysisWindow = (t>0.04) & (t<0.065)
+for mo in (0,2,3,4,6):
+    stim = 'mask' if mo>0 else 'targetOnly'
+    r = []
+    for resp in ('correct','incorrect'):
+        p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
+        b = p-p[:,t<0].mean(axis=1)[:,None]
+        r.append(b[:,analysisWindow].sum(axis=1) * binSize)
+    corr,incorr = r
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    amax = max(np.nanmax(corr),np.nanmax(incorr))
+    alim = [-0.02*amax,1.02*amax]
+    ax.plot(alim,alim,'--',color='0.8')
+    ax.plot(incorr,corr,'o',mec='k',mfc='none')
+    ind = ~np.isnan(incorr) & ~np.isnan(corr)
+    mx = incorr[ind].mean()
+    my = corr[ind].mean()
+    sx = incorr[ind].std()/(ind.sum()**0.5)
+    sy = corr[ind].std()/(ind.sum()**0.5)
+    ax.plot(mx,my,'ro')
+    ax.plot([mx-sx,mx+sx],[my,my],'r')
+    ax.plot([mx,mx],[my-sy,my+sy],'r')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    ax.set_xlim(alim)
+    ax.set_ylim(alim)
+    ax.set_aspect('equal')
+    plt.tight_layout()
 
 
 # save psth
