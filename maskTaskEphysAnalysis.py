@@ -466,7 +466,8 @@ pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # behavior analysis
-behavOutcomeLabels = ('correct','incorrect','no resp')
+rtBins = ((100,200),(200,400))
+behavOutcomeLabels = ('all','correct','incorrect','no resp') + rtBins
 behavTrialPsth = {stim: {hemi: {resp: {} for resp in behavOutcomeLabels} for hemi in hemiLabels} for stim in ('targetOnly','mask')}
 behavPsth = copy.deepcopy(behavTrialPsth)
 reacTime = copy.deepcopy(behavTrialPsth)
@@ -476,11 +477,13 @@ for i,obj in enumerate(exps):
     for stim in ('targetOnly','mask'):
         for rd,hemi in zip((1,-1),ephysHemi):
             stimTrials = (obj.trialType==stim) & (obj.rewardDir==rd)
-            for resp,respLbl in zip((1,-1,0),behavOutcomeLabels):
-                respTrials = obj.response==resp
+            for resp,respLbl in zip(('all',1,-1,0)+rtBins,behavOutcomeLabels):
+                respTrials = obj.response==resp if resp in (-1,0,1) else np.ones(len(stimTrials),dtype=bool)
                 for mo in np.unique(obj.maskOnset[stimTrials]):
                     moTrials = obj.maskOnset==mo
                     trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo) & np.isnan(obj.optoOnset)
+                    if resp in rtBins:
+                        trials = trials & (obj.reactionTime>=resp[0]) & (obj.reactionTime < resp[1])
                     if mo not in behavTrialPsth[stim][hemi][respLbl]:
                         behavTrialPsth[stim][hemi][respLbl][mo] = []
                         behavPsth[stim][hemi][respLbl][mo] = []
@@ -507,9 +510,7 @@ for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     xmax = 0
-    for resp,clr in zip(behavOutcomeLabels,('g','m','0.5')):
-        if resp=='no resp':
-            continue
+    for resp,clr in zip(('correct','incorrect'),('g','m')):
         stim = 'mask' if mo>0 else 'targetOnly'
         p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
         b = p-p[:,(t<0) & (t>-0.15)].mean(axis=1)[:,None]
@@ -525,8 +526,34 @@ for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
     ax.set_ylabel('Spikes/s',fontsize=14)
     ax.set_title(title,fontsize=14)
     ax.legend()
+    
+for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    xmax = 0
+    r = []
+    for resp in ('correct','incorrect'):
+        stim = 'mask' if mo>0 else 'targetOnly'
+        p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
+        b = p-p[:,(t<0) & (t>-0.15)].mean(axis=1)[:,None]
+        r.append(b)
+    corr,incorr = r
+    ind = ~np.any(np.isnan(corr),axis=1) & ~np.any(np.isnan(incorr),axis=1)
+    for r,resp,clr in zip((corr,incorr),('correct','incorrect'),'gm'):
+        m = r[ind].mean(axis=0)
+        s = r[ind].std(axis=0)/(ind.sum()**0.5)
+        ax.plot(t,m,color=clr,lw=2,label=resp)
+        ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+    ax.set_xlim([0,0.2])
+    ax.set_xlabel('Time (s)',fontsize=14)
+    ax.set_ylabel('Spikes/s',fontsize=14)
+    ax.set_title(title,fontsize=14)
+    ax.legend()
 
-analysisWindow = (t>0.04) & (t<0.065)
+analysisWindow = (t>0.035) & (t<0.070)
 incorrMean = []
 corrMean = []
 incorrSem = []
@@ -545,18 +572,26 @@ for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
     alim = [-0.02*amax,1.02*amax]
     ax.plot(alim,alim,'--',color='0.8')
     ax.plot(incorr,corr,'o',mec='k',mfc='none')
+    
     ind = ~np.isnan(incorr) & ~np.isnan(corr)
     mx = incorr[ind].mean()
     my = corr[ind].mean()
     sx = incorr[ind].std()/(ind.sum()**0.5)
     sy = corr[ind].std()/(ind.sum()**0.5)
-    ax.plot(mx,my,'ro')
-    ax.plot([mx-sx,mx+sx],[my,my],'r')
-    ax.plot([mx,mx],[my-sy,my+sy],'r')
+    
+    mx = np.nanmean(incorr)
+    my = np.nanmean(corr)
+    sx = np.nanstd(incorr)/(len(incorr)**0.5)
+    sy = np.nanstd(corr)/(len(corr)**0.5)
+    
     incorrMean.append(mx)
     corrMean.append(my)
     incorrSem.append(sx)
     corrSem.append(sy)
+    
+    ax.plot(mx,my,'ro')
+    ax.plot([mx-sx,mx+sx],[my,my],'r')
+    ax.plot([mx,mx],[my-sy,my+sy],'r')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -581,19 +616,19 @@ for mx,my,sx,sy,clr,lbl in zip(incorrMean,corrMean,incorrSem,corrSem,clrs,maskOn
     ax.plot(mx,my,'o',mec=clr,mfc=clr,label=lbl)
     ax.plot([mx-sx,mx+sx],[my,my],color=clr)
     ax.plot([mx,mx],[my-sy,my+sy],color=clr)
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-    ax.set_xticks(np.arange(0,1.2,0.2))
-    ax.set_yticks(np.arange(0,1.2,0.2))
-    ax.set_xlim(alim)
-    ax.set_ylim(alim)
-    ax.set_aspect('equal')
-    ax.set_xlabel('Spikes on incorrect trials',fontsize=14)
-    ax.set_ylabel('Spikes on correct trials',fontsize=14)
-    leg = ax.legend(title='mask onset',loc='lower right',fontsize=12)
-    plt.setp(leg.get_title(),fontsize=12)
-    plt.tight_layout()
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(np.arange(0,1.2,0.2))
+ax.set_yticks(np.arange(0,1.2,0.2))
+ax.set_xlim(alim)
+ax.set_ylim(alim)
+ax.set_aspect('equal')
+ax.set_xlabel('Spikes on incorrect trials',fontsize=14)
+ax.set_ylabel('Spikes on correct trials',fontsize=14)
+leg = ax.legend(title='mask onset',loc='lower right',fontsize=12)
+plt.setp(leg.get_title(),fontsize=12)
+plt.tight_layout()
     
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
@@ -610,24 +645,102 @@ for mo,clr,lbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
     ax.plot(mx,my,'o',mec=clr,mfc=clr,label=lbl)
     ax.plot([mx-sx,mx+sx],[my,my],color=clr)
     ax.plot([mx,mx],[my-sy,my+sy],color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim(alim)
+ax.set_ylim(alim)
+ax.set_aspect('equal')
+ax.set_xlabel('Reaction time on incorrect trials (ms)',fontsize=14)
+ax.set_ylabel('Reaction time on correct trials (ms)',fontsize=14)
+leg = ax.legend(title='mask onset',loc='upper left',fontsize=12)
+plt.setp(leg.get_title(),fontsize=12)
+plt.tight_layout()  
+    
+for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    xmax = 0
+    for resp,clr in zip(rtBins,plt.cm.jet(np.linspace(0,1,len(rtBins)))):
+        stim = 'mask' if mo>0 else 'targetOnly'
+        p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
+        b = p-p[:,(t<0) & (t>-0.15)].mean(axis=1)[:,None]
+        m = np.nanmean(b,axis=0)
+        s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
+        ax.plot(t,m,color=clr,lw=2,label=resp)
+        ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-#    ax.set_xticks(np.arange(0,1.2,0.2))
-#    ax.set_yticks(np.arange(0,1.2,0.2))
-    ax.set_xlim(alim)
-    ax.set_ylim(alim)
-    ax.set_aspect('equal')
-    ax.set_xlabel('Reaction time on incorrect trials (ms)',fontsize=14)
-    ax.set_ylabel('Reaction time on correct trials (ms)',fontsize=14)
-    leg = ax.legend(title='mask onset',loc='upper left',fontsize=12)
-    plt.setp(leg.get_title(),fontsize=12)
-    plt.tight_layout()   
+    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+    ax.set_xlim([0,0.2])
+    ax.set_xlabel('Time (s)',fontsize=14)
+    ax.set_ylabel('Spikes/s',fontsize=14)
+    ax.set_title(title,fontsize=14)
+    ax.legend()
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for mo,clr,lbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
+    stim = 'mask' if mo>0 else 'targetOnly'
+    mean = []
+    sem = []
+    xdata = []
+    for rt in rtBins:
+        p = np.array(behavPsth[stim]['contra'][rt][mo])[behavUnits]
+        b = p-p[:,t<0].mean(axis=1)[:,None]
+        r = b[:,analysisWindow].sum(axis=1) * binSize
+        mean.append(np.nanmean(r))
+        sem.append(np.nanstd(r)/(len(r)**0.5))
+        xdata.append(sum(rt)/2)
+    ax.plot(xdata,mean,'o-',color=clr,label=lbl)
+    for x,m,s in zip(xdata,mean,sem):
+        ax.plot([x,x],[m-s,m+s],color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlabel('Reaction time (ms)',fontsize=14)
+ax.set_ylabel('Spikes',fontsize=14)
+ax.legend()
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+alim = [0,0.8]
+ax.plot(alim,alim,'--',color='0.8')
+for mo,clr,lbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
+    stim = 'mask' if mo>0 else 'targetOnly'
+    m = []
+    s = []
+    for rt in rtBins:
+        p = np.array(behavPsth[stim]['contra'][rt][mo])[behavUnits]
+        b = p-p[:,t<0].mean(axis=1)[:,None]
+        r = b[:,analysisWindow].sum(axis=1) * binSize
+        m.append(np.nanmean(r))
+        s.append(np.nanstd(r)/(len(r)**0.5))
+    my,mx = m
+    sy,sx = s
+    ax.plot(mx,my,'o',mec=clr,mfc=clr,label=lbl)
+    ax.plot([mx-sx,mx+sx],[my,my],color=clr)
+    ax.plot([mx,mx],[my-sy,my+sy],color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(np.arange(0,1.2,0.2))
+ax.set_yticks(np.arange(0,1.2,0.2))
+ax.set_xlim(alim)
+ax.set_ylim(alim)
+ax.set_aspect('equal')
+ax.set_xlabel('Spikes on slow reaction trials',fontsize=14)
+ax.set_ylabel('Spikes on fast reaction trials',fontsize=14)
+leg = ax.legend(title='mask onset',loc='lower right',fontsize=12)
+plt.setp(leg.get_title(),fontsize=12)
+plt.tight_layout()
 
 
 
 # decoding
-def getDecoderResult(var,varLabels,units,psth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset):
+def getDecoderResult(var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset):
     # X = features, y = decoding label, m = mask onset label
     X = {trialSet: [] for trialSet in ('train','test')}
     y = [] 
@@ -638,7 +751,7 @@ def getDecoderResult(var,varLabels,units,psth,trainInd,testInd,numTrials,randomi
             for vind,vlbl in enumerate(varLabels):
                 for mo in maskOnset:
                     stim = 'targetOnly' if mo==0 else 'mask'
-                    p = psth[stim][vlbl]['all'] if var=='side' else psth[stim]['contra'][vlbl]
+                    p = dPsth[stim][vlbl]['all'] if var=='side' else dPsth[stim]['contra'][vlbl]
                     ind = trialInd[vlbl][mo][u]
                     trials =  np.random.choice(ind,numTrials,replace=True) if randomizeTrials else ind[:numTrials]
                     for trial in trials:
@@ -702,7 +815,7 @@ dataType = ('psth','bin','count')
 trainScore = {var: {src: np.full((trainTestIters,len(unitSampleSize[src]),len(dataType),len(decoderOffset),len(maskOnset)),np.nan) for src in unitSource} for var in decodingVariable}
 testScore = copy.deepcopy(trainScore)
 decoderCoef = {var: {src: np.full((trainTestIters,len(unitSampleSize[src]),analysisWindow.sum()),np.nan) for src in unitSource} for var in decodingVariable}
-for var,usource,psth,maskOnset in zip(decodingVariable,(unitSource,('pooled',)),(trialPsth,behavTrialPsth),([0,2,3,4,6],[2])):
+for var,usource,dPsth,maskOnset in zip(decodingVariable,(unitSource,('pooled',)),(trialPsth,behavTrialPsth),([0,2,3,4,6],[2])):
     if var=='side':
         continue
     for iterInd in range(trainTestIters):
@@ -715,7 +828,7 @@ for var,usource,psth,maskOnset in zip(decodingVariable,(unitSource,('pooled',)),
                 stim = 'targetOnly' if mo==0 else 'mask'
                 for session in range(len(exps)):
                     units = unitInd[unitSessionInd==session]
-                    p = psth[stim][vlbl]['all'] if var=='side' else psth[stim]['contra'][vlbl]
+                    p = dPsth[stim][vlbl]['all'] if var=='side' else dPsth[stim]['contra'][vlbl]
                     n = len(p[mo][units[0]])
                     trials = np.arange(n)
                     train = np.random.choice(trials,n//2,replace=False)
@@ -753,7 +866,7 @@ for var,usource,psth,maskOnset in zip(decodingVariable,(unitSource,('pooled',)),
                 coefSamples = []
                 for units in unitSamples:
                     offsets = [None] if src=='pooled' and sampleSize<max(unitSampleSize[src]) else decoderOffset
-                    train,test,coef = getDecoderResult(var,varLabels,units,psth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset)
+                    train,test,coef = getDecoderResult(var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset)
                     trainSamples.append(train)
                     testSamples.append(test)
                     coefSamples.append(coef)
