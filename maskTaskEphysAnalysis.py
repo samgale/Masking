@@ -505,104 +505,30 @@ behavUnits = respUnits & ~isOptoExpUnit
 
 maskOnset = (2,3,4,6,0)
 
- 
-for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    xmax = 0
-    for resp,clr in zip(('correct','incorrect'),('g','m')):
-        stim = 'mask' if mo>0 else 'targetOnly'
-        p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
-        b = p-p[:,(t<0) & (t>-0.15)].mean(axis=1)[:,None]
-        m = np.nanmean(b,axis=0)
-        s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
-        ax.plot(t,m,color=clr,lw=2,label=resp)
-        ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
-    ax.set_xlim([0,0.2])
-    ax.set_xlabel('Time (s)',fontsize=14)
-    ax.set_ylabel('Spikes/s',fontsize=14)
-    ax.set_title(title,fontsize=14)
-    ax.legend()
-    
-for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    xmax = 0
-    r = []
-    for resp in ('correct','incorrect'):
-        stim = 'mask' if mo>0 else 'targetOnly'
-        p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
-        b = p-p[:,(t<0) & (t>-0.15)].mean(axis=1)[:,None]
-        r.append(b)
-    corr,incorr = r
-    ind = ~np.any(np.isnan(corr),axis=1) & ~np.any(np.isnan(incorr),axis=1)
-    for r,resp,clr in zip((corr,incorr),('correct','incorrect'),'gm'):
-        m = r[ind].mean(axis=0)
-        s = r[ind].std(axis=0)/(ind.sum()**0.5)
-        ax.plot(t,m,color=clr,lw=2,label=resp)
-        ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=12)
-    ax.set_xlim([0,0.2])
-    ax.set_xlabel('Time (s)',fontsize=14)
-    ax.set_ylabel('Spikes/s',fontsize=14)
-    ax.set_title(title,fontsize=14)
-    ax.legend()
+for hemi in hemiLabels: 
+    for mo,moLbl in zip(maskOnset,maskOnsetLabels[1:-1]):
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        xmax = 0
+        for resp,clr in zip(('correct','incorrect'),('g','m')):
+            stim = 'mask' if mo>0 else 'targetOnly'
+            p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
+            b = p-p[:,t<0].mean(axis=1)[:,None]
+            m = np.nanmean(b,axis=0)
+            s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
+            ax.plot(t,m,color=clr,lw=2,label=resp)
+            ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+        ax.set_xlim([0,0.2])
+        ax.set_xlabel('Time (s)',fontsize=14)
+        ax.set_ylabel('Spikes/s',fontsize=14)
+        ax.set_title(hemi+' '+moLbl,fontsize=14)
+        ax.legend()
 
-analysisWindow = (t>0.035) & (t<0.070)
-incorrMean = []
-corrMean = []
-incorrSem = []
-corrSem = []
-for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
-    stim = 'mask' if mo>0 else 'targetOnly'
-    r = []
-    for resp in ('correct','incorrect'):
-        p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
-        b = p-p[:,t<0].mean(axis=1)[:,None]
-        r.append(b[:,analysisWindow].sum(axis=1) * binSize)
-    corr,incorr = r
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    amax = max(np.nanmax(corr),np.nanmax(incorr))
-    alim = [-0.02*amax,1.02*amax]
-    ax.plot(alim,alim,'--',color='0.8')
-    ax.plot(incorr,corr,'o',mec='k',mfc='none')
-    
-    ind = ~np.isnan(incorr) & ~np.isnan(corr)
-    mx = incorr[ind].mean()
-    my = corr[ind].mean()
-    sx = incorr[ind].std()/(ind.sum()**0.5)
-    sy = corr[ind].std()/(ind.sum()**0.5)
-    
-    mx = np.nanmean(incorr)
-    my = np.nanmean(corr)
-    sx = np.nanstd(incorr)/(len(incorr)**0.5)
-    sy = np.nanstd(corr)/(len(corr)**0.5)
-    
-    incorrMean.append(mx)
-    corrMean.append(my)
-    incorrSem.append(sx)
-    corrSem.append(sy)
-    
-    ax.plot(mx,my,'ro')
-    ax.plot([mx-sx,mx+sx],[my,my],'r')
-    ax.plot([mx,mx],[my-sy,my+sy],'r')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-    ax.set_xlim(alim)
-    ax.set_ylim(alim)
-    ax.set_aspect('equal')
-    ax.set_xlabel('Spikes on incorrect trials',fontsize=14)
-    ax.set_ylabel('Spikes on correct trials',fontsize=14)
-    ax.set_title(title,fontsize=14)
-    plt.tight_layout()
 
+analysisWindow = (t>0.035) & (t<0.075)
 maskOnsetTicks = np.concatenate(((0,2,3,4,6),(8,10)))/frameRate*1000
 maskOnsetLabels = ['mask only']+[str(int(round(onset)))+' ms' for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
 clrs = np.zeros((len(maskOnset),3))
@@ -610,12 +536,25 @@ clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-alim = [0,0.8]
-ax.plot(alim,alim,'--',color='0.8')    
-for mx,my,sx,sy,clr,lbl in zip(incorrMean,corrMean,incorrSem,corrSem,clrs,maskOnsetLabels[1:-1]):
-    ax.plot(mx,my,'o',mec=clr,mfc=clr,label=lbl)
-    ax.plot([mx-sx,mx+sx],[my,my],color=clr)
-    ax.plot([mx,mx],[my-sy,my+sy],color=clr)
+alim = [-0.1,0.8]
+ax.plot(alim,alim,'--',color='0.8')
+for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
+    stim = 'mask' if mo>0 else 'targetOnly'
+    for hemi,mfc in zip(hemiLabels,(clr,'none')):
+        m = []
+        s = []
+        for resp in ('correct','incorrect'):
+            p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
+            b = p-p[:,t<0].mean(axis=1)[:,None]
+            r = b[:,analysisWindow].sum(axis=1) * binSize
+            m.append(np.nanmean(r))
+            s.append(np.nanstd(r)/len(r)**0.5)
+        my,mx = m
+        sy,sx = s
+        lbl = hemi+' '+moLbl if stim=='targetOnly' else moLbl+' ('+hemi+' target)'
+        ax.plot(mx,my,'o',mec=clr,mfc=mfc,label=lbl)
+        ax.plot([mx-sx,mx+sx],[my,my],color=clr)
+        ax.plot([mx,mx],[my-sy,my+sy],color=clr)    
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -626,22 +565,25 @@ ax.set_ylim(alim)
 ax.set_aspect('equal')
 ax.set_xlabel('Spikes on incorrect trials',fontsize=14)
 ax.set_ylabel('Spikes on correct trials',fontsize=14)
-leg = ax.legend(title='mask onset',loc='lower right',fontsize=12)
-plt.setp(leg.get_title(),fontsize=12)
+leg = ax.legend(title='mask onset',bbox_to_anchor=(0.8,0.8),fontsize=10)
+plt.setp(leg.get_title(),fontsize=10)
 plt.tight_layout()
-    
+
+  
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 alim = [150,400]
 ax.plot(alim,alim,'--',color='0.8')    
 for mo,clr,lbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
     stim = 'mask' if mo>0 else 'targetOnly'
-    rtCorr = [np.nanmedian(rt) for rt in np.concatenate([reacTime[stim][hemi]['correct'][mo] for hemi in hemiLabels])]
-    rtIncorr = [np.nanmedian(rt) for rt in np.concatenate([reacTime[stim][hemi]['incorrect'][mo] for hemi in hemiLabels])]
-    mx = np.nanmean(rtIncorr)
-    sx = np.nanstd(rtIncorr)/(len(rtIncorr)**0.5)
-    my = np.nanmean(rtCorr)
-    sy = np.nanstd(rtCorr)/(len(rtCorr)**0.5)
+    m = []
+    s = []
+    for resp in ('correct','incorrect'):
+        rt = [np.nanmedian(rt) for rt in np.concatenate([reacTime[stim][hemi][resp][mo] for hemi in hemiLabels])]
+        m.append(np.nanmean(rt))
+        s.append(np.nanstd(rt)/(len(rt)**0.5))
+    my,mx = m
+    sy,sx = s
     ax.plot(mx,my,'o',mec=clr,mfc=clr,label=lbl)
     ax.plot([mx-sx,mx+sx],[my,my],color=clr)
     ax.plot([mx,mx],[my-sy,my+sy],color=clr)
@@ -656,6 +598,7 @@ ax.set_ylabel('Reaction time on correct trials (ms)',fontsize=14)
 leg = ax.legend(title='mask onset',loc='upper left',fontsize=12)
 plt.setp(leg.get_title(),fontsize=12)
 plt.tight_layout()  
+
     
 for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
     fig = plt.figure()
@@ -704,25 +647,28 @@ ax.set_ylabel('Spikes',fontsize=14)
 ax.legend()
 plt.tight_layout()
 
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-alim = [0,0.8]
+alim = [-0.1,0.8]
 ax.plot(alim,alim,'--',color='0.8')
-for mo,clr,lbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
+for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
     stim = 'mask' if mo>0 else 'targetOnly'
-    m = []
-    s = []
-    for rt in rtBins:
-        p = np.array(behavPsth[stim]['contra'][rt][mo])[behavUnits]
-        b = p-p[:,t<0].mean(axis=1)[:,None]
-        r = b[:,analysisWindow].sum(axis=1) * binSize
-        m.append(np.nanmean(r))
-        s.append(np.nanstd(r)/(len(r)**0.5))
-    my,mx = m
-    sy,sx = s
-    ax.plot(mx,my,'o',mec=clr,mfc=clr,label=lbl)
-    ax.plot([mx-sx,mx+sx],[my,my],color=clr)
-    ax.plot([mx,mx],[my-sy,my+sy],color=clr)
+    for hemi,mfc in zip(hemiLabels,(clr,'none')):
+        m = []
+        s = []
+        for rt in rtBins:
+            p = np.array(behavPsth[stim][hemi][rt][mo])[behavUnits]
+            b = p-p[:,t<0].mean(axis=1)[:,None]
+            r = b[:,analysisWindow].sum(axis=1) * binSize
+            m.append(np.nanmean(r))
+            s.append(np.nanstd(r)/(len(r)**0.5))
+        my,mx = m
+        sy,sx = s
+        lbl = hemi+' '+moLbl if stim=='targetOnly' else moLbl+' ('+hemi+' target)'
+        ax.plot(mx,my,'o',mec=clr,mfc=mfc,label=lbl)
+        ax.plot([mx-sx,mx+sx],[my,my],color=clr)
+        ax.plot([mx,mx],[my-sy,my+sy],color=clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -731,10 +677,10 @@ ax.set_yticks(np.arange(0,1.2,0.2))
 ax.set_xlim(alim)
 ax.set_ylim(alim)
 ax.set_aspect('equal')
-ax.set_xlabel('Spikes on slow reaction trials',fontsize=14)
-ax.set_ylabel('Spikes on fast reaction trials',fontsize=14)
-leg = ax.legend(title='mask onset',loc='lower right',fontsize=12)
-plt.setp(leg.get_title(),fontsize=12)
+ax.set_xlabel('Spikes on slow-reaction trials',fontsize=14)
+ax.set_ylabel('Spikes on fast-reaction trials',fontsize=14)
+leg = ax.legend(title='mask onset',bbox_to_anchor=(0.8,0.8),fontsize=10)
+plt.setp(leg.get_title(),fontsize=10)
 plt.tight_layout()
 
 
