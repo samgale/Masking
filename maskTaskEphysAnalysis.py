@@ -17,6 +17,7 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 from sklearn.svm import LinearSVC
+from sklearn.ensemble import RandomForestClassifier
 import fileIO
 from maskTaskAnalysisUtils import MaskTaskData,getPsth,loadDatData
 
@@ -505,6 +506,8 @@ behavUnits = respUnits & ~isOptoExpUnit
 
 maskOnset = (2,3,4,6,0)
 
+baselineWindow = (t<0) & (t>-0.2)
+
 for hemi in hemiLabels: 
     for mo,moLbl in zip(maskOnset,maskOnsetLabels[1:-1]):
         fig = plt.figure()
@@ -513,7 +516,7 @@ for hemi in hemiLabels:
         for resp,clr in zip(('correct','incorrect'),('g','m')):
             stim = 'mask' if mo>0 else 'targetOnly'
             p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
-            b = p-p[:,t<0].mean(axis=1)[:,None]
+            b = p-p[:,baselineWindow].mean(axis=1)[:,None]
             m = np.nanmean(b,axis=0)
             s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
             ax.plot(t,m,color=clr,lw=2,label=resp)
@@ -545,7 +548,7 @@ for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
         s = []
         for resp in ('correct','incorrect'):
             p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
-            b = p-p[:,t<0].mean(axis=1)[:,None]
+            b = p-p[:,baselineWindow].mean(axis=1)[:,None]
             r = b[:,analysisWindow].sum(axis=1) * binSize
             m.append(np.nanmean(r))
             s.append(np.nanstd(r)/len(r)**0.5)
@@ -607,7 +610,7 @@ for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
     for resp,clr in zip(rtBins,plt.cm.jet(np.linspace(0,1,len(rtBins)))):
         stim = 'mask' if mo>0 else 'targetOnly'
         p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
-        b = p-p[:,(t<0) & (t>-0.15)].mean(axis=1)[:,None]
+        b = p-p[:,baselineWindow].mean(axis=1)[:,None]
         m = np.nanmean(b,axis=0)
         s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
         ax.plot(t,m,color=clr,lw=2,label=resp)
@@ -631,7 +634,7 @@ for mo,clr,lbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
     xdata = []
     for rt in rtBins:
         p = np.array(behavPsth[stim]['contra'][rt][mo])[behavUnits]
-        b = p-p[:,t<0].mean(axis=1)[:,None]
+        b = p-p[:,baselineWindow].mean(axis=1)[:,None]
         r = b[:,analysisWindow].sum(axis=1) * binSize
         mean.append(np.nanmean(r))
         sem.append(np.nanstd(r)/(len(r)**0.5))
@@ -647,10 +650,9 @@ ax.set_ylabel('Spikes',fontsize=14)
 ax.legend()
 plt.tight_layout()
 
-
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-alim = [-0.1,0.8]
+alim = [-0.1,1.2]
 ax.plot(alim,alim,'--',color='0.8')
 for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
     stim = 'mask' if mo>0 else 'targetOnly'
@@ -672,8 +674,8 @@ for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xticks(np.arange(0,1.2,0.2))
-ax.set_yticks(np.arange(0,1.2,0.2))
+ax.set_xticks(np.arange(0,1.5,0.2))
+ax.set_yticks(np.arange(0,1.5,0.2))
 ax.set_xlim(alim)
 ax.set_ylim(alim)
 ax.set_aspect('equal')
@@ -686,7 +688,7 @@ plt.tight_layout()
 
 
 # decoding
-def getDecoderResult(var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset):
+def getDecoderResult(decoderMethod,var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset):
     # X = features, y = decoding label, m = mask onset label
     X = {trialSet: [] for trialSet in ('train','test')}
     y = [] 
@@ -709,7 +711,12 @@ def getDecoderResult(var,varLabels,units,dPsth,trainInd,testInd,numTrials,random
     y = np.array(y)
     m = np.array(m)
     
-    decoder = LinearSVC(C=1.0,max_iter=1e4)
+    if decoderMethod=='RF':
+        decoder = RandomForestClassifier(n_estimators=100)
+        featureMethod = 'feature_importances_'
+    else:
+        decoder = LinearSVC(C=1.0,max_iter=1e4)
+        featureMethod = 'coef_'
     trainScore = np.full((3,len(offsets),len(maskOnset)),np.nan)
     testScore = trainScore.copy()
     for i,lbl in enumerate(dataType):
@@ -735,15 +742,18 @@ def getDecoderResult(var,varLabels,units,dPsth,trainInd,testInd,numTrials,random
                 trainScore[i][j][k] = decoder.score(Xtrain[ind],y[ind])
                 testScore[i][j][k] = decoder.score(Xtest[ind],y[ind])
             if lbl=='psth' and offset==offsets[-1]:
-                coef = np.mean(np.reshape(np.absolute(decoder.coef_),(len(units),-1)),axis=0)
+                features = np.mean(np.reshape(np.absolute(getattr(decoder,featureMethod)),(len(units),-1)),axis=0)
     
-    return trainScore,testScore,coef
+    return trainScore,testScore,features
 
 
 maskOnset = [0,2,3,4,6]
 analysisWindow = (t>0) & (t<0.2)
 unitInd = np.where(respUnits & ~fs)[0]
+
+analysisWindow = (t>0.035) & (t<0.075)
 unitInd = np.where(respUnits)[0]
+
 nUnits = len(unitInd)
 
 unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[unitInd]
@@ -755,22 +765,23 @@ decoderOffset = np.arange(analysisWindow.sum())
 trainTestIters = 100
 trialsPerIter = 100
 
+decoderMethod = 'SVM' # 'SVM' or 'RF'
 decodingVariable = ('side','choice')
 unitSource = list(unitSampleSize.keys())
 dataType = ('psth','bin','count')
 trainScore = {var: {src: np.full((trainTestIters,len(unitSampleSize[src]),len(dataType),len(decoderOffset),len(maskOnset)),np.nan) for src in unitSource} for var in decodingVariable}
 testScore = copy.deepcopy(trainScore)
-decoderCoef = {var: {src: np.full((trainTestIters,len(unitSampleSize[src]),analysisWindow.sum()),np.nan) for src in unitSource} for var in decodingVariable}
-for var,usource,dPsth,maskOnset in zip(decodingVariable,(unitSource,('pooled',)),(trialPsth,behavTrialPsth),([0,2,3,4,6],[2])):
+decoderFeatures = {var: {src: np.full((trainTestIters,len(unitSampleSize[src]),analysisWindow.sum()),np.nan) for src in unitSource} for var in decodingVariable}
+for var,usource,dPsth,mskOn in zip(decodingVariable,(unitSource,('pooled',)),(trialPsth,behavTrialPsth),([0,2,3,4,6],[2])):
     if var=='side':
         continue
     for iterInd in range(trainTestIters):
         # assign trials to training and testing sets
         varLabels = hemiLabels if var=='side' else ('correct','incorrect')
-        trainInd = {vlbl: {mo: [] for mo in maskOnset} for vlbl in varLabels}
+        trainInd = {vlbl: {mo: [] for mo in mskOn} for vlbl in varLabels}
         testInd = copy.deepcopy(trainInd)
         for vlbl in varLabels:
-            for mo in maskOnset:
+            for mo in mskOn:
                 stim = 'targetOnly' if mo==0 else 'mask'
                 for session in range(len(exps)):
                     units = unitInd[unitSessionInd==session]
@@ -787,7 +798,7 @@ for var,usource,dPsth,maskOnset in zip(decodingVariable,(unitSource,('pooled',))
             for s,sampleSize in enumerate(unitSampleSize[src]):
                 if src=='pooled':
                     if var=='choice':
-                        unitSamples = [[u for u in range(nUnits) if all([len(ind[vlbl][mo][u])>0 for ind in (trainInd,testInd) for vlbl in varLabels for mo in maskOnset])]]
+                        unitSamples = [[u for u in range(nUnits) if all([len(ind[vlbl][mo][u])>0 for ind in (trainInd,testInd) for vlbl in varLabels for mo in mskOn])]]
                     elif sampleSize==nUnits:
                         unitSamples = [np.arange(nUnits)]
                     elif sampleSize==1:
@@ -803,7 +814,7 @@ for var,usource,dPsth,maskOnset in zip(decodingVariable,(unitSource,('pooled',))
                     numTrials = 10000
                     for trialSet,trialInd in zip(('train','test'),(trainInd,testInd)):
                         for hemi,rd in zip(hemiLabels,rewardDir):
-                            for mo in maskOnset:
+                            for mo in mskOn:
                                 numTrials = min(numTrials,len(trialInd[vlbl][mo][unitSamples[0][0]]))
                     randomizeTrials = False if src=='sessionCorr' else True
                     
@@ -812,20 +823,20 @@ for var,usource,dPsth,maskOnset in zip(decodingVariable,(unitSource,('pooled',))
                 coefSamples = []
                 for units in unitSamples:
                     offsets = [None] if src=='pooled' and sampleSize<max(unitSampleSize[src]) else decoderOffset
-                    train,test,coef = getDecoderResult(var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset)
+                    train,test,coef = getDecoderResult(decoderMethod,var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,mskOn)
                     trainSamples.append(train)
                     testSamples.append(test)
                     coefSamples.append(coef)
                 trainScore[var][src][iterInd,s] = np.mean(trainSamples,axis=0)
                 testScore[var][src][iterInd,s] = np.mean(testSamples,axis=0)
-                decoderCoef[var][src][iterInd,s] = np.mean(coefSamples,axis=0)
+                decoderFeatures[var][src][iterInd,s] = np.mean(coefSamples,axis=0)
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for score,clr,trialSet in zip((trainScore,testScore),('0.5','k'),('train','test')):
 #    for src,mrk,mfc in zip(unitSource,'soo',('none','none',clr)):
     for src,mrk,mfc in zip(unitSource[1:],'oo',('none',clr)):
-        overallScore = score[src][:,:,0,-1].mean(axis=-1)
+        overallScore = score['side'][src][:,:,0,-1].mean(axis=-1)
         mean = overallScore.mean(axis=0)
         sem = overallScore.std(axis=0)/(trainTestIters**0.5)
 #        if src=='sessionCorr':
@@ -850,7 +861,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-x,y =  [testScore[src][:,:,0,-1].mean(axis=(0,-1)) for src in ('sessionCorr','sessionRand')]
+x,y =  [testScore['side'][src][:,:,0,-1].mean(axis=(0,-1)) for src in ('sessionCorr','sessionRand')]
 ax.plot([0,1],[0,1],'--',color='0.8')
 ax.plot(x,y,'o',mec='k',mfc='none',mew=2,ms=12)
 for side in ('right','top'):
@@ -868,7 +879,7 @@ ax = fig.add_subplot(1,1,1)
 xticks = np.concatenate(([8],maskOnset[1:]))/frameRate*1000
 xticklabels = ['target only']+[str(int(round(x))) for x in xticks[1:]]
 for score,clr,lbl in zip((trainScore,testScore),('0.5','k'),('train','test')):
-    d = score['pooled'][:,-1,0,-1]
+    d = score['side']['pooled'][:,-1,0,-1]
     mean = d.mean(axis=0)
     sem = d.std(axis=0)/(trainTestIters**0.5)   
     ax.plot(xticks,mean,'o',mec=clr,mfc=clr,label=lbl)  
@@ -887,7 +898,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-d = decoderCoef['pooled'][:,-1]
+d = decoderFeatures['side']['pooled'][:,-1]
 m = d.mean(axis=0)
 s = d.std(axis=0)/(trainTestIters**0.5)
 ax.plot(t[analysisWindow]*1000,m,color='k')
@@ -908,7 +919,7 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Spike Integrati
     ax = fig.add_subplot(1,1,1)
     ax.plot([0,200],[0.5,0.5],'k--')
     for j,(mo,clr,lbl) in enumerate(zip(maskOnset,clrs,lbls)):
-        d = testScore['pooled'][:,-1,i,:,j]
+        d = testScore['side']['pooled'][:,-1,i,:,j]
         m = d.mean(axis=0)
         s = d.std(axis=0)/(trainTestIters**0.5)
         ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
@@ -944,7 +955,7 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Spike Integrati
     ax.set_xlim([0,200])
     ax.set_ylim([0.4,1])
     ax.set_xlabel(xlbl+' (ms)',fontsize=16)
-    ax.set_ylabel('Target Side Decoding Accuracy',fontsize=16)
+    ax.set_ylabel('Choice Decoding Accuracy',fontsize=16)
     ax.legend(title='mask onset',fontsize=12)
     plt.tight_layout()
 
