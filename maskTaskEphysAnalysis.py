@@ -502,7 +502,7 @@ expInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUni
 
 isOptoExpUnit = np.array([np.any(~np.isnan(obj.optoOnset)) for obj in exps for unit in obj.goodUnits])
 
-behavUnits = respUnits & ~isOptoExpUnit
+behavUnits = respUnits & ~fs & ~isOptoExpUnit
 
 maskOnset = (2,3,4,6,0)
 
@@ -539,7 +539,7 @@ clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-alim = [-0.1,0.8]
+alim = [-0.1,1.2]
 ax.plot(alim,alim,'--',color='0.8')
 for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
     stim = 'mask' if mo>0 else 'targetOnly'
@@ -561,8 +561,8 @@ for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xticks(np.arange(0,1.2,0.2))
-ax.set_yticks(np.arange(0,1.2,0.2))
+ax.set_xticks(np.arange(0,1.5,0.2))
+ax.set_yticks(np.arange(0,1.5,0.2))
 ax.set_xlim(alim)
 ax.set_ylim(alim)
 ax.set_aspect('equal')
@@ -686,6 +686,19 @@ plt.setp(leg.get_title(),fontsize=10)
 plt.tight_layout()
 
 
+resp = 'correct'
+popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
+for stim in stimLabels:
+    for hemi in hemiLabels:
+        p = psth[stim][hemi][resp]
+        for mo in p.keys():
+            popPsth[stim][hemi][mo] = np.array(p[mo])[behavUnits]
+popPsth['t'] = t
+            
+pkl = fileIO.saveFile(fileType='*.pkl')
+pickle.dump(popPsth,open(pkl,'wb'))
+
+
 
 # decoding
 def getDecoderResult(decoderMethod,var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset):
@@ -752,7 +765,7 @@ analysisWindow = (t>0) & (t<0.2)
 unitInd = np.where(respUnits & ~fs)[0]
 
 analysisWindow = (t>0.035) & (t<0.075)
-unitInd = np.where(respUnits)[0]
+unitInd = np.where(behavUnits)[0]
 
 nUnits = len(unitInd)
 
@@ -765,7 +778,7 @@ decoderOffset = np.arange(analysisWindow.sum())
 trainTestIters = 100
 trialsPerIter = 100
 
-decoderMethod = 'SVM' # 'SVM' or 'RF'
+decoderMethod = 'RF' # 'SVM' or 'RF'
 decodingVariable = ('side','choice')
 unitSource = list(unitSampleSize.keys())
 dataType = ('psth','bin','count')
