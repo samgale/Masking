@@ -192,7 +192,7 @@ for sig in signalNames:
         for mo in popPsth[sig][hemi]:
             p = popPsth[sig][hemi][mo].copy()
             p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
-            p = p.mean(axis=0)
+            p = np.nanmean(p,axis=0)
             p = np.interp(t,popPsth['t']*1000,p)
             p -= p[t<30].mean()
             p[0] = 0
@@ -229,7 +229,7 @@ i = 0
 for sig in signals:
     for mo in signals[sig]['contra']:
         ax = fig.add_subplot(n,1,i+1)
-        for hemi,clr in zip(('ipsi','contra','ipsi'),'br'):
+        for hemi,clr in zip(('ipsi','contra'),'br'):
             p = signals[sig][hemi][mo]
             ax.plot(t,p,clr)
             ymin = min(ymin,p.min())
@@ -242,7 +242,6 @@ for sig in signals:
         title = sig
         if sig=='mask':
             title += ', SOA '+str(round(mo/120*1000,1))+' ms'
-        title += ', '+hemi
         ax.set_title(title)
         axs.append(ax)
         i += 1

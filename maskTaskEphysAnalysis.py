@@ -467,6 +467,7 @@ pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # behavior analysis
+maskOnset = [0,2]
 rtBins = ((100,200),(200,400))
 behavOutcomeLabels = ('all','correct','incorrect','no resp') + rtBins
 behavTrialPsth = {stim: {hemi: {resp: {} for resp in behavOutcomeLabels} for hemi in hemiLabels} for stim in ('targetOnly','mask')}
@@ -495,7 +496,7 @@ for i,obj in enumerate(exps):
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
                         behavTrialPsth[stim][hemi][respLbl][mo].append(p)
-                        behavPsth[stim][hemi][respLbl][mo].append(p.mean(axis=0))                       
+                        behavPsth[stim][hemi][respLbl][mo].append(p.mean(axis=0))
 t -= preTime                       
                         
 expInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])
@@ -504,17 +505,17 @@ isOptoExpUnit = np.array([np.any(~np.isnan(obj.optoOnset)) for obj in exps for u
 
 behavUnits = respUnits & ~fs & ~isOptoExpUnit
 
-maskOnset = (2,3,4,6,0)
 
 baselineWindow = (t<0) & (t>-0.2)
 
-for hemi in hemiLabels: 
-    for mo,moLbl in zip(maskOnset,maskOnsetLabels[1:-1]):
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1)
+  
+for mo,moLbl in zip(maskOnset,('target only','17 ms')):#maskOnsetLabels[1:-1]):
+    fig = plt.figure()
+    stim = 'mask' if mo>0 else 'targetOnly'
+    for i,hemi in enumerate(hemiLabels):
+        ax = fig.add_subplot(2,1,i+1)
         xmax = 0
         for resp,clr in zip(('correct','incorrect'),('g','m')):
-            stim = 'mask' if mo>0 else 'targetOnly'
             p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
             b = p-p[:,baselineWindow].mean(axis=1)[:,None]
             m = np.nanmean(b,axis=0)
@@ -529,6 +530,7 @@ for hemi in hemiLabels:
         ax.set_ylabel('Spikes/s',fontsize=14)
         ax.set_title(hemi+' '+moLbl,fontsize=14)
         ax.legend()
+    plt.tight_layout()
 
 
 analysisWindow = (t>0.035) & (t<0.075)
@@ -541,7 +543,7 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 alim = [-0.1,1.2]
 ax.plot(alim,alim,'--',color='0.8')
-for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
+for mo,clr,moLbl in zip(maskOnset,'km',('target only','17 ms')):#clrs,maskOnsetLabels[1:-1]):
     stim = 'mask' if mo>0 else 'targetOnly'
     for hemi,mfc in zip(hemiLabels,(clr,'none')):
         m = []
@@ -690,7 +692,7 @@ resp = 'correct'
 popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
 for stim in stimLabels:
     for hemi in hemiLabels:
-        p = psth[stim][hemi][resp]
+        p = behavPsth[stim][hemi][resp] if stim in behavPsth else psth[stim][hemi]['all']
         for mo in p.keys():
             popPsth[stim][hemi][mo] = np.array(p[mo])[behavUnits]
 popPsth['t'] = t
