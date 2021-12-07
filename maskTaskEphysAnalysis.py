@@ -506,7 +506,7 @@ isOptoExpUnit = np.array([np.any(~np.isnan(obj.optoOnset)) for obj in exps for u
 behavUnits = respUnits & ~fs & ~isOptoExpUnit
 
 
-baselineWindow = (t<0) & (t>-0.2)
+baselineWindow = (t<0.033) & (t>-0.2)
 
   
 for mo,moLbl in zip(maskOnset,('target only','17 ms')):#maskOnsetLabels[1:-1]):
@@ -533,7 +533,7 @@ for mo,moLbl in zip(maskOnset,('target only','17 ms')):#maskOnsetLabels[1:-1]):
     plt.tight_layout()
 
 
-analysisWindow = (t>0.035) & (t<0.075)
+analysisWindow = (t>0.033) & (t<0.075)
 maskOnsetTicks = np.concatenate(((0,2,3,4,6),(8,10)))/frameRate*1000
 maskOnsetLabels = ['mask only']+[str(int(round(onset)))+' ms' for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
 clrs = np.zeros((len(maskOnset),3))
@@ -553,7 +553,7 @@ for mo,clr,moLbl in zip(maskOnset,'km',('target only','17 ms')):#clrs,maskOnsetL
             b = p-p[:,baselineWindow].mean(axis=1)[:,None]
             r = b[:,analysisWindow].sum(axis=1) * binSize
             m.append(np.nanmean(r))
-            s.append(np.nanstd(r)/len(r)**0.5)
+            s.append(np.nanstd(r)/(len(r)**0.5))
         my,mx = m
         sy,sx = s
         lbl = hemi+' '+moLbl if stim=='targetOnly' else moLbl+' ('+hemi+' target)'
@@ -572,6 +572,35 @@ ax.set_xlabel('Spikes on incorrect trials',fontsize=14)
 ax.set_ylabel('Spikes on correct trials',fontsize=14)
 leg = ax.legend(title='mask onset',bbox_to_anchor=(0.8,0.8),fontsize=10)
 plt.setp(leg.get_title(),fontsize=10)
+plt.tight_layout()
+
+
+analysisWindow = (t>0.033) & (t<0.2)
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([0,200],[0,0],'--',color='0.8')
+for mo,clr,moLbl in zip(maskOnset,'km',('target only','17 ms')):#clrs,maskOnsetLabels[1:-1]):
+    stim = 'mask' if mo>0 else 'targetOnly'
+    for hemi,mfc in zip(hemiLabels,(clr,'none')):
+        r = []
+        for resp in ('correct','incorrect'):
+            p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
+            b = p-p[:,baselineWindow].mean(axis=1)[:,None]
+            r.append(np.cumsum(b[:,analysisWindow],axis=1)*binSize)
+        d = np.array(r[0])-np.array(r[1])
+        m = np.nanmean(d,axis=0)
+        s = np.nanstd(d)/(len(d)**0.5)
+        lbl = hemi+' '+moLbl if stim=='targetOnly' else moLbl+' ('+hemi+' target)'
+        ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
+        ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xlim([33,200])
+ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=16)
+#leg = ax.legend(title='mask onset',bbox_to_anchor=(0.8,0.8),fontsize=10)
+#plt.setp(leg.get_title(),fontsize=10)
 plt.tight_layout()
 
   
