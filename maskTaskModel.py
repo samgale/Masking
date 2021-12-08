@@ -680,18 +680,55 @@ result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,
 
 
 # behav
+signalsCorr = createInputSignals(fileIO.getFile('Load popPsth correct',fileType='*.pkl'))[0]
+signalsIncorr = createInputSignals(fileIO.getFile('Load popPsth incorrect',fileType='*.pkl'))[0]
+
 maskOnset = [2,np.nan]
 optoOnset = [np.nan]
 optoSide = [0]
 
-psthFiles = fileIO.getFiles('Load popPsth files',fileType='*.pkl')
 respRate = []
 fracCorr = []
-for f in psthFiles:
-    signals = createInputSignals(f)[0]
-    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000)
+rtAll = []
+rtCorr = []
+rtIncorr = []
+for sig in (signals,signalsCorr,signalsIncorr):
+    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(sig,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000)
     result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
     respRate.append(result['responseRate'])
     fracCorr.append(result['fractionCorrect'])
+    for i,(rt,respTime) in enumerate(zip((rtAll,rtCorr,rtIncorr),('responseTime','responseTimeCorrect','responseTimeIncorrect'))):
+        rt.append([])
+        for side in targetSide:
+            maskOn = [np.nan] if side==0 else maskOnset
+            for mo in maskOn:
+                if side==0 or mo==0:
+                    if respTime=='responseTime':
+                        rt[-1].append(dt*np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
+                    else:
+                        rt[-1].append(np.nan)
+                else:
+                    rt[-1].append(dt*np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
+
+for data,ylim,ylabel in  zip((respRate,fracCorr),((0,1.02),(0.4,1)),('Response Rate','Fraction Correct')):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    if data is fracCorr:
+        ax.plot([-1,2],[0.5,0.5],'k--')
+    for d,clr,lbl in zip(data,'kgm',('all','correct','incorrect')):
+        ax.plot([0,1],d[:2],'o',mec=clr,mfc='none',ms=12,mew=2,label=lbl)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',right=False,labelsize=14)
+    ax.set_xticks([0,1])
+    ax.set_xticklabels(['mask onset\n17 ms','target only'])
+    ax.set_xlim([-0.3,1.3])
+    ax.set_ylim(ylim)
+    ax.set_ylabel('Model '+ylabel,fontsize=16)
+    leg = ax.legend(title='mouse trials',fontsize=12)
+    plt.setp(leg.get_title(),fontsize=12)
+    plt.tight_layout()
+
+
 
 
