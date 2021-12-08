@@ -384,8 +384,8 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
 maskOnset = np.unique(exps[0].maskOnset[~np.isnan(exps[0].maskOnset)])
 maskOnsetTicks = np.concatenate((maskOnset,(8,10)))/frameRate*1000
 maskOnsetLabels = ['mask only']+[str(int(round(onset)))+' ms' for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
-clrs = np.zeros((len(maskOnset),3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
+maskOnsetClrs = np.zeros((5,3))
+maskOnsetClrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,5-1))[::-1,:3]
 
 units = respUnits & ~fs
 analysisWindow = (t>0.033) & (t<0.2)
@@ -414,7 +414,7 @@ print(np.median(d),np.min(d),np.max(d))
 for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    for d,clr,lbl in zip(resp[1:-1],clrs,maskOnsetLabels[1:-1]):
+    for d,clr,lbl in zip(resp[1:-1],maskOnsetClrs,maskOnsetLabels[1:-1]):
         m = d.mean(axis=0)
         s = d.std(axis=0)/(len(d)**0.5)
         ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
@@ -435,7 +435,7 @@ for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for contra,ipsi,clr,lbl in zip(cumContra[1:-1],cumIpsi[1:-1],clrs,maskOnsetLabels[1:-1]):
+for contra,ipsi,clr,lbl in zip(cumContra[1:-1],cumIpsi[1:-1],maskOnsetClrs,maskOnsetLabels[1:-1]):
     d = contra-ipsi
     m = d.mean(axis=0)
     s = d.std(axis=0)/(len(d)**0.5)
@@ -503,12 +503,13 @@ expInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUni
 
 isOptoExpUnit = np.array([np.any(~np.isnan(obj.optoOnset)) for obj in exps for unit in obj.goodUnits])
 
-behavUnits = respUnits & ~fs & ~isOptoExpUnit
+behavUnits = respUnits & ~fs
 
+baselineWindow = (t>-0.2) & (t<0.033)
 
-baselineWindow = (t<0.033) & (t>-0.2)
+analysisWindow = (t>0.033) & (t<0.2)
 
-  
+# correct vs incorrect  
 for mo,moLbl in zip(maskOnset,('target only','17 ms')):#maskOnsetLabels[1:-1]):
     fig = plt.figure()
     stim = 'mask' if mo>0 else 'targetOnly'
@@ -533,55 +534,12 @@ for mo,moLbl in zip(maskOnset,('target only','17 ms')):#maskOnsetLabels[1:-1]):
     plt.tight_layout()
 
 
-analysisWindow = (t>0.033) & (t<0.075)
-maskOnsetTicks = np.concatenate(((0,2,3,4,6),(8,10)))/frameRate*1000
-maskOnsetLabels = ['mask only']+[str(int(round(onset)))+' ms' for onset in maskOnsetTicks[1:-2]] + ['target only','no stim']
-clrs = np.zeros((len(maskOnset),3))
-clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
-
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-alim = [-0.1,1.2]
-ax.plot(alim,alim,'--',color='0.8')
-for mo,clr,moLbl in zip(maskOnset,'km',('target only','17 ms')):#clrs,maskOnsetLabels[1:-1]):
+ax.plot([0,200],[0,0],':',color='k')
+for mo,moLbl in zip(maskOnset,('target only','target, mask onset 17 ms')):
     stim = 'mask' if mo>0 else 'targetOnly'
-    for hemi,mfc in zip(hemiLabels,(clr,'none')):
-        m = []
-        s = []
-        for resp in ('correct','incorrect'):
-            p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
-            b = p-p[:,baselineWindow].mean(axis=1)[:,None]
-            r = b[:,analysisWindow].sum(axis=1) * binSize
-            m.append(np.nanmean(r))
-            s.append(np.nanstd(r)/(len(r)**0.5))
-        my,mx = m
-        sy,sx = s
-        lbl = hemi+' '+moLbl if stim=='targetOnly' else moLbl+' ('+hemi+' target)'
-        ax.plot(mx,my,'o',mec=clr,mfc=mfc,label=lbl)
-        ax.plot([mx-sx,mx+sx],[my,my],color=clr)
-        ax.plot([mx,mx],[my-sy,my+sy],color=clr)    
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xticks(np.arange(0,1.5,0.2))
-ax.set_yticks(np.arange(0,1.5,0.2))
-ax.set_xlim(alim)
-ax.set_ylim(alim)
-ax.set_aspect('equal')
-ax.set_xlabel('Spikes on incorrect trials',fontsize=14)
-ax.set_ylabel('Spikes on correct trials',fontsize=14)
-leg = ax.legend(title='mask onset',bbox_to_anchor=(0.8,0.8),fontsize=10)
-plt.setp(leg.get_title(),fontsize=10)
-plt.tight_layout()
-
-
-analysisWindow = (t>0.033) & (t<0.2)
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-ax.plot([0,200],[0,0],'--',color='0.8')
-for mo,clr,moLbl in zip(maskOnset,'km',('target only','17 ms')):#clrs,maskOnsetLabels[1:-1]):
-    stim = 'mask' if mo>0 else 'targetOnly'
-    for hemi,mfc in zip(hemiLabels,(clr,'none')):
+    for hemi,ls in zip(hemiLabels,('-','--')):
         r = []
         for resp in ('correct','incorrect'):
             p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
@@ -590,61 +548,70 @@ for mo,clr,moLbl in zip(maskOnset,'km',('target only','17 ms')):#clrs,maskOnsetL
         d = np.array(r[0])-np.array(r[1])
         m = np.nanmean(d,axis=0)
         s = np.nanstd(d)/(len(d)**0.5)
-        lbl = hemi+' '+moLbl if stim=='targetOnly' else moLbl+' ('+hemi+' target)'
-        ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
+        if mo==0:
+            clr = 'k' if hemi=='contra' else '0.5'
+        else:
+            clr = 'r' if hemi=='contra' else [1,0.5,0.5]
+        lbl = hemi+' '+moLbl
+        ax.plot(t[analysisWindow]*1000,m,color=clr,ls=ls,label=lbl)
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim([33,200])
+ax.set_ylim([-0.7,1])
+ax.set_yticks([-0.5,0,0.5,1])
 ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
-ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=16)
-#leg = ax.legend(title='mask onset',bbox_to_anchor=(0.8,0.8),fontsize=10)
-#plt.setp(leg.get_title(),fontsize=10)
+ax.set_ylabel('Difference in Cumulative Spikes\n(Correct - Incorrect Trials)',fontsize=16)
+leg = ax.legend(loc='upper left',fontsize=10)
 plt.tight_layout()
 
-  
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-alim = [150,400]
-ax.plot(alim,alim,'--',color='0.8')    
-for mo,clr,lbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
+ax.plot([0,200],[0,0],':',color='k')
+for mo,moLbl in zip(maskOnset,('target only','mask onset 17 ms')):
     stim = 'mask' if mo>0 else 'targetOnly'
-    m = []
-    s = []
-    for resp in ('correct','incorrect'):
-        rt = [np.nanmedian(rt) for rt in np.concatenate([reacTime[stim][hemi][resp][mo] for hemi in hemiLabels])]
-        m.append(np.nanmean(rt))
-        s.append(np.nanstd(rt)/(len(rt)**0.5))
-    my,mx = m
-    sy,sx = s
-    ax.plot(mx,my,'o',mec=clr,mfc=clr,label=lbl)
-    ax.plot([mx-sx,mx+sx],[my,my],color=clr)
-    ax.plot([mx,mx],[my-sy,my+sy],color=clr)
+    for resp,ls in zip(('correct','incorrect'),('-','--')):
+        r = []
+        for hemi in hemiLabels:
+            p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
+            b = p-p[:,baselineWindow].mean(axis=1)[:,None]
+            r.append(np.cumsum(b[:,analysisWindow],axis=1)*binSize)
+        d = np.array(r[0])-np.array(r[1])
+        m = np.nanmean(d,axis=0)
+        s = np.nanstd(d)/(len(d)**0.5)
+        if mo==0:
+            clr = 'k' if resp=='correct' else '0.5'
+        else:
+            clr = 'r' if resp=='correct' else [1,0.5,0.5]
+        lbl = moLbl + ', ' + resp
+        ax.plot(t[analysisWindow]*1000,m,color=clr,ls=ls,label=lbl)
+        ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xlim(alim)
-ax.set_ylim(alim)
-ax.set_aspect('equal')
-ax.set_xlabel('Reaction time on incorrect trials (ms)',fontsize=14)
-ax.set_ylabel('Reaction time on correct trials (ms)',fontsize=14)
-leg = ax.legend(title='mask onset',loc='upper left',fontsize=12)
-plt.setp(leg.get_title(),fontsize=12)
-plt.tight_layout()  
+ax.set_xlim([33,200])
+ax.set_ylim([-0.7,1])
+ax.set_yticks([-0.5,0,0.5,1])
+ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Difference in Cumulative Spikes\n(Contra - Ipsi Target)',fontsize=16)
+leg = ax.legend(loc='lower left',fontsize=10)
+plt.tight_layout()
 
-    
-for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
+
+# fast vs slow reaction 
+for mo,title in zip(maskOnset,('target only','mask onset 17 ms')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     xmax = 0
-    for resp,clr in zip(rtBins,plt.cm.jet(np.linspace(0,1,len(rtBins)))):
+    for resp,clr,lbl in zip(rtBins,'gm',('fast','slow')):
         stim = 'mask' if mo>0 else 'targetOnly'
         p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
         b = p-p[:,baselineWindow].mean(axis=1)[:,None]
         m = np.nanmean(b,axis=0)
         s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
-        ax.plot(t,m,color=clr,lw=2,label=resp)
+        ax.plot(t,m,color=clr,lw=2,label=lbl+' reaction')
         ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
@@ -656,67 +623,35 @@ for mo,title in zip(maskOnset,maskOnsetLabels[1:-1]):
     ax.legend()
 plt.tight_layout()
 
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for mo,clr,lbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
+ax.plot([0,200],[0,0],':',color='0.5')
+for mo,clr,moLbl in zip(maskOnset,'kr',('target only','mask onset 17 ms')):
     stim = 'mask' if mo>0 else 'targetOnly'
-    mean = []
-    sem = []
-    xdata = []
-    for rt in rtBins:
-        p = np.array(behavPsth[stim]['contra'][rt][mo])[behavUnits]
+    r = []
+    for resp in rtBins:
+        p = np.array(behavPsth[stim]['contra'][resp][mo])[behavUnits]
         b = p-p[:,baselineWindow].mean(axis=1)[:,None]
-        r = b[:,analysisWindow].sum(axis=1) * binSize
-        mean.append(np.nanmean(r))
-        sem.append(np.nanstd(r)/(len(r)**0.5))
-        xdata.append(sum(rt)/2)
-    ax.plot(xdata,mean,'o-',color=clr,label=lbl)
-    for x,m,s in zip(xdata,mean,sem):
-        ax.plot([x,x],[m-s,m+s],color=clr)
+        r.append(np.cumsum(b[:,analysisWindow],axis=1)*binSize)
+    d = np.array(r[0])-np.array(r[1])
+    m = np.nanmean(d,axis=0)
+    s = np.nanstd(d)/(len(d)**0.5)
+    ax.plot(t[analysisWindow]*1000,m,color=clr,ls=ls,label=moLbl)
+    ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xlabel('Reaction time (ms)',fontsize=14)
-ax.set_ylabel('Spikes',fontsize=14)
-ax.legend()
-plt.tight_layout()
-
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-alim = [-0.1,1.2]
-ax.plot(alim,alim,'--',color='0.8')
-for mo,clr,moLbl in zip(maskOnset,clrs,maskOnsetLabels[1:-1]):
-    stim = 'mask' if mo>0 else 'targetOnly'
-    for hemi,mfc in zip(hemiLabels,(clr,'none')):
-        m = []
-        s = []
-        for rt in rtBins:
-            p = np.array(behavPsth[stim][hemi][rt][mo])[behavUnits]
-            b = p-p[:,t<0].mean(axis=1)[:,None]
-            r = b[:,analysisWindow].sum(axis=1) * binSize
-            m.append(np.nanmean(r))
-            s.append(np.nanstd(r)/(len(r)**0.5))
-        my,mx = m
-        sy,sx = s
-        lbl = hemi+' '+moLbl if stim=='targetOnly' else moLbl+' ('+hemi+' target)'
-        ax.plot(mx,my,'o',mec=clr,mfc=mfc,label=lbl)
-        ax.plot([mx-sx,mx+sx],[my,my],color=clr)
-        ax.plot([mx,mx],[my-sy,my+sy],color=clr)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xticks(np.arange(0,1.5,0.2))
-ax.set_yticks(np.arange(0,1.5,0.2))
-ax.set_xlim(alim)
-ax.set_ylim(alim)
-ax.set_aspect('equal')
-ax.set_xlabel('Spikes on slow-reaction trials',fontsize=14)
-ax.set_ylabel('Spikes on fast-reaction trials',fontsize=14)
-leg = ax.legend(title='mask onset',bbox_to_anchor=(0.8,0.8),fontsize=10)
-plt.setp(leg.get_title(),fontsize=10)
+ax.set_xlim([33,200])
+ax.set_ylim([-0.1,0.7])
+ax.set_yticks(np.arange(-0.2,1,0.2))
+ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Difference in Cumulative Spikes\n(Fast - Slow Reaction Trials)',fontsize=16)
+leg = ax.legend(loc='upper left',fontsize=10)
 plt.tight_layout()
 
 
+# save behav psth
 resp = 'correct'
 popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
 for stim in stimLabels:
