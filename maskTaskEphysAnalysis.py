@@ -469,7 +469,7 @@ pickle.dump(popPsth,open(pkl,'wb'))
 # behavior analysis
 maskOnset = [0,2]
 rtBins = ((100,200),(200,400))
-behavOutcomeLabels = ('all','correct','incorrect','no resp') + rtBins
+behavOutcomeLabels = ('all','correct','incorrect','all resp','no resp') + rtBins
 behavTrialPsth = {stim: {hemi: {resp: {} for resp in behavOutcomeLabels} for hemi in hemiLabels} for stim in ('targetOnly','mask')}
 behavPsth = copy.deepcopy(behavTrialPsth)
 reacTime = copy.deepcopy(behavTrialPsth)
@@ -479,8 +479,8 @@ for i,obj in enumerate(exps):
     for stim in ('targetOnly','mask'):
         for rd,hemi in zip((1,-1),ephysHemi):
             stimTrials = (obj.trialType==stim) & (obj.rewardDir==rd)
-            for resp,respLbl in zip(('all',1,-1,0)+rtBins,behavOutcomeLabels):
-                respTrials = obj.response==resp if resp in (-1,0,1) else np.ones(len(stimTrials),dtype=bool)
+            for resp,respLbl in zip(((1,-1,0),(1,),(-1,),(1,-1),(0,))+rtBins,behavOutcomeLabels):
+                respTrials = np.ones(len(stimTrials),dtype=bool) if resp in rtBins else np.in1d(obj.response,resp)
                 for mo in np.unique(obj.maskOnset[stimTrials]):
                     moTrials = obj.maskOnset==mo
                     trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo) & np.isnan(obj.optoOnset)
@@ -652,12 +652,12 @@ plt.tight_layout()
 
 
 # save behav psth
-resp = 'correct'
+resp = 'all resp'
 popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
 for stim in stimLabels:
     for hemi in hemiLabels:
         p = behavPsth[stim][hemi][resp] if stim in behavPsth else psth[stim][hemi]['all']
-        for mo in p.keys():
+        for mo in (m for m in p.keys() if m in maskOnset):
             popPsth[stim][hemi][mo] = np.array(p[mo])[behavUnits]
 popPsth['t'] = t
             

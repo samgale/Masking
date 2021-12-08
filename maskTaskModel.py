@@ -174,51 +174,56 @@ def runTrial(tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,Lsignal,Rsignal,
 
 
 # create model input signals from population ephys responses
-popPsthFilePath = fileIO.getFile('Load popPsth',fileType='*.pkl')
-popPsth = pickle.load(open(popPsthFilePath,'rb'))
-
-dt = 1/120*1000
-trialEndTimeMax = 200
-trialEndMax = int(round(trialEndTimeMax/dt))
-
-t = np.arange(0,trialEndMax*dt+dt,dt)
-signalNames = ('targetOnly','maskOnly','mask')
-
-popPsthIntp = {}
-for sig in signalNames:
-    popPsthIntp[sig] = {}
-    for hemi in ('ipsi','contra'):
-        popPsthIntp[sig][hemi] = {}
-        for mo in popPsth[sig][hemi]:
-            p = popPsth[sig][hemi][mo].copy()
-            p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
-            p = np.nanmean(p,axis=0)
-            p = np.interp(t,popPsth['t']*1000,p)
-            p -= p[t<30].mean()
-            p[0] = 0
-            maskOn = np.nan if sig=='targetOnly' else mo
-            popPsthIntp[sig][hemi][maskOn] = p
+def createInputSignals(psthFilePath=None):
+    if psthFilePath is None:
+        psthFilePath = fileIO.getFile('Load popPsth',fileType='*.pkl')
+    popPsth = pickle.load(open(psthFilePath,'rb'))
+    
+    dt = 1/120*1000
+    trialEndTimeMax = 200
+    trialEndMax = int(round(trialEndTimeMax/dt))
+    
+    t = np.arange(0,trialEndMax*dt+dt,dt)
+    signalNames = ('targetOnly','maskOnly','mask')
+    
+    popPsthIntp = {}
+    for sig in signalNames:
+        popPsthIntp[sig] = {}
+        for hemi in ('ipsi','contra'):
+            popPsthIntp[sig][hemi] = {}
+            for mo in popPsth[sig][hemi]:
+                p = popPsth[sig][hemi][mo].copy()
+                p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
+                p = np.nanmean(p,axis=0)
+                p = np.interp(t,popPsth['t']*1000,p)
+                p -= p[t<30].mean()
+                p[0] = 0
+                maskOn = np.nan if sig=='targetOnly' else mo
+                popPsthIntp[sig][hemi][maskOn] = p
+                                       
+    # normalize and plot signals
+    signals = copy.deepcopy(popPsthIntp)
+    
+    smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
+    for sig in signals.keys():
+        for hemi in ('ipsi','contra'):
+            for mo in signals[sig][hemi]:
+                s = signals[sig][hemi][mo]
+                s /= smax
                 
-                
-# normalize and plot signals
-signals = copy.deepcopy(popPsthIntp)
+    #            if alpha>0:
+    #                sraw = s.copy()
+    #                I = 0
+    #                for i in range(s.size):
+    #                    if i > 0:
+    #                        I += (sraw[i-1] - I) / tauI
+    #                    if s[i]>0 and I>=0:
+    #                        s[i] = (s[i]**eta) / (alpha**eta + I**eta)
+    
+    return signals,t,dt,trialEndMax,trialEndTimeMax
 
-smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
-for sig in signals.keys():
-    for hemi in ('ipsi','contra'):
-        for mo in signals[sig][hemi]:
-            s = signals[sig][hemi][mo]
-            s /= smax
-            
-#            if alpha>0:
-#                sraw = s.copy()
-#                I = 0
-#                for i in range(s.size):
-#                    if i > 0:
-#                        I += (sraw[i-1] - I) / tauI
-#                    if s[i]>0 and I>=0:
-#                        s[i] = (s[i]**eta) / (alpha**eta + I**eta)
 
+signals,t,dt,trialEndMax,trialEndTimeMax = createInputSignals()
 
 fig = plt.figure(figsize=(4,9))
 n = 2+len(signals['mask']['contra'].keys())
@@ -249,7 +254,7 @@ for ax in axs:
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xlim([0,trialEndTimeMax])
+    ax.set_xlim([0,200])
     ax.set_ylim([1.05*ymin,1.05*ymax])
 plt.tight_layout()
 
@@ -674,7 +679,19 @@ trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTim
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 
 
+# behav
+maskOnset = [2,np.nan]
+optoOnset = [np.nan]
+optoSide = [0]
 
-
+psthFiles = fileIO.getFiles('Load popPsth files',fileType='*.pkl')
+respRate = []
+fracCorr = []
+for f in psthFiles:
+    signals = createInputSignals(f)[0]
+    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000)
+    result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
+    respRate.append(result['responseRate'])
+    fracCorr.append(result['fractionCorrect'])
 
 
