@@ -510,7 +510,7 @@ baselineWindow = (t>-0.2) & (t<0.033)
 analysisWindow = (t>0.033) & (t<0.2)
 
 # correct vs incorrect  
-for mo,moLbl in zip(maskOnset,('target only','17 ms')):#maskOnsetLabels[1:-1]):
+for mo,moLbl in zip(maskOnset,('target only','target, mask onset 17 ms')):
     fig = plt.figure()
     stim = 'mask' if mo>0 else 'targetOnly'
     for i,hemi in enumerate(hemiLabels):
@@ -521,16 +521,19 @@ for mo,moLbl in zip(maskOnset,('target only','17 ms')):#maskOnsetLabels[1:-1]):
             b = p-p[:,baselineWindow].mean(axis=1)[:,None]
             m = np.nanmean(b,axis=0)
             s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
-            ax.plot(t,m,color=clr,lw=2,label=resp)
-            ax.fill_between(t,m+s,m-s,color=clr,alpha=0.25)
+            ax.plot(t*1000,m,color=clr,lw=2,label=resp)
+            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False,labelsize=12)
-        ax.set_xlim([0,0.2])
-        ax.set_xlabel('Time (s)',fontsize=14)
+        ax.set_xticks(np.arange(0,250,50))
+        ax.set_xlim([0,200])
+        if i==1:
+            ax.set_xlabel('Time (s)',fontsize=14)
         ax.set_ylabel('Spikes/s',fontsize=14)
         ax.set_title(hemi+' '+moLbl,fontsize=14)
-        ax.legend()
+        if i==0:
+            ax.legend()
     plt.tight_layout()
 
 
@@ -667,7 +670,7 @@ pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # decoding
-def getDecoderResult(decoderMethod,var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,maskOnset):
+def getDecoderResult(decoderMethod,var,varLabels,units,dPsth,trainInd,testInd,numTrials,randomizeTrials,analysisWindow,dataType,offsets,mskOn):
     # X = features, y = decoding label, m = mask onset label
     X = {trialSet: [] for trialSet in ('train','test')}
     y = [] 
@@ -676,13 +679,21 @@ def getDecoderResult(decoderMethod,var,varLabels,units,dPsth,trainInd,testInd,nu
         for i,u in enumerate(units):
             X[trialSet].append([])
             for vind,vlbl in enumerate(varLabels):
-                for mo in maskOnset:
+                for mo in mskOn:
                     stim = 'targetOnly' if mo==0 else 'mask'
-                    p = dPsth[stim][vlbl]['all'] if var=='side' else dPsth[stim]['contra'][vlbl]
-                    ind = trialInd[vlbl][mo][u]
-                    trials =  np.random.choice(ind,numTrials,replace=True) if randomizeTrials else ind[:numTrials]
+                    if var=='side':
+                        p = dPsth[stim][vlbl]['all']
+                        ind = trialInd[vlbl][mo][u]
+                        trials = np.random.choice(ind,numTrials,replace=True) if randomizeTrials else ind[:numTrials]
+                    else:
+                        pContra = dPsth[stim]['contra'][vlbl]
+                        pIpsi = dPsth[stim]['ipsi'][vlbl]
+                        trials = np.stack([np.random.choice(trialInd[vlbl][mo][hemi][u],numTrials,replace=True) for hemi in ('contra','ipsi')],axis=1)
                     for trial in trials:
-                        X[trialSet][-1].append(p[mo][unitInd[u]][trial][analysisWindow])
+                        if var=='side':
+                            X[trialSet][-1].append(p[mo][unitInd[u]][trial][analysisWindow])
+                        else:
+                            X[trialSet][-1].append(pContra[mo][unitInd[u]][trial[0]][analysisWindow]-pIpsi[mo][unitInd[u]][trial[1]][analysisWindow])
                         if i==0 and trialSet=='train':
                             y.append(vind)
                             m.append(mo)
@@ -716,7 +727,7 @@ def getDecoderResult(decoderMethod,var,varLabels,units,dPsth,trainInd,testInd,nu
                 Xtrain,Xtest = Xdata
             decoder.fit(Xtrain,y)
             
-            for k,mo in enumerate(maskOnset):
+            for k,mo in enumerate(mskOn):
                 ind = m==mo
                 trainScore[i][j][k] = decoder.score(Xtrain[ind],y[ind])
                 testScore[i][j][k] = decoder.score(Xtest[ind],y[ind])
@@ -730,9 +741,6 @@ maskOnset = [0,2,3,4,6]
 analysisWindow = (t>0) & (t<0.2)
 unitInd = np.where(respUnits & ~fs)[0]
 
-analysisWindow = (t>0.035) & (t<0.075)
-unitInd = np.where(behavUnits)[0]
-
 nUnits = len(unitInd)
 
 unitSessionInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])[unitInd]
@@ -744,7 +752,7 @@ decoderOffset = np.arange(analysisWindow.sum())
 trainTestIters = 100
 trialsPerIter = 100
 
-decoderMethod = 'RF' # 'SVM' or 'RF'
+decoderMethod = 'SVM' # 'SVM' or 'RF'
 decodingVariable = ('side','choice')
 unitSource = list(unitSampleSize.keys())
 dataType = ('psth','bin','count')
@@ -756,28 +764,39 @@ for var,usource,dPsth,mskOn in zip(decodingVariable,(unitSource,('pooled',)),(tr
         continue
     for iterInd in range(trainTestIters):
         # assign trials to training and testing sets
-        varLabels = hemiLabels if var=='side' else ('correct','incorrect')
-        trainInd = {vlbl: {mo: [] for mo in mskOn} for vlbl in varLabels}
+        if var=='side':
+            varLabels = hemiLabels
+            trainInd = {vlbl: {mo: [] for mo in mskOn} for vlbl in varLabels}
+            trialKeys = ('all',)
+        else:
+            varLabels = ('correct','incorrect')
+            trainInd = {vlbl: {mo: {hemi: [] for hemi in hemiLabels} for mo in mskOn} for vlbl in varLabels}
+            trialKeys = hemiLabels
         testInd = copy.deepcopy(trainInd)
         for vlbl in varLabels:
             for mo in mskOn:
                 stim = 'targetOnly' if mo==0 else 'mask'
                 for session in range(len(exps)):
                     units = unitInd[unitSessionInd==session]
-                    p = dPsth[stim][vlbl]['all'] if var=='side' else dPsth[stim]['contra'][vlbl]
-                    n = len(p[mo][units[0]])
-                    trials = np.arange(n)
-                    train = np.random.choice(trials,n//2,replace=False)
-                    test = np.setdiff1d(trials,train)
-                    for u in units:
-                        trainInd[vlbl][mo].append(train)
-                        testInd[vlbl][mo].append(test)
+                    for key in trialKeys:
+                        p = dPsth[stim][vlbl][key] if var=='side' else dPsth[stim][key][vlbl]
+                        n = len(p[mo][units[0]])
+                        trials = np.arange(n)
+                        train = np.random.choice(trials,n//2,replace=False)
+                        test = np.setdiff1d(trials,train)
+                        for u in units:
+                            if var=='side':
+                                trainInd[vlbl][mo].append(train)
+                                testInd[vlbl][mo].append(test)
+                            else:
+                                trainInd[vlbl][mo][key].append(train)
+                                testInd[vlbl][mo][key].append(test)
         
         for src in usource:
             for s,sampleSize in enumerate(unitSampleSize[src]):
                 if src=='pooled':
                     if var=='choice':
-                        unitSamples = [[u for u in range(nUnits) if all([len(ind[vlbl][mo][u])>0 for ind in (trainInd,testInd) for vlbl in varLabels for mo in mskOn])]]
+                        unitSamples = [[u for u in range(nUnits) if all([len(ind[vlbl][mo][hemi][u])>0 for ind in (trainInd,testInd) for vlbl in varLabels for mo in mskOn for hemi in hemiLabels])]]
                     elif sampleSize==nUnits:
                         unitSamples = [np.arange(nUnits)]
                     elif sampleSize==1:
@@ -809,6 +828,7 @@ for var,usource,dPsth,mskOn in zip(decodingVariable,(unitSource,('pooled',)),(tr
                 trainScore[var][src][iterInd,s] = np.mean(trainSamples,axis=0)
                 testScore[var][src][iterInd,s] = np.mean(testSamples,axis=0)
                 decoderFeatures[var][src][iterInd,s] = np.mean(coefSamples,axis=0)
+
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
@@ -912,7 +932,7 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Spike Integrati
     ax.set_ylabel('Target Side Decoding Accuracy',fontsize=16)
 #    ax.legend(title='mask onset',fontsize=12)
     plt.tight_layout()
-    
+
 
 # choice decoding
 clrs = np.zeros((len(maskOnset),3))

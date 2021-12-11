@@ -710,6 +710,7 @@ for sig in (signals,signalsCorr,signalsIncorr):
                 else:
                     rt[-1].append(dt*np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
 
+
 for data,ylim,ylabel in  zip((respRate,fracCorr),((0,1.02),(0.4,1)),('Response Rate','Fraction Correct')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
