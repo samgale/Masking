@@ -467,36 +467,49 @@ pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # behavior analysis
-maskOnset = [0,2]
 rtBins = ((100,200),(200,400))
-behavOutcomeLabels = ('all','correct','incorrect','all resp','no resp') + rtBins
-behavTrialPsth = {stim: {hemi: {resp: {} for resp in behavOutcomeLabels} for hemi in hemiLabels} for stim in ('targetOnly','mask')}
+behavOutcomeLabels = ('all','right','left','correct','incorrect','all resp','no resp') + rtBins
+behavTrialPsth = {stim: {hemi: {resp: {} for resp in behavOutcomeLabels} for hemi in hemiLabels} for stim in stimLabels}
 behavPsth = copy.deepcopy(behavTrialPsth)
 reacTime = copy.deepcopy(behavTrialPsth)
 for i,obj in enumerate(exps):
-    ephysHemi = hemiLabels if hasattr(obj,'hemi') and obj.hemi=='right' else hemiLabels[::-1]
+    ephysHemi,R,L = (hemiLabels,-1,1) if hasattr(obj,'hemi') and obj.hemi=='right' else (hemiLabels[::-1],1,-1)
     validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
-    for stim in ('targetOnly','mask'):
+    for stim in stimLabels:
         for rd,hemi in zip((1,-1),ephysHemi):
-            stimTrials = (obj.trialType==stim) & (obj.rewardDir==rd)
-            for resp,respLbl in zip(((1,-1,0),(1,),(-1,),(1,-1),(0,))+rtBins,behavOutcomeLabels):
-                respTrials = np.ones(len(stimTrials),dtype=bool) if resp in rtBins else np.in1d(obj.response,resp)
+            stimTrials = obj.trialType==stim
+            if stim in ('targetOnly','mask'):
+                stimTrials = stimTrials & (obj.rewardDir==rd)
+            for resp in behavOutcomeLabels:
+                if resp=='right':
+                    respTrials = obj.responseDir==R
+                elif resp=='left':
+                    respTrials = obj.responseDir==L
+                elif resp=='correct':
+                    respTrials = obj.response==1
+                elif resp=='incorrect':
+                    respTrials = obj.response==-1
+                elif resp=='all resp':
+                    respTrials = ~np.isnan(obj.responseDir)
+                elif resp=='no resp':
+                    respTrials = obj.response==0
+                else:
+                    respTrials = np.ones(len(stimTrials),dtype=bool)
                 for mo in np.unique(obj.maskOnset[stimTrials]):
-                    moTrials = obj.maskOnset==mo
-                    trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo) & np.isnan(obj.optoOnset)
+                    trials = validTrials & stimTrials & respTrials & (obj.maskOnset==mo)
                     if resp in rtBins:
                         trials = trials & (obj.reactionTime>=resp[0]) & (obj.reactionTime < resp[1])
-                    if mo not in behavTrialPsth[stim][hemi][respLbl]:
-                        behavTrialPsth[stim][hemi][respLbl][mo] = []
-                        behavPsth[stim][hemi][respLbl][mo] = []
-                        reacTime[stim][hemi][respLbl][mo] = []
-                    reacTime[stim][hemi][respLbl][mo].append(obj.reactionTime[trials])
+                    if mo not in behavTrialPsth[stim][hemi][resp]:
+                        behavTrialPsth[stim][hemi][resp][mo] = []
+                        behavPsth[stim][hemi][resp][mo] = []
+                        reacTime[stim][hemi][resp][mo] = []
+                    reacTime[stim][hemi][resp][mo].append(obj.reactionTime[trials])
                     startTimes = obj.frameSamples[obj.stimStart[trials]+obj.frameDisplayLag]/obj.sampleRate - preTime
                     for u in obj.goodUnits:
                         spikeTimes = obj.units[u]['samples']/obj.sampleRate
                         p,t = getPsth(spikeTimes,startTimes,windowDur,binSize=binSize,avg=False)
-                        behavTrialPsth[stim][hemi][respLbl][mo].append(p)
-                        behavPsth[stim][hemi][respLbl][mo].append(p.mean(axis=0))
+                        behavTrialPsth[stim][hemi][resp][mo].append(p)
+                        behavPsth[stim][hemi][resp][mo].append(p.mean(axis=0))
 t -= preTime                       
                         
 expInd = np.array([i for i,obj in enumerate(exps) for _ in enumerate(obj.goodUnits)])
@@ -509,7 +522,54 @@ baselineWindow = (t>-0.2) & (t<0.033)
 
 analysisWindow = (t>0.033) & (t<0.2)
 
-# correct vs incorrect  
+maskOnset = [0,2]
+
+
+# right vs left
+figs = []
+axs = []
+ymin = ymax = 0 
+for stim in stimLabels:
+    mo = 2 if stim=='mask' else 0
+    fig = plt.figure()
+    for i,hemi in enumerate(hemiLabels):
+        ax = fig.add_subplot(2,1,i+1)
+        xmax = 0
+        for resp,clr in zip(('left','right'),('g','m')):
+            p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
+            b = p-p[:,baselineWindow].mean(axis=1)[:,None]
+            m = np.nanmean(b,axis=0)
+            s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
+            ax.plot(t*1000,m,color=clr,lw=2,label='turn '+resp)
+            ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
+            ymin = min(ymin,np.min(m-s))
+            ymax = max(ymax,np.max(m+s))
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+        ax.set_xticks(np.arange(0,250,50))
+        ax.set_xlim([0,200])
+        if stim in ('maskOnly','catch') or i==1:
+            ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=14)
+        ax.set_ylabel('Spikes/s',fontsize=14)
+        title = stim if stim in ('maskOnly','catch') else stim+', '+hemi+' target'
+        ax.set_title(title,fontsize=14)
+        if i==0:
+            ax.legend()
+        axs.append(ax)
+        if stim in ('maskOnly','catch'):
+            break
+    figs.append(fig)
+for a in axs:
+    a.set_ylim([1.02*ymin,1.02*ymax])
+for f in figs:
+    f.tight_layout()
+
+
+# correct vs incorrect
+figs = []
+axs = []
+ymin = ymax = 0 
 for mo,moLbl in zip(maskOnset,('target only','target, mask onset 17 ms')):
     fig = plt.figure()
     stim = 'mask' if mo>0 else 'targetOnly'
@@ -523,18 +583,25 @@ for mo,moLbl in zip(maskOnset,('target only','target, mask onset 17 ms')):
             s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
             ax.plot(t*1000,m,color=clr,lw=2,label=resp)
             ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
+            ymin = min(ymin,np.min(m-s))
+            ymax = max(ymax,np.max(m+s))
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False,labelsize=12)
         ax.set_xticks(np.arange(0,250,50))
         ax.set_xlim([0,200])
         if i==1:
-            ax.set_xlabel('Time (s)',fontsize=14)
+            ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=14)
         ax.set_ylabel('Spikes/s',fontsize=14)
         ax.set_title(hemi+' '+moLbl,fontsize=14)
         if i==0:
             ax.legend()
-    plt.tight_layout()
+        axs.append(ax)
+    figs.append(fig)
+for a in axs:
+    a.set_ylim([1.02*ymin,1.02*ymax])
+for f in figs:
+    f.tight_layout()
 
 
 fig = plt.figure()
@@ -624,7 +691,7 @@ for mo,moLbl in zip(maskOnset,('target only','target, mask onset 17 ms')):
         ax.set_xticks(np.arange(0,250,50))
         ax.set_xlim([0,200])
         if i==1:
-            ax.set_xlabel('Time (s)',fontsize=14)
+            ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=14)
         ax.set_ylabel('Spikes/s',fontsize=14)
         ax.set_title(hemi+' '+moLbl,fontsize=14)
         if i==0:
