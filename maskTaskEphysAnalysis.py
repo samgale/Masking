@@ -564,6 +564,37 @@ for a in axs:
     a.set_ylim([1.02*ymin,1.02*ymax])
 for f in figs:
     f.tight_layout()
+    
+
+for stim in stimLabels:
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot([0,200],[0,0],':',color='k')
+    mo = 2 if stim=='mask' else 0
+    for hemi,ls in zip(hemiLabels,('-','--')):
+        r = []
+        for resp in ('left','right'):
+            p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
+            b = p-p[:,baselineWindow].mean(axis=1)[:,None]
+            r.append(np.cumsum(b[:,analysisWindow],axis=1)*binSize)
+        d = np.array(r[0])-np.array(r[1])
+        m = np.nanmean(d,axis=0)
+        s = np.nanstd(d)/(len(d)**0.5)
+        ax.plot(t[analysisWindow]*1000,m,color='k',ls=ls,label=hemi)
+        ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color='k',alpha=0.25)
+        if stim in ('maskOnly','catch'):
+            break
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    ax.set_yticks([-0.5,0,0.5,1])
+    ax.set_xlim([33,200])
+    ax.set_ylim([-0.5,1])
+    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel('Difference in Cumulative Spikes\n(Turn Left - Right Trials)',fontsize=16)
+    ax.set_title(stim,fontsize=14)
+    leg = ax.legend(loc='upper left',fontsize=10)
+    plt.tight_layout()
 
 
 # correct vs incorrect
