@@ -14,12 +14,16 @@ from TaskControl import TaskControl
 
 class MaskingTask(TaskControl):
     
-    def __init__(self,rigName):
+    def __init__(self,rigName,taskVersion=None,taskVersionOption=None):
         TaskControl.__init__(self,rigName)
+        
+        self.taskVersion = taskVersion
+        self.taskVersionOption = taskVersionOption
         
         self.showFixationPoint = False # fixation point for humans
         self.fixationPointRadius = 4 # pixels
         self.showVisibilityRating = False # target visiiblity rating for humans
+        self.allowMouseClickVisRating = False
         
         self.equalSampling = False # equal sampling of trial parameter combinations
         self.probGoRight = 0.5 # fraction of go trials rewarded for rightward movement of wheel
@@ -89,10 +93,13 @@ class MaskingTask(TaskControl):
         self.optoOffRamp = 0.1 # duration in sec of linear off ramp
         self.optoOnset = [0] # frames >=0 relative to target stimulus onset
         self.optoPulseDur = [0] # seconds; 0 = stay on until end  maxResponseWaitFrames
+        
+        if taskVersion is not None:
+            self.setDefaultParams(taskVersion,taskVersionOption)
 
     
-    def setDefaultParams(self,name,taskVersion=None):
-        if name == 'training1':
+    def setDefaultParams(self,taskVersion,option=None):
+        if taskVersion == 'training1':
             # stim moves to reward automatically; wheel movement ignored
             self.spacebarRewardsEnabled = False
             self.equalSampling = False
@@ -110,7 +117,7 @@ class MaskingTask(TaskControl):
             self.useGoTone = False
             self.solenoidOpenTime = 0.2
             self.gratingEdge= 'raisedCos'
-            if taskVersion in ('rot','rotation'):
+            if option in ('rot','rotation'):
                 self.rotateTarget = True
                 self.normTargetPos = [(0,0)]
                 self.targetOri = [-45,45]
@@ -127,10 +134,10 @@ class MaskingTask(TaskControl):
                 self.targetSize = 25
                 self.gratingEdgeBlurWidth = 0.08
             
-        elif name == 'training2':
+        elif taskVersion == 'training2':
             # learn to associate wheel movement with stimulus movement and reward
             # only use 1-2 sessions
-            self.setDefaultParams('training1',taskVersion)
+            self.setDefaultParams('training1',option)
             self.normAutoMoveRate = 0
             self.autoRotationRate = 0
             self.wheelRewardDistance = 4.0
@@ -142,9 +149,9 @@ class MaskingTask(TaskControl):
             self.incorrectTrialRepeats = 25   #avoid early bias formation
             self.solenoidOpenTime = 0.1
             
-        elif name == 'training3':
+        elif taskVersion == 'training3':
             # introduce quiescent period, shorter response window, incorrect penalty, and catch trials
-            self.setDefaultParams('training2',taskVersion)
+            self.setDefaultParams('training2',option)
             self.wheelRewardDistance = 3.0  # increase   
             self.quiescentFrames = 60
             self.maxResponseWaitFrames = 1200 # adjust this 
@@ -154,30 +161,30 @@ class MaskingTask(TaskControl):
             self.solenoidOpenTime = 0.07
             self.probCatch = 0
             
-        elif name == 'training4':
+        elif taskVersion == 'training4':
             # more stringent parameters
-            self.setDefaultParams('training3',taskVersion)
+            self.setDefaultParams('training3',option)
             self.maxResponseWaitFrames = 60
             self.incorrectTimeoutFrames = 720
             self.solenoidOpenTime = 0.05
             self.probCatch = .15
   
-        elif name == 'nogo':
-            self.setDefaultParams('training4',taskVersion)
+        elif taskVersion == 'nogo':
+            self.setDefaultParams('training4',option)
             self.probCatch = 0.33
             self.rewardCatchNogo = True
             self.useGoTone = True
             
-        elif name == 'training5':
+        elif taskVersion == 'training5':
             # flashed target
-            self.setDefaultParams('training4',taskVersion)
+            self.setDefaultParams('training4',option)
             self.moveStim = False
             self.postRewardTargetFrames = 0
             self.wheelRewardDistance = 2.0
             self.targetFrames = [12] # adjust this
             
-        elif name == 'testing':
-            self.setDefaultParams('training5',taskVersion)
+        elif taskVersion == 'testing':
+            self.setDefaultParams('training5',option)
             self.equalSampling = True
             self.useIncorrectNoise = False
             self.incorrectTimeoutFrames = 0
@@ -185,18 +192,18 @@ class MaskingTask(TaskControl):
             self.targetFrames = [2]
             self.wheelRewardDistance = 2.0
             
-        elif name == 'target duration':
-            self.setDefaultParams('testing',taskVersion)
+        elif taskVersion == 'target duration':
+            self.setDefaultParams('testing',option)
             self.targetFrames = [1,2,4,12]
             self.probCatch = 1 / (1 + 2*len(self.targetFrames))
         
-        elif name == 'target contrast':
-            self.setDefaultParams('testing',taskVersion)
+        elif taskVersion == 'target contrast':
+            self.setDefaultParams('testing',option)
             self.targetContrast = [0.2,0.4,0.6,1]
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
             
-        elif name == 'masking':
-            self.setDefaultParams('testing',taskVersion)
+        elif taskVersion == 'masking':
+            self.setDefaultParams('testing',option)
             self.maskType = 'plaid'
             self.maskShape = 'target'
             self.normMaskPos = [self.normTargetPos]
@@ -207,20 +214,20 @@ class MaskingTask(TaskControl):
             self.probMask = 0.6
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
-        elif name == 'mask position':
-            self.setDefaultParams('masking2',taskVersion)
+        elif taskVersion == 'mask position':
+            self.setDefaultParams('masking2',option)
             self.normMaskPos.append([(0,-0.25),(0,0.25)])
             self.maskOnset = [2,4,6]
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
-        elif name == 'mask duration':
-            self.setDefaultParams('masking2',taskVersion)
+        elif taskVersion == 'mask duration':
+            self.setDefaultParams('masking2',option)
             self.maskOnset = [2]
             self.maskFrames = [2,4,6,8,24]
             self.probCatch = 1 / (1 + 2*len(self.maskFrames))
             
-        elif name == 'opto timing':
-            self.setDefaultParams('testing',taskVersion)
+        elif taskVersion == 'opto timing':
+            self.setDefaultParams('testing',option)
             self.probOpto = 0.6
             self.optoAmp = 1.2
             self.optoChan = [(True,True)]
@@ -229,13 +236,13 @@ class MaskingTask(TaskControl):
             self.targetContrast = [0.4]
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
             
-        elif name == 'opto unilateral':
-            self.setDefaultParams('opto timing',taskVersion)
+        elif taskVersion == 'opto unilateral':
+            self.setDefaultParams('opto timing',option)
             self.optoChan = [(True,True),(True,False),(False,True)]
             self.optoOnset = [0]
             
-        elif name == 'opto masking':
-            self.setDefaultParams('masking',taskVersion)
+        elif taskVersion == 'opto masking':
+            self.setDefaultParams('masking',option)
             self.probOpto = 0.6
             self.optoAmp = 1.2
             self.optoChan = [(True,True)]
@@ -245,50 +252,47 @@ class MaskingTask(TaskControl):
             self.probMask = 0.5
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             
-        elif name == 'opto masking unilateral':
-            self.setDefaultParams('opto masking',taskVersion)
+        elif taskVersion == 'opto masking unilateral':
+            self.setDefaultParams('opto masking',option)
             self.optoChan = [(True,True),(True,False),(False,True)]
             self.optoOnset = [0]
             
-        elif name == 'opto pulse timing':
-            self.setDefaultParams('opto timing',taskVersion)
+        elif taskVersion == 'opto pulse timing':
+            self.setDefaultParams('opto timing',option)
             self.optoAmp = 5
             self.optoOnset = [6,8,10,12,14]
             self.optoPulseDur = [0.2]
         
-        elif name == 'opto pulse masking':
-            self.setDefaultParams('opto masking',taskVersion)
+        elif taskVersion == 'opto pulse masking':
+            self.setDefaultParams('opto masking',option)
             self.optoAmp = 5
             self.optoOnset = [6,8,10,12,14]
             self.optoPulseDur = [0.2]
             
-        elif name == 'opto pulse unilateral':
-            self.setDefaultParams('opto unilateral',taskVersion)
+        elif taskVersion == 'opto pulse unilateral':
+            self.setDefaultParams('opto unilateral',option)
             self.optoAmp = 5
             self.optoOnset = [4]
             self.optoPulseDur = [0.2]
             
-        elif name == 'human practice':
-            self.setDefaultParams('training2',taskVersion)
-            self.incorrectTrialRepeats = 0
-            self.wheelRewardDistance = 20
+        elif taskVersion == 'human practice':
+            self.setDefaultParams('testing',option)
             self.targetContrast = [0.1]
+            self.probCatch = 0
             self.maxResponseWaitFrames = 222
             self.showFixationPoint = True
             self.showVisibilityRating = True
             
-        elif name == 'human contrast':
-            self.setDefaultParams('testing',taskVersion)
+        elif taskVersion == 'human contrast':
+            self.setDefaultParams('testing',option)
             self.targetContrast = [0.02,0.04,0.06,0.08,0.1]
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
-            self.showFixationPoint = True
             self.maxResponseWaitFrames = 222
+            self.showFixationPoint = True
             
-        elif name == 'human masking':
-            self.setDefaultParams('masking',taskVersion)
-            self.maskOnset = [2,3,4,6]
+        elif taskVersion == 'human masking':
+            self.setDefaultParams('masking',option)
             self.probMask = 0.8
-            self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             self.targetContrast = [0.04]
             self.maskContrast = [0.04]
             self.maxConsecutiveMaskTrials = 100
@@ -297,7 +301,7 @@ class MaskingTask(TaskControl):
             self.showVisibilityRating = True
             
         else:
-            print(str(name)+' is not a recognized set of default parameters')
+            print(str(taskVersion)+' is not a recognized task version')
     
      
     def checkParamValues(self):
@@ -379,6 +383,14 @@ class MaskingTask(TaskControl):
                                     for pos in targetPosPix]]
         
         # create fixation point and target visibility rating scale for humans
+        if self.rigName == 'human':
+            startButton = visual.TextStim(win=self._win,
+                                           units='pix',
+                                           color=-1,
+                                           height=20,
+                                           pos=(0,0),
+                                           text='Click to start')
+            
         if self.showFixationPoint:
             fixationPoint = visual.Circle(win=self._win,
                                           units='pix',
@@ -403,7 +415,7 @@ class MaskingTask(TaskControl):
                                              height=20,
                                              pos=(x*self.monSizePix[0],-0.1*self.monSizePix[1]),
                                              text=lbl)
-                                             for x,lbl in zip((-buttonSpacing,0,buttonSpacing),('No','Unsure','Yes'))]
+                                             for x,lbl in zip((-buttonSpacing,0,buttonSpacing),('No=1','Unsure=2','Yes=3'))]
             
         # define parameters for each trial type
         if len(targetPosPix) > 1:
@@ -538,6 +550,13 @@ class MaskingTask(TaskControl):
         optoCount = 0
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
         
+        # wait for mouse click to start
+        if self.rigName == 'human':
+            while not self._mouse.getPressed()[0]:
+                startButton.draw()
+                self._win.flip()
+            self._mouse.setVisible(False)
+        
         # run loop for each frame presented on the monitor
         while self._continueSession:
             # get rotary encoder and digital input states
@@ -617,7 +636,8 @@ class MaskingTask(TaskControl):
                 fixationPoint.draw()
             
             # extend pre stim gray frames if wheel moving during quiescent period
-            if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
+            if (self.rigName != 'human' and
+                self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]):
                 quiescentWheelMove += self.deltaWheelPos[-1] * self.wheelGain
                 if abs(quiescentWheelMove) > maxQuiescentMove:
                     self.quiescentMoveFrames.append(self._sessionFrame)
@@ -660,7 +680,7 @@ class MaskingTask(TaskControl):
                                 targetPos[0] -= adjust
                                 closedLoopWheelMove -= adjust
                             target.pos = targetPos 
-                    else:
+                    elif self.rigName != 'human':
                         closedLoopWheelMove += self.deltaWheelPos[-1] * self.wheelGain
                 if self.moveStim:
                     if targetFrames > 0:
@@ -703,8 +723,13 @@ class MaskingTask(TaskControl):
                     self.trialResponseFrame.append(self._sessionFrame)
                     self.trialResponseDir.append(np.nan)
                     hasResponded = True
-                elif abs(closedLoopWheelMove) > rewardMove:
-                    moveDir = 1 if closedLoopWheelMove > 0 else -1
+                elif abs(closedLoopWheelMove) > rewardMove or 'right' in self._keys or 'left' in self._keys:
+                    if 'right' in self._keys:
+                        moveDir = -1
+                    elif 'left' in self._keys:
+                        moveDir = 1
+                    else:
+                        moveDir = 1 if closedLoopWheelMove > 0 else -1
                     if not (self.keepTargetOnScreen and moveDir == -rewardDir):
                         if np.isnan(rewardDir):
                             self.trialResponse.append(np.nan) # movement on catch trial
@@ -761,20 +786,28 @@ class MaskingTask(TaskControl):
                     if len(self.visRatingStartFrame) < len(self.trialStartFrame):
                         self.visRatingStartFrame.append(self._sessionFrame)
                         self._mouse.clickReset()
+                        if self.allowMouseClickVisRating:
+                            self._mouse.setVisible(True)
                     ratingTitle.draw()
                     for button in ratingButtons:
                         button.draw()
-                    if self._mouse.getPressed()[0]:
-                        mousePos = self._mouse.getPos()
-                        for button in ratingButtons:
-                            if all([button.pos[i] - buttonSize < mousePos[i] < button.pos[i] + buttonSize for i in (0,1)]):
-                                visRating = button.text
-                                break
+                    for key in ('1','2','3'):
+                        if key in self._keys:
+                            visRating = key
+                            break
+                    else: # check for mouse click if no key press
+                        if self.allowMouseClickVisRating and self._mouse.getPressed()[0]:
+                            mousePos = self._mouse.getPos()
+                            for button in ratingButtons:
+                                if all([button.pos[i] - buttonSize < mousePos[i] < button.pos[i] + buttonSize for i in (0,1)]):
+                                    visRating = button.text
+                                    break
                 else:
                     if self.showVisibilityRating:
                         self.visRating.append(visRating)
                         self.visRatingEndFrame.append(self._sessionFrame)
                         visRating = None
+                        self._mouse.setVisible(False)
                     self.trialEndFrame.append(self._sessionFrame)
                     self._trialFrame = -1
                     if self.trialResponse[-1] < 1 and incorrectRepeatCount < self.incorrectTrialRepeats:

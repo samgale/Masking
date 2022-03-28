@@ -16,7 +16,6 @@ import nidaqmx
 class TaskControl():
     
     def __init__(self,rigName):
-        assert(rigName in ('pilot','box5','sam'))
         self.rigName = rigName
         self.subjectName = None
         self.saveParams = True # if True, saves all attributes not starting with underscore
@@ -26,10 +25,9 @@ class TaskControl():
         self.wheelRadius = 30.0 # mm
         self.minWheelAngleChange = 0 # radians per frame
         self.maxWheelAngleChange = 0.5 # radians per frame
-        self.rewardsEnabled = True
         self.spacebarRewardsEnabled = True
         self.solenoidOpenTime = 0.05 # seconds
-        if self.rigName=='pilot':
+        if self.rigName == 'pilot':
             self.saveDir = r'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
             self.screen = 1 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
@@ -44,7 +42,7 @@ class TaskControl():
             self.wheelPolarity = -1
             self.nidaqDevices = ('USB-6001','USB-6001')
             self.nidaqDeviceNames = ('Dev1','Dev2')
-        elif self.rigName=='box5':
+        elif self.rigName == 'box5':
             self.saveDir = r'C:\Users\svc_ccg\Desktop\Data'
             self.screen = 0 # monitor to present stimuli on
             self.monWidth = 50.8 # cm
@@ -59,7 +57,7 @@ class TaskControl():
             self.wheelPolarity = -1
             self.nidaqDevices = ('USB-6001',)
             self.nidaqDeviceNames = ('Dev1',)
-        elif self.rigName=='sam':
+        elif self.rigName == 'human':
             self.saveDir = r'C:\Users\svc_ccg\Desktop\Data'
             self.screen = 0 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
@@ -71,9 +69,11 @@ class TaskControl():
             self.warpFile = None
             self.drawDiodeBox = False
             self.wheelPolarity = 1
-            self.nidaqDevices = ('USB-6009',)
-            self.nidaqDeviceNames = ('Dev1',)
-            self.rewardsEnabled = False
+            self.nidaqDevices = None
+            self.nidaqDeviceNames = None
+        else:
+            raise ValueError(rigName + ' is not a recognized rig name')
+    
     
     def prepareSession(self):
         self._win = None
@@ -97,7 +97,8 @@ class TaskControl():
                                          pos=self.diodeBoxPosition)
         
         self._keys = [] # list of keys pressed since previous frame
-        self._mouse = event.Mouse(win=self._win)
+        if self.rigName == 'human':
+            self._mouse = event.Mouse(win=self._win)
                                     
         self.startNidaqDevice()
         self.rotaryEncoderRadians = []
@@ -166,8 +167,6 @@ class TaskControl():
     
     
     def showFrame(self):
-        self._frameSignalOutput.write(True)
-        
         # spacebar delivers reward
         # escape key ends session
         self._keys = event.getKeys()
@@ -176,11 +175,14 @@ class TaskControl():
             self.manualRewardFrames.append(self._sessionFrame)
         if 'escape' in self._keys:   
             self._continueSession = False
+        
+        if self.rigName != 'human':
+            self._frameSignalOutput.write(True)
             
-        if self._tone:
-            self._toneOutput.write(True)
-        elif self._noise:
-            self._noiseOutput.write(True)
+            if self._tone:
+                self._toneOutput.write(True)
+            elif self._noise:
+                self._noiseOutput.write(True)
         
         # show new frame
         if self.drawDiodeBox:
@@ -188,24 +190,25 @@ class TaskControl():
             self._diodeBox.draw()
         self._win.flip()
         
-        self._frameSignalOutput.write(False)
-        
-        if self._opto:
-            self.optoPulse(**self._opto)
-            self._opto = False
-        
-        if self._reward and self.rewardsEnabled:
-            self.triggerReward(self._reward)
-            self.rewardFrames.append(self._sessionFrame)
-            self.rewardSize.append(self._reward)
-            self._reward = False
-        
-        if self._tone:
-            self._toneOutput.write(False)
-            self._tone = False
-        elif self._noise:
-            self._noiseOutput.write(False)
-            self._noise = False
+        if self.rigName != 'human':
+            self._frameSignalOutput.write(False)
+            
+            if self._opto:
+                self.optoPulse(**self._opto)
+                self._opto = False
+            
+            if self._reward:
+                self.triggerReward(self._reward)
+                self.rewardFrames.append(self._sessionFrame)
+                self.rewardSize.append(self._reward)
+                self._reward = False
+            
+            if self._tone:
+                self._toneOutput.write(False)
+                self._tone = False
+            elif self._noise:
+                self._noiseOutput.write(False)
+                self._noise = False
             
         self._sessionFrame += 1
         self._trialFrame += 1
@@ -230,6 +233,9 @@ class TaskControl():
         
     
     def startNidaqDevice(self):
+        if self.rigName == 'human':
+            return
+        
         # Dev1 analog inputs
         # AI0: rotary encoder
         aiSampleRate = 2000 if self._win.monitorFramePeriod < 0.0125 else 1000
@@ -377,6 +383,9 @@ class TaskControl():
     
         
     def getNidaqData(self):
+        if self.rigName == 'human':
+            return
+        
         # analog
         if self._rotaryEncoderData is None:
             encoderAngle = np.nan
