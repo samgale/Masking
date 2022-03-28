@@ -45,7 +45,7 @@ class TaskControl():
             self.nidaqDevices = ('USB-6001','USB-6001')
             self.nidaqDeviceNames = ('Dev1','Dev2')
         elif self.rigName=='box5':
-            self.saveDir = r'C:\Users\svc_ccg\Documents\Data'
+            self.saveDir = r'C:\Users\svc_ccg\Desktop\Data'
             self.screen = 0 # monitor to present stimuli on
             self.monWidth = 50.8 # cm
             self.monDistance = 21.6 # cm
