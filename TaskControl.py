@@ -61,7 +61,7 @@ class TaskControl():
             self.saveDir = r'C:\Users\svc_ccg\Desktop\Data'
             self.screen = 0 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
-            self.monDistance = 21.59 # cm
+            self.monDistance = 45.2 # cm
             self.monGamma = 2.1 # float or None
             self.monSizePix = (1920,1080)
             self.flipScreenHorz = False

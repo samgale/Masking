@@ -277,6 +277,8 @@ class MaskingTask(TaskControl):
             
         elif taskVersion == 'human practice':
             self.setDefaultParams('testing',option)
+            self.targetSize = 10
+            self.targetSF = 0.2
             self.targetContrast = [0.1]
             self.probCatch = 0
             self.maxResponseWaitFrames = 222
@@ -284,21 +286,18 @@ class MaskingTask(TaskControl):
             self.showVisibilityRating = True
             
         elif taskVersion == 'human contrast':
-            self.setDefaultParams('testing',option)
+            self.setDefaultParams('human practice',option)
             self.targetContrast = [0.02,0.04,0.06,0.08,0.1]
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
-            self.maxResponseWaitFrames = 222
-            self.showFixationPoint = True
+            self.showVisibilityRating = False
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('masking',option)
+            self.setDefaultParams('human practice',option)
             self.probMask = 0.8
             self.targetContrast = [0.04]
             self.maskContrast = [0.04]
             self.maxConsecutiveMaskTrials = 100
-            self.maxResponseWaitFrames = 222
-            self.showFixationPoint = True
-            self.showVisibilityRating = True
             
         else:
             print(str(taskVersion)+' is not a recognized task version')
