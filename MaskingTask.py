@@ -19,6 +19,7 @@ class MaskingTask(TaskControl):
         
         self.taskVersion = taskVersion
         self.taskVersionOption = taskVersionOption
+        self.maxTrials = None
         
         self.showFixationPoint = False # fixation point for humans
         self.fixationPointRadius = 4 # pixels
@@ -283,21 +284,25 @@ class MaskingTask(TaskControl):
             self.probCatch = 0
             self.maxResponseWaitFrames = 222
             self.showFixationPoint = True
+            
+        elif taskVersion == 'human practice with rating':
+            self.setDefaultParams('human practice',option)
             self.showVisibilityRating = True
             
         elif taskVersion == 'human contrast':
             self.setDefaultParams('human practice',option)
             self.targetContrast = [0.02,0.04,0.06,0.08,0.1]
             self.probCatch = 1 / (1 + 2*len(self.targetContrast))
-            self.showVisibilityRating = False
+            self.maxTrials = 15 * (len(self.targetContrast) * 2 + 1)
             
         elif taskVersion == 'human masking':
+            self.setDefaultParams('human practice with rating',option)
             self.setDefaultParams('masking',option)
-            self.setDefaultParams('human practice',option)
             self.probMask = 0.8
             self.targetContrast = [0.04]
             self.maskContrast = [0.04]
             self.maxConsecutiveMaskTrials = 100
+            self.maxTrials = 15 * (2 * (len(self.maskOnset) + 1) + 2)
             
         else:
             print(str(taskVersion)+' is not a recognized task version')
@@ -635,13 +640,19 @@ class MaskingTask(TaskControl):
                 fixationPoint.draw()
             
             # extend pre stim gray frames if wheel moving during quiescent period
-            if (self.rigName != 'human' and
-                self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]):
-                quiescentWheelMove += self.deltaWheelPos[-1] * self.wheelGain
-                if abs(quiescentWheelMove) > maxQuiescentMove:
+            if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
+                quiescentMove = False
+                if self.rigName == 'human':
+                    if 'left' in self._keys or 'right' in self._keys():
+                        quiescentMove = True
+                else:
+                    quiescentWheelMove += self.deltaWheelPos[-1] * self.wheelGain
+                    if abs(quiescentWheelMove) > maxQuiescentMove:
+                        quiescentMove = True
+                        quiescentWheelMove = 0
+                if quiescentMove:
                     self.quiescentMoveFrames.append(self._sessionFrame)
                     self.trialPreStimFrames[-1] += randomExponential(self.preStimFramesFixed,self.preStimFramesVariableMean,self.preStimFramesMax)
-                    quiescentWheelMove = 0
             
             # if gray screen period is complete but before response
             if not hasResponded and self._trialFrame >= self.trialPreStimFrames[-1]:
@@ -722,11 +733,10 @@ class MaskingTask(TaskControl):
                     self.trialResponseFrame.append(self._sessionFrame)
                     self.trialResponseDir.append(np.nan)
                     hasResponded = True
-                elif abs(closedLoopWheelMove) > rewardMove or 'right' in self._keys or 'left' in self._keys:
-                    if 'right' in self._keys:
-                        moveDir = -1
-                    elif 'left' in self._keys:
-                        moveDir = 1
+                elif (abs(closedLoopWheelMove) > rewardMove or 
+                      self.rigName == 'human' and self._trialFrame >= self.trialPreStimFrames[-1] + self.trialOpenLoopFrames[-1] and ('left' in self._keys or 'right' in self._keys)):
+                    if self.rigName == 'human':
+                        moveDir = 1 if 'left' in self._keys else -1
                     else:
                         moveDir = 1 if closedLoopWheelMove > 0 else -1
                     if not (self.keepTargetOnScreen and moveDir == -rewardDir):
@@ -815,6 +825,8 @@ class MaskingTask(TaskControl):
                     else:
                         incorrectRepeatCount = 0
                         self.trialRepeat.append(False)
+                    if len(self.trialStartFrame) == self.maxTrials:
+                        self._continueSession = False
             
             self.showFrame()
 

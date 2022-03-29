@@ -20,8 +20,16 @@ class TaskControl():
         self.subjectName = None
         self.saveParams = True # if True, saves all attributes not starting with underscore
         self.saveFrameIntervals = True
+        self.monSizePix = (1920,1080)
+        self.flipScreenHorz = False
+        self.monGamma = 2.2 # float or None
+        self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
+        self.warpFile = None
         self.drawDiodeBox = True
+        self.diodeBoxSize = 50
+        self.diodeBoxPosition = (935,-515)
         self.monBackgroundColor = 0
+        self.wheelPolarity = -1
         self.wheelRadius = 30.0 # mm
         self.minWheelAngleChange = 0 # radians per frame
         self.maxWheelAngleChange = 0.5 # radians per frame
@@ -32,14 +40,6 @@ class TaskControl():
             self.screen = 1 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
             self.monDistance = 21.59 # cm
-            self.monGamma = 2.3 # float or None
-            self.monSizePix = (1920,1080)
-            self.flipScreenHorz = False
-            self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
-            self.warpFile = None
-            self.diodeBoxSize = 50
-            self.diodeBoxPosition = (935,-515)
-            self.wheelPolarity = -1
             self.nidaqDevices = ('USB-6001','USB-6001')
             self.nidaqDeviceNames = ('Dev1','Dev2')
         elif self.rigName == 'box5':
@@ -47,14 +47,6 @@ class TaskControl():
             self.screen = 0 # monitor to present stimuli on
             self.monWidth = 50.8 # cm
             self.monDistance = 21.6 # cm
-            self.monGamma = 2.1 # float or None
-            self.monSizePix = (1920,1080)
-            self.flipScreenHorz = False
-            self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
-            self.warpFile = None
-            self.diodeBoxSize = 50
-            self.diodeBoxPosition = (935,-515)
-            self.wheelPolarity = -1
             self.nidaqDevices = ('USB-6001',)
             self.nidaqDeviceNames = ('Dev1',)
         elif self.rigName == 'human':
@@ -62,13 +54,7 @@ class TaskControl():
             self.screen = 0 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
             self.monDistance = 45.2 # cm
-            self.monGamma = 2.1 # float or None
-            self.monSizePix = (1920,1080)
-            self.flipScreenHorz = False
-            self.warp = None # 'spherical', 'cylindrical', 'warpfile', None
-            self.warpFile = None
             self.drawDiodeBox = False
-            self.wheelPolarity = 1
             self.nidaqDevices = None
             self.nidaqDeviceNames = None
         else:

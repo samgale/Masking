@@ -254,6 +254,7 @@ class MaskTaskData():
         print('\n'+self.behavDataPath)
         
         behavData = h5py.File(self.behavDataPath,'r')
+        self.rigName = behavData['rigName'][()]
         self.behavFrameIntervals = behavData['frameIntervals'][:]
         self.frameRate = round(1/np.median(self.behavFrameIntervals))
         if self.ephys and self.behavFrameIntervals.size+1>self.frameSamples.size:
@@ -288,8 +289,8 @@ class MaskTaskData():
         if 'showVisibilityRating' in behavData and behavData['showVisibilityRating'][()]:
             self.visRating = behavData['visRating'][:self.ntrials]
             self.visRatingScore = np.zeros(self.visRating.size)
-            self.visRatingScore[self.visRating=='No'] = -1
-            self.visRatingScore[self.visRating=='Yes'] = 1
+            self.visRatingScore[['1' in v for v in self.visRating]] = -1
+            self.visRatingScore[['3' in v for v in self.visRating]] = 1
         
         self.findLongFrameTrials()
         self.findEngagedTrials()
@@ -349,24 +350,28 @@ class MaskTaskData():
     
     
     def calcReactionTime(self,moveInitThresh=0.2):
-        wp = self.wheelPos-self.wheelPos[:,self.earlyMoveFrames][:,None]
-        wp[:,:self.earlyMoveFrames] = 0
         self.reactionTime = np.full(self.ntrials,np.nan)
         self.movementVelocity = self.reactionTime.copy()
-        for i,(w,s) in enumerate(zip(wp,self.stimStart+self.frameDisplayLag)):
-            frameIntervals = self.behavFrameIntervals[s:s+w.size]
-            frameIntervals[0] = 0
-            t = np.cumsum(frameIntervals)
-            t *= 1000
-            tinterp = np.arange(t[-1])
-            winterp = np.interp(tinterp,t,np.absolute(w[:t.size]))
-            respInd = np.where(winterp>=self.wheelRewardDistance)[0]
-            if len(respInd)>0:
-                belowThresh = np.where(winterp[:respInd[0]]<moveInitThresh)[0]
-                if len(belowThresh)>0:
-                    initInd = belowThresh[-1]+1
-                    self.reactionTime[i] = tinterp[initInd]
-                    self.movementVelocity[i] = 1000*(self.wheelRewardDistance-moveInitThresh)/(tinterp[respInd[0]]-tinterp[initInd])
+        if self.rigName == 'human':
+            for i,(s,r) in enumerate(zip(self.stimStart+self.frameDisplayLag,self.responseFrame)):
+                self.reactionTime[i] = self.behavFrameIntervals[s+1:r].sum()*1000
+        else:
+            wp = self.wheelPos-self.wheelPos[:,self.earlyMoveFrames][:,None]
+            wp[:,:self.earlyMoveFrames] = 0
+            for i,(w,s) in enumerate(zip(wp,self.stimStart+self.frameDisplayLag)):
+                frameIntervals = self.behavFrameIntervals[s:s+w.size]
+                frameIntervals[0] = 0
+                t = np.cumsum(frameIntervals)
+                t *= 1000
+                tinterp = np.arange(t[-1])
+                winterp = np.interp(tinterp,t,np.absolute(w[:t.size]))
+                respInd = np.where(winterp>=self.wheelRewardDistance)[0]
+                if len(respInd)>0:
+                    belowThresh = np.where(winterp[:respInd[0]]<moveInitThresh)[0]
+                    if len(belowThresh)>0:
+                        initInd = belowThresh[-1]+1
+                        self.reactionTime[i] = tinterp[initInd]
+                        self.movementVelocity[i] = 1000*(self.wheelRewardDistance-moveInitThresh)/(tinterp[respInd[0]]-tinterp[initInd])
     
     
     def loadRFData(self,filePath=None):

@@ -98,7 +98,7 @@ xticks = list(targetFrames/frameRate*1000)
 xticklabels = ['no\nstimulus'] + [str(int(round(x))) for x in xticks[1:]]
 xlim = [-5,105]
 
-for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),[125,475]),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
+for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),(125,475)),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     if data is fracCorr:
@@ -177,7 +177,8 @@ xticks = targetContrast
 xticklabels = ['no\nstimulus'] + [str(x) for x in targetContrast[1:]]
 xlim = [-0.05*targetContrast.max(),1.05*targetContrast.max()]
 
-for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),[125,475]),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
+rtRange = (0,2000) if exps[0].rigName=='human' else (125,475)
+for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rtRange),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     if data is fracCorr:
