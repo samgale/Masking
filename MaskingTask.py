@@ -305,7 +305,7 @@ class MaskingTask(TaskControl):
             self.maxTrials = 15 * (2 * (len(self.maskOnset) + 1) + 2)
             
         else:
-            print(str(taskVersion)+' is not a recognized task version')
+            raise ValueError(taskVersion + ' is not a recognized task version')
     
      
     def checkParamValues(self):
@@ -643,7 +643,7 @@ class MaskingTask(TaskControl):
             if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
                 quiescentMove = False
                 if self.rigName == 'human':
-                    if 'left' in self._keys or 'right' in self._keys():
+                    if 'left' in self._keys or 'right' in self._keys:
                         quiescentMove = True
                 else:
                     quiescentWheelMove += self.deltaWheelPos[-1] * self.wheelGain
