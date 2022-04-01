@@ -21,8 +21,9 @@ class MaskingTask(TaskControl):
         self.taskVersionOption = taskVersionOption
         self.maxTrials = None
         
-        self.showFixationPoint = False # fixation point for humans
-        self.fixationPointRadius = 4 # pixels
+        self.showFixationCross = False # fixation point for humans
+        self.fixationCrossSize = 0.5 # degrees
+        self.textHeight = 1 # degrees
         self.showVisibilityRating = False # target visiiblity rating for humans
         self.allowMouseClickVisRating = False
         
@@ -283,7 +284,7 @@ class MaskingTask(TaskControl):
             self.targetContrast = [0.1]
             self.probCatch = 0
             self.maxResponseWaitFrames = 222
-            self.showFixationPoint = True
+            self.showFixationCross = True
             
         elif taskVersion == 'human practice with rating':
             self.setDefaultParams('human practice',option)
@@ -386,28 +387,29 @@ class MaskingTask(TaskControl):
                                     fillColor=0.5)
                                     for pos in targetPosPix]]
         
-        # create fixation point and target visibility rating scale for humans
+        # create fixation cross and target visibility rating scale for humans
         if self.rigName == 'human':
             startButton = visual.TextStim(win=self._win,
-                                           units='pix',
-                                           color=-1,
-                                           height=20,
-                                           pos=(0,0),
-                                           text='Click to start')
-            
-        if self.showFixationPoint:
-            fixationPoint = visual.Circle(win=self._win,
                                           units='pix',
-                                          radius=self.fixationPointRadius,
-                                          lineColor=-1,
-                                          fillColor=-1)
+                                          color=-1,
+                                          height=int(self.textHeight*self.pixelsPerDeg),
+                                          pos=(0,0),
+                                          text='Click to start')
+            
+        if self.showFixationCross:
+            fixationCross = visual.ShapeStim(win=self._win,
+                                             units='pix',
+                                             vertices='cross',
+                                             size=int(self.fixationCrossSize*self.pixelsPerDeg),
+                                             lineColor=-1,
+                                             fillColor=-1)
         
         if self.showVisibilityRating:
             # if text not positioned correct, try pip install pyglet==1.3.2
             ratingTitle = visual.TextStim(win=self._win,
                                           units='pix',
                                           color=-1,
-                                          height=20,
+                                          height=int(self.textHeight*self.pixelsPerDeg),
                                           pos=(0,0.1*self.monSizePix[1]),
                                           text='Did you see the target side?')
             
@@ -416,7 +418,7 @@ class MaskingTask(TaskControl):
             ratingButtons = [visual.TextStim(win=self._win,
                                              units='pix',
                                              color=-1,
-                                             height=20,
+                                             height=int(self.textHeight*self.pixelsPerDeg),
                                              pos=(x*self.monSizePix[0],-0.1*self.monSizePix[1]),
                                              text=lbl)
                                              for x,lbl in zip((-buttonSpacing,0,buttonSpacing),('No=1','Unsure=2','Yes=3'))]
@@ -636,8 +638,8 @@ class MaskingTask(TaskControl):
                 self.trialOptoPulseDur.append(optoPulseDur)
                 hasResponded = False
                 
-            if self.showFixationPoint and not hasResponded:
-                fixationPoint.draw()
+            if self.showFixationCross and not hasResponded:
+                fixationCross.draw()
             
             # extend pre stim gray frames if wheel moving during quiescent period
             if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
