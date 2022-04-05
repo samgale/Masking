@@ -286,6 +286,9 @@ class MaskTaskData():
         self.responseFrame = behavData['trialResponseFrame'][:self.ntrials]
         self.optoChan = behavData['trialOptoChan'][:self.ntrials]
         self.optoOnset = behavData['trialOptoOnset'][:self.ntrials]
+        if 'keyPressFrames' in behavData:
+            self.keyPressFrames = behavData['keyPressFrames'][:]
+            self.keysPressed = behavData['keysPressed'][:]
         if 'showVisibilityRating' in behavData and behavData['showVisibilityRating'][()]:
             self.visRating = behavData['visRating'][:self.ntrials]
             self.visRatingScore = np.zeros(self.visRating.size)

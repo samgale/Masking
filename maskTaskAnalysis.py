@@ -106,7 +106,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),(1
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
@@ -186,7 +186,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rt
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
@@ -288,7 +288,7 @@ for n in range(len(exps)):
         if i==0:
             meanLR = np.mean(data,axis=0)
         else:
-            meanLR = np.sum(data*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+            meanLR = np.nansum(data*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
         ax.plot(xticks,meanLR,'ko')
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
@@ -312,7 +312,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
@@ -377,7 +377,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for i,mfc,lbl in zip((vgatInd,wtInd),('k','none'),('VGAT-ChR2','Wild-type')):
         mean = np.nanmean(meanLR[i],axis=0)
         sem = np.nanstd(meanLR[i],axis=0)/(meanLR[i].shape[0]**0.5)
@@ -406,7 +406,7 @@ for data,lbl in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     pvals = []
     for x,y in zip(meanLR[vgatInd].T,meanLR[wtInd].T):
         pvals.append(scipy.stats.ranksums(x,y)[1])
@@ -419,7 +419,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     p = scipy.stats.kruskal(*meanLR.T,nan_policy='omit')[1]
     pmat = np.full((meanLR.shape[1],)*2,np.nan)
     for i,x in enumerate(meanLR.T):
@@ -458,7 +458,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     plt.tight_layout()
     
 # comparison to chance
-meanLR = np.sum(fracCorr*respRate,axis=1)/np.sum(respRate,axis=1)
+meanLR = np.nansum(fracCorr*respRate,axis=1)/np.sum(respRate,axis=1)
 n = ntrials.sum(axis=1)
 pval = np.full(n.shape,np.nan)
 for i in range(len(pval)):
@@ -499,7 +499,7 @@ for data,ylabel in zip((respRate,fracCorr),('Response Rate','Fraction Correct'))
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,1],[0,1],'--',color='0.5')
-meanLR = np.sum(probGoRight*respRate,axis=1)/np.sum(respRate,axis=1)
+meanLR = np.nansum(probGoRight*respRate,axis=1)/np.sum(respRate,axis=1)
 for i,clr,lbl in zip(range(1,6),clrs,lbls):
     x = meanLR[:,0]
     y = meanLR[:,i]
@@ -524,7 +524,7 @@ for measures,ylbl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect,medianR
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for data,clr,lbl in zip(measures,('k','0.5','k'),('correct','incorrect','other')):
-        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if lbl=='other':

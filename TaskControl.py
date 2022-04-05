@@ -83,6 +83,8 @@ class TaskControl():
                                          pos=self.diodeBoxPosition)
         
         self._keys = [] # list of keys pressed since previous frame
+        self.keyPressFrames = []
+        self.keysPressed = []
         if self.rigName == 'human':
             self._mouse = event.Mouse(win=self._win)
                                     
@@ -156,6 +158,9 @@ class TaskControl():
         # spacebar delivers reward
         # escape key ends session
         self._keys = event.getKeys()
+        if len(self._keys) > 0:
+            self.keyPressFrames.append(self._sessionFrame)
+            self.keysPressed.append(np.array(self._keys,dtype=object))
         if self.spacebarRewardsEnabled and 'space' in self._keys and not self._reward:
             self._reward = self.solenoidOpenTime
             self.manualRewardFrames.append(self._sessionFrame)
@@ -418,7 +423,7 @@ def saveParameters(fileOut,paramDict,dictName=None):
                 if val is None:
                     val = np.nan
                 try:
-                    if isinstance(val,(list,tuple)) and all(isinstance(v,str) for v in val):
+                    if isStringSequence(val):
                         fileOut.create_dataset(paramName,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=str))
                     else:
                         try:
@@ -427,7 +432,18 @@ def saveParameters(fileOut,paramDict,dictName=None):
                             fileOut.create_dataset(paramName,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=float))
                 except:
                     print('\n' + 'could not save ' + key)
+
+
+def isStringSequence(obj):
+    if isinstance(obj,(list,tuple,np.ndarray)):
+        if all(isinstance(d,str) for d in obj):
+            return True
+        else:
+            return all(isStringSequence(d) for d in obj)
+    else:
+        return False
                     
+
 
 if __name__ == "__main__":
     pass
