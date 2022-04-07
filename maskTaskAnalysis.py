@@ -176,8 +176,8 @@ print(np.median(ntotal),np.min(ntotal),np.max(ntotal))
 xticks = targetContrast
 xticklabels = ['no\nstimulus'] + [str(x) for x in targetContrast[1:]]
 xlim = [-0.05*targetContrast.max(),1.05*targetContrast.max()]
-
 rtRange = (0,2000) if exps[0].rigName=='human' else (125,475)
+
 for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rtRange),('Response Rate','Fraction Correct','Median reaction time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -213,7 +213,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rt
 
 # masking
 stimLabels = ('maskOnly','mask','targetOnly','catch')
-maskOnset = np.array([0,2,3,4,6])
+maskOnset = np.unique(exps[0].maskOnset)
 ntrials = np.full((len(exps),len(rewardDir),len(maskOnset)+2),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
@@ -274,7 +274,7 @@ print(np.median(ntotal),np.min(ntotal),np.max(ntotal))
 #np.save(fileIO.saveFile('Save respRate',fileType='*.npy'),respRate)
 #np.save(fileIO.saveFile('Save fracCorr',fileType='*.npy'),fracCorr)
 
-xticks = list(maskOnset/frameRate*1000)+[67,83]
+xticks = np.concatenate((maskOnset,[maskOnset[-1]+2,maskOnset[-1]+4]))/frameRate*1000
 xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstimulus']
 xlim = [-8,92]
 
@@ -333,6 +333,28 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     ax.set_ylim(ylim)
     ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
     ax.set_ylabel(ylabel,fontsize=16)
+    plt.tight_layout()
+    
+# visibility rating
+for n in range(len(exps)):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(xlim,[0,0],'--',color='0.8')
+#    for d,clr in zip(visRating[n],'rb'):
+#        ax.plot(xticks,d,'o',color=clr)
+#    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+    meanLR = np.mean(visRating[n],axis=0)
+    ax.plot(xticks,meanLR,'ko')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_yticks([-1,0,1])
+    ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+    ax.set_xlim(xlim)
+    ax.set_ylim([-1.02,1.02])
+    ax.set_xlabel('Mask onset relative to target onset (ms)')
     plt.tight_layout()
     
 # pooled trials across mice
@@ -674,28 +696,6 @@ ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
 plt.tight_layout()
-
-# visibility rating
-for n in range(len(exps)):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot(xlim,[0,0],'--',color='0.8')
-#    for d,clr in zip(visRating[n],'rb'):
-#        ax.plot(xticks,d,'o',color=clr)
-#    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
-    meanLR = np.mean(visRating[n],axis=0)
-    ax.plot(xticks,meanLR,'ko')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
-    ax.set_yticks([-1,0,1])
-    ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
-    ax.set_xlim(xlim)
-    ax.set_ylim([-1.02,1.02])
-    ax.set_xlabel('Mask onset relative to target onset (ms)')
-    plt.tight_layout()
 
 
 # opto timing
