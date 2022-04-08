@@ -219,6 +219,7 @@ respRate = ntrials.copy()
 fracCorr = respRate.copy()
 probGoRight = respRate.copy()
 visRating = respRate.copy()
+visRatingMedianReacTime = respRate.copy()
 medianReacTime = respRate.copy()
 medianReacTimeCorrect = respRate.copy()
 medianReacTimeIncorrect = respRate.copy()
@@ -251,6 +252,7 @@ for n,obj in enumerate(exps):
                     velocity[n][stim][rd][mo] = obj.movementVelocity[respTrials]
                     if hasattr(obj,'visRating'):
                         visRating[n,i,j] = obj.visRatingScore[trials].mean()
+                        visRatingMedianReacTime[n,i,j] = np.nanmedian(obj.visRatingReactionTime[respTrials])
                     if stim in ('targetOnly','mask'):
                         correctTrials = obj.response[respTrials]==1
                         fracCorr[n,i,j] = correctTrials.sum()/respTrials.sum()
@@ -276,13 +278,13 @@ print(np.median(ntotal),np.min(ntotal),np.max(ntotal))
 
 xticks = np.concatenate((maskOnset,[maskOnset[-1]+2,maskOnset[-1]+4]))/frameRate*1000
 xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstimulus']
-xlim = [-8,92]
+xlim = [-8,(maskOnset[-1]+6)/frameRate*1000]
 
 # single experiment
 for n in range(len(exps)):
     fig = plt.figure(figsize=(6,9))
-    for i,(data,ylim,ylabel) in enumerate(zip((respRate[n],fracCorr[n],medianReacTime[n]),((0,1.02),(0.4,1.02),None),('Response Rate','Fraction Correct','Median reaction time (ms)'))):
-        ax = fig.add_subplot(3,1,i+1)
+    for i,(data,ylim,ylabel) in enumerate(zip((respRate[n],fracCorr[n],medianReacTime[n],visRatingMedianReacTime[n]),((0,1.02),(0.4,1.02),None,None),('Response Rate','Fraction Correct','Median reaction time (ms)','Median rating time (ms)'))):
+        ax = fig.add_subplot(4,1,i+1)
         for d,clr in zip(data,'rb'):
             ax.plot(xticks,d,'o',color=clr)
         if i==0:
@@ -312,7 +314,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
@@ -340,10 +342,10 @@ for n in range(len(exps)):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot(xlim,[0,0],'--',color='0.8')
-#    for d,clr in zip(visRating[n],'rb'):
-#        ax.plot(xticks,d,'o',color=clr)
-#    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
-    meanLR = np.mean(visRating[n],axis=0)
+    for d,clr in zip(visRating[n],'rb'):
+        ax.plot(xticks,d,'o',color=clr)
+    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+#    meanLR = np.mean(visRating[n],axis=0)
     ax.plot(xticks,meanLR,'ko')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
@@ -399,7 +401,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for i,mfc,lbl in zip((vgatInd,wtInd),('k','none'),('VGAT-ChR2','Wild-type')):
         mean = np.nanmean(meanLR[i],axis=0)
         sem = np.nanstd(meanLR[i],axis=0)/(meanLR[i].shape[0]**0.5)
@@ -428,7 +430,7 @@ for data,lbl in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     pvals = []
     for x,y in zip(meanLR[vgatInd].T,meanLR[wtInd].T):
         pvals.append(scipy.stats.ranksums(x,y)[1])
@@ -441,7 +443,7 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     p = scipy.stats.kruskal(*meanLR.T,nan_policy='omit')[1]
     pmat = np.full((meanLR.shape[1],)*2,np.nan)
     for i,x in enumerate(meanLR.T):

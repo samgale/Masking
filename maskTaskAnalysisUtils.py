@@ -294,6 +294,8 @@ class MaskTaskData():
             self.visRatingScore = np.zeros(self.visRating.size)
             self.visRatingScore[['1' in v for v in self.visRating]] = -1
             self.visRatingScore[['3' in v for v in self.visRating]] = 1
+            self.visRatingStartFrame = behavData['visRatingStartFrame'][:self.ntrials]
+            self.visRatingEndFrame = behavData['visRatingEndFrame'][:self.ntrials]
         
         self.findLongFrameTrials()
         self.findEngagedTrials()
@@ -354,10 +356,14 @@ class MaskTaskData():
     
     def calcReactionTime(self,moveInitThresh=0.2):
         self.reactionTime = np.full(self.ntrials,np.nan)
-        self.movementVelocity = self.reactionTime.copy()
+        self.movementVelocity = np.full(self.ntrials,np.nan)
         if self.rigName == 'human':
             for i,(s,r) in enumerate(zip(self.stimStart+self.frameDisplayLag,self.responseFrame)):
                 self.reactionTime[i] = self.behavFrameIntervals[s+1:r].sum()*1000
+            if hasattr(self,'visRating'):
+                self.visRatingReactionTime = np.full(self.ntrials,np.nan)
+                for i,(s,r) in enumerate(zip(self.visRatingStartFrame+self.frameDisplayLag,self.visRatingEndFrame)):
+                    self.visRatingReactionTime[i] = self.behavFrameIntervals[s+1:r].sum()*1000 
         else:
             wp = self.wheelPos-self.wheelPos[:,self.earlyMoveFrames][:,None]
             wp[:,:self.earlyMoveFrames] = 0

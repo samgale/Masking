@@ -288,8 +288,8 @@ class MaskingTask(TaskControl):
         elif taskVersion == 'human contrast':
             self.setDefaultParams('human contrast practice',option)
             self.targetContrast = [0.02,0.03,0.04,0.05,0.06,0.07]
-            self.probCatch = 1 / (1 + 2*len(self.targetContrast))
-            self.maxTrials = 15 * (len(self.targetContrast) * 2 + 1)
+            self.probCatch = 1 / (2 * len(self.targetContrast) + 1)
+            self.maxTrials = 15 * (2 * len(self.targetContrast) + 1)
             
         elif taskVersion == 'human masking practice':
             self.setDefaultParams('masking',option)
@@ -297,7 +297,7 @@ class MaskingTask(TaskControl):
             self.targetContrast = [0.1]
             self.maskContrast = [0.1]
             self.maskOnset = [4,6,8]
-            self.probMask = 1- (1 / (1 + len(self.maskOnset)))
+            self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
             self.probCatch = 0
             self.maxConsecutiveMaskTrials = 100
             self.showVisibilityRating = True
@@ -306,9 +306,9 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('human masking practice',option)
             self.targetContrast = [0.05]
             self.maskContrast = [0.05]
-            self.maskOnset = [2,3,4,6,8]
-            self.probMask = 1 - (1 / (1 + len(self.maskOnset)))
-            self.probCatch = 1 / (1 + 2*len(self.maskOnset))
+            self.maskOnset = [2,4] #[2,3,4,6,8]
+            self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
+            self.probCatch = 1 / (2 * len(self.maskOnset) + 1)
             self.maxTrials = 15 * (2 * (len(self.maskOnset) + 1) + 2)
             
         else:
