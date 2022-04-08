@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import scipy.signal
 import scipy.ndimage
+import scipy.optimize
 import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
@@ -231,6 +232,26 @@ def getSyncData():
     ax.set_xlabel('Time from trial start (s)')
     ax.legend()
     plt.tight_layout()
+    
+    
+def fitCurve(func,x,y):
+    return scipy.optimize.curve_fit(func,x,y)[0]
+    
+
+def calcLogisticDistrib(x,a,b,m,s):
+    # m: x at 50% max y, s: scale
+    return a * (1 / (1 + np.exp(-(x - m) / s))) + b
+
+def inverseLogistic(y,a,b,m,s):
+    return m - s * np.log((a / (y - b)) - 1)
+
+
+def calcWeibullDistrib(x,a,b,j,k):
+    # j: shape, k: scale
+    return a * (1 - np.exp(-(x / j) ** k)) + b
+
+def inverseWeibull(y,a,b,j,k):
+    return j * (-np.log(1 - ((y - b) / a))) ** (1/k)
     
 
 class MaskTaskData():

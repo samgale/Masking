@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
 import fileIO
-from maskTaskAnalysisUtils import MaskTaskData
+from maskTaskAnalysisUtils import MaskTaskData,fitCurve,calcLogisticDistrib,calcWeibullDistrib,inverseLogistic,inverseWeibull
    
 
 
@@ -186,7 +186,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rt
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
-        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
@@ -209,8 +209,40 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rt
     ax.set_xlabel('Target Contrast',fontsize=16)
     ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
-    
 
+# contrast response rate curve fit
+fitX = np.arange(targetContrast[0],targetContrast[-1]+0.001,0.001)
+contrastThreshLevel = 0.8
+for n,obj in enumerate(exps):    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    meanLR = np.mean(respRate[n],axis=0)
+    ax.plot(xticks,meanLR,'ko',ms=12)
+    for func,inv,clr,lbl in zip((calcLogisticDistrib,calcWeibullDistrib),
+                                (inverseLogistic,inverseWeibull),
+                                'gm',('Logistic','Weibull')):
+        try:
+            fitParams = fitCurve(func,targetContrast,meanLR)
+        except:
+            fitParams = None
+        if fitParams is not None:
+            ax.plot(fitX,func(fitX,*fitParams),clr,label=lbl)
+            a,b = fitParams[:2]
+            contrastThresh = inv(b+(a-b)*contrastThreshLevel,*fitParams)
+            ax.plot([contrastThresh]*2,[0,1],'--',color=clr,label=str(int(contrastThreshLevel*100))+'% max at '+str(round(contrastThresh,3)))
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlim(xlim)
+    ax.set_ylim((0,1))
+    ax.set_xlabel('Target Contrast',fontsize=16)
+    ax.set_ylabel('Response Rate',fontsize=16)
+    ax.legend()
+    plt.tight_layout()
+        
+    
 # masking
 stimLabels = ('maskOnly','mask','targetOnly','catch')
 maskOnset = np.unique(exps[0].maskOnset)
