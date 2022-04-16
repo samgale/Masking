@@ -239,7 +239,7 @@ def fitCurve(func,x,y):
     
 
 def calcLogisticDistrib(x,a,b,m,s):
-    # m: x at 50% max y, s: scale
+    # a: amplitude, b: offset, m: x at 50% max y, s: scale
     return a * (1 / (1 + np.exp(-(x - m) / s))) + b
 
 def inverseLogistic(y,a,b,m,s):
@@ -247,7 +247,7 @@ def inverseLogistic(y,a,b,m,s):
 
 
 def calcWeibullDistrib(x,a,b,j,k):
-    # j: shape, k: scale
+    # a: amplitude, b: offset, j: shape, k: scale
     return a * (1 - np.exp(-(x / j) ** k)) + b
 
 def inverseWeibull(y,a,b,j,k):

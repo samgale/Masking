@@ -410,32 +410,29 @@ class TaskControl():
         
 
 
-def saveParameters(fileOut,paramDict,dictName=None):
+def saveParameters(group,paramDict):
     for key,val in paramDict.items():
         if key[0] != '_':
-            if dictName is None:
-                paramName = key
-            else:
-                paramName = dictName+'_'+key
             if isinstance(val,dict):
-                saveParameters(fileOut,val,paramName)
+                saveParameters(group.create_group(key),val)
             else:
                 if val is None:
                     val = np.nan
                 try:
                     if isStringSequence(val):
-                        fileOut.create_dataset(paramName,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=str))
-                    else:
-                        try:
-                            fileOut.create_dataset(paramName,data=val)
-                        except:
-                            fileOut.create_dataset(paramName,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=float))
+                        group.create_dataset(key,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=str))
+                    elif (isinstance(val,(list,tuple,np.ndarray)) and len(val) > 0 and
+                          all(isinstance(d,(list,tuple,np.ndarray)) for d in val) and [len(d) for d in val].count(len(val[0])) != len(val)):
+                        group.create_dataset(key,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=float))
                 except:
-                    print('\n' + 'could not save ' + key)
+                    try:
+                        group.create_dataset(key,data=val)
+                    except:
+                        print('\n' + 'could not save ' + key)                  
 
 
 def isStringSequence(obj):
-    if isinstance(obj,(list,tuple,np.ndarray)):
+    if isinstance(obj,(list,tuple,np.ndarray)) and len(obj) > 0:
         if all(isinstance(d,str) for d in obj):
             return True
         else:
