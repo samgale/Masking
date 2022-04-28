@@ -410,6 +410,7 @@ class TaskControl():
         
 
 
+
 def saveParameters(group,paramDict):
     for key,val in paramDict.items():
         if key[0] != '_':
@@ -424,11 +425,10 @@ def saveParameters(group,paramDict):
                     elif (isinstance(val,(list,tuple,np.ndarray)) and len(val) > 0 and
                           all(isinstance(d,(list,tuple,np.ndarray)) for d in val) and [len(d) for d in val].count(len(val[0])) != len(val)):
                         group.create_dataset(key,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=float))
-                except:
-                    try:
+                    else:
                         group.create_dataset(key,data=val)
-                    except:
-                        print('\n' + 'could not save ' + key)                  
+                except:
+                    print('\n' + 'could not save ' + key)                 
 
 
 def isStringSequence(obj):
