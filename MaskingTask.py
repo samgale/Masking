@@ -304,9 +304,9 @@ class MaskingTask(TaskControl):
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('human masking practice',option)
-            self.targetContrast = [0.05]
-            self.maskContrast = [0.05]
-            self.maskOnset = [2,4] #[2,3,4,6,8]
+            self.targetContrast = [0.04]
+            self.maskContrast = [0.04]
+            self.maskOnset = [2,3,4,6,8]
             self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
             self.probCatch = 1 / (2 * len(self.maskOnset) + 1)
             self.maxTrials = 15 * (2 * (len(self.maskOnset) + 1) + 2)
