@@ -531,35 +531,38 @@ axs = []
 ymin = ymax = 0 
 for stim in stimLabels:
     mo = 2 if stim=='mask' else 0
-    fig = plt.figure()
     for i,hemi in enumerate(hemiLabels):
-        ax = fig.add_subplot(2,1,i+1)
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
         xmax = 0
         for resp,clr in zip(('left','right'),('g','m')):
             p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
             b = p-p[:,baselineWindow].mean(axis=1)[:,None]
             m = np.nanmean(b,axis=0)
             s = np.nanstd(b,axis=0)/(b.shape[0]**0.5)
-            ax.plot(t*1000,m,color=clr,lw=2,label='turn '+resp)
+            lbl = 'turn '+resp
+            if stim in ('targetOnly','mask'):
+                c = 'correct' if (hemi=='contra' and resp=='left') or (hemi=='ipsi' and resp=='right') else 'incorrect'
+                lbl += ' ('+c+')'
+            ax.plot(t*1000,m,color=clr,lw=2,label=lbl)
             ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
-            ymin = min(ymin,np.min(m-s))
-            ymax = max(ymax,np.max(m+s))
+            if stim != 'catch':
+                ymin = min(ymin,np.min(m-s))
+                ymax = max(ymax,np.max(m+s))
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
-        ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=14)
         ax.set_xticks(np.arange(0,250,50))
         ax.set_xlim([0,200])
-        if stim in ('maskOnly','catch') or i==1:
-            ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=14)
-        ax.set_ylabel('Spikes/s',fontsize=14)
+        ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+        ax.set_ylabel('Spikes/s',fontsize=16)
         title = stim if stim in ('maskOnly','catch') else stim+', '+hemi+' target'
         ax.set_title(title,fontsize=14)
-        if i==0:
-            ax.legend()
+        ax.legend(loc='upper right',fontsize=14)
         axs.append(ax)
+        figs.append(fig)
         if stim in ('maskOnly','catch'):
             break
-    figs.append(fig)
 for a in axs:
     a.set_ylim([1.02*ymin,1.02*ymax])
 for f in figs:
@@ -571,7 +574,8 @@ for stim in stimLabels:
     ax = fig.add_subplot(1,1,1)
     ax.plot([0,200],[0,0],':',color='k')
     mo = 2 if stim=='mask' else 0
-    for hemi,ls in zip(hemiLabels,('-','--')):
+    for hemi,clr in zip(hemiLabels,('r','b')):
+        clr = clr if stim in ('targetOnly','mask') else 'k'
         r = []
         for resp in ('left','right'):
             p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
@@ -580,8 +584,8 @@ for stim in stimLabels:
         d = np.array(r[0])-np.array(r[1])
         m = np.nanmean(d,axis=0)
         s = np.nanstd(d)/(len(d)**0.5)
-        ax.plot(t[analysisWindow]*1000,m,color='k',ls=ls,label=hemi)
-        ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color='k',alpha=0.25)
+        ax.plot(t[analysisWindow]*1000,m,color=clr,lw=2,label=hemi+'lateral target')
+        ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
         if stim in ('maskOnly','catch'):
             break
     for side in ('right','top'):
@@ -589,11 +593,12 @@ for stim in stimLabels:
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
     ax.set_yticks([-0.5,0,0.5,1])
     ax.set_xlim([33,200])
-    ax.set_ylim([-0.5,1])
+    ax.set_ylim([-0.2,1])
     ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
-    ax.set_ylabel('Difference in Cumulative Spikes\n(Turn Left - Right Trials)',fontsize=16)
+    ax.set_ylabel('Difference in Cumulative Spikes\n(Turn Left - Turn Right)',fontsize=16)
     ax.set_title(stim,fontsize=14)
-    leg = ax.legend(loc='upper left',fontsize=10)
+    if stim in ('targetOnly','mask'):
+        ax.legend(loc='upper left',fontsize=14)
     plt.tight_layout()
 
 
