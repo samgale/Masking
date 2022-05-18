@@ -317,6 +317,7 @@ class MaskTaskData():
             self.visRatingScore[['3' in v for v in self.visRating]] = 1
             self.visRatingStartFrame = behavData['visRatingStartFrame'][:self.ntrials]
             self.visRatingEndFrame = behavData['visRatingEndFrame'][:self.ntrials]
+        self.useContrastStaircase = behavData['useContrastStaircase'][()] if 'useContrastStaircase' in behavData else False
         
         self.findLongFrameTrials()
         self.findEngagedTrials()
