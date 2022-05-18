@@ -287,24 +287,25 @@ class MaskingTask(TaskControl):
             self.targetSize = 2
             self.targetSF = 2
             self.targetContrast = [0.5]
+            self.gratingType = 'sin'
             self.maxResponseWaitFrames = 222
             self.showFixationCross = True            
             
         elif taskVersion == 'human contrast':
             self.setDefaultParams('human contrast practice',option)
             self.useContrastStaircase = True
+            self.contrastStart = 0.5
+            self.contrastStepDown = 0.025
+            self.contrastStepUp = 0.075
             self.equalSampling = False
             self.probCatch = 0.1
-            self.maxTrials = 120
-#            self.targetContrast = [0.02,0.03,0.04,0.05,0.06,0.07]
-#            self.probCatch = 1 / (2 * len(self.targetContrast) + 1)
-#            self.maxTrials = 15 * (2 * len(self.targetContrast) + 1)
+            self.maxTrials = 150
             
         elif taskVersion == 'human masking practice':
             self.setDefaultParams('masking',option)
             self.setDefaultParams('human contrast practice',option)
-            self.targetContrast = [0.1]
-            self.maskContrast = [0.1]
+            self.targetContrast = [0.5]
+            self.maskContrast = [0.5]
             self.maskOnset = [4,6,8]
             self.maskFrames = [240]
             self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
@@ -314,8 +315,8 @@ class MaskingTask(TaskControl):
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('human masking practice',option)
-            self.targetContrast = [0.04]
-            self.maskContrast = [0.04]
+            self.targetContrast = [0.25]
+            self.maskContrast = [0.25]
             self.maskOnset = [2,3,4,6,8]
             self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
             self.probCatch = 1 / (2 * len(self.maskOnset) + 1)

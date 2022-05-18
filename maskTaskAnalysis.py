@@ -216,17 +216,32 @@ if obj in exps:
     if obj.useContrastStaircase:
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        ax.plot(obj.targetContrast)
+        x = np.arange(obj.targetContrast.size) + 1
+        catch = obj.targetContrast == 0
+        ax.plot(x[catch],obj.targetContrast[catch],'ko',ms=4)
+        tc = obj.targetContrast.copy()
+        tc[catch] = np.nan
+        ax.plot(x,tc,'ko-',ms=4)
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+        ax.set_xlabel('Trial',fontsize=16)
+        ax.set_ylabel('Target Contrast',fontsize=16)
+        plt.tight_layout()
 
 # contrast response rate curve fit
 fitX = np.arange(targetContrast[0],targetContrast[-1]+0.001,0.001)
 contrastThreshLevel = 0.8
-for n,obj in enumerate(exps):    
+for i,obj in enumerate(exps):    
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    meanLR = np.mean(respRate[n],axis=0)
+    meanLR = np.mean(respRate[i],axis=0)
     notNan = ~np.isnan(meanLR)
     ax.plot(xticks[notNan],meanLR[notNan],'ko',ms=12)
+    n = np.sum(ntrials[i],axis=0)
+    n[0] = ntrials[i][0][0]
+    for x,tx in zip(xticks[notNan],n[notNan]):
+        ax.text(x,1.02,str(int(tx)),ha='center',va='bottom')
     for func,inv,clr,lbl in zip((calcLogisticDistrib,calcWeibullDistrib),
                                 (inverseLogistic,inverseWeibull),
                                 'gm',('Logistic','Weibull')):
