@@ -287,7 +287,6 @@ class MaskingTask(TaskControl):
             self.targetSize = 2
             self.targetSF = 2
             self.targetContrast = [0.5]
-            self.gratingType = 'sin'
             self.maxResponseWaitFrames = 222
             self.showFixationCross = True            
             
@@ -306,21 +305,20 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('human contrast practice',option)
             self.targetContrast = [0.5]
             self.maskContrast = [0.5]
-            self.maskOnset = [4,6,8]
+            self.maskOnset = [6,12]
             self.maskFrames = [240]
-            self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
             self.probCatch = 0
             self.maxConsecutiveMaskTrials = 100
             self.showVisibilityRating = True
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('human masking practice',option)
-            self.targetContrast = [0.25]
-            self.maskContrast = [0.25]
-            self.maskOnset = [2,3,4,6,8]
-            self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
-            self.probCatch = 1 / (2 * len(self.maskOnset) + 1)
-            self.maxTrials = 15 * (2 * (len(self.maskOnset) + 1) + 2)
+            self.targetContrast = [0.19]
+            self.maskContrast = [0.19]
+            self.maskOnset = [2,4,6,8,10,12]
+            self.probMask = 0.75
+            self.probCatch = 1 / (1 + 2*len(self.maskOnset))
+            self.maxTrials = (24 * len(self.maskOnset)) / (self.probMask * (1-self.probCatch))
             
         else:
             raise ValueError(taskVersion + ' is not a recognized task version')

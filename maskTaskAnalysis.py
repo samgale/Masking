@@ -175,7 +175,7 @@ ntotal = ntrials.sum(axis=(1,2))
 print(np.median(ntotal),np.min(ntotal),np.max(ntotal))
                     
 xticks = targetContrast
-xticklabels = ['no\nstimulus'] + [str(round(x,2)) for x in targetContrast[1:]]
+xticklabels = ['no\nstimulus'] + [str(round(x,3)) for x in targetContrast[1:]]
 xlim = [-0.05*targetContrast.max(),1.05*targetContrast.max()]
 rtRange = (0,2000) if exps[0].rigName=='human' else (125,475)
 
@@ -231,7 +231,7 @@ if obj in exps:
 
 # contrast response rate curve fit
 fitX = np.arange(targetContrast[0],targetContrast[-1]+0.001,0.001)
-contrastThreshLevel = 0.8
+contrastThreshLevel = 0.9
 for i,obj in enumerate(exps):    
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
