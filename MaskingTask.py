@@ -287,7 +287,7 @@ class MaskingTask(TaskControl):
             self.targetSize = 2
             self.targetSF = 2
             self.targetContrast = [0.5]
-            self.maxResponseWaitFrames = 222
+            self.maxResponseWaitFrames = 282
             self.showFixationCross = True     
             self.probCatch = 0
             
@@ -307,7 +307,7 @@ class MaskingTask(TaskControl):
             self.targetContrast = [0.5]
             self.maskContrast = [0.5]
             self.maskOnset = [6,12]
-            self.maskFrames = [240]
+            self.maskFrames = [300]
             self.probMask = 0.75
             self.probCatch = 0
             self.maxConsecutiveMaskTrials = 100
@@ -315,11 +315,11 @@ class MaskingTask(TaskControl):
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('human masking practice',option)
-            self.targetContrast = [0.16]
-            self.maskContrast = [0.16]
+            self.targetContrast = [0.32]
+            self.maskContrast = [0.32]
             self.maskOnset = [2,4,6,8,10,12]
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
-            self.maxTrials = (20 * len(self.maskOnset)) / (self.probMask * (1-self.probCatch))
+            self.maxTrials = (30 * len(self.maskOnset)) / (self.probMask * (1-self.probCatch))
             
         else:
             raise ValueError(taskVersion + ' is not a recognized task version')
@@ -861,7 +861,7 @@ class MaskingTask(TaskControl):
                     else:
                         incorrectRepeatCount = 0
                         self.trialRepeat.append(False)
-                    if len(self.trialStartFrame) >= self.maxTrials:
+                    if self.maxTrials is not None and len(self.trialStartFrame) >= self.maxTrials:
                         self._continueSession = False
             
             self.showFrame()

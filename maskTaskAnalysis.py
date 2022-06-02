@@ -198,12 +198,13 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rt
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-    if data is fracCorr:
-        ax.set_xticks(xticks[1:])
-        ax.set_xticklabels(xticklabels[1:])
-    else:
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(xticklabels)
+    if not obj.useContrastStaircase:
+        if data is fracCorr:
+            ax.set_xticks(xticks[1:])
+            ax.set_xticklabels(xticklabels[1:])
+        else:
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
@@ -246,7 +247,8 @@ for i,obj in enumerate(exps):
                                 (inverseLogistic,inverseWeibull),
                                 'gm',('Logistic','Weibull')):
         try:
-            fitParams = fitCurve(func,targetContrast[notNan],meanLR[notNan])
+            bounds = ((0,0,-np.inf,-np.inf),(1,1,np.inf,np.inf))
+            fitParams = fitCurve(func,targetContrast[notNan],meanLR[notNan],bounds=bounds)
         except:
             fitParams = None
         if fitParams is not None:
@@ -257,8 +259,9 @@ for i,obj in enumerate(exps):
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
+    if not obj.useContrastStaircase:
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     ax.set_ylim((0,1))
     ax.set_xlabel('Target Contrast',fontsize=16)
