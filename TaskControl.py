@@ -155,17 +155,18 @@ class TaskControl():
     
     
     def showFrame(self):
-        # spacebar delivers reward
-        # escape key ends session
+        if self.spacebarRewardsEnabled and 'space' in event.getKeys(['space']) and not self._reward:
+            self._reward = self.solenoidOpenTime
+            self.manualRewardFrames.append(self._sessionFrame)
+        
+        escape = event.getKeys(['escape'],modifiers=True)
+        if (len(escape) > 0 and escape[0][1]['shift']):   
+            self._continueSession = False
+            
         self._keys = event.getKeys()
         if len(self._keys) > 0:
             self.keyPressFrames.append(self._sessionFrame)
             self.keysPressed.append(np.array(self._keys,dtype=object))
-        if self.spacebarRewardsEnabled and 'space' in self._keys and not self._reward:
-            self._reward = self.solenoidOpenTime
-            self.manualRewardFrames.append(self._sessionFrame)
-        if 'escape' in self._keys:   
-            self._continueSession = False
         
         if self.rigName != 'human':
             self._frameSignalOutput.write(True)
@@ -421,22 +422,23 @@ def saveParameters(group,paramDict):
                     val = np.nan
                 try:
                     if isStringSequence(val):
-                        group.create_dataset(key,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=str))
+                        if not all(isinstance(v,str) for v in val):
+                            for i,v in enumerate(val):
+                                val[i] = str(v)
+                        group.create_dataset(key,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=str)) 
                     elif (isinstance(val,(list,tuple,np.ndarray)) and len(val) > 0 and
                           all(isinstance(d,(list,tuple,np.ndarray)) for d in val) and [len(d) for d in val].count(len(val[0])) != len(val)):
                         group.create_dataset(key,data=np.array(val,dtype=object),dtype=h5py.special_dtype(vlen=float))
                     else:
                         group.create_dataset(key,data=val)
                 except:
-                    print('\n' + 'could not save ' + key)                 
+                    print('\n' + 'could not save ' + key)            
 
 
 def isStringSequence(obj):
-    if isinstance(obj,(list,tuple,np.ndarray)) and len(obj) > 0:
-        if all(isinstance(d,str) for d in obj):
-            return True
-        else:
-            return all(isStringSequence(d) for d in obj)
+    if (isinstance(obj,(tuple,list,np.ndarray)) and len(obj) > 0 and
+        all((isinstance(d,str) or isStringSequence(d)) for d in obj)):
+        return True
     else:
         return False
                     

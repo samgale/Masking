@@ -133,7 +133,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),(1
 
 # target contrast
 stimLabels = ('targetOnly','catch')
-targetContrast = np.unique(exps[0].targetContrast)
+targetContrast = np.unique(np.round(exps[0].targetContrast,decimals=4))
 ntrials = np.full((len(exps),len(rewardDir),len(targetContrast)),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
@@ -146,9 +146,10 @@ reacTimeIncorrect = [{stim: {rd: {} for rd in rewardDir} for stim in stimLabels}
 for n,obj in enumerate(exps):
     validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for stim in stimLabels:
-        stimTrials = validTrials & (obj.trialType==stim)
+        stimTrials = np.in1d(obj.trialType,('targetOnly','targetOnlyGoRight','targetOnlyGoLeft')) if stim=='targetOnly' else obj.trialType==stim
+        stimTrials = stimTrials & validTrials
         for j,tc in enumerate(targetContrast):
-            tcTrials = stimTrials  & (obj.targetContrast==tc)
+            tcTrials = stimTrials  & (np.round(obj.targetContrast,decimals=4)==tc)
             if tcTrials.sum()>0:  
                 for i,rd in enumerate(rewardDir):
                     trials = tcTrials & (obj.rewardDir==rd) if stim=='targetOnly' else tcTrials
@@ -174,7 +175,7 @@ ntotal = ntrials.sum(axis=(1,2))
 print(np.median(ntotal),np.min(ntotal),np.max(ntotal))
                     
 xticks = targetContrast
-xticklabels = ['no\nstimulus'] + [str(x) for x in targetContrast[1:]]
+xticklabels = ['no\nstimulus'] + [str(round(x,3)) for x in targetContrast[1:]]
 xlim = [-0.05*targetContrast.max(),1.05*targetContrast.max()]
 rtRange = (0,2000) if exps[0].rigName=='human' else (125,475)
 
@@ -197,12 +198,13 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rt
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-    if data is fracCorr:
-        ax.set_xticks(xticks[1:])
-        ax.set_xticklabels(xticklabels[1:])
-    else:
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(xticklabels)
+    if not obj.useContrastStaircase:
+        if data is fracCorr:
+            ax.set_xticks(xticks[1:])
+            ax.set_xticklabels(xticklabels[1:])
+        else:
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
@@ -210,19 +212,43 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rt
     ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
 
+# staircase
+if obj in exps:
+    if obj.useContrastStaircase:
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        x = np.arange(obj.targetContrast.size) + 1
+        catch = obj.targetContrast == 0
+        ax.plot(x[catch],obj.targetContrast[catch],'ko',ms=4)
+        tc = obj.targetContrast.copy()
+        tc[catch] = np.nan
+        ax.plot(x,tc,'ko-',ms=4)
+        for side in ('right','top'):
+            ax.spines[side].set_visible(False)
+        ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+        ax.set_xlabel('Trial',fontsize=16)
+        ax.set_ylabel('Target Contrast',fontsize=16)
+        plt.tight_layout()
+
 # contrast response rate curve fit
 fitX = np.arange(targetContrast[0],targetContrast[-1]+0.001,0.001)
-contrastThreshLevel = 0.8
-for n,obj in enumerate(exps):    
+contrastThreshLevel = 0.9
+for i,obj in enumerate(exps):    
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    meanLR = np.mean(respRate[n],axis=0)
-    ax.plot(xticks,meanLR,'ko',ms=12)
+    meanLR = np.mean(respRate[i],axis=0)
+    notNan = ~np.isnan(meanLR)
+    ax.plot(xticks[notNan],meanLR[notNan],'ko',ms=12)
+    n = np.sum(ntrials[i],axis=0)
+    n[0] = ntrials[i][0][0]
+    for x,tx in zip(xticks[notNan],n[notNan]):
+        ax.text(x,1.02,str(int(tx)),ha='center',va='bottom')
     for func,inv,clr,lbl in zip((calcLogisticDistrib,calcWeibullDistrib),
                                 (inverseLogistic,inverseWeibull),
                                 'gm',('Logistic','Weibull')):
         try:
-            fitParams = fitCurve(func,targetContrast,meanLR)
+            bounds = ((0,0,-np.inf,-np.inf),(1,1,np.inf,np.inf))
+            fitParams = fitCurve(func,targetContrast[notNan],meanLR[notNan],bounds=bounds)
         except:
             fitParams = None
         if fitParams is not None:
@@ -233,8 +259,9 @@ for n,obj in enumerate(exps):
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
+    if not obj.useContrastStaircase:
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
     ax.set_ylim((0,1))
     ax.set_xlabel('Target Contrast',fontsize=16)

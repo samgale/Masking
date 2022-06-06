@@ -72,12 +72,18 @@ class MaskingTask(TaskControl):
         self.normTargetPos = [(0,0)] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetFrames = [1] # duration of target stimulus
         self.targetContrast = [1]
-        self.targetSize = 20 # degrees
+        self.targetSize = 25 # degrees
         self.targetSF = 0.08 # cycles/deg
         self.targetOri = [-45,45] # clockwise degrees from vertical
         self.gratingType = 'sqr' # 'sqr' or 'sin'
         self.gratingEdge= 'raisedCos' # 'circle' or 'raisedCos'
-        self.gratingEdgeBlurWidth = 0.1 # only applies to raisedCos
+        self.gratingEdgeBlurWidth = 0.08 # only applies to raisedCos
+        
+        # staircase contrast params
+        self.useContrastStaircase = False
+        self.contrastStart = 0.5
+        self.contrastStepDown = 0.05
+        self.contrastStepUp = 0.15
         
         # mask params
         self.maskType = None # None, 'plaid', or 'noise'
@@ -161,15 +167,14 @@ class MaskingTask(TaskControl):
             self.incorrectTimeoutFrames = 360
             self.incorrectTrialRepeats = 5 # will repeat for unanswered trials
             self.solenoidOpenTime = 0.07
-            self.probCatch = 0
+            self.probCatch = 0.15
             
         elif taskVersion == 'training4':
-            # more stringent parameters
+            # more stringent parameters and catch trials
             self.setDefaultParams('training3',option)
             self.maxResponseWaitFrames = 60
             self.incorrectTimeoutFrames = 720
             self.solenoidOpenTime = 0.05
-            self.probCatch = .15
   
         elif taskVersion == 'nogo':
             self.setDefaultParams('training4',option)
@@ -279,37 +284,42 @@ class MaskingTask(TaskControl):
             
         elif taskVersion == 'human contrast practice':
             self.setDefaultParams('testing',option)
-            self.targetSize = 10
-            self.targetSF = 0.2
-            self.targetContrast = [0.1]
-            self.maxResponseWaitFrames = 222
-            self.showFixationCross = True            
+            self.targetSize = 2
+            self.targetSF = 2
+            self.targetContrast = [0.5]
+            self.maxResponseWaitFrames = 282
+            self.showFixationCross = True     
+            self.probCatch = 0
             
         elif taskVersion == 'human contrast':
             self.setDefaultParams('human contrast practice',option)
-            self.targetContrast = [0.02,0.03,0.04,0.05,0.06,0.07]
-            self.probCatch = 1 / (2 * len(self.targetContrast) + 1)
-            self.maxTrials = 15 * (2 * len(self.targetContrast) + 1)
+            self.useContrastStaircase = True
+            self.contrastStart = 0.5
+            self.contrastStepDown = 0.025
+            self.contrastStepUp = 0.075
+            self.equalSampling = False
+            self.probCatch = 0.1
+            self.maxTrials = 150
             
         elif taskVersion == 'human masking practice':
             self.setDefaultParams('masking',option)
             self.setDefaultParams('human contrast practice',option)
-            self.targetContrast = [0.1]
-            self.maskContrast = [0.1]
-            self.maskOnset = [4,6,8]
-            self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
+            self.targetContrast = [0.5]
+            self.maskContrast = [0.5]
+            self.maskOnset = [6,12]
+            self.maskFrames = [300]
+            self.probMask = 0.75
             self.probCatch = 0
             self.maxConsecutiveMaskTrials = 100
             self.showVisibilityRating = True
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('human masking practice',option)
-            self.targetContrast = [0.04]
-            self.maskContrast = [0.04]
-            self.maskOnset = [2,3,4,6,8]
-            self.probMask = 1 - (1 / (len(self.maskOnset) + 1))
-            self.probCatch = 1 / (2 * len(self.maskOnset) + 1)
-            self.maxTrials = 15 * (2 * (len(self.maskOnset) + 1) + 2)
+            self.targetContrast = [0.32]
+            self.maskContrast = [0.32]
+            self.maskOnset = [2,4,6,8,10,12]
+            self.probCatch = 1 / (1 + 2*len(self.maskOnset))
+            self.maxTrials = (30 * len(self.maskOnset)) / (self.probMask * (1-self.probCatch))
             
         else:
             raise ValueError(taskVersion + ' is not a recognized task version')
@@ -608,6 +618,24 @@ class MaskingTask(TaskControl):
                     else:
                         params = random.choice(trialParams[trialType]['params'])
                     rewardDir,initTargetPos,initTargetOri,targetContrast,targetFrames,maskOnset,maskPos,maskFrames,maskContrast,optoChan,optoOnset,optoPulseDur = params
+                    
+                    if trialType != 'catch' and self.useContrastStaircase:
+                        lastContrast = self.contrastStart
+                        for tc in self.trialTargetContrast[::-1]:
+                            if tc > 0:
+                                lastContrast = tc
+                                break
+                        if len(self.trialTargetContrast) < 1:
+                            targetContrast = self.contrastStart
+                        elif self.trialResponse[-1] == 1:
+                            targetContrast = lastContrast - self.contrastStepDown
+                            if targetContrast < self.contrastStepDown:
+                                targetContrast = self.contrastStepDown
+                        else:
+                            targetContrast = lastContrast + self.contrastStepUp
+                            if targetContrast > self.contrastStart:
+                                targetContrast = self.contrastStart               
+                    
                     if rewardDir == 1 and self.rewardSizeRight is not None:
                         rewardSize = self.rewardSizeRight
                     elif rewardDir == -1 and self.rewardSizeLeft is not None:
@@ -833,7 +861,7 @@ class MaskingTask(TaskControl):
                     else:
                         incorrectRepeatCount = 0
                         self.trialRepeat.append(False)
-                    if len(self.trialStartFrame) == self.maxTrials:
+                    if self.maxTrials is not None and len(self.trialStartFrame) >= self.maxTrials:
                         self._continueSession = False
             
             self.showFrame()
