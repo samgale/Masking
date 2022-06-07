@@ -49,8 +49,8 @@ def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trial
     result = {}
     responseRate = []
     fractionCorrect = []
-    if Rrecord is not None:
-        balanceOfEvidence = np.array([R[rt]-L[rt] for R,L,rt in zip(Rrecord,Lrecord,responseTime)])
+    if Lrecord is not None:
+        evidenceLeft,evidenceRight = [np.array([ev[rt] for ev,rt in zip(rec,responseTime)]) for rec in (Lrecord,Rrecord)]
     for side in targetSide:
         result[side] = {}
         sideTrials = trialTargetSide==side
@@ -68,17 +68,20 @@ def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trial
                     result[side][maskOn][optoOn][opSide] = {}
                     result[side][maskOn][optoOn][opSide]['responseRate'] = responseRate[-1]
                     result[side][maskOn][optoOn][opSide]['responseTime'] = responseTime[trials][responded]
-                    if Rrecord is not None:
-                        result[side][maskOn][optoOn][opSide]['evidence'] = balanceOfEvidence[trials][responded]
+                    if Lrecord is not None:
+                        result[side][maskOn][optoOn][opSide]['evidenceLeft'] = evidenceLeft[trials][responded]
+                        result[side][maskOn][optoOn][opSide]['evidenceLeft'] = evidenceRight[trials][responded]
                     if side!=0 and maskOn!=0:
                         correct = response[trials]==side
                         fractionCorrect.append(np.sum(correct[responded])/np.sum(responded))
                         result[side][maskOn][optoOn][opSide]['fractionCorrect'] = fractionCorrect[-1]
                         result[side][maskOn][optoOn][opSide]['responseTimeCorrect'] = responseTime[trials][responded & correct]
                         result[side][maskOn][optoOn][opSide]['responseTimeIncorrect'] = responseTime[trials][responded & (~correct)]
-                        if Rrecord is not None:
-                            result[side][maskOn][optoOn][opSide]['evidenceCorrect'] = balanceOfEvidence[trials][responded & correct]
-                            result[side][maskOn][optoOn][opSide]['evidenceIncorrect'] = balanceOfEvidence[trials][responded & ~correct]
+                        if Lrecord is not None:
+                            result[side][maskOn][optoOn][opSide]['evidenceLeftCorrect'] = evidenceLeft[trials][responded & correct]
+                            result[side][maskOn][optoOn][opSide]['evidenceRightCorrect'] = evidenceRight[trials][responded & correct]
+                            result[side][maskOn][optoOn][opSide]['evidenceLeftIncorrect'] = evidenceLeft[trials][responded & ~correct]
+                            result[side][maskOn][optoOn][opSide]['evidenceRightIncorrect'] = evidenceRight[trials][responded & ~correct]
                     else:
                         fractionCorrect.append(np.nan)
     result['responseRate'] = np.array(responseRate)
@@ -593,7 +596,7 @@ ax.set_ylabel('Cumulative Probability',fontsize=16)
 plt.tight_layout()
 
 
-# confidence
+# balance of evidence
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 evidenceCorr = []
@@ -602,8 +605,15 @@ for side in targetSide:
     maskOn = [np.nan] if side==0 else maskOnset
     for mo in maskOn:
         if not (side==0 or mo==0):
-            evidenceCorr.append(np.mean(result[side][mo][optoOnset[0]][optoSide[0]]['evidenceCorrect']/threshold))
-            evidenceIncorr.append(-np.mean(result[side][mo][optoOnset[0]][optoSide[0]]['evidenceIncorrect']/threshold))
+            evidence = []
+            for evLbl in ('evidenceLeftCorrect','evidenceRightCorrect','evidenceLeftIncorrect','evidenceRightIncorrect'):
+                ev = result[side][mo][optoOnset[0]][optoSide[0]][evLbl] / threshold
+                ev[ev>1] = 1
+                ev[ev<0] = 0
+                evidence.append(ev)
+            evLcorr,evRcorr,evLincorr,evRincorr = evidence
+            evidenceCorr.append(np.mean(evRcorr - evLcorr))
+            evidenceIncorr.append(np.mean(evLincorr - evRincorr))
 ax.plot(xticks[1:-1],evidenceCorr,'go')
 ax.plot(xticks[1:-1],evidenceIncorr,'mo')
 for side in ('right','top'):
@@ -613,7 +623,7 @@ ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
 ax.set_xlabel('Mask onset relative to target onset (ms)')
-ax.set_ylabel('Confidence')
+ax.set_ylabel('Balance of evidence')
 plt.tight_layout()
 
 
