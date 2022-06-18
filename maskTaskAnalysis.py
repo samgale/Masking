@@ -16,6 +16,10 @@ import fileIO
 from maskTaskAnalysisUtils import MaskTaskData,fitCurve,calcLogisticDistrib,calcWeibullDistrib,inverseLogistic,inverseWeibull
    
 
+frameRate = 120
+targetSide = ('left','right')
+rewardDir = (1,-1)
+
 
 behavFiles = []
 while True:
@@ -38,18 +42,11 @@ longFrames = sum(obj.longFrameTrials.sum() for obj in exps)/totalTrials
 notEngaged = sum(np.sum(~obj.engaged) for obj in exps)/totalTrials
 earlyMove = sum(obj.earlyMove.sum() for obj in exps)/totalTrials
 
-
 sessionDur = []
 for obj in exps:
     validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     sessionDur.append(obj.behavFrameIntervals[:obj.trialEndFrame[validTrials][-1]-1].sum()/60)
 print(np.median(sessionDur),min(sessionDur),max(sessionDur))
-
-
-    
-frameRate = 120
-targetSide = ('left','right')
-rewardDir = (1,-1)
 
 
 # target duration
@@ -278,7 +275,12 @@ respRate = ntrials.copy()
 fracCorr = respRate.copy()
 probGoRight = respRate.copy()
 visRating = respRate.copy()
+visRatingResp = respRate.copy()
+visRatingCorrect = respRate.copy()
+visRatingIncorrect = respRate.copy()
 visRatingMedianReacTime = respRate.copy()
+visRatingMedianReacTimeCorrect = respRate.copy()
+visRatingMedianReacTimeIncorrect = respRate.copy()
 medianReacTime = respRate.copy()
 medianReacTimeCorrect = respRate.copy()
 medianReacTimeIncorrect = respRate.copy()
@@ -311,6 +313,7 @@ for n,obj in enumerate(exps):
                     velocity[n][stim][rd][mo] = obj.movementVelocity[respTrials]
                     if hasattr(obj,'visRating'):
                         visRating[n,i,j] = obj.visRatingScore[trials].mean()
+                        visRatingResp[n,i,j] = obj.visRatingScore[respTrials].mean()
                         visRatingMedianReacTime[n,i,j] = np.nanmedian(obj.visRatingReactionTime[respTrials])
                     if stim in ('targetOnly','mask'):
                         correctTrials = obj.response[respTrials]==1
@@ -323,6 +326,11 @@ for n,obj in enumerate(exps):
                         medianVelocityIncorrect[n,i,j] = np.nanmedian(obj.movementVelocity[respTrials][~correctTrials])
                         velocityCorrect[n][stim][rd][mo] = obj.movementVelocity[respTrials][correctTrials]
                         velocityIncorrect[n][stim][rd][mo] = obj.movementVelocity[respTrials][~correctTrials]
+                        if hasattr(obj,'visRating'):
+                            visRatingCorrect[n,i,j] = obj.visRatingScore[respTrials][correctTrials].mean()
+                            visRatingIncorrect[n,i,j] = obj.visRatingScore[respTrials][~correctTrials].mean()
+                            visRatingMedianReacTimeCorrect[n,i,j] = np.nanmedian(obj.visRatingReactionTime[respTrials][correctTrials])
+                            visRatingMedianReacTimeIncorrect[n,i,j] = np.nanmedian(obj.visRatingReactionTime[respTrials][~correctTrials])
 
 ntable = [[],[]]
 for i,(med,mn,mx) in enumerate(zip(np.median(ntrials,axis=0),np.min(ntrials,axis=0),np.max(ntrials,axis=0))):
@@ -403,8 +411,8 @@ for n in range(len(exps)):
     ax.plot(xlim,[0,0],'--',color='0.8')
     for d,clr in zip(visRating[n],'rb'):
         ax.plot(xticks,d,'o',color=clr)
-    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
-#    meanLR = np.mean(visRating[n],axis=0)
+    meanLR = np.nanmean(visRating[n],axis=0)
+#    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
     ax.plot(xticks,meanLR,'ko')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
@@ -416,6 +424,41 @@ for n in range(len(exps)):
     ax.set_xlim(xlim)
     ax.set_ylim([-1.02,1.02])
     ax.set_xlabel('Mask onset relative to target onset (ms)')
+    plt.tight_layout()
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(xlim,[0,0],'--',color='0.8')
+    for vr,clr,lbl in zip((visRating,visRatingResp,visRatingCorrect,visRatingIncorrect),'kkgm',('all','resp','correct','incorrect')):
+        if vr is visRating:
+            meanLR = np.nanmean(vr[n],axis=0)
+            mfc = clr
+        else:
+            meanLR = np.sum(vr[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
+            mfc = 'none'
+        ax.plot(xticks,meanLR,'o',mec=clr,mfc=mfc,label=lbl)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_yticks([-1,0,1])
+    ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+    ax.set_xlim(xlim)
+    ax.set_ylim([-1.02,1.02])
+    ax.set_xlabel('Mask onset relative to target onset (ms)')
+    ax.legend()
+    plt.tight_layout()
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    fc,vr = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (fracCorr,visRatingResp)]
+    ax.plot(vr,fc,'ko')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xlabel('Visibility rating')
+    ax.set_ylabel('Fraction correct')
     plt.tight_layout()
     
 # pooled trials across mice

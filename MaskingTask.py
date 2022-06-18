@@ -287,7 +287,7 @@ class MaskingTask(TaskControl):
             self.targetSize = 2
             self.targetSF = 2
             self.targetContrast = [0.5]
-            self.maxResponseWaitFrames = 282
+            self.maxResponseWaitFrames = 222
             self.showFixationCross = True     
             self.probCatch = 0
             
@@ -299,7 +299,7 @@ class MaskingTask(TaskControl):
             self.contrastStepUp = 0.075
             self.equalSampling = False
             self.probCatch = 0.1
-            self.maxTrials = 150
+            self.maxTrials = 120
             
         elif taskVersion == 'human masking practice':
             self.setDefaultParams('masking',option)
@@ -307,7 +307,7 @@ class MaskingTask(TaskControl):
             self.targetContrast = [0.5]
             self.maskContrast = [0.5]
             self.maskOnset = [6,12]
-            self.maskFrames = [300]
+            self.maskFrames = [240]
             self.probMask = 0.75
             self.probCatch = 0
             self.maxConsecutiveMaskTrials = 100
@@ -315,8 +315,8 @@ class MaskingTask(TaskControl):
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('human masking practice',option)
-            self.targetContrast = [0.32]
-            self.maskContrast = [0.32]
+            self.targetContrast = [0.18]
+            self.maskContrast = [0.18]
             self.maskOnset = [2,4,6,8,10,12]
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             self.maxTrials = (30 * len(self.maskOnset)) / (self.probMask * (1-self.probCatch))
@@ -633,8 +633,8 @@ class MaskingTask(TaskControl):
                                 targetContrast = self.contrastStepDown
                         else:
                             targetContrast = lastContrast + self.contrastStepUp
-                            if targetContrast > self.contrastStart:
-                                targetContrast = self.contrastStart               
+                            if targetContrast > 1:
+                                targetContrast = 1               
                     
                     if rewardDir == 1 and self.rewardSizeRight is not None:
                         rewardSize = self.rewardSizeRight
