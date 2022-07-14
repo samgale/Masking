@@ -873,4 +873,11 @@ def randomExponential(fixed,variableMean,maxTotal):
 
 
 if __name__ == "__main__":
-    pass
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--rigName')
+    parser.add_argument('--taskVersion')
+    parser.add_argument('--subjectName')
+    args = parser.parse_args()
+    task = MaskingTask(args.rigName,args.taskVersion)
+    task.start(args.subjectName)
