@@ -14,7 +14,7 @@ from TaskControl import TaskControl
 
 class MaskingTask(TaskControl):
     
-    def __init__(self,rigName,taskVersion=None,taskVersionOption=None):
+    def __init__(self,rigName,taskVersion=None,taskVersionOption=None,contrast=None):
         TaskControl.__init__(self,rigName)
         
         self.taskVersion = taskVersion
@@ -103,10 +103,10 @@ class MaskingTask(TaskControl):
         self.optoPulseDur = [0] # seconds; 0 = stay on until end  maxResponseWaitFrames
         
         if taskVersion is not None:
-            self.setDefaultParams(taskVersion,taskVersionOption)
+            self.setDefaultParams(taskVersion,taskVersionOption,contrast)
 
     
-    def setDefaultParams(self,taskVersion,option=None):
+    def setDefaultParams(self,taskVersion,option=None,contrast=None):
         if taskVersion == 'training1':
             # stim moves to reward automatically; wheel movement ignored
             self.spacebarRewardsEnabled = False
@@ -315,8 +315,9 @@ class MaskingTask(TaskControl):
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('human masking practice',option)
-            self.targetContrast = [0.18]
-            self.maskContrast = [0.18]
+            contrast = 0.2 if contrast is None else contrast
+            self.targetContrast = [contrast]
+            self.maskContrast = [contrast]
             self.maskOnset = [2,4,6,8,10,12]
             self.probCatch = 1 / (1 + 2*len(self.maskOnset))
             self.maxTrials = (30 * len(self.maskOnset)) / (self.probMask * (1-self.probCatch))
@@ -877,7 +878,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--rigName')
     parser.add_argument('--taskVersion')
-    parser.add_argument('--subjectName')
+    parser.add_argument('--contrast',type=float,default=None)
+    parser.add_argument('--subjectName',default=None)
     args = parser.parse_args()
-    task = MaskingTask(args.rigName,args.taskVersion)
+    task = MaskingTask(args.rigName,args.taskVersion,contrast=args.contrast)
+    if args.subjectName is None:
+        task.saveParams = False
     task.start(args.subjectName)
