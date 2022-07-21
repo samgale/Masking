@@ -275,7 +275,7 @@ class MaskTaskData():
         print('\n'+self.behavDataPath)
         
         behavData = h5py.File(self.behavDataPath,'r')
-        self.rigName = behavData['rigName'][()]
+        self.rigName = behavData['rigName'].asstr()[()]
         self.behavFrameIntervals = behavData['frameIntervals'][:]
         self.frameRate = round(1/np.median(self.behavFrameIntervals))
         if self.ephys and self.behavFrameIntervals.size+1>self.frameSamples.size:
@@ -292,7 +292,7 @@ class MaskTaskData():
         self.wheelRewardDistance = behavData['wheelRewardDistance'][()]
         self.maxQuiescentMoveDist = behavData['maxQuiescentMoveDist'][()]
         self.deltaWheelPos = behavData['deltaWheelPos'][()]
-        self.trialType = behavData['trialType'][:self.ntrials]
+        self.trialType = behavData['trialType'].asstr()[:self.ntrials]
         self.trialStartFrame = behavData['trialStartFrame'][:self.ntrials]
         self.trialEndFrame = behavData['trialEndFrame'][:self.ntrials]
         self.stimStart = behavData['trialStimStartFrame'][:self.ntrials]
@@ -309,9 +309,9 @@ class MaskTaskData():
         self.optoOnset = behavData['trialOptoOnset'][:self.ntrials]
         if 'keyPressFrames' in behavData:
             self.keyPressFrames = behavData['keyPressFrames'][:]
-            self.keysPressed = behavData['keysPressed'][:]
+            self.keysPressed = behavData['keysPressed'].asstr()[:]
         if 'showVisibilityRating' in behavData and behavData['showVisibilityRating'][()]:
-            self.visRating = behavData['visRating'][:self.ntrials]
+            self.visRating = behavData['visRating'].asstr()[:self.ntrials]
             self.visRatingScore = np.zeros(self.visRating.size)
             self.visRatingScore[['1' in v for v in self.visRating]] = -1
             self.visRatingScore[['3' in v for v in self.visRating]] = 1
