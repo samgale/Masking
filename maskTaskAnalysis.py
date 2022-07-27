@@ -210,11 +210,12 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),rt
     plt.tight_layout()
 
 # staircase
+xunit = 'time' # 'trials' or 'time'
 if obj in exps:
     if obj.useContrastStaircase:
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        x = np.arange(obj.targetContrast.size) + 1
+        x = np.arange(obj.targetContrast.size) + 1 if xunit=='trials' else obj.stimStart / obj.frameRate
         catch = obj.targetContrast == 0
         ax.plot(x[catch],obj.targetContrast[catch],'ko',ms=4)
         tc = obj.targetContrast.copy()
@@ -223,6 +224,7 @@ if obj in exps:
         for side in ('right','top'):
             ax.spines[side].set_visible(False)
         ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+        xlbl = 'Trial' if xunit=='trials' else 'Time (s)'
         ax.set_xlabel('Trial',fontsize=16)
         ax.set_ylabel('Target Contrast',fontsize=16)
         plt.tight_layout()
@@ -291,7 +293,14 @@ reacTime,velocity = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels
 reacTimeCorrect,velocityCorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
 reacTimeIncorrect,velocityIncorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
 for n,obj in enumerate(exps):
-    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
+    selectedTrials = np.ones(obj.ntrials,dtype=bool)
+    # selectedTrials = np.zeros(obj.ntrials,dtype=bool)
+    # selectedTrials[:int(obj.ntrials/2)] = True # first half
+    # selectedTrials[int(obj.ntrials/2):] = True # second half
+    # selectedTrials[:int(obj.ntrials/3)] = True # first third
+    # selectedTrials[int(obj.ntrials/3):2*int(obj.ntrials/3)] = True # middle third
+    # selectedTrials[2*int(obj.ntrials/3):] = True # last third
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove) & selectedTrials
     for stim in stimLabels:
         stimTrials = validTrials & (obj.trialType==stim)
         for j,mo in enumerate(maskOnset):
@@ -429,7 +438,7 @@ for n in range(len(exps)):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot(xlim,[0,0],'--',color='0.8')
-    for vr,clr,lbl in zip((visRating,visRatingResp,visRatingCorrect,visRatingIncorrect),'kkgm',('all','resp','correct','incorrect')):
+    for vr,clr,lbl in zip((visRating,visRatingResp,visRatingCorrect,visRatingIncorrect),'kkgm',('all trials','trials with response','correct','incorrect')):
         if vr is visRating:
             meanLR = np.nanmean(vr[n],axis=0)
             mfc = clr
