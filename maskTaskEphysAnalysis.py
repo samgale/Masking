@@ -349,8 +349,8 @@ for units in (respUnits,): #targetRespUnits,maskRespUnits & ~targetRespUnits):
                 b = p-p[:,t<0].mean(axis=1)[:,None]
                 m = np.mean(b,axis=0)
                 s = np.std(b,axis=0)/(len(p)**0.5)
-                ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
-                ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
+                # ax.plot(t*1000,m,ls='--',color='0.5',label='linear sum\ntarget + mask')
+                # ax.fill_between(t*1000,m+s,m-s,color='0.5',alpha=0.25)
                 ymin = min(ymin,np.min(m-s))
                 ymax = max(ymax,np.max(m+s))
             if i==5:
@@ -673,12 +673,13 @@ leg = ax.legend(loc='upper left',fontsize=10)
 plt.tight_layout()
 
 
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-ax.plot([0,200],[0,0],':',color='k')
 for mo,moLbl in zip(maskOnset,('target only','mask onset 17 ms')):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot([0,200],[0,0],':',color='k')
     stim = 'mask' if mo>0 else 'targetOnly'
-    for resp,ls in zip(('correct','incorrect'),('-','--')):
+    # for resp,clr in zip(('all',),'k'):
+    for resp,clr in zip(('all','correct','incorrect'),'kgm'):
         r = []
         for hemi in hemiLabels:
             p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
@@ -687,23 +688,19 @@ for mo,moLbl in zip(maskOnset,('target only','mask onset 17 ms')):
         d = np.array(r[0])-np.array(r[1])
         m = np.nanmean(d,axis=0)
         s = np.nanstd(d)/(len(d)**0.5)
-        if mo==0:
-            clr = 'k' if resp=='correct' else '0.5'
-        else:
-            clr = 'r' if resp=='correct' else [1,0.5,0.5]
-        lbl = moLbl + ', ' + resp
-        ax.plot(t[analysisWindow]*1000,m,color=clr,ls=ls,label=lbl)
+        ax.plot(t[analysisWindow]*1000,m,color=clr,label=resp)
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_yticks([-0.5,0,0.5,1])
-ax.set_xlim([33,200])
-ax.set_ylim([-0.7,1])
-ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
-ax.set_ylabel('Difference in Cumulative Spikes\n(Contra - Ipsi Target)',fontsize=16)
-leg = ax.legend(loc='lower left',fontsize=10)
-plt.tight_layout()
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    ax.set_yticks([-0.5,0,0.5,1])
+    ax.set_xlim([33,200])
+    ax.set_ylim([-0.7,1])
+    ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel('Difference in Cumulative Spikes\n(Contra - Ipsi Target)',fontsize=16)
+    ax.set_title(moLbl,fontsize=16)
+    leg = ax.legend(loc='lower left',fontsize=10)
+    plt.tight_layout()
 
 
 # fast vs slow reaction 
@@ -902,7 +899,7 @@ trainScore = {var: {src: np.full((trainTestIters,len(unitSampleSize[src]),len(da
 testScore = copy.deepcopy(trainScore)
 decoderFeatures = {var: {src: np.full((trainTestIters,len(unitSampleSize[src]),analysisWindow.sum()),np.nan) for src in unitSource} for var in decodingVariable}
 for var,usource,dPsth,mskOn in zip(decodingVariable,(unitSource,('pooled',)),(trialPsth,behavTrialPsth),([0,2,3,4,6],[2])):
-    if var=='side':
+    if var=='choice':
         continue
     for iterInd in range(trainTestIters):
         # assign trials to training and testing sets
