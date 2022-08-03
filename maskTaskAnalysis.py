@@ -292,14 +292,16 @@ medianVelocityIncorrect = respRate.copy()
 reacTime,velocity = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
 reacTimeCorrect,velocityCorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
 reacTimeIncorrect,velocityIncorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
+trialsToUse = 'all' # 'all', 'first half', 'second half'
 for n,obj in enumerate(exps):
-    selectedTrials = np.ones(obj.ntrials,dtype=bool)
-    # selectedTrials = np.zeros(obj.ntrials,dtype=bool)
-    # selectedTrials[:int(obj.ntrials/2)] = True # first half
-    # selectedTrials[int(obj.ntrials/2):] = True # second half
-    # selectedTrials[:int(obj.ntrials/3)] = True # first third
-    # selectedTrials[int(obj.ntrials/3):2*int(obj.ntrials/3)] = True # middle third
-    # selectedTrials[2*int(obj.ntrials/3):] = True # last third
+    if trialsToUse == 'all':
+        selectedTrials = np.ones(obj.ntrials,dtype=bool)
+    else:
+        selectedTrials = np.zeros(obj.ntrials,dtype=bool)
+        if trialsToUse == 'first half':
+            selectedTrials[:int(obj.ntrials/2)] = True
+        elif trialsToUse =='second half':
+            selectedTrials[int(obj.ntrials/2):] = True # second half
     validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove) & selectedTrials
     for stim in stimLabels:
         stimTrials = validTrials & (obj.trialType==stim)
