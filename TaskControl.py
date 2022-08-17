@@ -50,7 +50,7 @@ class TaskControl():
             self.nidaqDevices = ('USB-6001',)
             self.nidaqDeviceNames = ('Dev1',)
         elif self.rigName == 'human':
-            self.saveDir = r'C:\Users\svc_ccg\Desktop\Data'
+            self.saveDir = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\humans\data'
             self.screen = 0 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
             self.monDistance = 45.2 # cm
