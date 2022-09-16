@@ -23,8 +23,10 @@ class MaskingTask(TaskControl):
         
         self.showFixationCross = False # fixation point for humans
         self.fixationCrossSize = 0.5 # degrees
-        self.textHeight = 1 # degrees
+        self.fixationCrossContrast = -1
         self.showVisibilityRating = False # target visiiblity rating for humans
+        self.textHeight = 1 # degrees
+        self.textContrast = -1
         self.allowMouseClickVisRating = False
         
         self.equalSampling = False # equal sampling of trial parameter combinations
@@ -304,8 +306,8 @@ class MaskingTask(TaskControl):
         elif taskVersion == 'human masking practice':
             self.setDefaultParams('masking',option)
             self.setDefaultParams('human contrast practice',option)
-            self.targetContrast = [0.5]
-            self.maskContrast = [0.5]
+            self.targetContrast = [0.4]
+            self.maskContrast = [0.4]
             self.maskOnset = [6,12]
             self.maskFrames = [240]
             self.probMask = 0.75
@@ -315,7 +317,7 @@ class MaskingTask(TaskControl):
             
         elif taskVersion == 'human masking':
             self.setDefaultParams('human masking practice',option)
-            contrast = 0.2 if contrast is None else contrast
+            contrast = 0.4 if contrast is None else contrast
             self.targetContrast = [contrast]
             self.maskContrast = [contrast]
             self.maskOnset = [2,4,6,8,10,12]
@@ -418,14 +420,14 @@ class MaskingTask(TaskControl):
                                              units='pix',
                                              vertices='cross',
                                              size=int(self.fixationCrossSize*self.pixelsPerDeg),
-                                             lineColor=-1,
-                                             fillColor=-1)
+                                             lineColor=self.fixationCrossContrast,
+                                             fillColor=self.fixationCrossContrast)
         
         if self.showVisibilityRating:
             # if text not positioned correct, try pip install pyglet==1.3.2
             ratingTitle = visual.TextStim(win=self._win,
                                           units='pix',
-                                          color=-1,
+                                          color=self.textContrast,
                                           height=int(self.textHeight*self.pixelsPerDeg),
                                           pos=(0,0.1*self.monSizePix[1]),
                                           text='Did you see the target side?')
@@ -434,7 +436,7 @@ class MaskingTask(TaskControl):
             buttonSize = (buttonSpacing / 6) * self.monSizePix[0]
             ratingButtons = [visual.TextStim(win=self._win,
                                              units='pix',
-                                             color=-1,
+                                             color=self.textContrast,
                                              height=int(self.textHeight*self.pixelsPerDeg),
                                              pos=(x*self.monSizePix[0],-0.1*self.monSizePix[1]),
                                              text=lbl)
