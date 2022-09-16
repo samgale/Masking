@@ -416,61 +416,67 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     plt.tight_layout()
     
 # visibility rating
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(xlim,[0,0],'k--')
+meanLR = np.sum(visRatingResp*respRate,axis=1)/np.sum(respRate,axis=1)
+for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
+    ax.plot(xticks,d,color=clr,alpha=0.5)
+mean = np.nanmean(meanLR,axis=0)
+sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+ax.plot(xticks,mean,'ko',ms=12)
+for x,m,s in zip(xticks,mean,sem):
+    ax.plot([x,x],[m-s,m+s],'k-')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_yticks([-1,0,1])
+ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+ax.set_xlim(xlim)
+ax.set_ylim([-1.02,1.02])
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(xlim,[0,0],'k--')
+for vr,clr,lbl in zip((visRatingCorrect,visRatingIncorrect),('k','0.5'),('correct','incorrect')):
+    meanLR = np.sum(vr*respRate,axis=1)/np.sum(respRate,axis=1)
+    mean = np.nanmean(meanLR,axis=0)
+    sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    ax.plot(xticks,mean,'o',mec=clr,mfc=clr,ms=12,label=lbl)
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'-',color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_yticks([-1,0,1])
+ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+ax.set_xlim(xlim)
+ax.set_ylim([-1.02,1.02])
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+ax.legend(fontsize=12)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
 for n in range(len(exps)):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot(xlim,[0,0],'--',color='0.8')
-    for d,clr in zip(visRating[n],'rb'):
-        ax.plot(xticks,d,'o',color=clr)
-    meanLR = np.nanmean(visRating[n],axis=0)
-#    meanLR = np.nansum(visRating[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
-    ax.plot(xticks,meanLR,'ko')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
-    ax.set_yticks([-1,0,1])
-    ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
-    ax.set_xlim(xlim)
-    ax.set_ylim([-1.02,1.02])
-    ax.set_xlabel('Mask onset relative to target onset (ms)')
-    plt.tight_layout()
-    
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot(xlim,[0,0],'--',color='0.8')
-    for vr,clr,lbl in zip((visRating,visRatingResp,visRatingCorrect,visRatingIncorrect),'kkgm',('all trials','trials with response','correct','incorrect')):
-        if vr is visRating:
-            meanLR = np.nanmean(vr[n],axis=0)
-            mfc = clr
-        else:
-            meanLR = np.sum(vr[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0)
-            mfc = 'none'
-        ax.plot(xticks,meanLR,'o',mec=clr,mfc=mfc,label=lbl)
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
-    ax.set_yticks([-1,0,1])
-    ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
-    ax.set_xlim(xlim)
-    ax.set_ylim([-1.02,1.02])
-    ax.set_xlabel('Mask onset relative to target onset (ms)')
-    ax.legend()
-    plt.tight_layout()
-    
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
     fc,vr = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (fracCorr,visRatingResp)]
-    ax.plot(vr,fc,'ko')
-    for side in ('right','top'):
-        ax.spines[side].set_visible(False)
-    ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xlabel('Visibility rating')
-    ax.set_ylabel('Fraction correct')
-    plt.tight_layout()
+    ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks([-1,0,1])
+ax.set_xticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+ax.set_xlim([-1.02,1.02])
+ax.set_ylim([0.5,1.02])
+ax.set_xlabel('Visibility Rating',fontsize=16)
+ax.set_ylabel('Fraction Correct',fontsize=16)
+plt.tight_layout()
     
 # pooled trials across mice
 fc = np.nansum(fracCorr*respRate,axis=1)/np.nansum(respRate,axis=1)
@@ -661,7 +667,10 @@ for measures,ylbl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect,medianR
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for data,clr,lbl in zip(measures,('k','0.5','k'),('correct','incorrect','other')):
-        meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        if exps[0].rigName == 'human':
+            meanLR = np.nanmean(data,axis=1)
+        else:
+            meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if lbl=='other':
@@ -681,7 +690,8 @@ for measures,ylbl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect,medianR
     ax.set_xlim(xlim)
     ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
     ax.set_ylabel(ylbl,fontsize=16)
-    ax.legend(loc='upper left',fontsize=12)
+    legLoc = 'upper right' if exps[0].rigName=='human' else 'upper left'
+    ax.legend(loc=legLoc,fontsize=12)
     plt.tight_layout()
 
 clrs = np.zeros((len(maskOnset),3))
@@ -712,8 +722,12 @@ for measures,alim,albl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect),(
     plt.tight_layout()
 
 # fraction correct vs reaction time
-binWidth = 50
-bins = np.arange(0,650,binWidth)
+if exps[0].rigName == 'human':
+    binWidth = 500
+    bins = np.arange(0,3000,binWidth)
+else:
+    binWidth = 50
+    bins = np.arange(0,650,binWidth)
 rt = []
 rtCorrect = []
 rtIncorrect = []
@@ -722,7 +736,7 @@ velCorrect = []
 velIncorrect = []
 fc = []
 bintrials = []
-for mo in [2,3,4,6,0]:
+for mo in list(maskOnset[1:])+[maskOnset[0]]:
     stim = 'mask' if mo>0 else 'targetOnly'
     rt.append([])
     rtCorrect.append([])
@@ -754,19 +768,22 @@ for stim,lbl,clr,ls in zip(('catch','maskOnly'),('no stimulus','mask only'),('k'
     s = np.sort(r)
     c = [np.sum(r<=i)/n for i in s]
     ax.plot(s,c,ls,color=clr,label=lbl)
-for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[1:6],clrs,lbls):
+for r,n,clr,lbl in zip(rt,ntrials.sum(axis=(0,1))[1:1+len(maskOnset)],clrs,lbls):
     s = np.sort(r)
     c = [np.sum(r<=i)/n for i in s]
     ax.plot(s,c,'-',color=clr,label=lbl)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
-ax.set_xlim([100,625])
+if exps[0].rigName=='human':
+    ax.set_xlim([0,2500])
+    leg = ax.legend(loc='lower right',fontsize=11)
+else:
+    ax.set_xlim([100,625])
+    leg = ax.legend(loc='upper left',fontsize=11)
 ax.set_ylim([0,1.02])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Cumulative Probability',fontsize=16)
-leg = ax.legend(loc='upper left',fontsize=11)
-#plt.setp(leg.get_title(),fontsize=10)
 plt.tight_layout()
 
 for corr,incorr,xlim,xlbl in zip((rtCorrect,velCorrect),(rtIncorrect,velIncorrect),([100,625],[0,100]),('Reaction Time (ms)','Movement Speed (mm/s)')):
@@ -788,7 +805,10 @@ for corr,incorr,xlim,xlbl in zip((rtCorrect,velCorrect),(rtIncorrect,velIncorrec
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False,labelsize=14)
-    ax.set_xlim(xlim)
+    if exps[0].rigName=='human':
+        ax.set_xlim([0,2500])
+    else:
+        ax.set_xlim(xlim)
     ax.set_ylim([0,1])
     ax.set_xlabel(xlbl,fontsize=16)
     ax.set_ylabel('Cumulative Probability',fontsize=16)
@@ -798,15 +818,19 @@ for corr,incorr,xlim,xlbl in zip((rtCorrect,velCorrect),(rtIncorrect,velIncorrec
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot([0,650],[0.5,0.5],'k--')
-for p,n,clr in zip(fc,bintrials,clrs):
-    ax.plot(bins[:-1]+binWidth/2,p,color=clr)
+ax.plot([0,2500],[0.5,0.5],'k--')
+for p,n,clr,lbl in zip(fc,bintrials,clrs,lbls):
+    ax.plot(bins[:-1]+binWidth/2,p,color=clr,label=lbl)
     s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
     ax.fill_between(bins[:-1]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
-ax.set_xlim([100,400])
+if exps[0].rigName=='human':
+    ax.set_xlim([0,2500])
+    ax.legend(loc='upper right')
+else:
+    ax.set_xlim([100,400])
 ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
