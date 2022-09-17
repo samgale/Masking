@@ -477,6 +477,23 @@ ax.set_ylim([0.5,1.02])
 ax.set_xlabel('Visibility Rating',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
 plt.tight_layout()
+
+# fig = plt.figure()
+# ax = fig.add_subplot(1,1,1)
+# ax.plot([0,1],[0,0],'k--')
+# for n in range(len(exps)):
+#     fc,vr = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (fracCorr,visRatingResp)]
+#     ax.plot(fc,vr,'o',mec='k',mfc='none',mew=2,ms=12)
+# for side in ('right','top'):
+#     ax.spines[side].set_visible(False)
+# ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+# ax.set_xlim([0.5,1.02])
+# ax.set_yticks([-1,0,1])
+# ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+# ax.set_ylim([-1.02,1.02])
+# ax.set_xlabel('Fraction Correct',fontsize=16)
+# ax.set_ylabel('Visibility Rating',fontsize=16)
+# plt.tight_layout()
     
 # pooled trials across mice
 fc = np.nansum(fracCorr*respRate,axis=1)/np.nansum(respRate,axis=1)
@@ -820,9 +837,10 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,2500],[0.5,0.5],'k--')
 for p,n,clr,lbl in zip(fc,bintrials,clrs,lbls):
-    ax.plot(bins[:-1]+binWidth/2,p,color=clr,label=lbl)
-    s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
-    ax.fill_between(bins[:-1]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)
+    i = n>0
+    ax.plot(bins[:-1][i]+binWidth/2,p[i],color=clr,label=lbl)
+    s = [c/n[i] for c in scipy.stats.binom.interval(0.95,n[i],p[i])]
+    ax.fill_between(bins[:-1][i]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
