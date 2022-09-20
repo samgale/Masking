@@ -465,7 +465,7 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for n in range(len(exps)):
-    fc,vr = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (fracCorr,visRatingResp)]
+    vr,fc = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (visRatingResp,fracCorr)]
     ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
@@ -476,6 +476,28 @@ ax.set_xlim([-1.02,1.02])
 ax.set_ylim([0.5,1.02])
 ax.set_xlabel('Visibility Rating',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for n in range(len(exps)):
+    vr,rtc,rti = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (visRatingResp,medianReacTimeCorrect,medianReacTimeIncorrect)]
+    if n==0:
+        ax.plot(vr,rtc,'o',mec='k',mfc='none',mew=2,ms=12,label='correct')
+        ax.plot(vr,rti,'o',mec='0.5',mfc='none',mew=2,ms=12,label='incorrect')
+    else:
+        ax.plot(vr,rtc,'o',mec='k',mfc='none',mew=2,ms=12)
+        ax.plot(vr,rti,'o',mec='0.5',mfc='none',mew=2,ms=12)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks([-1,0,1])
+ax.set_xticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+ax.set_xlim([-1.02,1.02])
+# ax.set_ylim([0.5,1.02])
+ax.set_xlabel('Visibility Rating',fontsize=16)
+ax.set_ylabel('Median Reaction Time (ms)',fontsize=16)
+ax.legend()
 plt.tight_layout()
 
 # fig = plt.figure()
@@ -684,10 +706,7 @@ for measures,ylbl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect,medianR
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     for data,clr,lbl in zip(measures,('k','0.5','k'),('correct','incorrect','other')):
-        if exps[0].rigName == 'human':
-            meanLR = np.nanmean(data,axis=1)
-        else:
-            meanLR = np.nansum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+        meanLR = np.nanmean(data,axis=1)
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         if lbl=='other':
@@ -837,9 +856,10 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,2500],[0.5,0.5],'k--')
 for p,n,clr,lbl in zip(fc,bintrials,clrs,lbls):
-    i = n>0
+    i = n>1
     ax.plot(bins[:-1][i]+binWidth/2,p[i],color=clr,label=lbl)
     s = [c/n[i] for c in scipy.stats.binom.interval(0.95,n[i],p[i])]
+    s[0][p[i]==1] = 1
     ax.fill_between(bins[:-1][i]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
