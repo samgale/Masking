@@ -416,34 +416,36 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
     plt.tight_layout()
     
 # visibility rating
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-ax.plot(xlim,[0,0],'k--')
-meanLR = np.sum(visRatingResp*respRate,axis=1)/np.sum(respRate,axis=1)
-for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
-    ax.plot(xticks,d,color=clr,alpha=0.5)
-mean = np.nanmean(meanLR,axis=0)
-sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-ax.plot(xticks,mean,'ko',ms=12)
-for x,m,s in zip(xticks,mean,sem):
-    ax.plot([x,x],[m-s,m+s],'k-')
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-ax.set_xticks(xticks)
-ax.set_xticklabels(xticklabels)
-ax.set_yticks([-1,0,1])
-ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
-ax.set_xlim(xlim)
-ax.set_ylim([-1.02,1.02])
-ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
-plt.tight_layout()
+for vr,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('all trials','correct','incorrect')):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(xlim,[0,0],'k--')
+    meanLR = np.nanmean(vr,axis=1)
+    for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
+        ax.plot(xticks,d,color=clr,alpha=0.5)
+    mean = np.nanmean(meanLR,axis=0)
+    sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    ax.plot(xticks,mean,'ko',ms=12)
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'k-')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+    ax.set_yticks([-1,0,1])
+    ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+    ax.set_xlim(xlim)
+    ax.set_ylim([-1.02,1.02])
+    ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+    ax.set_title(lbl)
+    plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0,0],'k--')
 for vr,clr,lbl in zip((visRatingCorrect,visRatingIncorrect),('k','0.5'),('correct','incorrect')):
-    meanLR = np.sum(vr*respRate,axis=1)/np.sum(respRate,axis=1)
+    meanLR = np.nanmean(vr,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     ax.plot(xticks,mean,'o',mec=clr,mfc=clr,ms=12,label=lbl)
@@ -466,7 +468,7 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0.5,0.5],'k--')
 for n in range(len(exps)):
-    vr,fc = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (visRatingResp,fracCorr)]
+    vr,fc = [np.nanmean(d,axis=1) for d in (visRatingResp,fracCorr)]
     ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
@@ -482,7 +484,7 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for n in range(len(exps)):
-    vr,rtc,rti = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (visRatingResp,medianReacTimeCorrect,medianReacTimeIncorrect)]
+    vr,rtc,rti = [np.nanmean(d[n],axis=0) for d in (visRatingResp,medianReacTimeCorrect,medianReacTimeIncorrect)]
     if n==0:
         ax.plot(vr,rtc,'o',mec='k',mfc='none',mew=2,ms=12,label='correct')
         ax.plot(vr,rti,'o',mec='0.5',mfc='none',mew=2,ms=12,label='incorrect')
@@ -866,7 +868,7 @@ for side in ('right','top'):
 ax.tick_params(direction='out',right=False,labelsize=14)
 if exps[0].rigName=='human':
     ax.set_xlim([0,2500])
-    ax.legend(loc='upper right')
+    ax.legend(loc='lower left')
 else:
     ax.set_xlim([100,400])
 ax.set_ylim([0.2,1])
