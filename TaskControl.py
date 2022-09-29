@@ -37,7 +37,7 @@ class TaskControl():
         self.solenoidOpenTime = 0.05 # seconds
         if self.rigName == 'pilot':
             self.saveDir = r'C:\Users\SVC_CCG\Desktop\Data' # path where parameters and data saved
-            self.screen = 1 # monitor to present stimuli on
+            self.screen = 0 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
             self.monDistance = 21.59 # cm
             self.nidaqDevices = ('USB-6001','USB-6001')
