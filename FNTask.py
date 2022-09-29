@@ -57,15 +57,14 @@ class FNTask(TaskControl):
             # learn to associate wheel movement with stimulus movement and reward
             self.quiescentFrames = 0
             self.maxResponseWaitFrames = 3600
-            self.wheelRewardDistance = 4.0
             
         elif taskVersion == 'training3':
             # introduce quiescent period and shorter response window
             self.maxResponseWaitFrames = 600 # adjust this
-            self.wheelRewardDistance = 6.0
+            self.wheelRewardDistance = 16.0
             
         elif taskVersion == 'training4':
-            pass
+            self.wheelRewardDistance = 32.0
             
         else:
             raise ValueError(taskVersion + ' is not a recognized task version')
@@ -162,7 +161,7 @@ class FNTask(TaskControl):
                     else:
                         # response window ended
                         self.trialResponse.append(False)
-                        self.trialResponseFrame = self._sessionFrame
+                        self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
                 
                 # show target
