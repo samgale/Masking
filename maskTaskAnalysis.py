@@ -766,14 +766,19 @@ if exps[0].rigName == 'human':
 else:
     binWidth = 50
     bins = np.arange(0,650,binWidth)
+quantileSize = 0.2
+quantiles = np.arange(quantileSize,1.01,quantileSize)
 rt = []
 rtCorrect = []
 rtIncorrect = []
 vel = []
 velCorrect = []
 velIncorrect = []
-fc = []
-bintrials = []
+fcBinned = []
+binTrials = []
+quantileBins = []
+fcQuantiled = []
+quantileTrials = []
 for mo in list(maskOnset[1:])+[maskOnset[0]]:
     stim = 'mask' if mo>0 else 'targetOnly'
     rt.append([])
@@ -795,8 +800,58 @@ for mo in list(maskOnset[1:])+[maskOnset[0]]:
             c,ic = [np.histogram(r[i][stim][rd][mo],bins)[0] for r in (reacTimeCorrect,reacTimeIncorrect)]
             correct += c
             incorrect += ic
-    fc.append(correct/(correct+incorrect))
-    bintrials.append(correct+incorrect)
+    fcBinned.append(correct/(correct+incorrect))
+    binTrials.append(correct+incorrect)
+for i,t in enumerate(rt):
+    quantileBins.append(np.concatenate(([np.min(t)],np.quantile(t,quantiles))))
+    c,ic = [np.histogram(r,quantileBins[-1])[0] for r in (rtCorrect[i],rtIncorrect[i])]
+    fcQuantiled.append(c/(c+ic))
+    quantileTrials.append(c+ic)
+    
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([0,2500],[0.5,0.5],'k--')
+for p,n,clr,lbl in zip(fcBinned,binTrials,clrs,lbls):
+    i = n>1
+    ax.plot(bins[:-1][i]+binWidth/2,p[i],color=clr,label=lbl)
+    s = [c/n[i] for c in scipy.stats.binom.interval(0.95,n[i],p[i])]
+    s[0][p[i]==1] = 1
+    ax.fill_between(bins[:-1][i]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False,labelsize=14)
+if exps[0].rigName=='human':
+    ax.set_xlim([0,2500])
+    ax.legend(loc='lower left')
+else:
+    ax.set_xlim([100,400])
+ax.set_ylim([0.2,1])
+ax.set_xlabel('Reaction Time (ms)',fontsize=16)
+ax.set_ylabel('Fraction Correct',fontsize=16)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([0,2500],[0.5,0.5],'k--')
+for b,p,n,clr,lbl in zip(quantileBins,fcQuantiled,quantileTrials,clrs,lbls):
+    x = (b[:-1]+b[1:])/2
+    ax.plot(x,p,color=clr,label=lbl)
+    s = [c/n for c in scipy.stats.binom.interval(0.95,n,p)]
+    s[0][p==1] = 1
+    ax.fill_between(x,s[1],s[0],color=clr,alpha=0.2)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',right=False,labelsize=14)
+if exps[0].rigName=='human':
+    ax.set_xlim([300,2100])
+    ax.legend(loc='lower left')
+else:
+    ax.set_xlim([100,400])
+ax.set_ylim([0.2,1])
+ax.set_xlabel('Reaction Time (ms)',fontsize=16)
+ax.set_ylabel('Fraction Correct',fontsize=16)
+plt.tight_layout()
+
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
@@ -853,28 +908,6 @@ for corr,incorr,xlim,xlbl in zip((rtCorrect,velCorrect),(rtIncorrect,velIncorrec
     if 'Time' in xlbl:
         ax.legend(loc='lower right',fontsize=11)
     plt.tight_layout()
-
-fig = plt.figure()
-ax = fig.add_subplot(1,1,1)
-ax.plot([0,2500],[0.5,0.5],'k--')
-for p,n,clr,lbl in zip(fc,bintrials,clrs,lbls):
-    i = n>1
-    ax.plot(bins[:-1][i]+binWidth/2,p[i],color=clr,label=lbl)
-    s = [c/n[i] for c in scipy.stats.binom.interval(0.95,n[i],p[i])]
-    s[0][p[i]==1] = 1
-    ax.fill_between(bins[:-1][i]+binWidth/2,s[1],s[0],color=clr,alpha=0.2)
-for side in ('right','top'):
-    ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',right=False,labelsize=14)
-if exps[0].rigName=='human':
-    ax.set_xlim([0,2500])
-    ax.legend(loc='lower left')
-else:
-    ax.set_xlim([100,400])
-ax.set_ylim([0.2,1])
-ax.set_xlabel('Reaction Time (ms)',fontsize=16)
-ax.set_ylabel('Fraction Correct',fontsize=16)
-plt.tight_layout()
 
 
 # opto timing
