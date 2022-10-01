@@ -384,15 +384,15 @@ for n in range(len(exps)):
     plt.tight_layout()
     
 # population
-for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate','Fraction Correct')):        
+for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median Reaction Time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     if data is fracCorr:
         ax.plot(xlim,[0.5,0.5],'k--')
-    if data is respRate:
-        meanLR = np.mean(data,axis=1)
-    else:
+    if data is fracCorr:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+    else:
+        meanLR = np.mean(data,axis=1)
     for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
         ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
@@ -410,7 +410,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
     ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
     ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
     ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
