@@ -289,7 +289,7 @@ class MaskingTask(TaskControl):
             self.targetSize = 2
             self.targetSF = 2
             self.targetContrast = [0.5]
-            self.maxResponseWaitFrames = 222
+            self.maxResponseWaitFrames = 282
             self.showFixationCross = True     
             self.probCatch = 0
             
@@ -309,7 +309,7 @@ class MaskingTask(TaskControl):
             self.targetContrast = [0.4]
             self.maskContrast = [0.4]
             self.maskOnset = [6,12]
-            self.maskFrames = [240]
+            self.maskFrames = [300]
             self.probMask = 0.75
             self.probCatch = 0
             self.maxConsecutiveMaskTrials = 100
