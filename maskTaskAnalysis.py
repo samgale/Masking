@@ -792,12 +792,10 @@ for mo in list(maskOnset[1:])+[maskOnset[0]]:
     incorrect = correct.copy()
     for i in range(len(exps)):
         for rd in rewardDir:
-            rt[-1].extend(reacTime[i][stim][rd][mo])
-            rtCorrect[-1].extend(reacTimeCorrect[i][stim][rd][mo])
-            rtIncorrect[-1].extend(reacTimeIncorrect[i][stim][rd][mo])
-            vel[-1].extend(velocity[i][stim][rd][mo])
-            velCorrect[-1].extend(velocityCorrect[i][stim][rd][mo])
-            velIncorrect[-1].extend(velocityIncorrect[i][stim][rd][mo])
+            for r,d in zip((rt,rtCorrect,rtIncorrect,vel,velCorrect,velIncorrect),
+                           (reacTime,reacTimeCorrect,reacTimeIncorrect,velocity,velocityCorrect,velocityIncorrect)):
+                t = d[i][stim][rd][mo]
+                r[-1].extend(t[~np.isnan(t)])
             c,ic = [np.histogram(r[i][stim][rd][mo],bins)[0] for r in (reacTimeCorrect,reacTimeIncorrect)]
             correct += c
             incorrect += ic
@@ -825,7 +823,7 @@ if exps[0].rigName=='human':
     ax.set_xlim([0,2500])
     ax.legend(loc='lower left')
 else:
-    ax.set_xlim([100,400])
+    ax.set_xlim([100,475])
 ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
@@ -847,7 +845,7 @@ if exps[0].rigName=='human':
     ax.set_xlim([300,2100])
     ax.legend(loc='lower left')
 else:
-    ax.set_xlim([100,400])
+    ax.set_xlim([100,475])
 ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
