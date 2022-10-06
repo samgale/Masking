@@ -470,7 +470,7 @@ ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0.5,0.5],'k--')
 for n in range(len(exps)):
     vr,fc = [np.nanmean(d,axis=1) for d in (visRatingResp,fracCorr)]
-    ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12)
+    ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12,alpha=0.1)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -666,7 +666,7 @@ for data,ylabel in zip((respRate,fracCorr),('Response Rate','Fraction Correct'))
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot([0,1],[0,1],'--',color='0.5')
-    for i,clr,lbl in zip(range(1,6),clrs,lbls):
+    for i,clr,lbl in zip(range(1,len(maskOnset)+1),clrs,lbls):
         ax.plot(data[:,0,i],data[:,1,i],'o',mec=clr,mfc=clr,label=lbl)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
@@ -685,7 +685,7 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,1],[0,1],'--',color='0.5')
 meanLR = np.nansum(probGoRight*respRate,axis=1)/np.sum(respRate,axis=1)
-for i,clr,lbl in zip(range(1,6),clrs,lbls):
+for i,clr,lbl in zip(range(1,len(maskOnset)+1),clrs,lbls):
     x = meanLR[:,0]
     y = meanLR[:,i]
     ax.plot(x,y,'o',mec=clr,mfc=clr)
@@ -737,10 +737,11 @@ clrs = np.zeros((len(maskOnset),3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
 lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
 
-for measures,alim,albl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect),(medianVelocityCorrect,medianVelocityIncorrect)),([150,410],[0,65]),('Reaction Time (ms)','Movement Speed (mm/s)')):
+rtLim = [500,2250] if exps[0].rigName=='human' else [150,410]
+for measures,alim,albl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect),(medianVelocityCorrect,medianVelocityIncorrect)),(rtLim,[0,65]),('Reaction Time (ms)','Movement Speed (mm/s)')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot([0,600],[0,600],'k--')
+    ax.plot(alim,alim,'k--')
     rc,ri = [np.sum(d*respRate,axis=1)/np.sum(respRate,axis=1) for d in measures]
     for j,(clr,lbl) in enumerate(zip(clrs,lbls)):
         ax.plot(rc[:,j+1],ri[:,j+1],'o',color=clr,label=lbl)
@@ -762,13 +763,14 @@ for measures,alim,albl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect),(
 
 # fraction correct vs reaction time
 if exps[0].rigName == 'human':
-    binWidth = 500
+    binWidth = 600
     bins = np.arange(0,3000,binWidth)
 else:
     binWidth = 50
     bins = np.arange(0,650,binWidth)
-quantileSize = 0.2
+quantileSize = 0.1
 quantiles = np.arange(quantileSize,1.01,quantileSize)
+quantiles = [0.1,0.3,0.7,0.9,1]
 rt = []
 rtCorrect = []
 rtIncorrect = []
@@ -811,7 +813,7 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,2500],[0.5,0.5],'k--')
 for p,n,clr,lbl in zip(fcBinned,binTrials,clrs,lbls):
-    i = n>1
+    i = n>9
     ax.plot(bins[:-1][i]+binWidth/2,p[i],color=clr,label=lbl)
     s = [c/n[i] for c in scipy.stats.binom.interval(0.95,n[i],p[i])]
     s[0][p[i]==1] = 1
@@ -850,7 +852,6 @@ ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
 plt.tight_layout()
-
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)

@@ -96,8 +96,11 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,si
     trialOptoSide = []
     response = []
     responseTime = []
-    Lrecord = []
-    Rrecord = []
+    if record:
+        Lrecord = []
+        Rrecord = []
+    else:
+        Lrecord = Rrecord = None
     for side in targetSide:
         mo = [np.nan] if side==0 else maskOnset
         for maskOn in mo:
@@ -183,58 +186,61 @@ def runTrial(tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,Lsignal,Rsignal,
 
 
 
-# create model input signals from population ephys responses
-def createInputSignals(psthFilePath=None):
-    if psthFilePath is None:
-        psthFilePath = fileIO.getFile('Load popPsth',fileType='*.pkl')
-    popPsth = pickle.load(open(psthFilePath,'rb'))
-    
-    dt = 1/120*1000
-    trialEndTimeMax = 200
-    trialEndMax = int(round(trialEndTimeMax/dt))
-    
-    t = np.arange(0,trialEndMax*dt+dt,dt)
-    signalNames = ('targetOnly','maskOnly','mask')
-    
-    popPsthIntp = {}
-    for sig in signalNames:
-        popPsthIntp[sig] = {}
-        for hemi in ('ipsi','contra'):
-            popPsthIntp[sig][hemi] = {}
-            for mo in popPsth[sig][hemi]:
-                p = popPsth[sig][hemi][mo].copy()
-                p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
-                p = np.nanmean(p,axis=0)
-                p = np.interp(t,popPsth['t']*1000,p)
-                p -= p[t<30].mean()
-                p[0] = 0
-                maskOn = np.nan if sig=='targetOnly' else mo
-                popPsthIntp[sig][hemi][maskOn] = p
-                                       
-    # normalize and plot signals
-    signals = copy.deepcopy(popPsthIntp)
-    
-    smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
-    for sig in signals.keys():
-        for hemi in ('ipsi','contra'):
-            for mo in signals[sig][hemi]:
-                s = signals[sig][hemi][mo]
-                s /= smax
-                
-    #            if alpha>0:
-    #                sraw = s.copy()
-    #                I = 0
-    #                for i in range(s.size):
-    #                    if i > 0:
-    #                        I += (sraw[i-1] - I) / tauI
-    #                    if s[i]>0 and I>=0:
-    #                        s[i] = (s[i]**eta) / (alpha**eta + I**eta)
-    
-    return signals,t,dt,trialEndMax,trialEndTimeMax
+# create model input signals
+signalNames = ('targetOnly','maskOnly','mask')
+dt = 1/120*1000
+trialEndTimeMax = 200
+trialEndMax = int(round(trialEndTimeMax/dt))
+t = np.arange(0,trialEndMax*dt+dt,dt)
 
+# use population ephys responses
+psthFilePath = fileIO.getFile('Load popPsth',fileType='*.pkl')
+popPsth = pickle.load(open(psthFilePath,'rb'))
 
-signals,t,dt,trialEndMax,trialEndTimeMax = createInputSignals()
+popPsthIntp = {}
+for sig in signalNames:
+    popPsthIntp[sig] = {}
+    for hemi in ('ipsi','contra'):
+        popPsthIntp[sig][hemi] = {}
+        for mo in popPsth[sig][hemi]:
+            p = popPsth[sig][hemi][mo].copy()
+            p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
+            p = np.nanmean(p,axis=0)
+            p = np.interp(t,popPsth['t']*1000,p)
+            p -= p[t<30].mean()
+            p[0] = 0
+            maskOn = np.nan if sig=='targetOnly' else mo
+            popPsthIntp[sig][hemi][maskOn] = p
+                                   
+signals = copy.deepcopy(popPsthIntp)
 
+smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
+for sig in signals.keys():
+    for hemi in ('ipsi','contra'):
+        for mo in signals[sig][hemi]:
+            s = signals[sig][hemi][mo]
+            s /= smax
+
+# or create synthetic signals
+sigLat = 3
+sigDur = 3
+signals = {}
+maskOnset = [0,2,4,6,8,np.nan]
+for sig in signalNames:
+    signals[sig] = {}
+    for hemi in ('ipsi','contra'):
+        signals[sig][hemi] = {}
+        for mo in maskOnset:
+            if (sig=='targetOnly' and not np.isnan(mo)) or (sig=='maskOnly' and mo!=0) or (sig=='mask' and not mo>0):
+                continue
+            s = np.zeros(t.size)
+            if sig in ('targetOnly','mask') and hemi=='contra':
+                s[sigLat:sigLat+sigDur] = 1
+            if 'mask' in sig:
+                s[sigLat+mo:] = 1
+            signals[sig][hemi][mo] = s
+
+# display signals
 fig = plt.figure(figsize=(4,9))
 n = 2+len(signals['mask']['contra'].keys())
 axs = []
@@ -318,11 +324,37 @@ fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd = fit
 
+
 trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord)
 responseRate = result['responseRate']
 fractionCorrect = result['fractionCorrect']
+
+
+# plot model performance
+xticks = [mo/120*1000 for mo in maskOnset[:-1]+[maskOnset[-3]+4,maskOnset[-2]+4]]
+xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstimulus']
+xlim = [-8,xticks[-1]+8]
+
+for data,ylim,ylabel in  zip((responseRate,fractionCorrect),((0,1.02),(0.4,1)),('Response Rate','Fraction Correct')):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(xticks,data,'ko',ms=12)
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',right=False,labelsize=14)
+    if ylabel=='Fraction Correct':
+        ax.set_xticks(xticks[1:-1])
+        ax.set_xticklabels(xticklabels[1:-1])
+    else:
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+    ax.set_ylabel(ylabel,fontsize=16)
+    plt.tight_layout()
 
 
 # compare fit to data
