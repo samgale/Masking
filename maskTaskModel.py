@@ -36,9 +36,9 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 
 def calcModelError(paramsToFit,*fixedParams):
-    tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd = paramsToFit
+    tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd = paramsToFit
     signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,responseRate,fractionCorrect = fixedParams
-    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition)
+    trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,trialsPerCondition)
     result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
     respRateError = np.nansum((responseRate-result['responseRate'])**2)
     fracCorrError = np.nansum((2*(fractionCorrect-result['fractionCorrect']))**2)
@@ -89,7 +89,7 @@ def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trial
     return result
 
 
-def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition,optoLatency=0,record=False):
+def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,trialsPerCondition,optoLatency=0,record=False):
     trialTargetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -138,7 +138,7 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,si
                         trialMaskOnset.append(maskOn)
                         trialOptoOnset.append(optoOn)
                         trialOptoSide.append(opSide)
-                        result = runTrial(tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
+                        result = runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
                         response.append(result[0])
                         responseTime.append(result[1])
                         if record:
@@ -148,7 +148,7 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,si
 
 
 @njit
-def runTrial(tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+def runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
     if record:
         Lrecord = np.full(Lsignal.size,np.nan)
         Rrecord = Lrecord.copy()
@@ -175,8 +175,8 @@ def runTrial(tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,Lsignal,Rsignal,
             Lsig = Lsignal[t]
             Rsig = Rsignal[t]
         Lnow = L
-        L += (random.gauss(0,sigma) + Lsig - L - inhib*R) / tauA
-        R += (random.gauss(0,sigma) + Rsig - R - inhib*Lnow) / tauA
+        L += (random.gauss(0,sigma) + Lsig - decay*L - inhib*R) / tauA
+        R += (random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow) / tauA
         if tauI > 0:
             iL += (Lsignal[t] - iL) / tauI
             iR += (Rsignal[t] - iR) / tauI
@@ -186,14 +186,13 @@ def runTrial(tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,Lsignal,Rsignal,
 
 
 
-# create model input signals
+# create model input signals using population ephys responses
 signalNames = ('targetOnly','maskOnly','mask')
 dt = 1/120*1000
 trialEndTimeMax = 200
 trialEndMax = int(round(trialEndTimeMax/dt))
 t = np.arange(0,trialEndMax*dt+dt,dt)
 
-# use population ephys responses
 psthFilePath = fileIO.getFile('Load popPsth',fileType='*.pkl')
 popPsth = pickle.load(open(psthFilePath,'rb'))
 
@@ -222,8 +221,16 @@ for sig in signals.keys():
             s /= smax
 
 # or create synthetic signals
-sigLat = 3
-sigDur = 3
+signalNames = ('targetOnly','maskOnly','mask')
+dt = 1/120*1000
+trialEndTimeMax = 2400
+trialEndMax = int(round(trialEndTimeMax/dt))
+t = np.arange(0,trialEndMax*dt+dt,dt)
+
+latency = 4
+targetDur = 6
+maskDur = 6
+
 signals = {}
 maskOnset = [0,2,4,6,8,np.nan]
 for sig in signalNames:
@@ -235,9 +242,9 @@ for sig in signalNames:
                 continue
             s = np.zeros(t.size)
             if sig in ('targetOnly','mask') and hemi=='contra':
-                s[sigLat:sigLat+sigDur] = 1
+                s[latency:latency+targetDur] = 1
             if 'mask' in sig:
-                s[sigLat+mo:] = 1
+                s[latency+mo:latency+mo+maskDur] = 1
             signals[sig][hemi][mo] = s
 
 # display signals
@@ -288,9 +295,11 @@ fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrDat
 
 trialsPerCondition = 500
 targetSide = (1,0) # (-1,1,0)
-maskOnset = [0,2,3,4,6,np.nan]
 optoOnset = [np.nan]
 optoSide = [0]
+
+# mice
+maskOnset = [0,2,3,4,6,np.nan]
 
 # simple model (no normalization)
 tauIRange = slice(0,1,1)
@@ -302,7 +311,7 @@ inhibRange = slice(0.5,1.05,0.05)
 thresholdRange = slice(0.1,1.5,0.1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
-# [ 0. ,  0. ,  0. ,  0.4,  2.5,  1. ,  0.7, 24. ]
+# [0, 0 ,0 , 0.4, 2.5, 1, 0.7, 24]
 
 # with dynamic divisive normalization
 tauIRange = slice(0.3,1.2,0.1)
@@ -314,18 +323,41 @@ inhibRange = slice(0.6,1.05,0.05)
 thresholdRange = slice(0.5,1.6,0.1)
 trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
-#[ 0.5 ,  0.05,  1.  ,  1.  ,  4.5 ,  0.8 ,  1.  , 24.  ]
+# [0.5, 0.05, 1, 1, 4.5, 0.8,  1, 24]
 
-fitParamRanges = (tauIRange,alphaRange,etaRange,sigmaRange,tauARange,inhibRange,thresholdRange,trialEndRange)
+# humans
+respRateMean = np.delete(respRateMean,[5,6])
+respRateSem = np.delete(respRateSem,[5,6])
+fracCorrMean = np.delete(fracCorrMean,[5,6])
+fracCorrSem = np.delete(fracCorrSem,[5,6])
+maskOnset = [0,2,4,6,8,np.nan]
+
+tauIRange = slice(0,1,1)
+alphaRange = slice(0,1,1)
+etaRange = slice(0,1,1)
+sigmaRange = slice(0.1,1.1,0.1)
+tauARange = slice(0.5,5,0.5)
+decayRange = slice(-1,1.1,0.2)
+inhibRange = slice(0,1.05,0.1)
+thresholdRange = slice(0.2,2.1,0.2)
+trialEndRange = slice(24,300,24)
+
+# [0, 0, 0, 0.3, 1.0, 0.1, 1.0, 120.0]
+# [0, 0, 0, 0.2, 1.0, 0.1, 0.6, 48.0]
+# [0, 0, 0, 0.3, 1.0, 0, 1.2, 144]
+
+
+# fit
+fitParamRanges = (tauIRange,alphaRange,etaRange,sigmaRange,tauARange,decayRange,inhibRange,thresholdRange,trialEndRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,fracCorrMean)
 
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 
-tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd = fit
+# run model using best fit params
+tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd = fit
 
-
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord)
 responseRate = result['responseRate']
