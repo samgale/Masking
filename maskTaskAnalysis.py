@@ -351,8 +351,9 @@ ntable = np.array(ntable)
 ntotal = ntrials.sum(axis=(1,2))
 print(np.median(ntotal),np.min(ntotal),np.max(ntotal))
 
-#np.save(fileIO.saveFile('Save respRate',fileType='*.npy'),respRate)
-#np.save(fileIO.saveFile('Save fracCorr',fileType='*.npy'),fracCorr)
+# np.save(fileIO.saveFile('Save respRate',fileType='*.npy'),respRate)
+# np.save(fileIO.saveFile('Save fracCorr',fileType='*.npy'),fracCorr)
+# np.save(fileIO.saveFile('Save medianReacTime',fileType='*.npy'),medianReacTime)
 
 xticks = np.concatenate((maskOnset,[maskOnset[-1]+2,maskOnset[-1]+4]))/frameRate*1000
 xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstimulus']
