@@ -25,19 +25,21 @@ class FNTask(TaskControl):
         self.preStimFramesMax = 600 # max total preStim frames
         self.quiescentFrames = 60 # frames before stim onset during which wheel movement delays stim onset
         self.openLoopFrames = 18 # min frames after stimulus onset before wheel movement has effects
-        self.maxResponseWaitFrames = 240 # max frames from stim onset to end of trial
+        self.maxResponseWaitFrames = 600 # max frames from stim onset to end of trial
+        self.rewardDelayFrames = 0
+        self.probCatch = 0.1 # probability of catch trials with normal trial timing but no stimulus or reward
         
         self.wheelRewardDistance = 8.0 # mm of wheel movement to achieve reward
         self.maxQuiescentMoveDist = 1.0 # max allowed mm of wheel movement during quiescent period
         
-        self.targetStartPos = [-0.25,0] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
-        self.targetRewardDistance = 0.5
+        self.targetStartPos = [-0.4,0] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
+        self.targetRewardDistance = 0.8
         self.targetAutoMoveRate = 0 # fraction of normalized screen width per second that target automatically moves
         self.keepTargetOnScreen = True
         self.postRewardTargetFrames = 60 # frames to freeze target after reward
         self.targetContrast = 1
-        self.targetSize = 25 # degrees
-        self.targetSF = 0.08 # cycles/deg
+        self.targetSize = 20 # degrees
+        self.targetSF = 0.1 # cycles/deg
         self.targetOri = 0
         self.gratingType = 'sqr' # 'sqr' or 'sin'
         self.gratingEdge= 'raisedCos' # 'circle' or 'raisedCos'
@@ -49,33 +51,26 @@ class FNTask(TaskControl):
     
     def setDefaultParams(self,taskVersion):
         if taskVersion == 'training1':
+            # target moves automatically and each trial is autorewarded
+            self.probCatch = 0
             self.quiescentFrames = 0
             self.maxResponseWaitFrames = 3600
             self.targetAutoMoveRate = 0.5
             
         elif taskVersion == 'training2':
-            # target centered and wheel movement in either direction rewarded
+            # offset target to one side and increase reward distance
+            self.probCatch = 0
             self.quiescentFrames = 0
             self.maxResponseWaitFrames = 3600
-            self.targetStartPos = [0,0]
-            self.targetRewardDistance = 0.25
-            self.wheelRewardDistance = 4.0
-            
-        elif taskVersion == 'training3':
-            # offset target to one side and increase reward distance
-            self.quiescentFrames = 0
-            self.maxResponseWaitFrames = 1200
-            self.targetStartPos = [-0.25,0]
-            self.targetRewardDistance = 0.5
             self.wheelRewardDistance = 8.0
             
-        elif taskVersion == 'training4':
-            # introduce quiescent period, shorter response window, and longer wheel reward distance
+        elif taskVersion == 'training3':
+            # introduce quiescent period, catch trials, shorter response window, and longer wheel reward distance
             self.maxResponseWaitFrames = 600 # adjust this
             self.wheelRewardDistance = 16.0
             
-        elif taskVersion == 'training5':
-            self.wheelRewardDistance = 32.0
+        elif taskVersion == 'training4':
+            self.wheelRewardDistance = 64.0
             
         else:
             raise ValueError(taskVersion + ' is not a recognized task version')
@@ -114,6 +109,7 @@ class FNTask(TaskControl):
         self.trialEndFrame = []
         self.trialPreStimFrames = []
         self.trialStimStartFrame = []
+        self.isCatchTrial = []
         self.trialResponse = []
         self.trialResponseDir = []
         self.trialResponseFrame = []
@@ -131,6 +127,7 @@ class FNTask(TaskControl):
                 quiescentWheelMove = 0 # virtual (not on screen) change in target position during quiescent period
                 closedLoopWheelMove = 0 # actual change in target position during closed loop period
                 targetPos = targetStartPosPix[:]
+                self.isCatchTrial.append(random.random() < self.probCatch)
                 self.trialStartFrame.append(self._sessionFrame)
                 hasResponded = False
             
@@ -169,7 +166,6 @@ class FNTask(TaskControl):
                                 self.trialResponse.append(True)
                                 self.trialResponseDir.append(moveDir)
                                 self.trialResponseFrame.append(self._sessionFrame)
-                                self._reward = self.solenoidOpenTime
                                 hasResponded = True
                     else:
                         # response window ended
@@ -179,16 +175,22 @@ class FNTask(TaskControl):
                         hasResponded = True
                 
                 # show target
-                target.pos = targetPos 
-                target.draw()
+                if not self.isCatchTrial[-1]:
+                    target.pos = targetPos 
+                    target.draw()
             
             if hasResponded:
-                if self.trialResponse[-1] > 0 and self._sessionFrame < self.trialResponseFrame[-1] + self.postRewardTargetFrames:
-                    # hold target and reward pos/ori after correct trial
-                    if self._sessionFrame == self.trialResponseFrame[-1]:
-                        targetPos[0] = targetStartPosPix[0] + moveDir * rewardMove
-                        target.pos = targetPos
-                    target.draw()
+                if (not self.isCatchTrial[-1] and self.trialResponse[-1] > 0 and 
+                    self._sessionFrame <= self.trialResponseFrame[-1] + max(self.rewardDelayFrames,self.postRewardTargetFrames)):
+                    if self._sessionFrame <= self.trialResponseFrame[-1] + self.postRewardTargetFrames:
+                        # hold target at reward position after correct trial
+                        if self._sessionFrame == self.trialResponseFrame[-1]:
+                            targetPos[0] = targetStartPosPix[0] + moveDir * rewardMove
+                            target.pos = targetPos
+                        target.draw()
+                    if self._sessionFrame == self.trialResponseFrame[-1] + self.rewardDelayFrames:
+                        # deliver reward
+                        self._reward = self.solenoidOpenTime    
                 else:
                     # end trial
                     self.trialEndFrame.append(self._sessionFrame)
