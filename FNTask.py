@@ -49,6 +49,11 @@ class FNTask(TaskControl):
     
     def setDefaultParams(self,taskVersion):
         if taskVersion == 'training1':
+            self.quiescentFrames = 0
+            self.maxResponseWaitFrames = 3600
+            self.targetAutoMoveRate = 0.5
+            
+        elif taskVersion == 'training2':
             # target centered and wheel movement in either direction rewarded
             self.quiescentFrames = 0
             self.maxResponseWaitFrames = 3600
@@ -56,7 +61,7 @@ class FNTask(TaskControl):
             self.targetRewardDistance = 0.25
             self.wheelRewardDistance = 4.0
             
-        elif taskVersion == 'training2':
+        elif taskVersion == 'training3':
             # offset target to one side and increase reward distance
             self.quiescentFrames = 0
             self.maxResponseWaitFrames = 1200
@@ -64,12 +69,12 @@ class FNTask(TaskControl):
             self.targetRewardDistance = 0.5
             self.wheelRewardDistance = 8.0
             
-        elif taskVersion == 'training3':
+        elif taskVersion == 'training4':
             # introduce quiescent period, shorter response window, and longer wheel reward distance
             self.maxResponseWaitFrames = 600 # adjust this
             self.wheelRewardDistance = 16.0
             
-        elif taskVersion == 'training4':
+        elif taskVersion == 'training5':
             self.wheelRewardDistance = 32.0
             
         else:
