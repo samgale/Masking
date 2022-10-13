@@ -743,7 +743,7 @@ for measures,alim,albl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect),(
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot(alim,alim,'k--')
-    rc,ri = [np.sum(d*respRate,axis=1)/np.sum(respRate,axis=1) for d in measures]
+    rc,ri = [np.nanmean(d,axis=1) for d in measures]
     for j,(clr,lbl) in enumerate(zip(clrs,lbls)):
         ax.plot(rc[:,j+1],ri[:,j+1],'o',color=clr,label=lbl)
     for side in ('right','top'):
@@ -824,9 +824,9 @@ for side in ('right','top'):
 ax.tick_params(direction='out',right=False,labelsize=14)
 if exps[0].rigName=='human':
     ax.set_xlim([0,2500])
-    ax.legend(loc='lower left')
 else:
     ax.set_xlim([100,475])
+ax.legend(loc='lower left')
 ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
