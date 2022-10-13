@@ -38,7 +38,7 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 def calcModelError(paramsToFit,*fixedParams):
     tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision = paramsToFit
     signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,responseRate,fractionCorrect,reacTimeMedian = fixedParams
-    sessionData = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,trialsPerCondition)
+    sessionData = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition)
     if sessionData is None:
         return 1e6
     else:
@@ -46,7 +46,10 @@ def calcModelError(paramsToFit,*fixedParams):
         result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
         respRateError = np.nansum((responseRate-result['responseRate'])**2)
         fracCorrError = np.nansum((2*(fractionCorrect-result['fractionCorrect']))**2)
-        respTimeError = np.nansum(((reacTimeMedian-postDecision-result['responseTimeMedian'])/(np.nanmax(reacTimeMedian)-np.nanmin(reacTimeMedian)))**2)
+        if postDecision > 0:
+            respTimeError = np.nansum(((reacTimeMedian-postDecision-result['responseTimeMedian'])/(np.nanmax(reacTimeMedian)-np.nanmin(reacTimeMedian)))**2)
+        else:
+            respTimeError = 0
         return respRateError + fracCorrError + respTimeError
 
 
@@ -97,7 +100,7 @@ def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trial
     return result
 
 
-def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,trialsPerCondition,optoLatency=0,record=False):
+def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition,optoLatency=0,record=False):
     trialTargetSide = []
     trialMaskOnset = []
     trialOptoOnset = []
@@ -146,7 +149,7 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,si
                         trialMaskOnset.append(maskOn)
                         trialOptoOnset.append(optoOn)
                         trialOptoSide.append(opSide)
-                        result = runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record)
+                        result = runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,Lsignal,Rsignal,record)
                         response.append(result[0])
                         responseTime.append(result[1])
                         if record:
@@ -158,9 +161,9 @@ def runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,si
 
 
 @njit
-def runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,Lsignal,Rsignal,record=False):
+def runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,Lsignal,Rsignal,record=False):
     if record:
-        Lrecord = np.full(Lsignal.size,np.nan)
+        Lrecord = np.full(int(trialEnd),np.nan)
         Rrecord = Lrecord.copy()
     else:
         Lrecord = Rrecord = None
@@ -168,7 +171,7 @@ def runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,Lsignal,Rs
     iL = iR = 0
     t = 0
     response = 0
-    while t<trialEnd and response==0:
+    while t < trialEnd - postDecision and response == 0:
         if record:
             Lrecord[t] = L
             Rrecord[t] = R
@@ -178,7 +181,9 @@ def runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,Lsignal,Rs
             response = -1
         elif R > threshold:
             response = 1
-        if alpha > 0:
+        if t >= Lsignal.size:
+            Lsig = Rsig = 0
+        elif alpha > 0:
             Lsig = (Lsignal[t]**eta) / (alpha**eta + iL**eta) if Lsignal[t]>0 and iL>=0 else Lsignal[t]
             Rsig = (Rsignal[t]**eta) / (alpha**eta + iR**eta) if Rsignal[t]>0 and iR>=0 else Rsignal[t]
         else:
@@ -188,8 +193,12 @@ def runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,Lsignal,Rs
         L += (random.gauss(0,sigma) + Lsig - decay*L - inhib*R) / tauA
         R += (random.gauss(0,sigma) + Rsig - decay*R - inhib*Lnow) / tauA
         if tauI > 0:
-            iL += (Lsignal[t] - iL) / tauI
-            iR += (Rsignal[t] - iR) / tauI
+            if t >= Lsignal.size:
+                iL -= iL / tauI
+                iR -= iR / tauI
+            else:
+                iL += (Lsignal[t] - iL) / tauI
+                iR += (Rsignal[t] - iR) / tauI
         t += 1
     responseTime = t-1
     return response,responseTime,Lrecord,Rrecord
@@ -233,16 +242,16 @@ for sig in signals.keys():
 # or create synthetic signals
 signalNames = ('targetOnly','maskOnly','mask')
 dt = 1/120*1000
-trialEndTimeMax = 2400
+trialEndTimeMax = 2500
 trialEndMax = int(round(trialEndTimeMax/dt))
 t = np.arange(0,trialEndMax*dt+dt,dt)
 
 latency = 4
 targetDur = 6
-maskDur = trialEndMax
+maskDur = 6
 
 signals = {}
-maskOnset = [0,2,4,6,8,np.nan]
+maskOnset = [0,2,4,6,8,10,12,np.nan]
 for sig in signalNames:
     signals[sig] = {}
     for hemi in ('ipsi','contra'):
@@ -340,28 +349,31 @@ trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 # [0.5, 0.05, 1, 1, 4.5, 0.8,  1, 24]
 
 # humans
-respRateMean = np.delete(respRateMean,[5,6])
-respRateSem = np.delete(respRateSem,[5,6])
-fracCorrMean = np.delete(fracCorrMean,[5,6])
-fracCorrSem = np.delete(fracCorrSem,[5,6])
-reacTimeMedian = np.delete(reacTimeMedian,[5,6])
-maskOnset = [0,2,4,6,8,np.nan]
+# respRateMean = np.delete(respRateMean,[5,6])
+# respRateSem = np.delete(respRateSem,[5,6])
+# fracCorrMean = np.delete(fracCorrMean,[5,6])
+# fracCorrSem = np.delete(fracCorrSem,[5,6])
+# reacTimeMedian = np.delete(reacTimeMedian,[5,6])
+maskOnset = [0,2,4,6,8,10,12,np.nan]
 
 tauIRange = slice(0,1,1)
 alphaRange = slice(0,1,1)
 etaRange = slice(0,1,1)
 sigmaRange = slice(0.1,1.2,0.2)
-tauARange = slice(4,18,2)
-decayRange = slice(0,1.1,0.2)
+tauARange = slice(2,14,2)
+decayRange = slice(0,1.1,1)
 inhibRange = slice(0,1.1,0.2)
-thresholdRange = slice(0.8,2.5,0.2)
-trialEndRange = slice(24,288,24)
-postDecisionRange = slice(12,48,6)
+thresholdRange = slice(0.6,2.4,0.2)
+trialEndRange = slice(300,301,1)
+postDecisionRange = slice(12,42,6)
 
 # [0.0, 0.0, 0.0, 0.4, 8.0, 0.0, 0.2, 2.0, 144.0, 24.0]
 # [0.0, 0.0, 0.0, 0.6, 10.0, 0.0, 0.2, 1.5, 168.0, 24.0]
+# [0.0, 0.0, 0.0, 0.5, 8.0, 0.9, 1.0, 1.0, 216.0, 18.0] short mask
+# [0.0, 0.0, 0.0, 0.3, 16.0, 0.6, 0.6, 1.0, 264.0, 42.0] long mask
 
-# long mask [0.0, 0.0, 0.0, 0.30000000000000004, 16.0, 0.6000000000000001, 0.6000000000000001, 1.0, 264.0, 42.0]
+# [0.0, 0.0, 0.0, 0.5, 2.0, 1.0, 0.0, 1.0, 192.0, 0.0] no reac time fit
+# [0.0, 0.0, 0.0, 0.5, 8.0, 0.0, 0.2, 1.8, 300.0, 24.0] reac time fit
 
 
 # fit
@@ -374,7 +386,7 @@ fit = fitModel(fitParamRanges,fixedParams,finish=False)
 # run model using best fit params
 tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision = fit
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,trialsPerCondition=100000,record=True)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition=100000,record=True)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord)
 responseRate = result['responseRate']
@@ -625,7 +637,7 @@ for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
 ax.set_xticks([0,50,100,150,200])
-ax.set_xlim([50,200])
+# ax.set_xlim([50,200])
 ax.set_ylim([0.2,1])
 ax.set_xlabel('Decision Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
