@@ -15,10 +15,12 @@ class FNTask(TaskControl):
     
     def __init__(self,rigName,taskVersion=None):
         TaskControl.__init__(self,rigName)
-        
+       
+        self.expectedFrameRate = 120
         self.taskVersion = taskVersion
         self.maxTrials = None
         self.spacebarRewardsEnabled = False
+        self.printTrialInfo = True
         
         self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
         self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
@@ -150,6 +152,8 @@ class FNTask(TaskControl):
                 self.isCatchTrial.append(random.random() < self.probCatch)
                 self.trialStartFrame.append(self._sessionFrame)
                 hasResponded = False
+                if self.printTrialInfo:
+                    print('starting trial ' + str(len(self.trialStartFrame)))
             
             # extend pre stim gray frames if wheel moving during quiescent period
             if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
@@ -222,6 +226,8 @@ class FNTask(TaskControl):
                 else:
                     # end trial
                     self.trialEndFrame.append(self._sessionFrame)
+                    if self.printTrialInfo and self.trialResponse[-1] != 0:
+                        print('response latency ' + str((self.trialResponseFrame[-1] - self.trialStimStartFrame[-1]) / self.expectedFrameRate) + ' s')
                     self._trialFrame = -1
                     if self.maxTrials is not None and len(self.trialStartFrame) >= self.maxTrials:
                         self._continueSession = False
