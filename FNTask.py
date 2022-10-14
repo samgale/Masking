@@ -26,8 +26,9 @@ class FNTask(TaskControl):
         self.quiescentFrames = 60 # frames before stim onset during which wheel movement delays stim onset
         self.openLoopFrames = 18 # min frames after stimulus onset before wheel movement has effects
         self.maxResponseWaitFrames = 600 # max frames from stim onset to end of trial
-        self.rewardDelayFrames = 0
+        self.rewardDelayFrames = 24
         self.probCatch = 0.1 # probability of catch trials with normal trial timing but no stimulus or reward
+        self.useIncorrectNoise = False # play noise after movement in incorrect direction
         
         self.wheelRewardDistance = 8.0 # mm of wheel movement to achieve reward
         self.maxQuiescentMoveDist = 1.0 # max allowed mm of wheel movement during quiescent period
@@ -56,21 +57,40 @@ class FNTask(TaskControl):
             self.quiescentFrames = 0
             self.maxResponseWaitFrames = 3600
             self.targetAutoMoveRate = 0.5
+            self.solenoidOpenTime = .1
             
         elif taskVersion == 'training2':
-            # offset target to one side and increase reward distance
+            # offset target to one side
             self.probCatch = 0
             self.quiescentFrames = 0
             self.maxResponseWaitFrames = 3600
             self.wheelRewardDistance = 8.0
+            self.solenoidOpenTime = .1 #0.05 # seconds
             
         elif taskVersion == 'training3':
+            # display target at center of screen and reward movement in either direction
+            self.probCatch = 0
+            self.quiescentFrames = 0
+            self.maxResponseWaitFrames = 3600
+            self.wheelRewardDistance = 8.0
+            self.solenoidOpenTime = .1
+            self.targetStartPos = [0,0]
+            self.targetRewardDistance = 0.4
+  
+        elif taskVersion == 'training4':
+            # offset target to one side; make movement in incorrect direction end trial
+            self.probCatch = 0
+            self.quiescentFrames = 0
+            self.maxResponseWaitFrames = 3600
+            self.wheelRewardDistance = 8.0
+            self.solenoidOpenTime = .1 #0.05 # seconds
+            self.keepTargetOnScreen = False
+            self.useIncorrectNoise = True
+            
+        elif taskVersion == 'training5':
             # introduce quiescent period, catch trials, shorter response window, and longer wheel reward distance
             self.maxResponseWaitFrames = 600 # adjust this
             self.wheelRewardDistance = 16.0
-            
-        elif taskVersion == 'training4':
-            self.wheelRewardDistance = 64.0
             
         else:
             raise ValueError(taskVersion + ' is not a recognized task version')
@@ -160,16 +180,24 @@ class FNTask(TaskControl):
                             
                     # check for response past reward threshold
                     if self._trialFrame < self.trialPreStimFrames[-1] + self.maxResponseWaitFrames:
-                        if abs(closedLoopWheelMove) > rewardMove:
-                            moveDir = 1 if closedLoopWheelMove > 0 else -1
-                            if moveDir == rewardDir or self.targetStartPos[0] == 0:
-                                self.trialResponse.append(True)
-                                self.trialResponseDir.append(moveDir)
-                                self.trialResponseFrame.append(self._sessionFrame)
-                                hasResponded = True
+                        moveDir = 1 if closedLoopWheelMove > 0 else -1
+                        if abs(closedLoopWheelMove) > rewardMove and (moveDir == rewardDir or self.targetStartPos[0] == 0):
+                            # response in correct direction
+                            self.trialResponse.append(1)
+                            self.trialResponseDir.append(moveDir)
+                            self.trialResponseFrame.append(self._sessionFrame)
+                            hasResponded = True
+                        elif moveDir != rewardDir and (abs(closedLoopWheelMove) > rewardMove or (not self.keepTargetOnScreen and abs(closedLoopWheelMove) > monitorEdge)):
+                            # response in incorrect direction
+                            self.trialResponse.append(-1)
+                            self.trialResponseDir.append(moveDir)
+                            self.trialResponseFrame.append(self._sessionFrame)
+                            if self.useIncorrectNoise:
+                                self._noise = True
+                            hasResponded = True
                     else:
-                        # response window ended
-                        self.trialResponse.append(False)
+                        # response window ended; no response
+                        self.trialResponse.append(0)
                         self.trialResponseDir.append(np.nan)
                         self.trialResponseFrame.append(self._sessionFrame)
                         hasResponded = True
