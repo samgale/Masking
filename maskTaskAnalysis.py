@@ -470,8 +470,15 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0.5,0.5],'k--')
 for n in range(len(exps)):
-    vr,fc = [np.nanmean(d,axis=1) for d in (visRatingResp,fracCorr)]
-    ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12,alpha=0.1)
+    vr,fc = [np.nanmean(d,axis=1).flatten() for d in (visRatingResp,fracCorr)]
+    ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12,alpha=0.05)
+    i = np.argsort(vr)
+    vr = vr[i]
+    fc = fc[i]
+    notNan = ~np.isnan(vr) & ~np.isnan(fc)
+    p = np.polyfit(vr[notNan],fc[notNan],2)
+    px = np.arange(-1,1.02,0.01)
+    ax.plot(px,np.polyval(p,px),'k',lw=2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -814,7 +821,7 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,2500],[0.5,0.5],'k--')
 for p,n,clr,lbl in zip(fcBinned,binTrials,clrs,lbls):
-    i = n>9
+    i = n>14
     ax.plot(bins[:-1][i]+binWidth/2,p[i],color=clr,label=lbl)
     s = [c/n[i] for c in scipy.stats.binom.interval(0.95,n[i],p[i])]
     s[0][p[i]==1] = 1
