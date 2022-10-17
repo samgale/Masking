@@ -206,14 +206,14 @@ def runTrial(tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecisi
 
 
 # create model input signals using population ephys responses
-signalNames = ('targetOnly','maskOnly','mask')
-dt = 1/120*1000
-trialEndTimeMax = 200
-trialEndMax = int(round(trialEndTimeMax/dt))
-t = np.arange(0,trialEndMax*dt+dt,dt)
-
 psthFilePath = fileIO.getFile('Load popPsth',fileType='*.pkl')
 popPsth = pickle.load(open(psthFilePath,'rb'))
+
+signalNames = ('targetOnly','maskOnly','mask')
+dt = 1/120*1000
+trialEndTimeMax = 2500
+trialEndMax = int(round(trialEndTimeMax/dt))
+t = np.arange(0,trialEndMax*dt+dt,dt)
 
 popPsthIntp = {}
 for sig in signalNames:
@@ -299,7 +299,7 @@ for ax in axs:
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xlim([0,200])
+    ax.set_xlim([0,2500])
     ax.set_ylim([1.05*ymin,1.05*ymax])
 plt.tight_layout()
 

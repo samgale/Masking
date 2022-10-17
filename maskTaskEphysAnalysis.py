@@ -113,7 +113,7 @@ hemiLabels = ('contra','ipsi')
 rewardDir = (-1,1)
 behavRespLabels = ('all','go','nogo')
 preTime = 0.5
-postTime = 1
+postTime = 2
 windowDur = preTime+trialTime+postTime
 
 ntrials = {stim: {hemi: {resp: {} for resp in behavRespLabels} for hemi in hemiLabels} for stim in stimLabels}
