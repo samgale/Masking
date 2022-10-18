@@ -184,7 +184,7 @@ for units in (respUnits,):
     ymin = ymax = 0
     for resp in ('all',): #behavRespLabels:
         fig = plt.figure(figsize=(10,5))
-        fig.text(0.5,0.99,'n='+str(units.sum())+' units)',ha='center',va='top',fontsize=12)
+        fig.text(0.5,0.99,'n='+str(units.sum())+' units',ha='center',va='top',fontsize=12)
         for i,hemi in enumerate(hemiLabels):
             ax = fig.add_subplot(1,2,i+1)
             axs.append(ax)
@@ -218,7 +218,19 @@ for units in (respUnits,):
             ax.set_title('target '+hemi)
     for ax in axs:
         ax.set_ylim([1.05*ymin,1.05*ymax])
-        
+
+# save psth
+units = respUnits & ~fs
+popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
+for stim in stimLabels:
+    for hemi in hemiLabels:
+        p = psth[stim][hemi]['all']
+        for mo in p.keys():
+            popPsth[stim][hemi][mo] = np.array(p[mo])[units]
+popPsth['t'] = t
+            
+pkl = fileIO.saveFile(fileType='*.pkl')
+pickle.dump(popPsth,open(pkl,'wb'))        
 
 # peak response and latency
 fig = plt.figure()
@@ -450,20 +462,6 @@ ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
 ax.set_ylabel('Cumulative Spike Count Difference',fontsize=16)
 ax.set_title('Contralateral - Ipsilateral',fontsize=14)
 plt.tight_layout()
-
-
-# save psth
-units = respUnits & ~fs
-popPsth = {stim: {hemi: {} for hemi in hemiLabels} for stim in stimLabels}
-for stim in stimLabels:
-    for hemi in hemiLabels:
-        p = psth[stim][hemi]['all']
-        for mo in p.keys():
-            popPsth[stim][hemi][mo] = np.array(p[mo])[units]
-popPsth['t'] = t
-            
-pkl = fileIO.saveFile(fileType='*.pkl')
-pickle.dump(popPsth,open(pkl,'wb'))
 
 
 # behavior analysis

@@ -292,17 +292,8 @@ medianVelocityIncorrect = respRate.copy()
 reacTime,velocity = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
 reacTimeCorrect,velocityCorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
 reacTimeIncorrect,velocityIncorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
-trialsToUse = 'all' # 'all', 'first half', 'second half'
 for n,obj in enumerate(exps):
-    if trialsToUse == 'all':
-        selectedTrials = np.ones(obj.ntrials,dtype=bool)
-    else:
-        selectedTrials = np.zeros(obj.ntrials,dtype=bool)
-        if trialsToUse == 'first half':
-            selectedTrials[:int(obj.ntrials/2)] = True
-        elif trialsToUse =='second half':
-            selectedTrials[int(obj.ntrials/2):] = True # second half
-    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove) & selectedTrials
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for stim in stimLabels:
         stimTrials = validTrials & (obj.trialType==stim)
         for j,mo in enumerate(maskOnset):
@@ -351,12 +342,8 @@ ntable = np.array(ntable)
 ntotal = ntrials.sum(axis=(1,2))
 print(np.median(ntotal),np.min(ntotal),np.max(ntotal))
 
-# np.save(fileIO.saveFile('Save respRate',fileType='*.npy'),respRate)
-# np.save(fileIO.saveFile('Save fracCorr',fileType='*.npy'),fracCorr)
-# np.save(fileIO.saveFile('Save medianReacTime',fileType='*.npy'),medianReacTime)
-
 xticks = np.concatenate((maskOnset,[maskOnset[-1]+2,maskOnset[-1]+4]))/frameRate*1000
-xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstimulus']
+xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstim']
 xlim = [-8,(maskOnset[-1]+6)/frameRate*1000]
 
 # single experiment
@@ -385,6 +372,8 @@ for n in range(len(exps)):
     plt.tight_layout()
     
 # population
+dataMean = []
+dataSem = []
 for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median Reaction Time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -398,6 +387,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    dataMean.append(mean)
+    dataSem.append(sem)
     ax.plot(xticks,mean,'ko',ms=12)
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k-')
@@ -416,6 +407,11 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
     ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
+    
+    
+for m,s,lbl in zip(dataMean,dataSem,('respRate','fracCorr','reacTime')):
+    np.savez(fileIO.saveFile('Save '+lbl,fileType='*.npz'),mean=m,sem=s)
+    
     
 # visibility rating
 for vr,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('all trials','correct','incorrect')):
@@ -446,20 +442,23 @@ for vr,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('all tria
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0,0],'k--')
-for vr,clr,lbl in zip((visRatingCorrect,visRatingIncorrect),('k','0.5'),('correct','incorrect')):
+for vr,mec,mfc,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
     meanLR = np.nanmean(vr,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-    ax.plot(xticks,mean,'o',mec=clr,mfc=clr,ms=12,label=lbl)
+    if vr is visRatingResp:
+        for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
+            ax.plot(xticks,d,color=clr,alpha=0.5)
+    ax.plot(xticks,mean,'o',mec=mec,mfc=mfc,ms=12,label=lbl)
     for x,m,s in zip(xticks,mean,sem):
-        ax.plot([x,x],[m-s,m+s],'-',color=clr)
+        ax.plot([x,x],[m-s,m+s],'-',color=mec)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_yticks([-1,0,1])
-ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+ax.set_yticklabels(['Target\nnot visible','Unsure','Target\nvisible'])
 ax.set_xlim(xlim)
 ax.set_ylim([-1.02,1.02])
 ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
@@ -483,7 +482,7 @@ for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xticks([-1,0,1])
-ax.set_xticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
+ax.set_xticklabels(['Target\nnot visible','Unsure','Target\nvisible'])
 ax.set_xlim([-1.02,1.02])
 ax.set_ylim([0.4,1.02])
 ax.set_xlabel('Visibility Rating',fontsize=16)

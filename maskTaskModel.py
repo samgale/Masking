@@ -44,10 +44,10 @@ def calcModelError(paramsToFit,*fixedParams):
     else:
         trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = sessionData
         result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
-        respRateError = np.nansum((responseRate-result['responseRate'])**2)
-        fracCorrError = np.nansum((2*(fractionCorrect-result['fractionCorrect']))**2)
+        respRateError = np.nansum(((responseRate-result['responseRate'])/responseRate.std())**2)
+        fracCorrError = np.nansum(((fractionCorrect-result['fractionCorrect'])/fractionCorrect.std())**2)
         if postDecision > 0:
-            respTimeError = np.nansum(((reacTimeMean-postDecision-result['responseTimeMedian'])/(np.nanmax(reacTimeMean)-np.nanmin(reacTimeMean)))**2)
+            respTimeError = np.nansum(((reacTimeMean-postDecision-result['responseTimeMedian'])/reacTimeMean.std())**2)
         else:
             respTimeError = 0
         return respRateError + fracCorrError + respTimeError
@@ -305,28 +305,42 @@ plt.tight_layout()
 
 
 ## fit model parameters
-respRateFilePath = fileIO.getFile('Load respRate',fileType='*.npy')
+respRateFilePath = fileIO.getFile('Load respRate',fileType='*.npz')
 respRateData = np.load(respRateFilePath)
-respRateMean = np.nanmean(np.nanmean(respRateData,axis=1),axis=0)
-respRateSem = np.nanstd(np.nanmean(respRateData,axis=1),axis=0)/(len(respRateData)**0.5)
+respRateMean = respRateData['mean']
+respRateSem = respRateData['sem']
 
-fracCorrFilePath = fileIO.getFile('Load fracCorr',fileType='*.npy')
+fracCorrFilePath = fileIO.getFile('Load fracCorr',fileType='*.npz')
 fracCorrData = np.load(fracCorrFilePath)
-fracCorrMean = np.nanmean(np.nanmean(fracCorrData,axis=1),axis=0)
-fracCorrSem = np.nanstd(np.nanmean(fracCorrData,axis=1),axis=0)/(len(fracCorrData)**0.5)
+fracCorrMean = fracCorrData['mean']
+fracCorrSem = fracCorrData['sem']
 
-reacTimeFilePath = fileIO.getFile('Load medianReacTime',fileType='*.npy')
+reacTimeFilePath = fileIO.getFile('Load reacTime',fileType='*.npz')
 reacTimeData = np.load(reacTimeFilePath)
-reacTimeMean = np.nanmean(np.nanmean(reacTimeData,axis=1),axis=0) / dt
-reacTimeSem = np.nanstd(np.nanmean(reacTimeData,axis=1),axis=0)/(len(fracCorrData)**0.5) / dt
+reacTimeMean = reacTimeData['mean'] / dt
+reacTimeSem = reacTimeData['sem'] / dt
 
 trialsPerCondition = 500
-targetSide = (1,0) # (-1,1,0)
+targetSide = (1,) # (1,0) (-1,1,0)
 optoOnset = [np.nan]
 optoSide = [0]
 
 # mice
 maskOnset = [0,2,3,4,6,np.nan]
+respRateMean = respRateMean[:-1]
+respRateSem = respRateSem[:-1]
+fracCorrMean = fracCorrMean[:-1]
+fracCorrSem = fracCorrSem[:-1]
+reacTimeMean = reacTimeMean[:-1]
+reacTimeSem = reacTimeSem[:-1]
+
+# humans
+maskOnset = [0,2,4,6,8,10,12,np.nan]
+# respRateMean = np.delete(respRateMean,[5,6])
+# respRateSem = np.delete(respRateSem,[5,6])
+# fracCorrMean = np.delete(fracCorrMean,[5,6])
+# fracCorrSem = np.delete(fracCorrSem,[5,6])
+# reacTimeMedian = np.delete(reacTimeMedian,[5,6])
 
 # simple model (no normalization)
 tauIRange = slice(0,1,1)
@@ -352,24 +366,17 @@ trialEndRange = slice(trialEndMax,trialEndMax+1,1)
 
 # [0.5, 0.05, 1, 1, 4.5, 0.8,  1, 24]
 
-# humans
-# respRateMean = np.delete(respRateMean,[5,6])
-# respRateSem = np.delete(respRateSem,[5,6])
-# fracCorrMean = np.delete(fracCorrMean,[5,6])
-# fracCorrSem = np.delete(fracCorrSem,[5,6])
-# reacTimeMedian = np.delete(reacTimeMedian,[5,6])
-maskOnset = [0,2,4,6,8,10,12,np.nan]
-
-tauIRange = slice(0,1,1)
-alphaRange = slice(0,1,1)
-etaRange = slice(0,1,1)
-sigmaRange = slice(0.4,0.7,0.1)
+# fit with reaction times
+tauIRange = slice(0.3,1.2,0.2)
+alphaRange = slice(0.05,0.2,0.05)
+etaRange = slice(1,2,1)
+sigmaRange = slice(0.2,1.2,0.1)
 tauARange = slice(1,10,1)
 decayRange = slice(0,1.1,0.2)
-inhibRange = slice(0,0.5,0.1)
-thresholdRange = slice(0.9,2,0.1)
-trialEndRange = slice(300,301,1)
-postDecisionRange = slice(18,36,6)
+inhibRange = slice(0,1,0.1)
+thresholdRange = slice(0.6,2,0.1)
+trialEndRange = slice(78,79,1)
+postDecisionRange = slice(6,30,6)
 
 # [0.0, 0.0, 0.0, 0.4, 1.0, 0.8, 0.0, 1.4, 214.0, 0.0] no reac time fit
 # [0.0, 0.0, 0.0, 0.5, 6.0, 0.2, 0.3, 1.8, 300.0, 18.0] reac time fit
