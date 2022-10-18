@@ -37,17 +37,17 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 def calcModelError(paramsToFit,*fixedParams):
     tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision = paramsToFit
-    signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,responseRate,fractionCorrect,reacTimeMean = fixedParams
+    signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,responseRate,fractionCorrect,reactionTime = fixedParams
     sessionData = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition)
     if sessionData is None:
         return 1e6
     else:
         trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = sessionData
         result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
-        respRateError = np.nansum(((responseRate-result['responseRate'])/responseRate.std())**2)
-        fracCorrError = np.nansum(((fractionCorrect-result['fractionCorrect'])/fractionCorrect.std())**2)
+        respRateError = np.nansum(((responseRate-result['responseRate'])/np.nanstd(responseRate))**2)
+        fracCorrError = np.nansum(((fractionCorrect-result['fractionCorrect'])/np.nanstd(fractionCorrect))**2)
         if postDecision > 0:
-            respTimeError = np.nansum(((reacTimeMean-postDecision-result['responseTimeMedian'])/reacTimeMean.std())**2)
+            respTimeError = np.nansum(((reactionTime-(result['responseTimeMedian']+postDecision))/np.nanstd(reactionTime))**2)
         else:
             respTimeError = 0
         return respRateError + fracCorrError + respTimeError
@@ -378,8 +378,10 @@ thresholdRange = slice(0.6,2,0.1)
 trialEndRange = slice(78,79,1)
 postDecisionRange = slice(6,30,6)
 
-# [0.0, 0.0, 0.0, 0.4, 1.0, 0.8, 0.0, 1.4, 214.0, 0.0] no reac time fit
-# [0.0, 0.0, 0.0, 0.5, 6.0, 0.2, 0.3, 1.8, 300.0, 18.0] reac time fit
+# [0.0, 0.0, 0.0, 0.4, 1.0, 0.8, 0.0, 1.4, 214.0, 0.0] old no reac time fit
+# [0.0, 0.0, 0.0, 0.5, 6.0, 0.2, 0.3, 1.8, 300.0, 18.0] old reac time fit
+
+# [1.1, 0.15, 1.0, 0.4, 1.0, 0.6, 0.4, 1.9, 78.0, 18.0] # mice
 
 
 # fit
@@ -401,8 +403,12 @@ responseTimeMedian= result['responseTimeMedian'] + postDecision
 
 
 # compare fit to data
-xticks = [mo/120*1000 for mo in maskOnset[:-1]+[maskOnset[-3]+4,maskOnset[-2]+4]]
+xticks = [mo/120*1000 for mo in maskOnset[:-1]+[maskOnset[-2]+2,maskOnset[-2]+4]]
 xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-2]]+['target\nonly','no\nstimulus']
+
+xticks = [mo/120*1000 for mo in maskOnset[:-1]+[maskOnset[-2]+2]]
+xticklabels = ['mask\nonly']+[str(int(round(x))) for x in xticks[1:-1]]+['target\nonly']
+
 xlim = [-8,xticks[-1]+8]
 
 for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean,reacTimeMean*dt),(respRateSem,fracCorrSem,reacTimeSem*dt),(responseRate,fractionCorrect,responseTimeMedian*dt),((0,1.02),(0.4,1),None),('Response Rate','Fraction Correct','Reaction Time (ms)')):

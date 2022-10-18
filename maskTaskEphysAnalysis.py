@@ -459,8 +459,7 @@ for side in ('right','top'):
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim([33,200])
 ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
-ax.set_ylabel('Cumulative Spike Count Difference',fontsize=16)
-ax.set_title('Contralateral - Ipsilateral',fontsize=14)
+ax.set_ylabel('Difference in Cumulative Spikes\n(Contra - Ipsi Target)',fontsize=16)
 plt.tight_layout()
 
 
@@ -677,7 +676,7 @@ for mo,moLbl in zip(maskOnset,('target only','mask onset 17 ms')):
     ax.plot([0,200],[0,0],':',color='k')
     stim = 'mask' if mo>0 else 'targetOnly'
     # for resp,clr in zip(('all',),'k'):
-    for resp,clr in zip(('all','correct','incorrect'),'kgm'):
+    for resp,clr in zip(('all resp','correct','incorrect'),'kgm'):
         r = []
         for hemi in hemiLabels:
             p = np.array(behavPsth[stim][hemi][resp][mo])[behavUnits]
@@ -686,14 +685,15 @@ for mo,moLbl in zip(maskOnset,('target only','mask onset 17 ms')):
         d = np.array(r[0])-np.array(r[1])
         m = np.nanmean(d,axis=0)
         s = np.nanstd(d)/(len(d)**0.5)
-        ax.plot(t[analysisWindow]*1000,m,color=clr,label=resp)
+        lbl = 'all responses' if resp=='all resp' else resp
+        ax.plot(t[analysisWindow]*1000,m,color=clr,label=lbl)
         ax.fill_between(t[analysisWindow]*1000,m+s,m-s,color=clr,alpha=0.25)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
     ax.set_yticks([-0.5,0,0.5,1])
     ax.set_xlim([33,200])
-    ax.set_ylim([-0.7,1])
+    ax.set_ylim([-0.7,0.8])
     ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
     ax.set_ylabel('Difference in Cumulative Spikes\n(Contra - Ipsi Target)',fontsize=16)
     ax.set_title(moLbl,fontsize=16)
