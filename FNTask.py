@@ -27,7 +27,7 @@ class FNTask(TaskControl):
         self.preStimFramesMax = 600 # max total preStim frames
         self.quiescentFrames = 60 # frames before stim onset during which wheel movement delays stim onset
         self.openLoopFrames = 18 # min frames after stimulus onset before wheel movement has effects
-        self.maxResponseWaitFrames = 600 # max frames from stim onset to end of trial
+        self.responseWindow = [0,600] # window (in frames after stimulus onset) during which movement to reward threshold results in reward
         self.rewardDelayFrames = 24
         self.probCatch = 0.1 # probability of catch trials with normal trial timing but no stimulus or reward
         self.useIncorrectNoise = False # play noise after movement in incorrect direction
@@ -57,7 +57,7 @@ class FNTask(TaskControl):
             # target moves automatically and each trial is autorewarded
             self.probCatch = 0
             self.quiescentFrames = 0
-            self.maxResponseWaitFrames = 3600
+            self.responseWindow[1] = 3600
             self.targetAutoMoveRate = 0.5
             self.solenoidOpenTime = .1
             
@@ -65,7 +65,7 @@ class FNTask(TaskControl):
             # offset target to one side
             self.probCatch = 0
             self.quiescentFrames = 0
-            self.maxResponseWaitFrames = 3600
+            self.responseWindow[1] = 3600
             self.wheelRewardDistance = 8.0
             self.solenoidOpenTime = .1 #0.05 # seconds
             
@@ -73,7 +73,7 @@ class FNTask(TaskControl):
             # display target at center of screen and reward movement in either direction
             self.probCatch = 0
             self.quiescentFrames = 0
-            self.maxResponseWaitFrames = 3600
+            self.responseWindow[1] = 3600
             self.wheelRewardDistance = 8.0
             self.solenoidOpenTime = .1
             self.targetStartPos = [0,0]
@@ -83,7 +83,7 @@ class FNTask(TaskControl):
             # offset target to one side; make movement in incorrect direction end trial
             self.probCatch = 0
             self.quiescentFrames = 0
-            self.maxResponseWaitFrames = 3600
+            self.responseWindow[1] = 3600
             self.wheelRewardDistance = 8.0
             self.solenoidOpenTime = .1 #0.05 # seconds
             self.keepTargetOnScreen = False
@@ -91,7 +91,7 @@ class FNTask(TaskControl):
             
         elif taskVersion == 'training5':
             # introduce quiescent period, catch trials, shorter response window, and longer wheel reward distance
-            self.maxResponseWaitFrames = 600 # adjust this
+            self.responseWindow[1] = 600 # adjust this
             self.wheelRewardDistance = 16.0
             
         else:
@@ -183,7 +183,7 @@ class FNTask(TaskControl):
                             closedLoopWheelMove -= adjust
                             
                     # check for response past reward threshold
-                    if self._trialFrame < self.trialPreStimFrames[-1] + self.maxResponseWaitFrames:
+                    if self.responseWindow[0] <= self._trialFrame < self.trialPreStimFrames[-1] + self.responseWindow[1]:
                         moveDir = 1 if closedLoopWheelMove > 0 else -1
                         if abs(closedLoopWheelMove) > rewardMove and (moveDir == rewardDir or self.targetStartPos[0] == 0):
                             # response in correct direction
@@ -199,7 +199,7 @@ class FNTask(TaskControl):
                             if self.useIncorrectNoise:
                                 self._noise = True
                             hasResponded = True
-                    else:
+                    elif self._trialFrame == self.trialPreStimFrames[-1] + self.responseWindow[1]:
                         # response window ended; no response
                         self.trialResponse.append(0)
                         self.trialResponseDir.append(np.nan)
