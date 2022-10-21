@@ -5,11 +5,64 @@ Created on Wed Feb  3 16:32:27 2021
 @author: svc_ccg
 """
 
+import copy
+import pickle
 import random
 import numpy as np
 import scipy.optimize
 from numba import njit
 
+
+def getInputSignals(psthFilePath=None):
+    signalNames = ('targetOnly','maskOnly','mask')
+    dt = 1/120*1000
+    trialEndTimeMax = 2500
+    trialEndMax = int(round(trialEndTimeMax/dt))
+    t = np.arange(0,trialEndMax*dt+dt,dt)
+    
+    if psthFilePath is not None:
+        popPsth = pickle.load(open(psthFilePath,'rb'))
+        popPsthIntp = {}
+        for sig in signalNames:
+            popPsthIntp[sig] = {}
+            for hemi in ('ipsi','contra'):
+                popPsthIntp[sig][hemi] = {}
+                for mo in popPsth[sig][hemi]:
+                    p = popPsth[sig][hemi][mo].copy()
+                    p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
+                    p = np.nanmean(p,axis=0)
+                    p = np.interp(t,popPsth['t']*1000,p)
+                    p -= p[t<30].mean()
+                    p[0] = 0
+                    maskOn = np.nan if sig=='targetOnly' else mo
+                    popPsthIntp[sig][hemi][maskOn] = p                                     
+        signals = copy.deepcopy(popPsthIntp)
+        smax = max([signals[sig][hemi][mo].max() for sig in signals.keys() for hemi in ('ipsi','contra') for mo in signals[sig][hemi]])
+        for sig in signals.keys():
+            for hemi in ('ipsi','contra'):
+                for mo in signals[sig][hemi]:
+                    s = signals[sig][hemi][mo]
+                    s /= smax                                    
+    else:
+        latency = 4
+        targetDur = 6
+        maskDur = 6
+        signals = {}
+        maskOnset = [0,2,4,6,8,10,12,np.nan]
+        for sig in signalNames:
+            signals[sig] = {}
+            for hemi in ('ipsi','contra'):
+                signals[sig][hemi] = {}
+                for mo in maskOnset:
+                    if (sig=='targetOnly' and not np.isnan(mo)) or (sig=='maskOnly' and mo!=0) or (sig=='mask' and not mo>0):
+                        continue
+                    s = np.zeros(t.size)
+                    if sig in ('targetOnly','mask') and hemi=='contra':
+                        s[latency:latency+targetDur] = 1
+                    if 'mask' in sig:
+                        s[latency+mo:latency+mo+maskDur] = 1
+                    signals[sig][hemi][mo] = s
+    return signals,t,dt
 
 
 def fitModel(fitParamRanges,fixedParams,finish=False):
