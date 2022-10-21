@@ -5,16 +5,19 @@ Created on Wed Feb  3 16:32:27 2021
 @author: svc_ccg
 """
 
+import glob
+import os
 import numpy as np
 import matplotlib
 matplotlib.rcParams['pdf.fonttype']=42
 import matplotlib.pyplot as plt
-import fileIO
-from maskTaskModelUtils import getInputSignals,fitModel
+from maskTaskModelUtils import getInputSignals,fitModel,runSession,analyzeSession
 
+
+baseDir = r"\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\Sam"
 
 ## input signals
-signals,t,dt = getInputSignals(psthFilePath=None)
+signals,t,dt = getInputSignals(psthFilePath=os.path.join(baseDir,'Analsysis','popPsth.pkl'))
 
 fig = plt.figure(figsize=(4,9))
 n = 2+len(signals['mask']['contra'].keys())
@@ -54,18 +57,15 @@ plt.tight_layout()
 
 
 ## fit model parameters
-respRateFilePath = fileIO.getFile('Load respRate',fileType='*.npz')
-respRateData = np.load(respRateFilePath)
+respRateData = np.load(os.path.join(baseDir,'Analysis','respRate_mice.npz'))
 respRateMean = respRateData['mean']
 respRateSem = respRateData['sem']
 
-fracCorrFilePath = fileIO.getFile('Load fracCorr',fileType='*.npz')
-fracCorrData = np.load(fracCorrFilePath)
+fracCorrData = np.load(os.path.join(baseDir,'Analysis','fracCorr_mice.npz'))
 fracCorrMean = fracCorrData['mean']
 fracCorrSem = fracCorrData['sem']
 
-reacTimeFilePath = fileIO.getFile('Load reacTime',fileType='*.npz')
-reacTimeData = np.load(reacTimeFilePath)
+reacTimeData = np.load(os.path.join(baseDir,'Analysis','reacTime_mice.npz'))
 reacTimeMean = reacTimeData['mean'] / dt
 reacTimeSem = reacTimeData['sem'] / dt
 
@@ -130,17 +130,24 @@ postDecisionRange = slice(6,30,6)
 # [0.0, 0.0, 0.0, 0.4, 1.0, 0.8, 0.0, 1.4, 214.0, 0.0] old no reac time fit
 # [0.0, 0.0, 0.0, 0.5, 6.0, 0.2, 0.3, 1.8, 300.0, 18.0] old reac time fit
 
-# [1.1, 0.15, 1.0, 0.4, 1.0, 0.6, 0.4, 1.9, 78.0, 18.0] # mice
 
-
-# fit
+## fit
 fitParamRanges = (tauIRange,alphaRange,etaRange,sigmaRange,tauARange,decayRange,inhibRange,thresholdRange,trialEndRange,postDecisionRange)
 fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,fracCorrMean,reacTimeMean)
 
 fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 
-# run model using best fit params
+## get best fit params from cluster output
+for f in glob.glob(os.path.join(baseDir,'HPC','*.npz')):
+    d = np.load(f)
+    modelError = 1e6
+    if d['error'] < modelError:
+        fit = d['params']
+        modelError = d['error']
+
+
+## run model using best fit params
 tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision = fit
 
 trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition=100000,record=True)
