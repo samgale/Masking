@@ -12,8 +12,6 @@ import numpy as np
 from simple_slurm import Slurm
 
 
-
-
 # script to run
 script_path = '~/PythonScripts/maskTaskModelHPC.py'
 print(f'running {script_path}')
@@ -43,7 +41,7 @@ slurm = Slurm(cpus_per_task=1,
               mem_per_cpu='16gb')
 
 # split fit parameter sets into jobs
-maskDataPath = r"\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\Sam\Analysis"
+maskDataPath = r'/allen/programs/braintv/workgroups/tiny-blue-dot/masking/Sam/Analysis'
 
 signals = popPsth = pickle.load(open(os.path.join(maskDataPath,'modelInputSignals.pkl'),'rb'))
 dt = 1/120.0*1000

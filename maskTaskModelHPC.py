@@ -10,7 +10,7 @@ import argparse
 import numpy as np
 from maskTaskModelUtils import calcModelError
 
-outputPath = r"\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\Sam\HPC"
+outputPath = r'/allen/programs/braintv/workgroups/tiny-blue-dot/masking/Sam/HPC'
 
 def saveBestFit(n,fixedParams,fitParamsIter):
     bestFitParams = None
