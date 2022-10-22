@@ -139,12 +139,18 @@ fit = fitModel(fitParamRanges,fixedParams,finish=False)
 
 
 ## get best fit params from cluster output
-for f in glob.glob(os.path.join(baseDir,'HPC','*.npz')):
+files = glob.glob(os.path.join(baseDir,'HPC','*.npz'))
+print(len(files))
+for f in files:
     d = np.load(f)
     modelError = 1e6
     if d['error'] < modelError:
         fit = d['params']
         modelError = d['error']
+    d.close()
+    
+# array([ 2.  ,  0.15,  1.  ,  0.9 ,  2.  ,  1.  ,  0.5 ,  1.5 , 78.  , 18.  ])
+# array([ 2.  ,  0.15,  1.  ,  0.9 ,  2.  ,  0.1 ,  0.2 ,  0.9 , 78.  , 21.  ])
 
 
 ## run model using best fit params

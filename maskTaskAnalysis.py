@@ -739,6 +739,32 @@ for measures,ylbl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect,medianR
     legLoc = 'upper right' if exps[0].rigName=='human' else 'upper left'
     ax.legend(loc=legLoc,fontsize=12)
     plt.tight_layout()
+    
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for rt,mec,mfc,lbl in zip((medianReacTime,medianReacTimeCorrect,medianReacTimeIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
+    meanLR = np.nanmean(rt,axis=1)
+    mean = np.nanmean(meanLR,axis=0)
+    sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    if rt is medianReacTime:
+        for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
+            ax.plot(xticks,d,color=clr,alpha=0.5)
+    ax.plot(xticks,mean,'o',mec=mec,mfc=mfc,ms=12,label=lbl)
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'-',color=mec)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_xlim(xlim)
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Reaction Time (ms)',fontsize=16)
+legLoc = 'upper right' if exps[0].rigName=='human' else 'upper left'
+ax.legend(loc=legLoc,fontsize=12)
+plt.tight_layout()
+    
 
 clrs = np.zeros((len(maskOnset),3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
