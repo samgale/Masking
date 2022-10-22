@@ -38,7 +38,7 @@ slurm = Slurm(cpus_per_task=1,
               mem_per_cpu='16gb')
 
 # call the `sbatch` command to run the jobs
-totalJobs = 100
+totalJobs = 1000
 for jobInd in range(totalJobs):
     slurm.sbatch('{} {} --jobInd {} --totalJobs {}'.format(
                  python_path,
