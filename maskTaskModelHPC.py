@@ -63,7 +63,7 @@ def findBestFit(jobInd,totalJobs):
     fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,fracCorrMean,reacTimeMean)
 
     tauIRange = np.arange(0.5,4,0.5)
-    alphaRange = np.arange(0,0.3,0.05)
+    alphaRange = np.arange(0,1,0.1)
     etaRange = [1]
     sigmaRange = np.arange(0.1,1.5,0.1)
     tauARange = np.arange(1,12,1)
@@ -71,7 +71,7 @@ def findBestFit(jobInd,totalJobs):
     inhibRange = np.arange(0,1.1,0.1)
     thresholdRange = np.arange(0.6,4.2,0.2)
     trialEndRange = [trialEnd]
-    postDecisionRange = np.arange(3,51,3)
+    postDecisionRange = np.arange(3,39,3)
 
     fitParamRanges = (tauIRange,alphaRange,etaRange,sigmaRange,tauARange,decayRange,inhibRange,thresholdRange,trialEndRange,postDecisionRange)   
     
