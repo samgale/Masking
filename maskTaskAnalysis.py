@@ -409,8 +409,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     plt.tight_layout()
     
     
-for m,s,lbl in zip(dataMean,dataSem,('respRate','fracCorr','reacTime')):
-    np.savez(fileIO.saveFile('Save '+lbl,fileType='*.npz'),mean=m,sem=s)
+# for m,s,lbl in zip(dataMean,dataSem,('respRate','fracCorr','reacTime')):
+#     np.savez(fileIO.saveFile('Save '+lbl,fileType='*.npz'),mean=m,sem=s)
     
     
 # visibility rating
@@ -444,6 +444,36 @@ ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0,0],'k--')
 for vr,mec,mfc,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
     meanLR = np.nanmean(vr,axis=1)
+    mean = np.nanmean(meanLR,axis=0)
+    sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    if vr is visRatingResp:
+        for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
+            ax.plot(xticks,d,color=clr,alpha=0.5)
+    ax.plot(xticks,mean,'o',mec=mec,mfc=mfc,ms=12,label=lbl)
+    for x,m,s in zip(xticks,mean,sem):
+        ax.plot([x,x],[m-s,m+s],'-',color=mec)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_yticks([-1,0,1])
+ax.set_yticklabels(['Target\nnot visible','Unsure','Target\nvisible'])
+ax.set_xlim(xlim)
+ax.set_ylim([-1.02,1.02])
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+ax.legend(fontsize=12)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(xlim,[0,0],'k--')
+maskOnlyVr = np.nanmean(visRatingResp,axis=1)[:,0]
+targetOnlyCorrectVr = np.nanmean(visRatingCorrect,axis=1)[:,-2]
+for vr,mec,mfc,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
+    meanLR = np.nanmean(vr,axis=1)
+    meanLR -= maskOnlyVr[:,None]
+    meanLR /= (targetOnlyCorrectVr-maskOnlyVr)[:,None]
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     if vr is visRatingResp:
@@ -509,23 +539,6 @@ ax.set_xlabel('Visibility Rating',fontsize=16)
 ax.set_ylabel('Median Reaction Time (ms)',fontsize=16)
 ax.legend()
 plt.tight_layout()
-
-# fig = plt.figure()
-# ax = fig.add_subplot(1,1,1)
-# ax.plot([0,1],[0,0],'k--')
-# for n in range(len(exps)):
-#     fc,vr = [np.sum(d[n]*respRate[n],axis=0)/np.sum(respRate[n],axis=0) for d in (fracCorr,visRatingResp)]
-#     ax.plot(fc,vr,'o',mec='k',mfc='none',mew=2,ms=12)
-# for side in ('right','top'):
-#     ax.spines[side].set_visible(False)
-# ax.tick_params(direction='out',top=False,right=False,labelsize=14)
-# ax.set_xlim([0.5,1.02])
-# ax.set_yticks([-1,0,1])
-# ax.set_yticklabels(['Target not\nvisible','Unsure','Target\nvisible'])
-# ax.set_ylim([-1.02,1.02])
-# ax.set_xlabel('Fraction Correct',fontsize=16)
-# ax.set_ylabel('Visibility Rating',fontsize=16)
-# plt.tight_layout()
     
 # pooled trials across mice
 fc = np.nansum(fracCorr*respRate,axis=1)/np.nansum(respRate,axis=1)
@@ -743,8 +756,10 @@ for measures,ylbl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect,medianR
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
+targetOnlyCorrectRt = np.nanmean(medianReacTimeCorrect,axis=1)[:,-2]
 for rt,mec,mfc,lbl in zip((medianReacTime,medianReacTimeCorrect,medianReacTimeIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
     meanLR = np.nanmean(rt,axis=1)
+    meanLR /= targetOnlyCorrectRt[:,None]
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     if rt is medianReacTime:

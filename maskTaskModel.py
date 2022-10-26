@@ -17,7 +17,7 @@ from maskTaskModelUtils import getInputSignals,fitModel,runSession,analyzeSessio
 baseDir = r"\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\Sam"
 
 ## input signals
-signals,t,dt = getInputSignals(psthFilePath=os.path.join(baseDir,'Analsysis','popPsth.pkl'))
+signals,t,dt = getInputSignals(psthFilePath=os.path.join(baseDir,'Analysis','popPsth.pkl'))
 
 fig = plt.figure(figsize=(4,9))
 n = 2+len(signals['mask']['contra'].keys())
@@ -57,18 +57,6 @@ plt.tight_layout()
 
 
 ## fit model parameters
-respRateData = np.load(os.path.join(baseDir,'Analysis','respRate_mice.npz'))
-respRateMean = respRateData['mean']
-respRateSem = respRateData['sem']
-
-fracCorrData = np.load(os.path.join(baseDir,'Analysis','fracCorr_mice.npz'))
-fracCorrMean = fracCorrData['mean']
-fracCorrSem = fracCorrData['sem']
-
-reacTimeData = np.load(os.path.join(baseDir,'Analysis','reacTime_mice.npz'))
-reacTimeMean = reacTimeData['mean'] / dt
-reacTimeSem = reacTimeData['sem'] / dt
-
 trialsPerCondition = 500
 targetSide = (1,) # (1,0) (-1,1,0)
 optoOnset = [np.nan]
@@ -76,20 +64,45 @@ optoSide = [0]
 
 # mice
 maskOnset = [0,2,3,4,6,np.nan]
-respRateMean = respRateMean[:-1]
-respRateSem = respRateSem[:-1]
-fracCorrMean = fracCorrMean[:-1]
-fracCorrSem = fracCorrSem[:-1]
-reacTimeMean = reacTimeMean[:-1]
-reacTimeSem = reacTimeSem[:-1]
+trialEnd = 60
+
+respRateData = np.load(os.path.join(baseDir,'Analysis','respRate_mice.npz'))
+respRateMean = respRateData['mean'][:-1]
+respRateSem = respRateData['sem'][:-1]
+
+fracCorrData = np.load(os.path.join(baseDir,'Analysis','fracCorr_mice.npz'))
+fracCorrMean = fracCorrData['mean'][:-1]
+fracCorrSem = fracCorrData['sem'][:-1]
+
+reacTimeData = np.load(os.path.join(baseDir,'Analysis','reacTime_mice.npz'))
+reacTimeMean = reacTimeData['mean'][:-1] / dt
+reacTimeSem = reacTimeData['sem'][:-1] / dt
 
 # humans
 maskOnset = [0,2,4,6,8,10,12,np.nan]
-# respRateMean = np.delete(respRateMean,[5,6])
-# respRateSem = np.delete(respRateSem,[5,6])
-# fracCorrMean = np.delete(fracCorrMean,[5,6])
-# fracCorrSem = np.delete(fracCorrSem,[5,6])
-# reacTimeMedian = np.delete(reacTimeMedian,[5,6])
+trialEnd = 240
+
+respRateData = np.load(os.path.join(baseDir,'Analysis','respRate_humans.npz'))
+respRateMean = respRateData['mean'][:-1]
+respRateSem = respRateData['sem'][:-1]
+
+fracCorrData = np.load(os.path.join(baseDir,'Analysis','fracCorr_humans.npz'))
+fracCorrMean = fracCorrData['mean'][:-1]
+fracCorrSem = fracCorrData['sem'][:-1]
+
+reacTimeData = np.load(os.path.join(baseDir,'Analysis','reacTime_humans.npz'))
+reacTimeMean = reacTimeData['mean'][:-1] / dt
+reacTimeSem = reacTimeData['sem'][:-1] / dt
+
+inMouseData = [True,True,True,True,False,False,False,True]
+maskOnset = list(np.array(maskOnset)[inMouseData])
+respRateMean = respRateMean[inMouseData]
+respRateSem = respRateSem[inMouseData]
+fracCorrMean = fracCorrMean[inMouseData]
+fracCorrSem = fracCorrSem[inMouseData]
+reacTimeMean = reacTimeMean[inMouseData]
+reacTimeSem = reacTimeSem[inMouseData]
+   
 
 # simple model (no normalization)
 tauIRange = slice(0,1,1)
@@ -149,8 +162,7 @@ for f in files:
         modelError = d['error']
     d.close()
     
-# array([ 2.  ,  0.15,  1.  ,  0.9 ,  2.  ,  1.  ,  0.5 ,  1.5 , 78.  , 18.  ])
-# array([ 2.  ,  0.15,  1.  ,  0.9 ,  2.  ,  0.1 ,  0.2 ,  0.9 , 78.  , 21.  ])
+# [2.0, 0.05, 1.0, 1.0, 9.0, 0.6, 0.9, 3.4, 300.0, 42.0] human, square wave
 
 
 ## run model using best fit params
