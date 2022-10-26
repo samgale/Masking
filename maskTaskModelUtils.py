@@ -49,7 +49,7 @@ def getInputSignals(psthFilePath=None):
         targetDur = 6
         maskDur = 6
         signals = {}
-        maskOnset = [0,2,4,6,8,10,12,np.nan]
+        maskOnset = [0,2,3,4,6,8,10,12,np.nan]
         for sig in signalNames:
             signals[sig] = {}
             for hemi in ('ipsi','contra'):
