@@ -36,6 +36,8 @@ def getInputSignals(psthFilePath=None):
                     p -= p[t<30].mean()
                     p[t<30] = 0
                     p[p<0] = 0
+                    if sig=='targetOnly' and hemi=='ipsi':
+                        p[:] = 0
                     maskOn = np.nan if sig=='targetOnly' else mo
                     popPsthIntp[sig][hemi][maskOn] = p                                     
         signals = copy.deepcopy(popPsthIntp)
