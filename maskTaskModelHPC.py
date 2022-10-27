@@ -66,12 +66,13 @@ def findBestFit(jobInd,totalJobs):
     alphaRange = np.arange(0,0.25,0.05)
     etaRange = [1]
     sigmaRange = np.arange(0.1,1.5,0.1)
-    tauARange = np.arange(1,12,1)
+    tauARange = np.arange(2,10,0.5)
     decayRange = np.arange(0,1.1,0.1)
     inhibRange = np.arange(0,1.1,0.1)
     thresholdRange = np.arange(0.6,4.2,0.2)
     trialEndRange = [24] #[trialEnd]
     postDecisionRange = [0] #np.arange(3,39,3)
+    
 
     fitParamRanges = (tauIRange,alphaRange,etaRange,sigmaRange,tauARange,decayRange,inhibRange,thresholdRange,trialEndRange,postDecisionRange)   
     
@@ -82,10 +83,10 @@ def findBestFit(jobInd,totalJobs):
     paramsStart = jobInd * paramCombosPerJob
 
     bestFitParams = None
-    bestFitError = 1e6
+    bestFitError = None
     for fitParams in itertools.islice(fitParamsIter,paramsStart,paramsStart+paramCombosPerJob):
         modelError = calcModelError(fitParams,*fixedParams)
-        if modelError < bestFitError:
+        if bestFitError is None or modelError < bestFitError:
             bestFitParams = fitParams
             bestFitError = modelError
     np.savez(os.path.join(baseDir,'HPC','fit_'+str(jobInd)+'.npz'),params=bestFitParams,error=bestFitError)
