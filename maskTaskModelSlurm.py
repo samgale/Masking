@@ -31,11 +31,8 @@ slurm = Slurm(cpus_per_task=1,
               partition='braintv',
               job_name='maskTaskModel',
               output=f'{stdout_location}/{Slurm.JOB_ARRAY_MASTER_ID}_{Slurm.JOB_ARRAY_ID}.out',
-              # output=f'{stdout_location}/log.out',
-              #mail_type=["FAIL"],          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-              #mail_user="corbettb@alleninstitute.org",     # Where to send mail  
               time='99:00:00',
-              mem_per_cpu='16gb')
+              mem_per_cpu='1gb')
 
 # call the `sbatch` command to run the jobs
 totalJobs = 1000

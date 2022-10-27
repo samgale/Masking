@@ -28,50 +28,50 @@ def findBestFit(jobInd,totalJobs):
     optoSide = [0]
 
     # mice
-    # maskOnset = [0,2,3,4,6,np.nan]
-    # trialEnd = 60
+    maskOnset = [0,2,3,4,6,np.nan]
+    trialEnd = 60
 
-    # respRateData = np.load(os.path.join(maskDataPath,'respRate_mice.npz'))
-    # respRateMean = respRateData['mean'][:-1]
-
-    # fracCorrData = np.load(os.path.join(maskDataPath,'fracCorr_mice.npz'))
-    # fracCorrMean = fracCorrData['mean'][:-1]
-
-    # reacTimeData = np.load(os.path.join(maskDataPath,'reacTime_mice.npz'))
-    # reacTimeMean = reacTimeData['mean'][:-1] / dt
-
-    # humans
-    maskOnset = [0,2,4,6,8,10,12,np.nan]
-    trialEnd = 240
-
-    respRateData = np.load(os.path.join(maskDataPath,'respRate_humans.npz'))
+    respRateData = np.load(os.path.join(maskDataPath,'respRate_mice.npz'))
     respRateMean = respRateData['mean'][:-1]
 
-    fracCorrData = np.load(os.path.join(maskDataPath,'fracCorr_humans.npz'))
+    fracCorrData = np.load(os.path.join(maskDataPath,'fracCorr_mice.npz'))
     fracCorrMean = fracCorrData['mean'][:-1]
 
-    reacTimeData = np.load(os.path.join(maskDataPath,'reacTime_humans.npz'))
+    reacTimeData = np.load(os.path.join(maskDataPath,'reacTime_mice.npz'))
     reacTimeMean = reacTimeData['mean'][:-1] / dt
+
+    # humans
+    # maskOnset = [0,2,4,6,8,10,12,np.nan]
+    # trialEnd = 240
+
+    # respRateData = np.load(os.path.join(maskDataPath,'respRate_humans.npz'))
+    # respRateMean = respRateData['mean'][:-1]
+
+    # fracCorrData = np.load(os.path.join(maskDataPath,'fracCorr_humans.npz'))
+    # fracCorrMean = fracCorrData['mean'][:-1]
+
+    # reacTimeData = np.load(os.path.join(maskDataPath,'reacTime_humans.npz'))
+    # reacTimeMean = reacTimeData['mean'][:-1] / dt
     
-    inMouseData = [True,True,True,True,False,False,False,True]
-    maskOnset = list(np.array(maskOnset)[inMouseData])
-    respRateMean = respRateMean[inMouseData]
-    fracCorrMean = fracCorrMean[inMouseData]
-    reacTimeMean = reacTimeMean[inMouseData]
+    # inMouseData = [True,True,True,True,False,False,False,True]
+    # maskOnset = list(np.array(maskOnset)[inMouseData])
+    # respRateMean = respRateMean[inMouseData]
+    # fracCorrMean = fracCorrMean[inMouseData]
+    # reacTimeMean = reacTimeMean[inMouseData]
 
     
     fixedParams = (signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,fracCorrMean,reacTimeMean)
 
     tauIRange = np.arange(0.5,4,0.5)
-    alphaRange = np.arange(0,1,0.1)
+    alphaRange = np.arange(0,0.25,0.05)
     etaRange = [1]
     sigmaRange = np.arange(0.1,1.5,0.1)
     tauARange = np.arange(1,12,1)
     decayRange = np.arange(0,1.1,0.1)
     inhibRange = np.arange(0,1.1,0.1)
     thresholdRange = np.arange(0.6,4.2,0.2)
-    trialEndRange = [trialEnd]
-    postDecisionRange = np.arange(3,39,3)
+    trialEndRange = [24] #[trialEnd]
+    postDecisionRange = [0] #np.arange(3,39,3)
 
     fitParamRanges = (tauIRange,alphaRange,etaRange,sigmaRange,tauARange,decayRange,inhibRange,thresholdRange,trialEndRange,postDecisionRange)   
     
