@@ -51,7 +51,7 @@ for ax in axs:
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xlim([0,2500])
+    ax.set_xlim([0,250])
     ax.set_ylim([1.05*ymin,1.05*ymax])
 plt.tight_layout()
 
@@ -64,7 +64,6 @@ optoSide = [0]
 
 # mice
 maskOnset = [0,2,3,4,6,np.nan]
-trialEnd = 60
 
 respRateData = np.load(os.path.join(baseDir,'Analysis','respRate_mice.npz'))
 respRateMean = respRateData['mean'][:-1]
@@ -80,7 +79,6 @@ reacTimeSem = reacTimeData['sem'][:-1] / dt
 
 # humans
 maskOnset = [0,2,4,6,8,10,12,np.nan]
-trialEnd = 240
 
 respRateData = np.load(os.path.join(baseDir,'Analysis','respRate_humans.npz'))
 respRateMean = respRateData['mean'][:-1]
@@ -154,15 +152,20 @@ fit = fitModel(fitParamRanges,fixedParams,finish=False)
 ## get best fit params from cluster output
 files = glob.glob(os.path.join(baseDir,'HPC','*.npz'))
 print(len(files))
+modelError = None
 for f in files:
     d = np.load(f)
-    modelError = 1e6
-    if d['error'] < modelError:
+    if modelError is None or d['error'] < modelError:
         fit = d['params']
         modelError = d['error']
     d.close()
     
 # [2.0, 0.05, 1.0, 1.0, 9.0, 0.6, 0.9, 3.4, 300.0, 42.0] human, square wave
+# [2.5, 0.25, 1.0, 0.8, 7.0, 0.2, 0.4, 3.6, 240.0, 18.0] human, mouse ephys
+# [2.5, 0.9, 1.0, 0.3, 11.0, 0.3, 0.8, 3.0, 240.0, 21.0]
+
+# [2.5, 0.2, 1.0, 0.9, 6.5, 0.0, 0.6, 1.4, 24.0, 0.0]
+# [0.5, 0.05, 1.0, 1.0, 4.5, 1.0, 0.8, 1.0, 24.0, 0.0]
 
 
 ## run model using best fit params
@@ -196,8 +199,8 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean,reacTimeMean*d
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False,labelsize=14)
     if ylabel=='Fraction Correct':
-        ax.set_xticks(xticks[1:-1])
-        ax.set_xticklabels(xticklabels[1:-1])
+        ax.set_xticks(xticks[1:])
+        ax.set_xticklabels(xticklabels[1:])
     else:
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
