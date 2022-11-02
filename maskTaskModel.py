@@ -160,12 +160,10 @@ for f in files:
         modelError = d['error']
     d.close()
     
-# [2.0, 0.05, 1.0, 1.0, 9.0, 0.6, 0.9, 3.4, 300.0, 42.0] human, square wave
-# [2.5, 0.25, 1.0, 0.8, 7.0, 0.2, 0.4, 3.6, 240.0, 18.0] human, mouse ephys
-# [2.5, 0.9, 1.0, 0.3, 11.0, 0.3, 0.8, 3.0, 240.0, 21.0]
-
-# [2.5, 0.2, 1.0, 0.9, 6.5, 0.0, 0.6, 1.4, 24.0, 0.0]
-# [0.5, 0.05, 1.0, 1.0, 4.5, 1.0, 0.8, 1.0, 24.0, 0.0]
+# [0.5, 0.2, 1.0, 0.7, 3.0, 0.0, 0.3, 2.4, 24.0, 0.0] # mouse, no rt
+# [1.0, 0.05, 1.0, 1.3, 2.0, 0.6, 0.6, 4.0, 72.0, 3.0] # mouse, with rt (need to increase thresh, decrease postDec range)
+# [1.0, 0.1, 1.0, 1.1, 2.0, 1.0, 1.0, 2.8, 72.0, 7.0] # mouse, with rt
+# [0.5, 0.05, 1.0, 1.3, 8.0, 0.5, 0.5, 1.2, 60.0, 11.0] # mouse, with rt, norm by sem
 
 
 ## run model using best fit params
@@ -466,15 +464,15 @@ for side in targetSide:
         if not (side==0 or mo==0):
             evidence = []
             for evLbl in ('evidenceLeftCorrect','evidenceRightCorrect','evidenceLeftIncorrect','evidenceRightIncorrect'):
-                ev = result[side][mo][optoOnset[0]][optoSide[0]][evLbl] / threshold
-                ev[ev>1] = 1
-                ev[ev<0] = 0
+                ev = result[side][mo][optoOnset[0]][optoSide[0]][evLbl] #/ threshold
+                # ev[ev>1] = 1
+                # ev[ev<0] = 0
                 evidence.append(ev)
             evLcorr,evRcorr,evLincorr,evRincorr = evidence
             evidenceCorr.append(np.mean(evRcorr - evLcorr))
             evidenceIncorr.append(np.mean(evLincorr - evRincorr))
-ax.plot(xticks[1:-1],evidenceCorr,'go')
-ax.plot(xticks[1:-1],evidenceIncorr,'mo')
+ax.plot(xticks[1:],evidenceCorr,'go')
+ax.plot(xticks[1:],evidenceIncorr,'mo')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False)

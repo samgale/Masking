@@ -276,10 +276,10 @@ ntrials = np.full((len(exps),len(rewardDir),len(maskOnset)+2),np.nan)
 respRate = ntrials.copy()
 fracCorr = respRate.copy()
 probGoRight = respRate.copy()
-visRating = respRate.copy()
-visRatingResp = respRate.copy()
-visRatingCorrect = respRate.copy()
-visRatingIncorrect = respRate.copy()
+meanVisRating = respRate.copy()
+meanVisRatingResp = respRate.copy()
+meanVisRatingCorrect = respRate.copy()
+meanVisRatingIncorrect = respRate.copy()
 visRatingMedianReacTime = respRate.copy()
 visRatingMedianReacTimeCorrect = respRate.copy()
 visRatingMedianReacTimeIncorrect = respRate.copy()
@@ -289,9 +289,9 @@ medianReacTimeIncorrect = respRate.copy()
 medianVelocity = respRate.copy()
 medianVelocityCorrect = respRate.copy()
 medianVelocityIncorrect = respRate.copy()
-reacTime,velocity = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
-reacTimeCorrect,velocityCorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
-reacTimeIncorrect,velocityIncorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(2)]
+reacTime,velocity,visRatingResp = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(3)]
+reacTimeCorrect,velocityCorrect,visRatingCorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(3)]
+reacTimeIncorrect,velocityIncorrect,visRatingIncorrect = [[{stim: {rd: {} for rd in rewardDir} for stim in stimLabels} for _ in range(len(exps))] for _ in range(3)]
 for n,obj in enumerate(exps):
     validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
     for stim in stimLabels:
@@ -314,9 +314,10 @@ for n,obj in enumerate(exps):
                     medianVelocity[n,i,j] = np.nanmedian(obj.movementVelocity[respTrials])
                     velocity[n][stim][rd][mo] = obj.movementVelocity[respTrials]
                     if hasattr(obj,'visRating'):
-                        visRating[n,i,j] = obj.visRatingScore[trials].mean()
-                        visRatingResp[n,i,j] = obj.visRatingScore[respTrials].mean()
+                        meanVisRating[n,i,j] = obj.visRatingScore[trials].mean()
+                        meanVisRatingResp[n,i,j] = obj.visRatingScore[respTrials].mean()
                         visRatingMedianReacTime[n,i,j] = np.nanmedian(obj.visRatingReactionTime[respTrials])
+                        visRatingResp[n][stim][rd][mo] = obj.visRatingScore[respTrials]
                     if stim in ('targetOnly','mask'):
                         correctTrials = obj.response[respTrials]==1
                         fracCorr[n,i,j] = correctTrials.sum()/respTrials.sum()
@@ -329,10 +330,12 @@ for n,obj in enumerate(exps):
                         velocityCorrect[n][stim][rd][mo] = obj.movementVelocity[respTrials][correctTrials]
                         velocityIncorrect[n][stim][rd][mo] = obj.movementVelocity[respTrials][~correctTrials]
                         if hasattr(obj,'visRating'):
-                            visRatingCorrect[n,i,j] = obj.visRatingScore[respTrials][correctTrials].mean()
-                            visRatingIncorrect[n,i,j] = obj.visRatingScore[respTrials][~correctTrials].mean()
+                            meanVisRatingCorrect[n,i,j] = obj.visRatingScore[respTrials][correctTrials].mean()
+                            meanVisRatingIncorrect[n,i,j] = obj.visRatingScore[respTrials][~correctTrials].mean()
                             visRatingMedianReacTimeCorrect[n,i,j] = np.nanmedian(obj.visRatingReactionTime[respTrials][correctTrials])
                             visRatingMedianReacTimeIncorrect[n,i,j] = np.nanmedian(obj.visRatingReactionTime[respTrials][~correctTrials])
+                            visRatingCorrect[n][stim][rd][mo] = obj.visRatingScore[respTrials][correctTrials]
+                            visRatingIncorrect[n][stim][rd][mo] = obj.visRatingScore[respTrials][~correctTrials]
 
 ntable = [[],[]]
 for i,(med,mn,mx) in enumerate(zip(np.median(ntrials,axis=0),np.min(ntrials,axis=0),np.max(ntrials,axis=0))):
@@ -414,7 +417,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     
     
 # visibility rating
-for vr,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('all trials','correct','incorrect')):
+for vr,lbl in zip((meanVisRatingResp,meanVisRatingCorrect,meanVisRatingIncorrect),('all trials','correct','incorrect')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot(xlim,[0,0],'k--')
@@ -442,11 +445,11 @@ for vr,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('all tria
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0,0],'k--')
-for vr,mec,mfc,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
+for vr,mec,mfc,lbl in zip((meanVisRatingResp,meanVisRatingCorrect,meanVisRatingIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
     meanLR = np.nanmean(vr,axis=1)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-    if vr is visRatingResp:
+    if vr is meanVisRatingResp:
         for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
             ax.plot(xticks,d,color=clr,alpha=0.5)
     ax.plot(xticks,mean,'o',mec=mec,mfc=mfc,ms=12,label=lbl)
@@ -468,15 +471,15 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0,0],'k--')
-maskOnlyVr = np.nanmean(visRatingResp,axis=1)[:,0]
-targetOnlyCorrectVr = np.nanmean(visRatingCorrect,axis=1)[:,-2]
-for vr,mec,mfc,lbl in zip((visRatingResp,visRatingCorrect,visRatingIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
+maskOnlyVr = np.nanmean(meanVisRatingResp,axis=1)[:,0]
+targetOnlyCorrectVr = np.nanmean(meanVisRatingCorrect,axis=1)[:,-2]
+for vr,mec,mfc,lbl in zip((meanVisRatingResp,meanVisRatingCorrect,meanVisRatingIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
     meanLR = np.nanmean(vr,axis=1)
     meanLR -= maskOnlyVr[:,None]
     meanLR /= (targetOnlyCorrectVr-maskOnlyVr)[:,None]
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-    if vr is visRatingResp:
+    if vr is meanVisRatingResp:
         for d,clr in zip(meanLR,plt.cm.tab20(np.linspace(0,1,meanLR.shape[0]))):
             ax.plot(xticks,d,color=clr,alpha=0.5)
     ax.plot(xticks,mean,'o',mec=mec,mfc=mfc,ms=12,label=lbl)
@@ -499,7 +502,7 @@ fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0.5,0.5],'k--')
 for n in range(len(exps)):
-    vr,fc = [np.nanmean(d,axis=1).flatten() for d in (visRatingResp,fracCorr)]
+    vr,fc = [np.nanmean(d,axis=1).flatten() for d in (meanVisRatingResp,fracCorr)]
     ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12,alpha=0.05)
     i = np.argsort(vr)
     vr = vr[i]
@@ -522,7 +525,7 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 for n in range(len(exps)):
-    vr,rtc,rti = [np.nanmean(d[n],axis=0) for d in (visRatingResp,medianReacTimeCorrect,medianReacTimeIncorrect)]
+    vr,rtc,rti = [np.nanmean(d[n],axis=0) for d in (meanVisRatingResp,medianReacTimeCorrect,medianReacTimeIncorrect)]
     if n==0:
         ax.plot(vr,rtc,'o',mec='k',mfc='none',mew=2,ms=12,label='correct')
         ax.plot(vr,rti,'o',mec='0.5',mfc='none',mew=2,ms=12,label='incorrect')
@@ -825,6 +828,7 @@ rtIncorrect = []
 vel = []
 velCorrect = []
 velIncorrect = []
+vrResp = []
 fcBinned = []
 binTrials = []
 quantileBins = []
@@ -838,24 +842,33 @@ for mo in list(maskOnset[1:])+[maskOnset[0]]:
     vel.append([])
     velCorrect.append([])
     velIncorrect.append([])
+    vrResp.append([])
     correct = np.zeros(bins.size-1)
     incorrect = correct.copy()
     for i in range(len(exps)):
         for rd in rewardDir:
-            for r,d in zip((rt,rtCorrect,rtIncorrect,vel,velCorrect,velIncorrect),
-                           (reacTime,reacTimeCorrect,reacTimeIncorrect,velocity,velocityCorrect,velocityIncorrect)):
+            for r,d in zip((rt,rtCorrect,rtIncorrect,vel,velCorrect,velIncorrect,vrResp),
+                           (reacTime,reacTimeCorrect,reacTimeIncorrect,velocity,velocityCorrect,velocityIncorrect,visRatingResp)):
                 t = d[i][stim][rd][mo]
                 r[-1].extend(t[~np.isnan(t)])
             c,ic = [np.histogram(r[i][stim][rd][mo],bins)[0] for r in (reacTimeCorrect,reacTimeIncorrect)]
             correct += c
             incorrect += ic
     fcBinned.append(correct/(correct+incorrect))
-    binTrials.append(correct+incorrect)
+    binTrials.append(correct+incorrect)  
 for i,t in enumerate(rt):
     quantileBins.append(np.concatenate(([np.min(t)],np.quantile(t,quantiles))))
     c,ic = [np.histogram(r,quantileBins[-1])[0] for r in (rtCorrect[i],rtIncorrect[i])]
     fcQuantiled.append(c/(c+ic))
     quantileTrials.append(c+ic)
+    
+vrBinned = np.zeros((len(vrResp),bins.size))
+for i,(r,vr) in enumerate(zip(rt,vrResp)):   
+    b = np.digitize(r,bins)
+    for j in range(bins.size):
+        vrBinned[i,j] = np.mean(np.array(vr)[b==j+1])
+
+
     
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
