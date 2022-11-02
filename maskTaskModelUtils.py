@@ -89,20 +89,20 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 def calcModelError(paramsToFit,*fixedParams):
     tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision = paramsToFit
-    signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,responseRate,fractionCorrect,reactionTime = fixedParams
+    signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,respRateSem,fracCorrMean,fracCorrSem,reacTimeMean,reacTimeSem = fixedParams
     sessionData = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition)
     if sessionData is None:
         return 1e6
     else:
         trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = sessionData
         result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
-        # respRateError = np.nansum(((responseRate-result['responseRate'])/np.nanstd(responseRate))**2)
-        # fracCorrError = np.nansum(((fractionCorrect-result['fractionCorrect'])/np.nanstd(fractionCorrect))**2)
-        respRateError = np.nansum((responseRate-result['responseRate'])**2)
-        fracCorrError = np.nansum((2*(fractionCorrect-result['fractionCorrect']))**2)
+        respRateError = np.nansum(((respRateMean-result['responseRate'])/respRateSem)**2)
+        fracCorrError = np.nansum(((fracCorrMean-result['fractionCorrect'])/fracCorrSem)**2)
+        # respRateError = np.nansum((respRateMean-result['responseRate'])**2)
+        # fracCorrError = np.nansum((2*(fracCorrMean-result['fractionCorrect']))**2)
         if postDecision > 0:
-            # respTimeError = np.nansum(((reactionTime-(result['responseTimeMedian']+postDecision))/np.nanstd(reactionTime))**2)
-            respTimeError = np.nansum(((reactionTime-(result['responseTimeMedian']+postDecision))/(np.nanmax(reactionTime)-np.nanmin(reactionTime)))**2)
+            respTimeError = np.nansum(((reacTimeMean-(result['responseTimeMedian']+postDecision))/reacTimeSem)**2)
+            # respTimeError = np.nansum(((reacTimeMean-(result['responseTimeMedian']+postDecision))/(np.nanmax(reacTimeMean)-np.nanmin(reacTimeMean)))**2)
         else:
             respTimeError = 0
         return respRateError + fracCorrError + respTimeError
