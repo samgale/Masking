@@ -29,7 +29,7 @@ def findBestFit(jobInd,totalJobs):
 
     # mice
     maskOnset = [0,2,3,4,6,np.nan]
-    trialEnd = 60
+    trialEnd = 48
     
     respRateData = np.load(os.path.join(maskDataPath,'respRate_mice.npz'))
     respRateMean = respRateData['mean'][:-1]
@@ -87,9 +87,9 @@ def findBestFit(jobInd,totalJobs):
     tauARange = np.arange(1,10,1)
     decayRange = np.arange(0,1.1,0.1)
     inhibRange = np.arange(0,1.1,0.1)
-    thresholdRange = np.arange(0.8,5.2,0.2)
+    thresholdRange = np.arange(0.8,4.2,0.2)
     trialEndRange = [trialEnd]
-    postDecisionRange = np.arange(4,24,2)
+    postDecisionRange = np.arange(6,24,2)
 
 
     fitParamRanges = (tauIRange,alphaRange,etaRange,sigmaRange,tauARange,decayRange,inhibRange,thresholdRange,trialEndRange,postDecisionRange)   

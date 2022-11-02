@@ -31,7 +31,7 @@ def getInputSignals(psthFilePath=None):
                     p = popPsth[sig][hemi][mo].copy()
                     p -= p[:,popPsth['t']<0].mean(axis=1)[:,None]
                     p = np.nanmean(p,axis=0)
-                    p[popPsth['t']>0.2] = 0
+                    p[popPsth['t']>0.18] = 0
                     p = np.interp(t,popPsth['t']*1000,p)
                     p -= p[t<30].mean()
                     p[0] = 0
