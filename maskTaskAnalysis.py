@@ -756,13 +756,14 @@ for measures,ylbl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect,medianR
     ax.legend(loc=legLoc,fontsize=12)
     plt.tight_layout()
     
-
+norm = False
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 targetOnlyCorrectRt = np.nanmean(medianReacTimeCorrect,axis=1)[:,-2]
 for rt,mec,mfc,lbl in zip((medianReacTime,medianReacTimeCorrect,medianReacTimeIncorrect),('k','k','0.5'),('none','k','0.5'),('all responses','correct','incorrect')):
     meanLR = np.nanmean(rt,axis=1)
-    meanLR /= targetOnlyCorrectRt[:,None]
+    if norm:
+        meanLR /= targetOnlyCorrectRt[:,None]
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     if rt is medianReacTime:
@@ -849,6 +850,8 @@ for mo in list(maskOnset[1:])+[maskOnset[0]]:
         for rd in rewardDir:
             for r,d in zip((rt,rtCorrect,rtIncorrect,vel,velCorrect,velIncorrect,vrResp),
                            (reacTime,reacTimeCorrect,reacTimeIncorrect,velocity,velocityCorrect,velocityIncorrect,visRatingResp)):
+                if exps[0].rigName != 'human' and r is vrResp:
+                    continue
                 t = d[i][stim][rd][mo]
                 r[-1].extend(t[~np.isnan(t)])
             c,ic = [np.histogram(r[i][stim][rd][mo],bins)[0] for r in (reacTimeCorrect,reacTimeIncorrect)]
@@ -861,13 +864,13 @@ for i,t in enumerate(rt):
     c,ic = [np.histogram(r,quantileBins[-1])[0] for r in (rtCorrect[i],rtIncorrect[i])]
     fcQuantiled.append(c/(c+ic))
     quantileTrials.append(c+ic)
-    
-vrBinned = np.zeros((len(vrResp),bins.size))
-for i,(r,vr) in enumerate(zip(rt,vrResp)):   
-    b = np.digitize(r,bins)
-    for j in range(bins.size):
-        vrBinned[i,j] = np.mean(np.array(vr)[b==j+1])
 
+if exps[0].rigName == 'human':    
+    vrBinned = np.zeros((len(vrResp),bins.size))
+    for i,(r,vr) in enumerate(zip(rt,vrResp)):   
+        b = np.digitize(r,bins)
+        for j in range(bins.size):
+            vrBinned[i,j] = np.mean(np.array(vr)[b==j+1])
 
     
 fig = plt.figure()
