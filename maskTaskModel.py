@@ -51,7 +51,7 @@ for ax in axs:
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
-    ax.set_xlim([0,250])
+    ax.set_xlim([0,500])
     ax.set_ylim([1.05*ymin,1.05*ymax])
 plt.tight_layout()
 
@@ -77,6 +77,15 @@ reacTimeData = np.load(os.path.join(baseDir,'Analysis','reacTime_mice.npz'))
 reacTimeMean = reacTimeData['mean'][:-1] / dt
 reacTimeSem = reacTimeData['sem'][:-1] / dt
 
+toUse = [True,True,True,True,True,True]
+maskOnset = list(np.array(maskOnset)[toUse])
+respRateMean = respRateMean[toUse]
+respRateSem = respRateSem[toUse]
+fracCorrMean = fracCorrMean[toUse]
+fracCorrSem = fracCorrSem[toUse]
+reacTimeMean = reacTimeMean[toUse]
+reacTimeSem = reacTimeSem[toUse]
+
 # humans
 maskOnset = [0,2,4,6,8,10,12,np.nan]
 
@@ -92,14 +101,14 @@ reacTimeData = np.load(os.path.join(baseDir,'Analysis','reacTime_humans.npz'))
 reacTimeMean = reacTimeData['mean'][:-1] / dt
 reacTimeSem = reacTimeData['sem'][:-1] / dt
 
-inMouseData = [True,True,True,True,False,False,False,True]
-maskOnset = list(np.array(maskOnset)[inMouseData])
-respRateMean = respRateMean[inMouseData]
-respRateSem = respRateSem[inMouseData]
-fracCorrMean = fracCorrMean[inMouseData]
-fracCorrSem = fracCorrSem[inMouseData]
-reacTimeMean = reacTimeMean[inMouseData]
-reacTimeSem = reacTimeSem[inMouseData]
+toUse = [True,True,True,True,False,False,False,True]
+maskOnset = list(np.array(maskOnset)[toUse])
+respRateMean = respRateMean[toUse]
+respRateSem = respRateSem[toUse]
+fracCorrMean = fracCorrMean[toUse]
+fracCorrSem = fracCorrSem[toUse]
+reacTimeMean = reacTimeMean[toUse]
+reacTimeSem = reacTimeSem[toUse]
    
 
 # simple model (no normalization)
@@ -160,10 +169,15 @@ for f in files:
         modelError = d['error']
     d.close()
     
-# [0.5, 0.2, 1.0, 0.7, 3.0, 0.0, 0.3, 2.4, 24.0, 0.0] # mouse, no rt
-# [1.0, 0.05, 1.0, 1.3, 2.0, 0.6, 0.6, 4.0, 72.0, 3.0] # mouse, with rt (need to increase thresh, decrease postDec range)
-# [1.0, 0.1, 1.0, 1.1, 2.0, 1.0, 1.0, 2.8, 72.0, 7.0] # mouse, with rt
-# [0.5, 0.05, 1.0, 1.3, 8.0, 0.5, 0.5, 1.2, 60.0, 11.0] # mouse, with rt, norm by sem
+# [0.5, 0.05, 1.0, 1.4, 7.0, 0.4, 0.5, 1.4, 48.0, 12.0] # mouse, V1
+# [2.0, 0.15, 1.0, 0.3, 6.0, 0.5, 0.6, 1.2, 252.0, 10.0] # human, V1
+# [2.0, 0.05, 1.0, 0.4, 6.0, 0.0, 0.0, 2.0, 252.0, 16.0] # human, V1, no leak or inhib
+# [2.5, 0.05, 1.0, 0.5, 9.0, 0.0, 0.2, 2.0, 252.0, 8.0] # human, no leak
+# [1.0, 0.05, 1.0, 0.4, 5.0, 0.0, 0.0, 2.0, 252.0, 24.0] # human, no inhib
+# [1.0, 0.05, 1.0, 1.1, 10.0, 0.0, 0.9, 1.6, 48.0, 6.0] # mouse, no leak
+# [2.0, 0.25, 1.0, 0.2, 1.0, 1.0, 1.0, 3.0, 252.0, 24.0] # human, max leak
+# [0.5, 0.05, 1.0, 1.2, 10.0, 0.8, 0.8, 0.8, 48.0, 13.0] # mouse
+# [0.5, 0.1, 1.0, 0.9, 6.0, 0.6, 0.6, 1.0, 60.0, 13.0] # mouse
 
 
 ## run model using best fit params
@@ -373,6 +387,11 @@ ax.legend()
 plt.tight_layout()
 
 
+binWidth = 25
+bins = np.arange(0,650,binWidth)
+binWidth = 600
+bins = np.arange(0,3000,binWidth)
+
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,trialEnd*dt],[0.5,0.5],'k--')
@@ -393,10 +412,13 @@ for maskOn,clr in zip(maskOnset[1:],clrs):
     rtCorrect.append(dt*(responseTime[respTrials][c].astype(float)+postDecision))
     rtIncorrect.append(dt*(responseTime[respTrials][~c].astype(float)*dt+postDecision))
     fc = []
-    for i in t[t>45]:
-        j = (rt[-1]>=i) & (rt[-1]<i+dt)
+    # for i in t[t>45]:
+    #     j = (rt[-1]>=i) & (rt[-1]<i+dt)
+    #     fc.append(np.sum(c[j])/np.sum(j))
+    for i in bins:
+        j = (rt[-1]>=i) & (rt[-1]<i+binWidth)
         fc.append(np.sum(c[j])/np.sum(j))
-    ax.plot(t[t>45]+dt/2,fc,'-',color=clr,lw=2)
+    ax.plot(bins+binWidth/2,fc,'-',color=clr,lw=2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
