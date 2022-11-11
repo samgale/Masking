@@ -94,7 +94,7 @@ def fitModel(fitParamRanges,fixedParams,finish=False):
 
 def calcModelError(paramsToFit,*fixedParams):
     tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision = paramsToFit
-    signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,respRateSem,fracCorrMean,fracCorrSem,reacTimeMean,reacTimeSem = fixedParams
+    signals,targetSide,maskOnset,optoOnset,optoSide,trialsPerCondition,respRateMean,respRateSem,fracCorrMean,fracCorrSem,reacTimeMean,reacTimeSem,reacTimeCorrectMean,reacTimeCorrectSem,reacTimeIncorrectMean,reacTimeIncorrectSem = fixedParams
     sessionData = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition)
     if sessionData is None:
         return 1e6
@@ -106,11 +106,14 @@ def calcModelError(paramsToFit,*fixedParams):
         # respRateError = np.nansum((respRateMean-result['responseRate'])**2)
         # fracCorrError = np.nansum((2*(fracCorrMean-result['fractionCorrect']))**2)
         if postDecision > 0:
-            respTimeError = np.nansum(((reacTimeMean-(result['responseTimeMedian']+postDecision))/reacTimeSem)**2)
+            # respTimeError = np.nansum(((reacTimeMean-(result['responseTimeMedian']+postDecision))/reacTimeSem)**2)
+            respTimeCorrectError = np.nansum(((reacTimeCorrectMean-(result['responseTimeCorrectMedian']+postDecision))/reacTimeCorrectSem)**2)
+            respTimeIncorrectError = np.nansum(((reacTimeIncorrectMean-(result['responseTimeIncorrectMedian']+postDecision))/reacTimeIncorrectSem)**2)
             # respTimeError = np.nansum(((reacTimeMean-(result['responseTimeMedian']+postDecision))/(np.nanmax(reacTimeMean)-np.nanmin(reacTimeMean)))**2)
         else:
-            respTimeError = 0
-        return respRateError + fracCorrError + respTimeError
+            # respTimeError = 0
+            respTimeCorrectError = respTimeIncorrectError = 0
+        return respRateError + fracCorrError + (respTimeCorrectError + respTimeIncorrectError)/2
 
 
 def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord=None,Rrecord=None):
@@ -118,8 +121,8 @@ def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trial
     responseRate = []
     fractionCorrect = []
     responseTimeMedian = []
-    if Lrecord is not None:
-        evidenceLeft,evidenceRight = [np.array([ev[rt] for ev,rt in zip(rec,responseTime)]) for rec in (Lrecord,Rrecord)]
+    responseTimeCorrectMedian = []
+    responseTimeIncorrectMedian = []
     for side in targetSide:
         result[side] = {}
         sideTrials = trialTargetSide==side
@@ -138,25 +141,23 @@ def analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trial
                     result[side][maskOn][optoOn][opSide] = {}
                     result[side][maskOn][optoOn][opSide]['responseRate'] = responseRate[-1]
                     result[side][maskOn][optoOn][opSide]['responseTime'] = responseTime[trials][responded]
-                    if Lrecord is not None:
-                        result[side][maskOn][optoOn][opSide]['evidenceLeft'] = evidenceLeft[trials][responded]
-                        result[side][maskOn][optoOn][opSide]['evidenceLeft'] = evidenceRight[trials][responded]
                     if side!=0 and maskOn!=0:
                         correct = response[trials]==side
                         fractionCorrect.append(np.sum(correct[responded])/np.sum(responded))
+                        responseTimeCorrectMedian.append(np.median(responseTime[trials][responded & correct]))
+                        responseTimeIncorrectMedian.append(np.median(responseTime[trials][responded & (~correct)]))
                         result[side][maskOn][optoOn][opSide]['fractionCorrect'] = fractionCorrect[-1]
                         result[side][maskOn][optoOn][opSide]['responseTimeCorrect'] = responseTime[trials][responded & correct]
                         result[side][maskOn][optoOn][opSide]['responseTimeIncorrect'] = responseTime[trials][responded & (~correct)]
-                        if Lrecord is not None:
-                            result[side][maskOn][optoOn][opSide]['evidenceLeftCorrect'] = evidenceLeft[trials][responded & correct]
-                            result[side][maskOn][optoOn][opSide]['evidenceRightCorrect'] = evidenceRight[trials][responded & correct]
-                            result[side][maskOn][optoOn][opSide]['evidenceLeftIncorrect'] = evidenceLeft[trials][responded & ~correct]
-                            result[side][maskOn][optoOn][opSide]['evidenceRightIncorrect'] = evidenceRight[trials][responded & ~correct]
                     else:
                         fractionCorrect.append(np.nan)
+                        responseTimeCorrectMedian.append(np.nan)
+                        responseTimeIncorrectMedian.append(np.nan)
     result['responseRate'] = np.array(responseRate)
     result['fractionCorrect'] = np.array(fractionCorrect)
     result['responseTimeMedian'] = np.array(responseTimeMedian)
+    result['responseTimeCorrectMedian'] = np.array(responseTimeCorrectMedian)
+    result['responseTimeIncorrectMedian'] = np.array(responseTimeIncorrectMedian)
     return result
 
 
