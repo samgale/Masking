@@ -375,14 +375,11 @@ for n in range(len(exps)):
     plt.tight_layout()
     
 # population
-dataMean = []
-dataSem = []
 for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),None),('Response Rate','Fraction Correct','Median Reaction Time (ms)')):        
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     if data is fracCorr:
         ax.plot(xlim,[0.5,0.5],'k--')
-    if data is fracCorr:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     else:
         meanLR = np.mean(data,axis=1)
@@ -390,8 +387,6 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
         ax.plot(xticks,d,color=clr,alpha=0.5)
     mean = np.nanmean(meanLR,axis=0)
     sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-    dataMean.append(mean)
-    dataSem.append(sem)
     ax.plot(xticks,mean,'ko',ms=12)
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k-')
@@ -411,9 +406,17 @@ for data,ylim,ylabel in zip((respRate,fracCorr,medianReacTime),((0,1),(0.4,1),No
     ax.set_ylabel(ylabel,fontsize=16)
     plt.tight_layout()
     
-    
-# for m,s,lbl in zip(dataMean,dataSem,('respRate','fracCorr','reacTime')):
-#     np.savez(fileIO.saveFile('Save '+lbl,fileType='*.npz'),mean=m,sem=s)
+
+# save data for model
+for data,lbl in zip((respRate,fracCorr,medianReacTime,medianReacTimeCorrect,medianReacTimeIncorrect),
+                    ('respRate','fracCorr','reacTime','reacTimeCorrect','reacTimeIncorrect')):
+    if data is fracCorr:
+        meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
+    else:
+        meanLR = np.mean(data,axis=1)
+    m = np.nanmean(meanLR,axis=0)
+    s = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
+    np.savez(fileIO.saveFile('Save '+lbl,fileType='*.npz'),mean=m,sem=s)
     
     
 # visibility rating
@@ -623,7 +626,7 @@ for data,lbl in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     
 # stats
 alpha = 0.05
-for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):        
+for data,title in zip((respRate,fracCorr,meanVisRatingResp),('Response Rate','Fraction Correct','Visibility Rating')):        
     if data is respRate:
         meanLR = np.mean(data,axis=1)
     else:
@@ -830,6 +833,8 @@ vel = []
 velCorrect = []
 velIncorrect = []
 vrResp = []
+vrCorrect = []
+vrIncorrect = []
 fcBinned = []
 binTrials = []
 quantileBins = []
@@ -844,13 +849,15 @@ for mo in list(maskOnset[1:])+[maskOnset[0]]:
     velCorrect.append([])
     velIncorrect.append([])
     vrResp.append([])
+    vrCorrect.append([])
+    vrIncorrect.append([])
     correct = np.zeros(bins.size-1)
     incorrect = correct.copy()
     for i in range(len(exps)):
         for rd in rewardDir:
-            for r,d in zip((rt,rtCorrect,rtIncorrect,vel,velCorrect,velIncorrect,vrResp),
-                           (reacTime,reacTimeCorrect,reacTimeIncorrect,velocity,velocityCorrect,velocityIncorrect,visRatingResp)):
-                if exps[0].rigName != 'human' and r is vrResp:
+            for r,d in zip((rt,rtCorrect,rtIncorrect,vel,velCorrect,velIncorrect,vrResp,vrCorrect,vrIncorrect),
+                           (reacTime,reacTimeCorrect,reacTimeIncorrect,velocity,velocityCorrect,velocityIncorrect,visRatingResp,visRatingCorrect,visRatingIncorrect)):
+                if exps[0].rigName != 'human' and r in (vrResp,vrCorrect,vrIncorrect):
                     continue
                 t = d[i][stim][rd][mo]
                 r[-1].extend(t[~np.isnan(t)])
@@ -865,14 +872,7 @@ for i,t in enumerate(rt):
     fcQuantiled.append(c/(c+ic))
     quantileTrials.append(c+ic)
 
-if exps[0].rigName == 'human':    
-    vrBinned = np.zeros((len(vrResp),bins.size))
-    for i,(r,vr) in enumerate(zip(rt,vrResp)):   
-        b = np.digitize(r,bins)
-        for j in range(bins.size):
-            vrBinned[i,j] = np.mean(np.array(vr)[b==j+1])
 
-    
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot([0,2500],[0.5,0.5],'k--')
@@ -916,6 +916,21 @@ ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
 plt.tight_layout()
+
+if exps[0].rigName == 'human':   
+    for r,vr in zip((rt,rtCorrect,rtIncorrect),(vrResp,vrCorrect,vrIncorrect)):
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        for t,v,clr,lbl in zip(r,vr,clrs,lbls):   
+            b = np.digitize(t,bins)
+            m = np.zeros(len(bins))
+            s = m.copy()
+            for j in range(bins.size):
+                d = np.array(v)[b==j+1]
+                m[j] = np.mean(d)
+                s[j] = np.std(d)/(len(d)**0.5)
+            ax.plot(bins[:-1]+binWidth/2,m[:-1],color=clr,label=lbl)
+            ax.fill_between(bins[:-1]+binWidth/2,(m+s)[:-1],(m-s)[:-1],color=clr,alpha=0.2)
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)

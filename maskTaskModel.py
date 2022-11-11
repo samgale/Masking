@@ -19,6 +19,8 @@ baseDir = r"\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\Sam"
 ## input signals
 signals,t,dt = getInputSignals(psthFilePath=os.path.join(baseDir,'Analysis','popPsth.pkl'))
 
+# signals,t,dt = getInputSignals()
+
 fig = plt.figure(figsize=(4,9))
 n = 2+len(signals['mask']['contra'].keys())
 axs = []
@@ -77,6 +79,14 @@ reacTimeData = np.load(os.path.join(baseDir,'Analysis','reacTime_mice.npz'))
 reacTimeMean = reacTimeData['mean'][:-1] / dt
 reacTimeSem = reacTimeData['sem'][:-1] / dt
 
+reacTimeCorrectData = np.load(os.path.join(baseDir,'Analysis','reacTimeCorrect_mice.npz'))
+reacTimeCorrectMean = reacTimeCorrectData['mean'][:-1] / dt
+reacTimeCorrectSem = reacTimeCorrectData['sem'][:-1] / dt
+
+reacTimeIncorrectData = np.load(os.path.join(baseDir,'Analysis','reacTimeIncorrect_mice.npz'))
+reacTimeIncorrectMean = reacTimeIncorrectData['mean'][:-1] / dt
+reacTimeIncorrectSem = reacTimeIncorrectData['sem'][:-1] / dt
+
 toUse = [True,True,True,True,True,True]
 maskOnset = list(np.array(maskOnset)[toUse])
 respRateMean = respRateMean[toUse]
@@ -85,6 +95,10 @@ fracCorrMean = fracCorrMean[toUse]
 fracCorrSem = fracCorrSem[toUse]
 reacTimeMean = reacTimeMean[toUse]
 reacTimeSem = reacTimeSem[toUse]
+reacTimeCorrectMean = reacTimeCorrectMean[toUse]
+reacTimeCorrectSem = reacTimeCorrectSem[toUse]
+reacTimeIncorrectMean = reacTimeIncorrectMean[toUse]
+reacTimeIncorrectSem = reacTimeIncorrectSem[toUse]
 
 # humans
 maskOnset = [0,2,4,6,8,10,12,np.nan]
@@ -101,6 +115,14 @@ reacTimeData = np.load(os.path.join(baseDir,'Analysis','reacTime_humans.npz'))
 reacTimeMean = reacTimeData['mean'][:-1] / dt
 reacTimeSem = reacTimeData['sem'][:-1] / dt
 
+reacTimeCorrectData = np.load(os.path.join(baseDir,'Analysis','reacTimeCorrect_humans.npz'))
+reacTimeCorrectMean = reacTimeCorrectData['mean'][:-1] / dt
+reacTimeCorrectSem = reacTimeCorrectData['sem'][:-1] / dt
+
+reacTimeIncorrectData = np.load(os.path.join(baseDir,'Analysis','reacTimeIncorrect_humans.npz'))
+reacTimeIncorrectMean = reacTimeIncorrectData['mean'][:-1] / dt
+reacTimeIncorrectSem = reacTimeIncorrectData['sem'][:-1] / dt
+
 toUse = [True,True,True,True,False,False,False,True]
 maskOnset = list(np.array(maskOnset)[toUse])
 respRateMean = respRateMean[toUse]
@@ -109,6 +131,10 @@ fracCorrMean = fracCorrMean[toUse]
 fracCorrSem = fracCorrSem[toUse]
 reacTimeMean = reacTimeMean[toUse]
 reacTimeSem = reacTimeSem[toUse]
+reacTimeCorrectMean = reacTimeCorrectMean[toUse]
+reacTimeCorrectSem = reacTimeCorrectSem[toUse]
+reacTimeIncorrectMean = reacTimeIncorrectMean[toUse]
+reacTimeIncorrectSem = reacTimeIncorrectSem[toUse]
    
 
 # simple model (no normalization)
@@ -168,16 +194,23 @@ for f in files:
         fit = d['params']
         modelError = d['error']
     d.close()
-    
-# [0.5, 0.05, 1.0, 1.4, 7.0, 0.4, 0.5, 1.4, 48.0, 12.0] # mouse, V1
-# [2.0, 0.15, 1.0, 0.3, 6.0, 0.5, 0.6, 1.2, 252.0, 10.0] # human, V1
-# [2.0, 0.05, 1.0, 0.4, 6.0, 0.0, 0.0, 2.0, 252.0, 16.0] # human, V1, no leak or inhib
-# [2.5, 0.05, 1.0, 0.5, 9.0, 0.0, 0.2, 2.0, 252.0, 8.0] # human, no leak
-# [1.0, 0.05, 1.0, 0.4, 5.0, 0.0, 0.0, 2.0, 252.0, 24.0] # human, no inhib
-# [1.0, 0.05, 1.0, 1.1, 10.0, 0.0, 0.9, 1.6, 48.0, 6.0] # mouse, no leak
-# [2.0, 0.25, 1.0, 0.2, 1.0, 1.0, 1.0, 3.0, 252.0, 24.0] # human, max leak
-# [0.5, 0.05, 1.0, 1.2, 10.0, 0.8, 0.8, 0.8, 48.0, 13.0] # mouse
+
 # [0.5, 0.1, 1.0, 0.9, 6.0, 0.6, 0.6, 1.0, 60.0, 13.0] # mouse
+# [0.5, 0.15,1.0, 0.9, 4.5, 0.8, 0.6, 1.0, 60.0, 15.0]
+# [0.5, 0.05, 1.0, 1.2, 6.5, 0.6, 0.6, 1.2, 60.0, 13.0]
+# [0.5, 0.05, 1.0, 1.3, 9.5, 1.0, 0.9, 0.8, 60.0, 13.5]
+# [0.5, 0.05, 1.0, 1.1, 10.0, 1.0, 1.0, 0.7, 60.0, 14.0]
+# [0.5, 0.05, 1.0, 1.3, 10.0, 1.0, 0.9, 0.8, 60.0, 13.5]
+# [0.5, 0.05, 1.0, 1.1, 8.5, 1.0, 0.8, 0.8, 60.0, 14.0]
+# [0.5, 0.05, 1.0, 1.3, 6.0, 0.4, 0.4, 1.5, 60.0, 12.0]
+# [1.0, 0.1, 1.0, 0.9, 8.0, 0.7, 0.7, 0.8, 60.0, 14.0]
+# [0.5, 0.05, 1.0, 1.2, 8.0, 0.5, 0.6, 1.1, 60.0, 12.0]
+# [1.5, 0.15, 1.0, 0.3, 6.0, 0.8, 0.9, 1.0, 288.0, 20.0] # human
+# [0.5, 0.15, 1.0, 0.3, 2.0, 1.0, 1.0, 1.4, 288.0, 21.5]
+# [1.5, 0.0, 1.0, 0.1, 1.0, 1.0, 1.0, 1.4, 288.0, 22.5]
+# [2.0, 0.05, 1.0, 0.8, 6.0, 1.0, 1.0, 1.4, 288.0, 16.5]
+# [2.0, 0.1, 1.0, 0.4, 6.0, 0.7, 0.8, 1.3, 288.0, 16.0]
+# [2.0, 0.15, 1.0, 0.3, 7.0, 0.7, 0.8, 0.9, 288.0, 12.0]
 
 
 ## run model using best fit params
@@ -304,22 +337,22 @@ for diff,ylim,ylabel in  zip((outOfSampleRespRate-responseRate,outOfSampleFracCo
 for side,lbl in zip((1,),('target right',)):#((1,0),('target right','no stim')):
     sideTrials = trialTargetSide==side
     maskOn = [np.nan] if side==0 else maskOnset
-    for mo in [np.nan]:#maskOn:
+    for mo in [6]:#maskOn:
         maskTrials = np.isnan(trialMaskOnset) if np.isnan(mo) else trialMaskOnset==mo
         trials = np.where(sideTrials & maskTrials)[0]
         for trial in trials[5:7]:
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
-            ax.plot([0,trialEndTimeMax],[threshold,threshold],'k--')
-            ax.plot(t,Lrecord[trial],'b',lw=2,label='Ipsilateral')
-            ax.plot(t,Rrecord[trial],'r',lw=2,label='Contralateral')
+            ax.plot([0,trialEnd*dt],[threshold,threshold],'k--')
+            ax.plot(t[t<trialEnd*dt],Lrecord[trial],'b',lw=2,label='Ipsilateral')
+            ax.plot(t[t<trialEnd*dt],Rrecord[trial],'r',lw=2,label='Contralateral')
             for axside in ('right','top','left'):
                 ax.spines[axside].set_visible(False)
             ax.tick_params(direction='out',right=False,top=False,left=False,labelsize=16)
             ax.set_xticks([0,50,100,150,200])
             ax.set_yticks([0,threshold])
             ax.set_yticklabels([0,'threshold'])
-            ax.set_xlim([0,trialEndTimeMax])
+            ax.set_xlim([0,trialEnd*dt])
             ax.set_ylim([-1.05*threshold,1.05*threshold])
             ax.set_xlabel('Time (ms)',fontsize=18)
             ax.set_ylabel('Decision Variable',fontsize=18)
@@ -415,10 +448,13 @@ for maskOn,clr in zip(maskOnset[1:],clrs):
     # for i in t[t>45]:
     #     j = (rt[-1]>=i) & (rt[-1]<i+dt)
     #     fc.append(np.sum(c[j])/np.sum(j))
+    binTrials = []
     for i in bins:
         j = (rt[-1]>=i) & (rt[-1]<i+binWidth)
         fc.append(np.sum(c[j])/np.sum(j))
-    ax.plot(bins+binWidth/2,fc,'-',color=clr,lw=2)
+        binTrials.append(np.sum(j))
+    i = np.array(binTrials)>14
+    ax.plot(bins[i]+binWidth/2,np.array(fc)[i],'-',color=clr,lw=2)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
@@ -505,6 +541,32 @@ ax.set_xlabel('Mask onset relative to target onset (ms)')
 ax.set_ylabel('Balance of evidence')
 plt.tight_layout()
 
+trialEvidence = np.array([R-L for L,R in zip(Lrecord,Rrecord)])
+evidenceResponse = []
+evidenceCorrect = []
+evidenceIncorrect = []
+for side in (1,):
+    sideTrials = trialTargetSide==1
+    mo = [np.nan] if side==0 else maskOnset
+    for maskOn in mo:
+        maskTrials = np.isnan(trialMaskOnset) if np.isnan(maskOn) else trialMaskOnset==maskOn
+        trials = sideTrials & maskTrials
+        responded = response[trials]!=0
+        evidenceResponse.append(trialEvidence[trials][responded])
+        if side!=0 and maskOn!=0:
+            correct = response[trials]==side
+            evidenceCorrect.append(trialEvidence[trials][responded & correct])
+            evidenceIncorrect.append(trialEvidence[trials][responded & ~correct])
+
+
+for er,ec,ei in zip(evidenceResponse,evidenceCorrect,evidenceIncorrect):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(np.nanmean(er,axis=0),'k')
+    ax.plot(np.nanmean(ec,axis=0),'g')
+    ax.plot(np.nanmean(ei,axis=0),'m')
+
+
 
 # opto masking
 maskOnset = [0,2,np.nan]
@@ -512,7 +574,8 @@ optoOnset = list(range(2,11))+[np.nan]
 optoSide = [0]
 optoLatency = 1
 
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,inhib,threshold,trialEnd,trialsPerCondition=100000,optoLatency=optoLatency)
+## run model using best fit params
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition=100000,optoLatency=optoLatency,record=False)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 
@@ -528,7 +591,7 @@ for measure,ylim,ylabel in  zip(('responseRate','fractionCorrect','responseTime'
         ax.plot([0,xticks[-1]+dt],[0.5,0.5],'k--')
     else:
         j = 0
-    for lbl,side,mo,clr in zip(('target only','target + mask','mask only','no stim'),(1,1,1,0),(np.nan,2,0,np.nan),'kbgm'):
+    for lbl,side,mo,clr in zip(('target only','target + mask','mask only'),(1,1,1),(np.nan,2,0),'kbg'):
         if measure!='fractionCorrect' or 'target' in lbl:
             d = []
             for optoOn in optoOnset:
