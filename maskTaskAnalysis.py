@@ -413,7 +413,7 @@ for data,lbl in zip((respRate,fracCorr,medianReacTime,medianReacTimeCorrect,medi
     if data is fracCorr:
         meanLR = np.sum(data*respRate,axis=1)/np.sum(respRate,axis=1)
     else:
-        meanLR = np.mean(data,axis=1)
+        meanLR = np.nanmean(data,axis=1)
     m = np.nanmean(meanLR,axis=0)
     s = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     np.savez(fileIO.saveFile('Save '+lbl,fileType='*.npz'),mean=m,sem=s)
