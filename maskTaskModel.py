@@ -59,6 +59,7 @@ plt.tight_layout()
 
 
 ## mice
+human = False
 maskOnset = [0,2,3,4,6,np.nan]
 
 respRateData = np.load(os.path.join(baseDir,'Analysis','respRate_mice.npz'))
@@ -96,6 +97,7 @@ reacTimeIncorrectSem = reacTimeIncorrectSem[toUse]
 
 
 ## humans
+human = True
 maskOnset = [0,2,4,6,8,10,12,np.nan]
 
 respRateData = np.load(os.path.join(baseDir,'Analysis','respRate_humans.npz'))
@@ -143,20 +145,9 @@ for f in files:
         modelError = d['error']
     d.close()
 
+# [0.5, 0.1, 1.0, 0.9, 4.0, 0.9, 0.8, 1.1, 60.0, 16.0] # mouse
 
-# [0.5, 0.1, 1.0, 0.9, 4.0, 0.9, 0.8, 1.1, 60.0, 16.0] # mouse, no 24 ms soa
-# [0.5, 0.05, 1.0, 1.2, 4.0, 1.0, 0.7, 1.3, 60.0, 16.0] # mouse, all soas
-# [0.5, 0.1, 1.0, 0.9, 4.0, 0.8, 0.8, 1.2, 60.0, 13.0] # mean rt
-
-
-# [1.5, 0.15, 1.0, 0.3, 6.0, 0.8, 0.9, 1.0, 288.0, 20.0] # human
-# [0.5, 0.15, 1.0, 0.3, 2.0, 1.0, 1.0, 1.4, 288.0, 21.5]
-# [1.5, 0.0, 1.0, 0.1, 1.0, 1.0, 1.0, 1.4, 288.0, 22.5]
-# [2.0, 0.05, 1.0, 0.8, 6.0, 1.0, 1.0, 1.4, 288.0, 16.5]
-# [2.0, 0.1, 1.0, 0.4, 6.0, 0.7, 0.8, 1.3, 288.0, 16.0]
-# [2.0, 0.15, 1.0, 0.3, 7.0, 0.7, 0.8, 0.9, 288.0, 12.0]
-
-# [2.5, 0.15, 1.0, 0.3, 6.0, 0.8, 0.9, 1.1, 288.0, 16.0]
+# [2.5, 0.15, 1.0, 0.3, 6.0, 0.8, 0.9, 1.1, 288.0, 16.0] # human
 
 
 ## run model using best fit params
@@ -193,10 +184,12 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean,reacTimeMean*d
                                        ('Response Rate','Fraction Correct','Reaction Time (ms)','Reaction Time Correct (ms)','Reaction Time Incorrect (ms)')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot(xticks,mean,'o',mec='k',mfc='none',ms=12,mew=2,label='mice')
+    if ylabel=='Fraction Correct':
+        ax.plot(xlim,[0.5,0.5],'k--')
+    ax.plot(xticks,mean,'o',mec='k',mfc='k',ms=6,label='humans')
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k')
-    ax.plot(xticks,model,'o',mec='r',mfc='none',ms=12,mew=2,label='model')
+    ax.plot(xticks,model,'o',mec='k',mfc='none',ms=12,mew=2,label='model')
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',right=False,labelsize=14)
@@ -206,7 +199,7 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean,reacTimeMean*d
     else:
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
-        ax.legend(fontsize=12)
+        ax.legend(loc='lower left',fontsize=12)
     ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
@@ -256,40 +249,50 @@ for side,lbl in zip((1,),('target right',)):#((1,0),('target right','no stim')):
 # masking reaction time
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-for rtMean,rtSem,respTime,mec,mfc,lbl in zip((reacTimeCorrectMean,reacTimeIncorrectMean),(reacTimeCorrectSem,reacTimeIncorrectSem),
+for rtMean,rtSem,respTime,clr,lbl in zip((np.concatenate(([reacTimeMean[0]],reacTimeCorrectMean[1:])),reacTimeIncorrectMean),
+                                         (np.concatenate(([reacTimeSem[0]],reacTimeCorrectSem[1:])),reacTimeIncorrectSem),
                                          ('responseTimeCorrect','responseTimeIncorrect'),
-                                         ('k','0.5'),('k','0.5'),('correct','incorrect')):
+                                         ('k','0.5'),('correct','incorrect')):
     rt = []
     for side in targetSide:
         maskOn = [np.nan] if side==0 else maskOnset
         for mo in maskOn:
             if side==0 or mo==0:
                 if respTime=='responseTimeCorrect':
-                    rt.append(np.median(result[side][mo][optoOnset[0]][optoSide[0]]['responseTime']))
+                    rt.append(np.mean(result[side][mo][optoOnset[0]][optoSide[0]]['responseTime']))
                 else:
                     rt.append(np.nan)
             else:
-                rt.append(np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
-    ax.plot(xticks,dt*(np.array(rt)+postDecision),'o',mec=mec,mfc=mfc,ms=12,label=lbl)
-    ax.plot(xticks,rtMean*dt,'o',mec=mec,mfc='none',ms=12)
+                if respTime=='responseTimeCorrect':
+                    rt.append(np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
+                else:
+                    rt.append(np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
+    ax.plot(xticks,dt*(np.array(rt)+postDecision),'o',mec=clr,mfc='none',ms=12,mew=2,label='model, '+lbl)
+    ax.plot(xticks,rtMean*dt,'o',mec=clr,mfc=clr,ms=6,label='humans, '+lbl)
     for x,m,s in zip(xticks,rtMean*dt,rtSem*dt):
-        ax.plot([x,x],[m-s,m+s],mec)
+        ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
+ylim = [500,1700] if human else [150,400]
+ax.set_ylim(ylim)
 ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
 ax.set_ylabel('Reaction Time (ms)',fontsize=16)
 ax.legend()
 plt.tight_layout()
 
 
-binWidth = 50
-bins = np.arange(0,650,binWidth)
-binWidth = 600
-bins = np.arange(0,3000,binWidth)
+if human:
+    binWidth = 600
+    bins = np.arange(0,3000,binWidth)
+    xlim = (200,2100)
+else:
+    binWidth = 50
+    bins = np.arange(0,650,binWidth)
+    xlim = (100,475)
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
@@ -325,8 +328,7 @@ for maskOn,clr in zip(maskOnset[1:],clrs):
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
-# ax.set_xticks([0,50,100,150,200])
-# ax.set_xlim([50,200])
+ax.set_xlim(xlim)
 ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
@@ -436,13 +438,13 @@ for er,ec,ei in zip(evidenceResponse,evidenceCorrect,evidenceIncorrect):
 
 
 # opto masking
+trialsPerCondition = int(1e5)
 maskOnset = [0,2,np.nan]
 optoOnset = list(range(2,11))+[np.nan]
 optoSide = [0]
 optoLatency = 1
 
-## run model using best fit params
-trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition=100000,optoLatency=optoLatency,record=False)
+trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime,Lrecord,Rrecord = runSession(signals,targetSide,maskOnset,optoOnset,optoSide,tauI,alpha,eta,sigma,tauA,decay,inhib,threshold,trialEnd,postDecision,trialsPerCondition=trialsPerCondition,optoLatency=optoLatency,record=False)
 
 result = analyzeSession(targetSide,maskOnset,optoOnset,optoSide,trialTargetSide,trialMaskOnset,trialOptoOnset,trialOptoSide,response,responseTime)
 

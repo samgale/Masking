@@ -513,7 +513,7 @@ for n in range(len(exps)):
     notNan = ~np.isnan(vr) & ~np.isnan(fc)
     p = np.polyfit(vr[notNan],fc[notNan],2)
     px = np.arange(-1,1.02,0.01)
-    ax.plot(px,np.polyval(p,px),'k',lw=2)
+    ax.plot(px,np.polyval(p,px),'k',lw=1)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -781,6 +781,8 @@ ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
+ylim = [400,1900] if exps[0].rigName=='human' else []
+ax.set_ylim(ylim)
 ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
 ax.set_ylabel('Reaction Time (ms)',fontsize=16)
 legLoc = 'upper right' if exps[0].rigName=='human' else 'upper left'
@@ -792,7 +794,7 @@ clrs = np.zeros((len(maskOnset),3))
 clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
 lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
 
-rtLim = [500,2250] if exps[0].rigName=='human' else [150,410]
+rtLim = [400,2200] if exps[0].rigName=='human' else [150,410]
 for measures,alim,albl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect),(medianVelocityCorrect,medianVelocityIncorrect)),(rtLim,[0,65]),('Reaction Time (ms)','Movement Speed (mm/s)')):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -857,7 +859,7 @@ for mo in list(maskOnset[1:])+[maskOnset[0]]:
         for rd in rewardDir:
             for r,d in zip((rt,rtCorrect,rtIncorrect,vel,velCorrect,velIncorrect,vrResp,vrCorrect,vrIncorrect),
                            (reacTime,reacTimeCorrect,reacTimeIncorrect,velocity,velocityCorrect,velocityIncorrect,visRatingResp,visRatingCorrect,visRatingIncorrect)):
-                if exps[0].rigName != 'human' and r in (vrResp,vrCorrect,vrIncorrect):
+                if exps[0].rigName != 'human' and d in (visRatingResp,visRatingCorrect,visRatingIncorrect):
                     continue
                 t = d[i][stim][rd][mo]
                 r[-1].extend(t[~np.isnan(t)])
@@ -886,7 +888,7 @@ for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',right=False,labelsize=14)
 if exps[0].rigName=='human':
-    ax.set_xlim([0,2500])
+    ax.set_xlim([200,2100])
 else:
     ax.set_xlim([100,475])
 ax.legend(loc='lower left')
@@ -985,7 +987,7 @@ for corr,incorr,xlim,xlbl in zip((rtCorrect,velCorrect),(rtIncorrect,velIncorrec
     ax.set_xlabel(xlbl,fontsize=16)
     ax.set_ylabel('Cumulative Probability',fontsize=16)
     if 'Time' in xlbl:
-        ax.legend(loc='lower right',fontsize=11)
+        ax.legend(loc='lower right',fontsize=9)
     plt.tight_layout()
 
 
