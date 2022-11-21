@@ -1067,7 +1067,7 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Spike Integrati
     ax.set_ylim([0.4,1])
     ax.set_xlabel(xlbl+' (ms)',fontsize=16)
     ax.set_ylabel('Target Side Decoding Accuracy',fontsize=16)
-#    ax.legend(title='mask onset',fontsize=12)
+    ax.legend(title='mask onset',fontsize=10)
     plt.tight_layout()
 
 

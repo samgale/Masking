@@ -781,8 +781,11 @@ ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xticks(xticks)
 ax.set_xticklabels(xticklabels)
 ax.set_xlim(xlim)
-ylim = [400,1900] if exps[0].rigName=='human' else []
-ax.set_ylim(ylim)
+if exps[0].rigName=='human':
+    ax.set_ylim([400,1900])
+else:
+    ax.set_yticks(np.arange(100,600,100))
+    ax.set_ylim([100,500])
 ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
 ax.set_ylabel('Reaction Time (ms)',fontsize=16)
 legLoc = 'upper right' if exps[0].rigName=='human' else 'upper left'
@@ -891,7 +894,7 @@ if exps[0].rigName=='human':
     ax.set_xlim([200,2100])
 else:
     ax.set_xlim([100,475])
-ax.legend(loc='lower left')
+ax.legend(title='mask onset',loc='lower left')
 ax.set_ylim([0.2,1])
 ax.set_xlabel('Reaction Time (ms)',fontsize=16)
 ax.set_ylabel('Fraction Correct',fontsize=16)
