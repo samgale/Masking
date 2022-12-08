@@ -186,7 +186,7 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean,reacTimeMean*d
     ax = fig.add_subplot(1,1,1)
     if ylabel=='Fraction Correct':
         ax.plot(xlim,[0.5,0.5],'k--')
-    ax.plot(xticks,mean,'o',mec='k',mfc='k',ms=6,label='humans')
+    ax.plot(xticks,mean,'o',mec='k',mfc='k',ms=6,label='mice')
     for x,m,s in zip(xticks,mean,sem):
         ax.plot([x,x],[m-s,m+s],'k')
     ax.plot(xticks,model,'o',mec='k',mfc='none',ms=12,mew=2,label='model')
@@ -199,7 +199,7 @@ for mean,sem,model,ylim,ylabel in  zip((respRateMean,fracCorrMean,reacTimeMean*d
     else:
         ax.set_xticks(xticks)
         ax.set_xticklabels(xticklabels)
-        ax.legend(loc='lower left',fontsize=12)
+        ax.legend(loc='lower left',fontsize=14)
     ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
@@ -268,7 +268,7 @@ for rtMean,rtSem,respTime,clr,lbl in zip((np.concatenate(([reacTimeMean[0]],reac
                 else:
                     rt.append(np.median(result[side][mo][optoOnset[0]][optoSide[0]][respTime]))
     ax.plot(xticks,dt*(np.array(rt)+postDecision),'o',mec=clr,mfc='none',ms=12,mew=2,label='model, '+lbl)
-    ax.plot(xticks,rtMean*dt,'o',mec=clr,mfc=clr,ms=6,label='humans, '+lbl)
+    ax.plot(xticks,rtMean*dt,'o',mec=clr,mfc=clr,ms=6,label='mice, '+lbl)
     for x,m,s in zip(xticks,rtMean*dt,rtSem*dt):
         ax.plot([x,x],[m-s,m+s],clr)
 for side in ('right','top'):
@@ -281,7 +281,7 @@ ylim = [500,1700] if human else [150,400]
 ax.set_ylim(ylim)
 ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
 ax.set_ylabel('Reaction Time (ms)',fontsize=16)
-ax.legend()
+ax.legend(fontsize=14)
 plt.tight_layout()
 
 

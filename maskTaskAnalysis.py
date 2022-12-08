@@ -504,16 +504,16 @@ plt.tight_layout()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
 ax.plot(xlim,[0.5,0.5],'k--')
-for n in range(len(exps)):
-    vr,fc = [np.nanmean(d,axis=1).flatten() for d in (meanVisRatingResp,fracCorr)]
-    ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12,alpha=0.05)
-    i = np.argsort(vr)
-    vr = vr[i]
-    fc = fc[i]
-    notNan = ~np.isnan(vr) & ~np.isnan(fc)
-    p = np.polyfit(vr[notNan],fc[notNan],2)
-    px = np.arange(-1,1.02,0.01)
-    ax.plot(px,np.polyval(p,px),'k',lw=1)
+vr,fc = [np.nanmean(d,axis=1).flatten() for d in (meanVisRatingResp,fracCorr)]
+ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12,alpha=0.5)
+i = np.argsort(vr)
+vr = vr[i]
+fc = fc[i]
+notNan = ~np.isnan(vr) & ~np.isnan(fc)
+x = np.arange(-1,1.02,0.01)
+slope,yint,rval,pval,stderr = scipy.stats.linregress(vr[notNan],fc[notNan])
+ax.plot(x,slope*x+yint,'k',lw=2)
+r,p = scipy.stats.pearsonr(vr[notNan],fc[notNan])
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
@@ -1309,8 +1309,8 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
                 meanLR[:,nAboveChance<3] = np.nan
         mean = np.nanmean(meanLR,axis=0)
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
-        for d in meanLR:
-            ax.plot(xticks,d,color=clr,alpha=0.25)
+        # for d in meanLR:
+        #     ax.plot(xticks,d,color=clr,alpha=0.25)
         ax.plot(xticks,mean,'o',color=clr,ms=12,label=stimLbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)

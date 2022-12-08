@@ -69,11 +69,12 @@ ax.bar(x=bins[:-1]+bw/2,height=h,width=bw,color='k')
 ymax = plt.get(ax,'ylim')[1]
 ax.plot([fsThresh]*2,[0,ymax],'--',color='0.5')
 for x,lbl in zip((0.2,1),('FS','RS')):
-    ax.text(x,ymax,lbl,color='0.5',fontsize=14,ha='center',va='top')
+    ax.text(x,ymax,lbl,color='k',fontsize=16,ha='center',va='top')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim([0,1.6])
+ax.set_ylim([0,ymax])
 ax.set_xlabel('Spike Peak-to-Trough Duration (ms)',fontsize=16)
 ax.set_ylabel('# Units',fontsize=16)
 plt.tight_layout()
@@ -88,12 +89,13 @@ h = np.histogram(fpRate,bins=bins)[0]
 ax.bar(x=bins[:-1]+bw/2,height=h,width=bw,color='k')
 ymax = plt.get(ax,'ylim')[1]
 ax.plot([0.5]*2,[0,ymax],'--',color='0.5')
-for x,lbl in zip((0.25,0.75),('accepted','rejected')):
-    ax.text(x,ymax,lbl,color='0.5',fontsize=14,ha='center',va='top')
+for x,lbl in zip((0.25,0.75),('Accepted','Rejected')):
+    ax.text(x,ymax,lbl,color='k',fontsize=16,ha='center',va='top')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
 ax.set_xlim([0,1])
+ax.set_ylim([0,ymax])
 ax.set_xlabel('False-Positive Rate',fontsize=16)
 ax.set_ylabel('# Units',fontsize=16)
 plt.tight_layout()
@@ -464,7 +466,7 @@ plt.tight_layout()
 
 
 # behavior analysis
-rtBins = ((100,200),(200,400))
+rtBins = ((0,200),(200,650))
 behavOutcomeLabels = ('all','right','left','correct','incorrect','all resp','no resp') + rtBins
 behavTrialPsth = {stim: {hemi: {resp: {} for resp in behavOutcomeLabels} for hemi in hemiLabels} for stim in stimLabels}
 behavPsth = copy.deepcopy(behavTrialPsth)
@@ -697,7 +699,7 @@ for mo,moLbl in zip(maskOnset,('target only','mask onset 17 ms')):
     ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
     ax.set_ylabel('Difference in Cumulative Spikes\n(Contra - Ipsi Target)',fontsize=16)
     ax.set_title(moLbl,fontsize=16)
-    leg = ax.legend(loc='lower left',fontsize=10)
+    leg = ax.legend(loc='lower left',fontsize=14)
     plt.tight_layout()
 
 
@@ -1067,7 +1069,7 @@ for i,xlbl in enumerate(('End of Decoding Window','Time','End of Spike Integrati
     ax.set_ylim([0.4,1])
     ax.set_xlabel(xlbl+' (ms)',fontsize=16)
     ax.set_ylabel('Target Side Decoding Accuracy',fontsize=16)
-    ax.legend(title='mask onset',fontsize=10)
+    ax.legend(title='mask onset',fontsize=14)
     plt.tight_layout()
 
 
@@ -1277,6 +1279,25 @@ ymin = min([plt.get(ax,'ylim')[0] for ax in axs]+[0])
 ymax = max(plt.get(ax,'ylim')[1] for ax in axs)
 for ax in axs:
     ax.set_ylim([ymin,ymax])
+plt.tight_layout()
+
+fig = plt.figure(figsize=(4,3))
+ax = fig.add_subplot(1,1,1)
+for onset,clr,lbl in zip(optoOnset,cmap,optoOnsetLabels):
+    p = np.array(optoOnsetPsth['targetOnly']['contra'][onset])[units]
+    m = np.mean(p,axis=0)
+    s = np.std(p,axis=0)/(len(p)**0.5)
+    lbl = lbl.replace('\n',' ') if np.isnan(onset) else lbl+' ms'
+    ax.plot(t*1000,m,color=clr,label=lbl)
+    ax.fill_between(t*1000,m+s,m-s,color=clr,alpha=0.25)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.set_xticks(np.arange(-50,201,50))
+ax.set_xlim([-25,175])
+ax.set_xlabel('Time From Visual Stimulus Onset (ms)',fontsize=12)
+ax.set_ylabel('Spikes/s',fontsize=12)
+ax.legend(loc='upper right',title='opto onset',fontsize=8)
 plt.tight_layout()
 
 fig = plt.figure()
