@@ -22,8 +22,8 @@ class FNTask(TaskControl):
         self.spacebarRewardsEnabled = False
         self.printTrialInfo = True
         
-        self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset
-        self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution
+        self.preStimFramesFixed = 360 # min frames between end of previous trial and stimulus onset (iti)
+        self.preStimFramesVariableMean = 120 # mean of additional preStim frames drawn from exponential distribution (iti)
         self.preStimFramesMax = 600 # max total preStim frames
         self.quiescentFrames = 60 # frames before stim onset during which wheel movement delays stim onset
         self.openLoopFrames = 18 # min frames after stimulus onset before wheel movement has effects
@@ -35,7 +35,7 @@ class FNTask(TaskControl):
         self.wheelRewardDistance = 8.0 # mm of wheel movement to achieve reward
         self.maxQuiescentMoveDist = 1.0 # max allowed mm of wheel movement during quiescent period
         
-        self.targetStartPos = [-0.4,0] # normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
+        self.targetStartPos = [-0.4,0] #[[[-0.4,0],[0.4,0]]# normalized initial xy  position of target; center (0,0), bottom-left (-0.5,-0.5), top-right (0.5,0.5)
         self.targetRewardDistance = 0.8
         self.targetAutoMoveRate = 0 # fraction of normalized screen width per second that target automatically moves
         self.keepTargetOnScreen = True
@@ -47,6 +47,9 @@ class FNTask(TaskControl):
         self.gratingType = 'sqr' # 'sqr' or 'sin'
         self.gratingEdge= 'raisedCos' # 'circle' or 'raisedCos'
         self.gratingEdgeBlurWidth = 0.08 # only applies to raisedCos
+        
+        self.gainScale = 0.3
+        self.gainChangePos = 0
         
         if taskVersion is not None:
             self.setDefaultParams(taskVersion)
@@ -119,12 +122,14 @@ class FNTask(TaskControl):
                                     sf=self.targetSF / self.pixelsPerDeg,
                                     ori=self.targetOri)  
         
-        # calculate pixels to move or degrees to rotate stimulus per radian of wheel movement
+        # calculate pixels to move per radian of wheel movement
         rewardDir = 1 if self.targetStartPos[0] < 0 else -1
         rewardMove = self.targetRewardDistance * self.monSizePix[0]
         self.wheelGain = rewardMove / (self.wheelRewardDistance / self.wheelRadius)
         maxQuiescentMove = (self.maxQuiescentMoveDist / self.wheelRadius) * self.wheelGain
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
+        
+        gainChangeMoveDistance = self.gainChangePos * self.monSizePix[0]/2 - targetStartPosPix[0] # FN check
         
         # things to keep track of
         self.trialStartFrame = []
@@ -136,6 +141,7 @@ class FNTask(TaskControl):
         self.trialResponseDir = []
         self.trialResponseFrame = []
         self.quiescentMoveFrames = [] # frames where quiescent period was violated
+        self.wheelGainScaleFactor = []
         
         # run loop for each frame presented on the monitor
         while self._continueSession:
@@ -148,13 +154,19 @@ class FNTask(TaskControl):
                 self.trialPreStimFrames.append(preStimFrames) # can grow larger than preStimFrames during quiescent period
                 quiescentWheelMove = 0 # virtual (not on screen) change in target position during quiescent period
                 closedLoopWheelMove = 0 # actual change in target position during closed loop period
+                
+                # choose target start position
+                
                 targetPos = targetStartPosPix[:]
                 self.isCatchTrial.append(random.random() < self.probCatch)
                 self.trialStartFrame.append(self._sessionFrame)
                 hasResponded = False
                 if self.printTrialInfo:
                     print('starting trial ' + str(len(self.trialStartFrame)))
-            
+               
+               
+               
+               
             # extend pre stim gray frames if wheel moving during quiescent period
             if self.trialPreStimFrames[-1] - self.quiescentFrames < self._trialFrame < self.trialPreStimFrames[-1]:
                 quiescentWheelMove += self.deltaWheelPos[-1] * self.wheelGain
@@ -174,7 +186,12 @@ class FNTask(TaskControl):
                         targetPos[0] += deltaPos
                         closedLoopWheelMove += deltaPos
                     else:
-                        deltaPos = self.deltaWheelPos[-1] * self.wheelGain
+                        if closedLoopWheelMove * rewardDir > gainChangeMoveDistance: # FN check
+                            gainScale = self.gainScale
+                        else:
+                            gainScale = 1
+                        self.wheelGainScaleFactor.append(gainScale)
+                        deltaPos = self.deltaWheelPos[-1] * self.wheelGain * self.wheelGainScaleFactor[-1]
                         targetPos[0] += deltaPos
                         closedLoopWheelMove += deltaPos
                         if self.keepTargetOnScreen and abs(targetPos[0]) > monitorEdge:
