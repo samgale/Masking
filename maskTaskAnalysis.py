@@ -1311,7 +1311,7 @@ for data,ylim,ylabel in zip((respRate,fracCorr),((0,1),(0.4,1)),('Response Rate'
         sem = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
         # for d in meanLR:
         #     ax.plot(xticks,d,color=clr,alpha=0.25)
-        ax.plot(xticks,mean,'o',color=clr,ms=12,label=stimLbl)
+        ax.plot(xticks,mean,'-o',color=clr,ms=12,label=stimLbl)
         for x,m,s in zip(xticks,mean,sem):
             ax.plot([x,x],[m-s,m+s],color=clr)
     for side in ('right','top'):
