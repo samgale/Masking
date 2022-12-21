@@ -547,6 +547,10 @@ ax.legend()
 plt.tight_layout()
 
 # visibility rating roc
+clrs = np.zeros((len(maskOnset),3))
+clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
+lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
+
 visRatingHitRate = np.full((len(exps),len(xticks),4),np.nan)
 visRatingHitRate[:,:,0] = 0
 visRatingHitRate[:,:,-1] = 1
@@ -580,8 +584,8 @@ fig = plt.figure()
 for i,(hr,far) in enumerate(zip(visRatingHitRate,visRatingFalseAlarmRate)):
     ax = fig.add_subplot(4,4,i+1)
     ax.plot([0,1],[0,1],'--',color='0.5')
-    for h,fa in zip(hr,far):
-        ax.plot(fa,h,'k')
+    for h,fa,clr in zip(hr[1:-1],far[1:-1],clrs):
+        ax.plot(fa,h,color=clr)
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False)
@@ -623,6 +627,32 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
+ax.plot([0,1.5],[0,1.5],'--',color='0.5')
+vrMean = np.nanmean(visRatingAOC,axis=0)[1:-1]
+vrSem = (np.nanstd(visRatingAOC,axis=0)/(visRatingAOC.shape[0]**0.5))[1:-1]
+fcMean = np.nanmean(fracCorr,axis=(0,1))[1:-1]
+fcSem = (np.nanstd(fracCorr,axis=(0,1))/(fracCorr.shape[0]**0.5))[1:-1]
+for vr,fc,clr,lbl in zip(vrMean,fcMean,clrs,lbls):
+    ax.plot(vr,fc,'o',mec=clr,mfc='none',mew=2,ms=12,label=lbl)
+for x,y,s,clr in zip(vrMean,fcMean,vrSem,clrs):
+    ax.plot([x-s,x+s],[y,y],color=clr)
+for x,y,s,clr in zip(vrMean,fcMean,fcSem,clrs):
+    ax.plot([x,x],[y-s,y+s],color=clr)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(np.arange(0,1.1,0.2))
+ax.set_yticks(np.arange(0,1.1,0.2))
+ax.set_xlim([0.4,1.02])
+ax.set_ylim([0.4,1.02])
+ax.set_aspect('equal')
+ax.set_xlabel('Predicted Fraction Correct',fontsize=16)
+ax.set_ylabel('Observed Fraction Correct',fontsize=16)
+ax.legend(loc='lower right',title='mask onset')
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
 ax.plot([0,1.5],[0,1.5],'--',color='0.5',label='unity')
 vr = visRatingAOC.flatten()
 fc = np.nanmean(fracCorr,axis=1).flatten()
@@ -635,11 +665,6 @@ x = np.arange(-0.4,1.02,0.01)
 slope,yint,rval,pval,stderr = scipy.stats.linregress(vr[notNan],fc[notNan])
 r,p = scipy.stats.pearsonr(vr[notNan],fc[notNan])
 ax.plot(x,slope*x+yint,'k',lw=2,label='linear fit (r='+str(round(r,2))+', p='+'{0:1.1e}'.format(p)+')')
-# vrMean = np.nanmean(visRatingAOC,axis=0)
-# vrSem = np.nanstd(visRatingAOC,axis=0)/(visRatingAOC.shape[0]**0.5)
-# fcMean = np.nanmean(fracCorr,axis=(0,1))
-# fcSem = np.nanstd(fracCorr,axis=(0,1))/(fracCorr.shape[0]**0.5)
-# ax.plot(vrMean,fcMean,'ko',ms=12)
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
