@@ -503,7 +503,7 @@ plt.tight_layout()
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
-ax.plot(xlim,[0.5,0.5],'k--')
+ax.plot([-1.02,1.02],[0.5,0.5],'k--')
 vr,fc = [np.nanmean(d,axis=1).flatten() for d in (meanVisRatingResp,fracCorr)]
 ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12,alpha=0.5)
 i = np.argsort(vr)
@@ -545,6 +545,114 @@ ax.set_xlabel('Visibility Rating',fontsize=16)
 ax.set_ylabel('Median Reaction Time (ms)',fontsize=16)
 ax.legend()
 plt.tight_layout()
+
+# visibility rating roc
+visRatingHitRate = np.full((len(exps),len(xticks),4),np.nan)
+visRatingHitRate[:,:,0] = 0
+visRatingHitRate[:,:,-1] = 1
+visRatingFalseAlarmRate = visRatingHitRate.copy()
+visRatingAOC = np.full((len(exps),len(xticks)),np.nan)
+for i,obj in enumerate(exps):
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
+    for stim in ('mask','targetOnly'):
+        stimTrials = validTrials & (obj.trialType==stim)
+        for j,mo in enumerate(maskOnset):
+            trials = stimTrials  & (obj.maskOnset==mo)
+            if trials.sum()>0:
+                if stim=='targetOnly':
+                    j = -2
+                respTrials = trials & (~np.isnan(obj.responseDir))
+                correctTrials = obj.response[respTrials]==1
+                for k,s in zip((1,2),(0,-1)):
+                    h = obj.visRatingScore[respTrials] > s
+                    nc = np.sum(correctTrials)
+                    ni = np.sum(~correctTrials)
+                    visRatingHitRate[i,j,k] = np.sum(h[correctTrials]) / nc
+                    visRatingFalseAlarmRate[i,j,k] = np.sum(h[~correctTrials]) / ni
+                    if nc == 0:
+                        visRatingHitRate[i,j,k] = 0
+                    elif ni == 0:
+                        visRatingFalseAlarmRate[i,j,k] = 0         
+            visRatingAOC[i,j] = np.trapz(visRatingHitRate[i,j],visRatingFalseAlarmRate[i,j])
+
+
+fig = plt.figure()
+for i,(hr,far) in enumerate(zip(visRatingHitRate,visRatingFalseAlarmRate)):
+    ax = fig.add_subplot(4,4,i+1)
+    ax.plot([0,1],[0,1],'--',color='0.5')
+    for h,fa in zip(hr,far):
+        ax.plot(fa,h,'k')
+    for side in ('right','top'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(direction='out',top=False,right=False)
+    ax.set_xticks([0,1])
+    ax.set_yticks([0,1])
+    ax.set_xlim([-0.01,1.01])
+    ax.set_ylim([-0.01,1.01])
+    ax.set_aspect('equal')
+    if i==0:
+        ax.set_ylabel('Hit Rate')
+    else:
+        ax.set_yticklabels([])
+    if i==15:
+        ax.set_xlabel('False Alarm Rate')
+    else:
+        ax.set_xticklabels([])
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(xlim,[0.5,0.5],'k--')
+for d,clr in zip(visRatingAOC,plt.cm.tab20(np.linspace(0,1,visRatingAOC.shape[0]))):
+    ax.plot(xticks,d,color=clr,alpha=0.5)
+mean = np.nanmean(visRatingAOC,axis=0)
+sem = np.nanstd(visRatingAOC,axis=0)/(visRatingAOC.shape[0]**0.5)
+ax.plot(xticks,mean,'ko',ms=12)
+for x,m,s in zip(xticks,mean,sem):
+    ax.plot([x,x],[m-s,m+s],'k-')
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(xticks)
+ax.set_xticklabels(xticklabels)
+ax.set_xlim(xlim)
+ax.set_ylim([0.4,1.02])
+ax.set_xlabel('Mask Onset Relative to Target Onset (ms)',fontsize=16)
+ax.set_ylabel('Predicted Fraction Correct',fontsize=16)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot([0,1.5],[0,1.5],'--',color='0.5',label='unity')
+vr = visRatingAOC.flatten()
+fc = np.nanmean(fracCorr,axis=1).flatten()
+ax.plot(vr,fc,'o',mec='k',mfc='none',mew=2,ms=12,alpha=0.5)
+i = np.argsort(vr)
+vr = vr[i]
+fc = fc[i]
+notNan = ~np.isnan(vr) & ~np.isnan(fc)
+x = np.arange(-0.4,1.02,0.01)
+slope,yint,rval,pval,stderr = scipy.stats.linregress(vr[notNan],fc[notNan])
+r,p = scipy.stats.pearsonr(vr[notNan],fc[notNan])
+ax.plot(x,slope*x+yint,'k',lw=2,label='linear fit (r='+str(round(r,2))+', p='+'{0:1.1e}'.format(p)+')')
+# vrMean = np.nanmean(visRatingAOC,axis=0)
+# vrSem = np.nanstd(visRatingAOC,axis=0)/(visRatingAOC.shape[0]**0.5)
+# fcMean = np.nanmean(fracCorr,axis=(0,1))
+# fcSem = np.nanstd(fracCorr,axis=(0,1))/(fracCorr.shape[0]**0.5)
+# ax.plot(vrMean,fcMean,'ko',ms=12)
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_xticks(np.arange(0,1.1,0.2))
+ax.set_yticks(np.arange(0,1.1,0.2))
+ax.set_xlim([0.4,1.02])
+ax.set_ylim([0.4,1.02])
+ax.set_aspect('equal')
+ax.set_xlabel('Predicted Fraction Correct',fontsize=16)
+ax.set_ylabel('Observed Fraction Correct',fontsize=16)
+ax.legend()
+plt.tight_layout()
+
     
 # pooled trials across mice
 fc = np.nansum(fracCorr*respRate,axis=1)/np.nansum(respRate,axis=1)
