@@ -675,7 +675,7 @@ ax.set_ylim([0.4,1.02])
 ax.set_aspect('equal')
 ax.set_xlabel('Predicted Fraction Correct',fontsize=16)
 ax.set_ylabel('Observed Fraction Correct',fontsize=16)
-ax.legend()
+ax.legend(loc='lower right',fontsize=10)
 plt.tight_layout()
 
     
