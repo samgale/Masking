@@ -784,6 +784,10 @@ for data,title in zip((respRate,fracCorr,meanVisRatingResp),('Response Rate','Fr
     cmap = matplotlib.cm.gray
     cmap.set_bad(color=np.array((255, 251, 204))/255)
     im = ax.imshow(np.log10(pmatCorr),cmap=cmap,clim=clim)
+    for i in range(pmat.shape[0]):
+        for j in range(pmat.shape[1]):
+            if pmatCorr[i,j] < alpha:
+                ax.text(j,i,'*',color='r',ha='center',va='center',fontsize=14)
     ax.tick_params(labelsize=10)
     ax.set_xticks(np.arange(len(xticklabels)))
     ax.set_xticklabels(xticklabels)
