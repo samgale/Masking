@@ -49,14 +49,18 @@ class TaskControl():
             self.monDistance = 21.6 # cm
             self.nidaqDevices = ('USB-6001',)
             self.nidaqDeviceNames = ('Dev1',)
-        elif self.rigName == 'human':
+        elif self.rigName in ('human','human wheel'):
             self.saveDir = r'\\allen\programs\braintv\workgroups\tiny-blue-dot\masking\humans\data'
             self.screen = 0 # monitor to present stimuli on
             self.monWidth = 53.34 # cm
             self.monDistance = 45.2 # cm
             self.drawDiodeBox = False
-            self.nidaqDevices = None
-            self.nidaqDeviceNames = None
+            if self.rigName == 'human wheel':
+                self.nidaqDevices = ('USB-6009',)
+                self.nidaqDeviceNames = ('Dev2',)
+            else:
+                self.nidaqDevices = None
+                self.nidaqDeviceNames = None
         else:
             raise ValueError(rigName + ' is not a recognized rig name')
     
@@ -85,7 +89,7 @@ class TaskControl():
         self._keys = [] # list of keys pressed since previous frame
         self.keyPressFrames = []
         self.keysPressed = []
-        if self.rigName == 'human':
+        if 'human' in self.rigName:
             self._mouse = event.Mouse(win=self._win)
                                     
         self.startNidaqDevice()
@@ -168,7 +172,7 @@ class TaskControl():
             self.keyPressFrames.append(self._sessionFrame)
             self.keysPressed.append(np.array(self._keys,dtype=object))
         
-        if self.rigName != 'human':
+        if self.nidaqDevices is not None:
             self._frameSignalOutput.write(True)
             
             if self._tone:
@@ -182,7 +186,7 @@ class TaskControl():
             self._diodeBox.draw()
         self._win.flip()
         
-        if self.rigName != 'human':
+        if self.nidaqDevices is not None:
             self._frameSignalOutput.write(False)
             
             if self._opto:
@@ -225,7 +229,7 @@ class TaskControl():
         
     
     def startNidaqDevice(self):
-        if self.rigName == 'human':
+        if self.nidaqDevices is None:
             return
         
         # Dev1 analog inputs
@@ -256,6 +260,8 @@ class TaskControl():
             self._rewardOutput.write(0)
             self._rewardOutput.timing.cfg_samp_clk_timing(aoSampleRate)
             self._nidaqTasks.append(self._rewardOutput)
+        else:
+            self._rewardOutput = None
         
         # Dev2 analog outputs
         # AO0: led1
@@ -336,6 +342,8 @@ class TaskControl():
         
         
     def triggerReward(self,openTime):
+        if self._rewardOutput is None:
+            return
         sampleRate = self._rewardOutput.timing.samp_clk_rate
         nSamples = int(openTime * sampleRate) + 1
         s = np.zeros(nSamples)
@@ -375,7 +383,7 @@ class TaskControl():
     
         
     def getNidaqData(self):
-        if self.rigName == 'human':
+        if self.nidaqDevices is None:
             return
         
         # analog

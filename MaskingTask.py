@@ -288,10 +288,11 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('testing',option)
             self.targetSize = 2
             self.targetSF = 2
-            self.targetContrast = [0.5]
+            self.targetContrast = [0.4]
             self.maxResponseWaitFrames = 282
             self.showFixationCross = True     
             self.probCatch = 0
+            self.maxTrials = 30
             
         elif taskVersion == 'human contrast':
             self.setDefaultParams('human contrast practice',option)
@@ -407,7 +408,7 @@ class MaskingTask(TaskControl):
                                     for pos in targetPosPix]]
         
         # create fixation cross and target visibility rating scale for humans
-        if self.rigName == 'human':
+        if 'human' in self.rigName:
             startButton = visual.TextStim(win=self._win,
                                           units='pix',
                                           color=-1,
@@ -576,7 +577,7 @@ class MaskingTask(TaskControl):
         monitorEdge = 0.5 * (self.monSizePix[0] - targetSizePix)
         
         # wait for mouse click to start
-        if self.rigName == 'human':
+        if 'human' in self.rigName:
             while not self._mouse.getPressed()[0]:
                 startButton.draw()
                 self._win.flip()
@@ -884,6 +885,4 @@ if __name__ == "__main__":
     parser.add_argument('--subjectName',default=None)
     args = parser.parse_args()
     task = MaskingTask(args.rigName,args.taskVersion,contrast=args.contrast)
-    if args.subjectName is None:
-        task.saveParams = False
     task.start(args.subjectName)
