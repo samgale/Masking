@@ -50,20 +50,54 @@ print(np.median(sessionDur),min(sessionDur),max(sessionDur))
 
 
 # human reaction time task
+fig = plt.figure(figsize=(6.4,4.8))
+ax = fig.add_subplot(1,1,1)
+obj = exps[0]
 targetPos = (48,480)
 targetContrast = (0.4,1)
-fig = plt.figure()
+validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
+catchTrials = obj.trialType == 'catch'
+xlbl = []
+for i,pos in enumerate(targetPos):
+    for j,c in enumerate(targetContrast):
+        trials = validTrials & ~catchTrials & (np.absolute(obj.targetPos[:,0])==pos) & (obj.targetContrast==c)
+        rt = obj.reactionTime[trials]
+        x = i*2+j
+        ax.plot(x+np.zeros(len(rt)),rt,'o',mec='k',mfc='none',ms=8,alpha=0.25)
+        ax.plot(x,np.nanmedian(rt),'o',mec='k',mfc='k',ms=12)
+        xlbl.append('eccentricity $'+str(round(pos/obj.pixelsPerDeg,1))+'\degree$\ncontrast '+str(c))
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xticks(np.arange(4))
+ax.set_xticklabels(xlbl)
+ax.set_xlim([-0.5,3.5])
+ax.set_ylim([200,650])
+ax.set_ylabel('Reaction time (ms)')
+plt.tight_layout()
+
+fig = plt.figure(figsize=(3.6,4.8))
 ax = fig.add_subplot(1,1,1)
-for n,obj in enumerate(exps):
-    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
-    catchTrials = obj.trialType == 'catch'
-    for i,pos in enumerate(targetPos):
-        for j,c in enumerate(targetContrast):
-            trials = validTrials & ~catchTrials & (np.absolute(obj.targetPos[:,0])==pos) & (obj.targetContrast==c)
-            rt = obj.reactionTime[trials]
-            x = i*2+j
-            ax.plot(x+np.zeros(len(rt)),rt,'o',mec='k',mfc='none',ms=8,alpha=0.25)
-            ax.plot(x,np.nanmedian(rt),'o',mec='k',mfc='k',ms=12)
+obj = exps[1]
+targetContrast = (0.4,1)
+validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
+catchTrials = obj.trialType == 'catch'
+xlbl = []
+for i,c in enumerate(targetContrast):
+    trials = validTrials & ~catchTrials & (obj.targetContrast==c)
+    rt = obj.reactionTime[trials]
+    ax.plot(i+np.zeros(len(rt)),rt,'o',mec='k',mfc='none',ms=8,alpha=0.25)
+    ax.plot(i,np.nanmedian(rt),'o',mec='k',mfc='k',ms=12)
+    xlbl.append('eccentricity $0\degree$\ncontrast '+str(c))
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False)
+ax.set_xticks((0,1))
+ax.set_xticklabels(xlbl)
+ax.set_xlim([-0.5,1.5])
+ax.set_ylim([200,650])
+ax.set_ylabel('Reaction time (ms)')
+plt.tight_layout()
 
 
 # target duration
