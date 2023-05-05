@@ -294,6 +294,13 @@ class MaskingTask(TaskControl):
             self.probCatch = 0
             self.maxTrials = 30
             
+        elif taskVersion == 'human reaction time':
+            self.setDefaultParams('human contrast practice',option)
+            self.normTargetPos += [(-0.025,0),(0.025,0)]
+            self.targetContrast = [0.4,1]
+            self.probCatch = 0.1
+            self.maxTrials = 120
+            
         elif taskVersion == 'human contrast':
             self.setDefaultParams('human contrast practice',option)
             self.useContrastStaircase = True
@@ -445,7 +452,7 @@ class MaskingTask(TaskControl):
             
         # define parameters for each trial type
         if len(targetPosPix) > 1:
-            goRightPos = [pos for pos in targetPosPix if pos[0] < 0]
+            goRightPos = [pos for pos in targetPosPix if pos[0] <= 0]
             goLeftPos = [pos for pos in targetPosPix if pos[0] > 0]
             goRightOri = goLeftOri = [self.targetOri[0]]
         else:
