@@ -787,7 +787,7 @@ for data,title in zip((respRate,fracCorr,meanVisRatingResp),('Response Rate','Fr
     for i in range(pmat.shape[0]):
         for j in range(pmat.shape[1]):
             if pmatCorr[i,j] < alpha:
-                ax.text(j,i,'*',color='r',ha='center',va='center',fontsize=14)
+                ax.plot(j,i,'*',color='r',ms=8)
     ax.tick_params(labelsize=10)
     ax.set_xticks(np.arange(len(xticklabels)))
     ax.set_xticklabels(xticklabels)
@@ -945,6 +945,9 @@ for measures,alim,albl in zip(((medianReacTimeCorrect,medianReacTimeIncorrect),(
     for side in ('right','top'):
         ax.spines[side].set_visible(False)
     ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+    if exps[0].rigName=='human':
+        ax.set_xticks(np.arange(0,2500,500))
+        ax.set_yticks(np.arange(0,2500,500))
     if 'Speed' in albl:
         ax.set_yticks(np.arange(0,100,20))
     ax.set_xlim(alim)
@@ -1252,6 +1255,10 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     cmap = matplotlib.cm.gray
     cmap.set_bad(color=np.array((255, 251, 204))/255)
     im = ax.imshow(np.log10(pmatCorr),cmap=cmap,clim=clim)
+    for i in range(pmat.shape[0]):
+        for j in range(pmat.shape[1]):
+            if pmatCorr[i,j] < alpha:
+                ax.plot(j,i,'*',color='r',ms=8)
     ax.tick_params(labelsize=10)
     ax.set_xticks(np.arange(2*len(xticklabels)))
     ax.set_xticklabels(2*xticklabels)
@@ -1497,6 +1504,10 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     cmap = matplotlib.cm.gray
     cmap.set_bad(color=np.array((255, 251, 204))/255)
     im = ax.imshow(np.log10(pmatCorr),cmap=cmap,clim=clim)
+    for i in range(pmat.shape[0]):
+        for j in range(pmat.shape[1]):
+            if pmatCorr[i,j] < alpha:
+                ax.plot(j,i,'*',color='r',ms=8)
     ax.tick_params(labelsize=10)
     ax.set_xticks(np.arange(4*len(xticklabels)))
     ax.set_xticklabels(4*xticklabels)

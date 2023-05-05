@@ -42,8 +42,8 @@ exps = []
 for f in fileIO.getFiles('choose experiments',fileType='*.hdf5'):
     obj = MaskTaskData()
     obj.loadFromHdf5(f)
-    obj.loadBehavData(obj.behavDataPath)
-    obj.loadKilosortData(os.path.join(os.path.dirname(obj.datFilePath),'kilosort_filtered'))
+    # obj.loadBehavData(obj.behavDataPath)
+    # obj.loadKilosortData(os.path.join(os.path.dirname(obj.datFilePath),'kilosort_filtered'))
     exps.append(obj)
     
 
@@ -440,7 +440,7 @@ for resp,hemi in zip((cumContra,cumIpsi),('Contralateral','Ipsilateral')):
     ax.set_yticks([0,0.5,1,1.5])
     ax.set_ylim([-0.05,1.5])
     ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
-    ax.set_ylabel('Cumulative Spikes Per Neuron',fontsize=16)
+    ax.set_ylabel('Cumulative Spikes Per Neuron\n('+hemi+' Target)',fontsize=16)
 #    ax.set_title(hemi+' Target',fontsize=14)
     if hemi=='Contralateral':
         leg = ax.legend(title='mask onset',loc='upper left',fontsize=12)
@@ -459,6 +459,7 @@ ax.plot([33,200],[0,0],'k--')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
 ax.tick_params(direction='out',top=False,right=False,labelsize=14)
+ax.set_yticks([0,0.5])
 ax.set_xlim([33,200])
 ax.set_xlabel('Time Relative to Target Onset (ms)',fontsize=16)
 ax.set_ylabel('Difference in Cumulative Spikes\n(Contra - Ipsi Target)',fontsize=16)
