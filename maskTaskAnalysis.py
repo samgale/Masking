@@ -49,6 +49,23 @@ for obj in exps:
 print(np.median(sessionDur),min(sessionDur),max(sessionDur))
 
 
+# human reaction time task
+targetPos = (48,480)
+targetContrast = (0.4,1)
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for n,obj in enumerate(exps):
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
+    catchTrials = obj.trialType == 'catch'
+    for i,pos in enumerate(targetPos):
+        for j,c in enumerate(targetContrast):
+            trials = validTrials & ~catchTrials & (np.absolute(obj.targetPos[:,0])==pos) & (obj.targetContrast==c)
+            rt = obj.reactionTime[trials]
+            x = i*2+j
+            ax.plot(x+np.zeros(len(rt)),rt,'o',mec='k',mfc='none',ms=8,alpha=0.25)
+            ax.plot(x,np.nanmedian(rt),'o',mec='k',mfc='k',ms=12)
+
+
 # target duration
 stimLabels = ('targetOnly','catch')
 targetFrames = np.array([0,1,2,4,12])

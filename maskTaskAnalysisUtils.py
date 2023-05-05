@@ -282,6 +282,7 @@ class MaskTaskData():
             self.ntrials = np.sum(behavData['trialEndFrame'][:]<self.frameSamples.size)
         else:
             self.ntrials = behavData['trialEndFrame'].size
+        self.pixelsPerDeg = behavData['pixelsPerDeg'][()]
         self.quiescentFrames = behavData['quiescentFrames'][()]
         self.trialOpenLoopFrames = behavData['trialOpenLoopFrames'][:self.ntrials]
         assert(np.unique(self.trialOpenLoopFrames).size==1)
@@ -296,6 +297,7 @@ class MaskTaskData():
         self.trialStartFrame = behavData['trialStartFrame'][:self.ntrials]
         self.trialEndFrame = behavData['trialEndFrame'][:self.ntrials]
         self.stimStart = behavData['trialStimStartFrame'][:self.ntrials]
+        self.targetPos = behavData['trialTargetPos'][:self.ntrials]
         self.targetContrast = behavData['trialTargetContrast'][:self.ntrials]
         self.targetFrames = behavData['trialTargetFrames'][:self.ntrials]
         self.maskContrast = behavData['trialMaskContrast'][:self.ntrials]
