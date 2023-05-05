@@ -298,8 +298,13 @@ class MaskingTask(TaskControl):
             self.setDefaultParams('human contrast practice',option)
             self.normTargetPos += [(-0.025,0),(0.025,0)]
             self.targetContrast = [0.4,1]
-            self.probCatch = 0.1
-            self.maxTrials = 120
+            self.probCatch = 0
+            self.maxTrials = 80
+        
+        elif taskVersion == 'human detection':
+            self.setDefaultParams('human reaction time',option)
+            self.normTargetPos = [(0,0),(0,0)]
+            self.maxTrials = 20
             
         elif taskVersion == 'human contrast':
             self.setDefaultParams('human contrast practice',option)
