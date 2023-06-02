@@ -52,51 +52,70 @@ print(np.median(sessionDur),min(sessionDur),max(sessionDur))
 # human reaction time task
 fig = plt.figure(figsize=(6.4,4.8))
 ax = fig.add_subplot(1,1,1)
-obj = exps[0]
 targetPos = (48,480)
 targetContrast = (0.4,1)
-validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
-catchTrials = obj.trialType == 'catch'
-xlbl = []
-for i,pos in enumerate(targetPos):
-    for j,c in enumerate(targetContrast):
-        trials = validTrials & ~catchTrials & (np.absolute(obj.targetPos[:,0])==pos) & (obj.targetContrast==c)
-        rt = obj.reactionTime[trials]
-        x = i*2+j
-        ax.plot(x+np.zeros(len(rt)),rt,'o',mec='k',mfc='none',ms=8,alpha=0.25)
-        ax.plot(x,np.nanmedian(rt),'o',mec='k',mfc='k',ms=12)
-        xlbl.append('eccentricity $'+str(round(pos/obj.pixelsPerDeg,1))+'\degree$\ncontrast '+str(c))
+xticks = np.arange(4)
+xlbl = ['eccentricity $'+str(round(pos/exps[0].pixelsPerDeg,1))+'\degree$\ncontrast '+str(c) for pos in targetPos for c in targetContrast]
+clrs = plt.cm.tab20(np.linspace(0,1,len(exps)))
+y = []
+for obj,clr in zip(exps,clrs):
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
+    catchTrials = obj.trialType == 'catch'
+    y.append([])
+    for i,pos in enumerate(targetPos):
+        for j,c in enumerate(targetContrast):
+            trials = validTrials & ~catchTrials & (np.absolute(obj.targetPos[:,0])==pos) & (obj.targetContrast==c) & (obj.response==1)
+            rt = obj.reactionTime[trials]
+            y[-1].append(np.nanmedian(rt))
+    ax.plot(xticks,y[-1],color=clr,alpha=0.5)
+mean = np.nanmean(y,axis=0)
+sem = np.nanstd(y,axis=0)/(len(y)**0.5)
+ax.plot(xticks,mean,'ko',ms=12)
+for x,m,s in zip(xticks,mean,sem):
+    ax.plot([x,x],[m-s,m+s],'k-')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xticks(np.arange(4))
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.set_xticks(xticks)
 ax.set_xticklabels(xlbl)
 ax.set_xlim([-0.5,3.5])
-ax.set_ylim([200,650])
-ax.set_ylabel('Reaction time (ms)')
+ax.set_yticks(np.arange(200,700,100))
+ax.set_ylim([200,500])
+ax.set_ylabel('Reaction time (ms)',fontsize=12)
 plt.tight_layout()
+    
 
 fig = plt.figure(figsize=(3.6,4.8))
 ax = fig.add_subplot(1,1,1)
-obj = exps[1]
+targetPos = (48,480)
 targetContrast = (0.4,1)
-validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
-catchTrials = obj.trialType == 'catch'
-xlbl = []
-for i,c in enumerate(targetContrast):
-    trials = validTrials & ~catchTrials & (obj.targetContrast==c)
-    rt = obj.reactionTime[trials]
-    ax.plot(i+np.zeros(len(rt)),rt,'o',mec='k',mfc='none',ms=8,alpha=0.25)
-    ax.plot(i,np.nanmedian(rt),'o',mec='k',mfc='k',ms=12)
-    xlbl.append('eccentricity $0\degree$\ncontrast '+str(c))
+xticks = (0,1)
+xlbl = ['eccentricity $0\degree$\ncontrast '+str(c) for c in targetContrast]
+clrs = plt.cm.tab20(np.linspace(0,1,len(exps)))
+y = []
+for obj,clr in zip(exps,clrs):
+    validTrials = (~obj.longFrameTrials) & obj.engaged & (~obj.earlyMove)
+    catchTrials = obj.trialType == 'catch'
+    y.append([])
+    for j,c in enumerate(targetContrast):
+        trials = validTrials & ~catchTrials & (obj.targetContrast==c)
+        rt = obj.reactionTime[trials]
+        y[-1].append(np.nanmedian(rt))
+    ax.plot(xticks,y[-1],color=clr,alpha=0.5)
+mean = np.nanmean(y,axis=0)
+sem = np.nanstd(y,axis=0)/(len(y)**0.5)
+ax.plot(xticks,mean,'ko',ms=12)
+for x,m,s in zip(xticks,mean,sem):
+    ax.plot([x,x],[m-s,m+s],'k-')
 for side in ('right','top'):
     ax.spines[side].set_visible(False)
-ax.tick_params(direction='out',top=False,right=False)
-ax.set_xticks((0,1))
+ax.tick_params(direction='out',top=False,right=False,labelsize=10)
+ax.set_xticks(xticks)
 ax.set_xticklabels(xlbl)
 ax.set_xlim([-0.5,1.5])
-ax.set_ylim([200,650])
-ax.set_ylabel('Reaction time (ms)')
+ax.set_yticks(np.arange(200,700,100))
+ax.set_ylim([200,500])
+ax.set_ylabel('Reaction time (ms)',fontsize=12)
 plt.tight_layout()
 
 
@@ -468,6 +487,51 @@ for data,lbl in zip((respRate,fracCorr,medianReacTime,medianReacTimeCorrect,medi
     m = np.nanmean(meanLR,axis=0)
     s = np.nanstd(meanLR,axis=0)/(meanLR.shape[0]**0.5)
     np.savez(fileIO.saveFile('Save '+lbl,fileType='*.npz'),mean=m,sem=s)
+    
+
+# accuracy vs mean reaction time
+fc = np.sum(fracCorr*respRate,axis=1)/np.sum(respRate,axis=1)
+rt = np.nanmean(medianReacTime,axis=1)
+
+clrs = np.zeros((len(maskOnset),3))
+clrs[:-1] = plt.cm.plasma(np.linspace(0,0.85,len(maskOnset)-1))[::-1,:3]
+lbls = [lbl+' ms' for lbl in xticklabels[1:len(maskOnset)]]+['target only']
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+for i,clr,lbl in zip(range(1,len(maskOnset)+1),clrs,lbls):
+    x = rt[:,i]
+    y = fc[:,i]
+    ax.plot(x,y,'o',mec=clr,mfc=clr)
+    slope,yint,rval,pval,stderr = scipy.stats.linregress(x,y)
+    rx = np.array([min(x),max(x)])
+    ax.plot(rx,slope*rx+yint,'-',color=clr,label=lbl+', r='+str(round(rval,2))+', p='+str(round(pval,3)))
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+# ax.set_xlim([0,1.02])
+ax.set_ylim([0,1.02])
+ax.set_xlabel('Reaction Time (ms)',fontsize=14)
+ax.set_ylabel('Fraction Correct',fontsize=14)
+leg = ax.legend(title='mask onset',loc='lower left',fontsize=10)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+x = rt[:,-2]
+y = fc[:,1]
+ax.plot(x,y,'o',mec=clr,mfc=clr)
+slope,yint,rval,pval,stderr = scipy.stats.linregress(x,y)
+rx = np.array([min(x),max(x)])
+ax.plot(rx,slope*rx+yint,'-',color='k',label='r='+str(round(rval,2))+', p='+str(round(pval,2)))
+for side in ('right','top'):
+    ax.spines[side].set_visible(False)
+ax.tick_params(direction='out',top=False,right=False,labelsize=12)
+ax.set_ylim([0.4,1])
+ax.set_xlabel('Reaction time, target only (ms)',fontsize=14)
+ax.set_ylabel('Fraction correct, mask onset 17 ms',fontsize=14)
+leg = ax.legend(loc='upper right',fontsize=10)
+plt.tight_layout()
     
     
 # visibility rating

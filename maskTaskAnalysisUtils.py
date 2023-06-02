@@ -322,6 +322,8 @@ class MaskTaskData():
             self.visRatingEndFrame = behavData['visRatingEndFrame'][:self.ntrials]
         self.useContrastStaircase = behavData['useContrastStaircase'][()] if 'useContrastStaircase' in behavData else False
         
+        behavData.close()
+        
         self.findLongFrameTrials()
         self.findEngagedTrials()
         self.getWheelPos()
