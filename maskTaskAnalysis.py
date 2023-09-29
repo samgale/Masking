@@ -929,10 +929,11 @@ for i in range(len(pval)):
         pval[i,j] = scipy.stats.binom.cdf(0.5*n[i,j],n[i,j],meanLR[i,j])
     
 # spearman correlation of accuracy vs mask onset
+ind = slice(1,8) if exps[0].rigName=='human' else slice(1,6)
 rs = []
 ps = []
 for fc in np.sum(fracCorr*respRate,axis=1)/np.sum(respRate,axis=1):
-    r,p = scipy.stats.spearmanr(np.arange(5),fc[1:6])
+    r,p = scipy.stats.spearmanr(np.arange(ind.stop-ind.start),fc[ind])
     rs.append(r)
     ps.append(p)
     
@@ -1639,6 +1640,19 @@ for data,title in zip((respRate,fracCorr),('Response Rate','Fraction Correct')):
     cb.set_ticklabels(['$10^{'+str(int(lt))+'}$' for lt in legticks[:-1]]+[r'$\geq0.05$'])
     ax.set_title(title+' Comparisons (p value)',fontsize=14)
     plt.tight_layout()
+    
+# # spearman correlation of accuracy vs mask onset
+# rs = []
+# ps = []
+# for i,fc in enumerate((np.nansum(fracCorr*respRate,axis=2)/np.sum(respRate,axis=2))[:,1,2:]):
+#     fc = fc.copy()
+#     fc[respAboveChancePval[i,1,2:]>=0.05] = np.nan
+#     nAboveChance = np.sum(~np.isnan(fc))
+#     fc[nAboveChance<3] = np.nan
+#     fc = fc[~np.isnan(fc)]
+#     r,p = scipy.stats.spearmanr(np.arange(len(fc)),fc)
+#     rs.append(r)
+#     ps.append(p)
     
 # pooled trials fraction correct
 fig = plt.figure()
