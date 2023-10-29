@@ -77,8 +77,8 @@
       <CodeComponent name="code" plugin="None">
         <Param val="" valType="extendedCode" updates="constant" name="Before Experiment"/>
         <Param val="" valType="extendedCode" updates="constant" name="Before JS Experiment"/>
-        <Param val="iti = 0&amp;#10;minIti = 3&amp;#10;maxIti = 5&amp;#10;feedback = ''" valType="extendedCode" updates="constant" name="Begin Experiment"/>
-        <Param val="iti = 0;&amp;#10;minIti = 3;&amp;#10;maxIti = 5;&amp;#10;feedback = &quot;&quot;;&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Experiment"/>
+        <Param val="iti = 0&amp;#10;minIti = 180&amp;#10;maxIti = 300&amp;#10;feedback = ''" valType="extendedCode" updates="constant" name="Begin Experiment"/>
+        <Param val="iti = 0;&amp;#10;minIti = 180;&amp;#10;maxIti = 300;&amp;#10;feedback = &quot;&quot;;&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Experiment"/>
         <Param val="iti = (minIti + ((maxIti - minIti) * Math.random()));&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Routine"/>
         <Param val="iti = minIti + (maxIti - minIti) * random()" valType="extendedCode" updates="constant" name="Begin Routine"/>
         <Param val="Auto-&gt;JS" valType="str" updates="None" name="Code Type"/>
@@ -110,7 +110,7 @@
         <Param val="time (s)" valType="str" updates="None" name="startType"/>
         <Param val="0" valType="code" updates="None" name="startVal"/>
         <Param val="duration (s)" valType="str" updates="None" name="stopType"/>
-        <Param val="1.0" valType="code" updates="constant" name="stopVal"/>
+        <Param val="1" valType="code" updates="constant" name="stopVal"/>
         <Param val="True" valType="bool" updates="None" name="syncScreenRefresh"/>
         <Param val="$feedback" valType="str" updates="set every repeat" name="text"/>
         <Param val="norm" valType="str" updates="None" name="units"/>
@@ -136,13 +136,13 @@
         <Param val="" valType="str" updates="constant" name="correctAns"/>
         <Param val="False" valType="bool" updates="None" name="disabled"/>
         <Param val="True" valType="bool" updates="constant" name="discard previous"/>
-        <Param val="" valType="code" updates="None" name="durationEstim"/>
-        <Param val="False" valType="bool" updates="constant" name="forceEndRoutine"/>
+        <Param val="2.1" valType="code" updates="None" name="durationEstim"/>
+        <Param val="True" valType="bool" updates="constant" name="forceEndRoutine"/>
         <Param val="keyResponse" valType="code" updates="None" name="name"/>
         <Param val="press" valType="str" updates="constant" name="registerOn"/>
         <Param val="True" valType="bool" updates="None" name="saveStartStop"/>
         <Param val="3" valType="code" updates="None" name="startEstim"/>
-        <Param val="time (s)" valType="str" updates="None" name="startType"/>
+        <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti" valType="code" updates="None" name="startVal"/>
         <Param val="duration (s)" valType="str" updates="None" name="stopType"/>
         <Param val="2.1" valType="code" updates="constant" name="stopVal"/>
@@ -157,7 +157,7 @@
         <Param val="rgb" valType="str" updates="constant" name="colorSpace"/>
         <Param val="targetContrast" valType="num" updates="set every repeat" name="contrast"/>
         <Param val="False" valType="bool" updates="None" name="disabled"/>
-        <Param val="" valType="code" updates="None" name="durationEstim"/>
+        <Param val="0.0167" valType="code" updates="None" name="durationEstim"/>
         <Param val="linear" valType="str" updates="constant" name="interpolate"/>
         <Param val="circle" valType="file" updates="constant" name="mask"/>
         <Param val="target" valType="code" updates="None" name="name"/>
@@ -169,10 +169,10 @@
         <Param val="2" valType="num" updates="constant" name="sf"/>
         <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
         <Param val="3" valType="code" updates="None" name="startEstim"/>
-        <Param val="time (s)" valType="str" updates="None" name="startType"/>
+        <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti" valType="code" updates="None" name="startVal"/>
-        <Param val="duration (s)" valType="str" updates="None" name="stopType"/>
-        <Param val="0.017" valType="code" updates="constant" name="stopVal"/>
+        <Param val="duration (frames)" valType="str" updates="None" name="stopType"/>
+        <Param val="1" valType="code" updates="constant" name="stopVal"/>
         <Param val="True" valType="bool" updates="None" name="syncScreenRefresh"/>
         <Param val="sqr" valType="file" updates="constant" name="tex"/>
         <Param val="128" valType="num" updates="constant" name="texture resolution"/>
@@ -197,7 +197,7 @@
         <Param val="2" valType="num" updates="constant" name="sf"/>
         <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
         <Param val="3.1" valType="code" updates="None" name="startEstim"/>
-        <Param val="time (s)" valType="str" updates="None" name="startType"/>
+        <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti + maskOnset" valType="code" updates="None" name="startVal"/>
         <Param val="duration (s)" valType="str" updates="None" name="stopType"/>
         <Param val="2" valType="code" updates="constant" name="stopVal"/>
@@ -225,7 +225,7 @@
         <Param val="2" valType="num" updates="constant" name="sf"/>
         <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
         <Param val="3.1" valType="code" updates="None" name="startEstim"/>
-        <Param val="time (s)" valType="str" updates="None" name="startType"/>
+        <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti + maskOnset" valType="code" updates="None" name="startVal"/>
         <Param val="duration (s)" valType="str" updates="None" name="stopType"/>
         <Param val="2" valType="code" updates="constant" name="stopVal"/>
@@ -253,7 +253,7 @@
         <Param val="2" valType="num" updates="constant" name="sf"/>
         <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
         <Param val="3.1" valType="code" updates="None" name="startEstim"/>
-        <Param val="time (s)" valType="str" updates="None" name="startType"/>
+        <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti + maskOnset" valType="code" updates="None" name="startVal"/>
         <Param val="duration (s)" valType="str" updates="None" name="stopType"/>
         <Param val="2" valType="code" updates="constant" name="stopVal"/>
@@ -281,7 +281,7 @@
         <Param val="2" valType="num" updates="constant" name="sf"/>
         <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
         <Param val="3.1" valType="code" updates="None" name="startEstim"/>
-        <Param val="time (s)" valType="str" updates="None" name="startType"/>
+        <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti + maskOnset" valType="code" updates="None" name="startVal"/>
         <Param val="duration (s)" valType="str" updates="None" name="stopType"/>
         <Param val="2" valType="code" updates="constant" name="stopVal"/>
@@ -300,7 +300,7 @@
       <Param name="endPoints" updates="None" val="[0, 1]" valType="num"/>
       <Param name="isTrials" updates="None" val="True" valType="bool"/>
       <Param name="loopType" updates="None" val="random" valType="str"/>
-      <Param name="nReps" updates="None" val="5" valType="num"/>
+      <Param name="nReps" updates="None" val="150" valType="num"/>
       <Param name="name" updates="None" val="trials" valType="code"/>
       <Param name="random seed" updates="None" val="" valType="code"/>
     </LoopInitiator>
