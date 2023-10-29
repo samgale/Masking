@@ -77,8 +77,8 @@
       <CodeComponent name="code" plugin="None">
         <Param val="" valType="extendedCode" updates="constant" name="Before Experiment"/>
         <Param val="" valType="extendedCode" updates="constant" name="Before JS Experiment"/>
-        <Param val="iti = 0&amp;#10;minIti = 180&amp;#10;maxIti = 300&amp;#10;feedback = ''" valType="extendedCode" updates="constant" name="Begin Experiment"/>
-        <Param val="iti = 0;&amp;#10;minIti = 180;&amp;#10;maxIti = 300;&amp;#10;feedback = &quot;&quot;;&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Experiment"/>
+        <Param val="iti = 0&amp;#10;minIti = 180&amp;#10;maxIti = 300&amp;#10;targetSize = 0.04&amp;#10;feedback = ''" valType="extendedCode" updates="constant" name="Begin Experiment"/>
+        <Param val="iti = 0;&amp;#10;minIti = 180;&amp;#10;maxIti = 300;&amp;#10;targetSize = 0.04;&amp;#10;feedback = &quot;&quot;;&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Experiment"/>
         <Param val="iti = (minIti + ((maxIti - minIti) * Math.random()));&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Routine"/>
         <Param val="iti = minIti + (maxIti - minIti) * random()" valType="extendedCode" updates="constant" name="Begin Routine"/>
         <Param val="Auto-&gt;JS" valType="str" updates="None" name="Code Type"/>
@@ -113,7 +113,7 @@
         <Param val="1" valType="code" updates="constant" name="stopVal"/>
         <Param val="True" valType="bool" updates="None" name="syncScreenRefresh"/>
         <Param val="$feedback" valType="str" updates="set every repeat" name="text"/>
-        <Param val="norm" valType="str" updates="None" name="units"/>
+        <Param val="from exp settings" valType="str" updates="None" name="units"/>
         <Param val="" valType="num" updates="constant" name="wrapWidth"/>
       </TextComponent>
       <RoutineSettingsComponent name="trial" plugin="None">
@@ -167,7 +167,7 @@
         <Param val="(targetPosition, 0)" valType="list" updates="set every repeat" name="pos"/>
         <Param val="True" valType="bool" updates="None" name="saveStartStop"/>
         <Param val="2" valType="num" updates="constant" name="sf"/>
-        <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
+        <Param val="targetSize" valType="list" updates="constant" name="size"/>
         <Param val="3" valType="code" updates="None" name="startEstim"/>
         <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti" valType="code" updates="None" name="startVal"/>
@@ -176,7 +176,7 @@
         <Param val="True" valType="bool" updates="None" name="syncScreenRefresh"/>
         <Param val="sqr" valType="file" updates="constant" name="tex"/>
         <Param val="128" valType="num" updates="constant" name="texture resolution"/>
-        <Param val="norm" valType="str" updates="None" name="units"/>
+        <Param val="from exp settings" valType="str" updates="None" name="units"/>
       </GratingComponent>
       <GratingComponent name="maskLeftVert" plugin="None">
         <Param val="center" valType="str" updates="constant" name="anchor"/>
@@ -195,7 +195,7 @@
         <Param val="(-0.5, 0)" valType="list" updates="constant" name="pos"/>
         <Param val="True" valType="bool" updates="None" name="saveStartStop"/>
         <Param val="2" valType="num" updates="constant" name="sf"/>
-        <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
+        <Param val="targetSize" valType="list" updates="constant" name="size"/>
         <Param val="3.1" valType="code" updates="None" name="startEstim"/>
         <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti + maskOnset" valType="code" updates="None" name="startVal"/>
@@ -204,7 +204,7 @@
         <Param val="True" valType="bool" updates="None" name="syncScreenRefresh"/>
         <Param val="sqr" valType="file" updates="constant" name="tex"/>
         <Param val="128" valType="num" updates="constant" name="texture resolution"/>
-        <Param val="norm" valType="str" updates="None" name="units"/>
+        <Param val="from exp settings" valType="str" updates="None" name="units"/>
       </GratingComponent>
       <GratingComponent name="maskLeftHorz" plugin="None">
         <Param val="center" valType="str" updates="constant" name="anchor"/>
@@ -223,7 +223,7 @@
         <Param val="(-0.5, 0)" valType="list" updates="constant" name="pos"/>
         <Param val="True" valType="bool" updates="None" name="saveStartStop"/>
         <Param val="2" valType="num" updates="constant" name="sf"/>
-        <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
+        <Param val="targetSize" valType="list" updates="constant" name="size"/>
         <Param val="3.1" valType="code" updates="None" name="startEstim"/>
         <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti + maskOnset" valType="code" updates="None" name="startVal"/>
@@ -232,7 +232,7 @@
         <Param val="True" valType="bool" updates="None" name="syncScreenRefresh"/>
         <Param val="sqr" valType="file" updates="constant" name="tex"/>
         <Param val="128" valType="num" updates="constant" name="texture resolution"/>
-        <Param val="norm" valType="str" updates="None" name="units"/>
+        <Param val="from exp settings" valType="str" updates="None" name="units"/>
       </GratingComponent>
       <GratingComponent name="maskRightVert" plugin="None">
         <Param val="center" valType="str" updates="constant" name="anchor"/>
@@ -251,7 +251,7 @@
         <Param val="(0.5, 0)" valType="list" updates="constant" name="pos"/>
         <Param val="True" valType="bool" updates="None" name="saveStartStop"/>
         <Param val="2" valType="num" updates="constant" name="sf"/>
-        <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
+        <Param val="targetSize" valType="list" updates="constant" name="size"/>
         <Param val="3.1" valType="code" updates="None" name="startEstim"/>
         <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti + maskOnset" valType="code" updates="None" name="startVal"/>
@@ -260,7 +260,7 @@
         <Param val="True" valType="bool" updates="None" name="syncScreenRefresh"/>
         <Param val="sqr" valType="file" updates="constant" name="tex"/>
         <Param val="128" valType="num" updates="constant" name="texture resolution"/>
-        <Param val="norm" valType="str" updates="None" name="units"/>
+        <Param val="from exp settings" valType="str" updates="None" name="units"/>
       </GratingComponent>
       <GratingComponent name="maskRightHorz" plugin="None">
         <Param val="center" valType="str" updates="constant" name="anchor"/>
@@ -279,7 +279,7 @@
         <Param val="(0.5, 0)" valType="list" updates="constant" name="pos"/>
         <Param val="True" valType="bool" updates="None" name="saveStartStop"/>
         <Param val="2" valType="num" updates="constant" name="sf"/>
-        <Param val="(0.1, 0.1)" valType="list" updates="constant" name="size"/>
+        <Param val="targetSize" valType="list" updates="constant" name="size"/>
         <Param val="3.1" valType="code" updates="None" name="startEstim"/>
         <Param val="frame N" valType="str" updates="None" name="startType"/>
         <Param val="$iti + maskOnset" valType="code" updates="None" name="startVal"/>
@@ -288,7 +288,7 @@
         <Param val="True" valType="bool" updates="None" name="syncScreenRefresh"/>
         <Param val="sqr" valType="file" updates="constant" name="tex"/>
         <Param val="128" valType="num" updates="constant" name="texture resolution"/>
-        <Param val="norm" valType="str" updates="None" name="units"/>
+        <Param val="from exp settings" valType="str" updates="None" name="units"/>
       </GratingComponent>
     </Routine>
   </Routines>
